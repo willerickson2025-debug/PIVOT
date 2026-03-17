@@ -36,22 +36,10 @@ nav {
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  gap: 0;
 }
 nav.scrolled {
   background: rgba(0,0,0,0.95);
   border-bottom: 1px solid var(--border);
-}
-.nav-logo {
-  display: flex;
-  align-items: center;
-  padding: 0 40px;
-  font-size: 28px;
-  letter-spacing: 14px;
-  color: var(--white);
-  cursor: pointer;
-  white-space: nowrap;
-  font-weight: 700;
 }
 .nav-tabs { display: flex; align-items: stretch; height: 64px; }
 .nav-tab {
@@ -98,7 +86,8 @@ nav.scrolled {
   width: 100%; height: 100%;
   object-fit: cover;
   z-index: 0;
-  opacity: 0.35;
+  opacity: 0.45;
+  filter: grayscale(100%) contrast(1.1);
 }
 .home-overlay {
   position: absolute;
@@ -118,6 +107,109 @@ nav.scrolled {
   font-weight: 700;
   line-height: 1;
   text-indent: 24px;
+}
+
+/* ── MODAL ── */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.88);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  backdrop-filter: blur(4px);
+}
+.modal {
+  background: var(--black);
+  border: 2px solid var(--white);
+  width: 100%;
+  max-width: 1100px;
+  max-height: 85vh;
+  overflow-y: auto;
+  position: relative;
+}
+.modal-header {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  padding: 28px 32px;
+  border-bottom: 2px solid var(--white);
+  position: sticky;
+  top: 0;
+  background: var(--black);
+  z-index: 10;
+}
+.modal-team {
+  display: flex;
+  flex-direction: column;
+}
+.modal-team.home { text-align: right; }
+.modal-team-city { font-size: 9px; letter-spacing: 3px; color: #555; margin-bottom: 4px; }
+.modal-team-name { font-size: 28px; letter-spacing: 2px; line-height: 1; }
+.modal-team-abbr { font-size: 9px; letter-spacing: 3px; color: #444; margin-top: 4px; }
+.modal-score-center { text-align: center; }
+.modal-score-big { font-size: 48px; letter-spacing: 3px; color: var(--green); text-shadow: 0 0 20px rgba(0,255,65,.3); line-height: 1; }
+.modal-score-vs { font-size: 11px; letter-spacing: 4px; color: #333; }
+.modal-status { font-size: 9px; letter-spacing: 3px; color: var(--green); margin-top: 6px; }
+.modal-close {
+  position: absolute;
+  top: 20px; right: 24px;
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--white);
+  font-size: 16px;
+  width: 32px; height: 32px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.1s;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-weight: 700;
+}
+.modal-close:hover { background: var(--white); color: var(--black); }
+.modal-body { padding: 0; }
+.modal-tabs { display: flex; border-bottom: 1px solid var(--border); }
+.modal-tab {
+  padding: 14px 28px;
+  font-size: 10px;
+  letter-spacing: 3px;
+  color: #555;
+  cursor: pointer;
+  border: none;
+  background: none;
+  border-right: 1px solid var(--border);
+  border-bottom: 2px solid transparent;
+  transition: all 0.1s;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.modal-tab:hover { color: var(--white); }
+.modal-tab.active { color: var(--green); border-bottom-color: var(--green); }
+.box-score { padding: 24px 32px; }
+.box-team-label { font-size: 9px; letter-spacing: 4px; color: var(--green); margin-bottom: 12px; margin-top: 24px; }
+.box-table { width: 100%; border-collapse: collapse; }
+.box-table th {
+  font-size: 8px; letter-spacing: 3px; color: #444;
+  padding: 8px 10px; text-align: right;
+  border-bottom: 1px solid var(--border);
+}
+.box-table th:first-child { text-align: left; }
+.box-table td {
+  font-size: 11px; letter-spacing: 1px; color: var(--white);
+  padding: 10px 10px; text-align: right;
+  border-bottom: 1px solid #141414;
+  font-weight: 400;
+}
+.box-table td:first-child { text-align: left; font-weight: 700; font-size: 12px; }
+.box-table tr:hover td { background: var(--grey); }
+.box-pts { color: var(--green) !important; font-weight: 700 !important; font-size: 13px !important; }
+.live-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 8px; letter-spacing: 3px; color: var(--green);
+  border: 1px solid var(--green); padding: 3px 8px;
+  animation: blink 1s infinite;
 }
 
 /* ── TICKER ── */
@@ -415,7 +507,7 @@ function Ticker() {
     'PIVOT — NBA INTELLIGENCE PLATFORM',
     'TODAY\'S SLATE NOW LOADING',
     'GAMES · ANALYSIS · PLAYERS',
-    'POWERED BY CLAUDE AI',
+    'POWERED BY PIVOT',
   ];
 
   const display = items.length ? items : fallback;
@@ -458,22 +550,163 @@ function Home({ setTab }) {
   );
 }
 
-function getYesterday() { const d = new Date(); d.setDate(d.getDate()-1); return d.toISOString().split('T')[0]; }
-function getTomorrow()  { const d = new Date(); d.setDate(d.getDate()+1); return d.toISOString().split('T')[0]; }
+// GAME MODAL
+function GameModal({ game, onClose }) {
+  const [boxScore, setBoxScore] = React.useState(null);
+  const [loading, setLoading] = React.useState(true);
+  const [activeTab, setActiveTab] = React.useState('boxscore');
+  const { label, type } = parseStatus(game.status);
+  const hasScore = game.home_team_score > 0 || game.visitor_team_score > 0;
+
+  React.useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      try {
+        const r = await fetch(`${API}/nba/games/${game.id}/boxscore`);
+        if (r.ok) setBoxScore(await r.json());
+      } catch(e) {}
+      finally { setLoading(false); }
+    };
+    load();
+    // Auto-refresh every 30s if live
+    if (type === 'live') {
+      const interval = setInterval(load, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [game.id]);
+
+  React.useEffect(() => {
+    const handleKey = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, []);
+
+  const StatTable = ({ players, teamName }) => (
+    <div>
+      <div className="box-team-label">{teamName}</div>
+      <table className="box-table">
+        <thead>
+          <tr>
+            <th style={{textAlign:'left', minWidth:160}}>Player</th>
+            <th>MIN</th>
+            <th>PTS</th>
+            <th>REB</th>
+            <th>AST</th>
+            <th>STL</th>
+            <th>BLK</th>
+            <th>FG</th>
+            <th>3P</th>
+            <th>FT</th>
+            <th>TO</th>
+          </tr>
+        </thead>
+        <tbody>
+          {players.map((p, i) => (
+            <tr key={i}>
+              <td>{p.player} <span style={{fontSize:9, color:'#444', marginLeft:6}}>{p.pos}</span></td>
+              <td>{p.min}</td>
+              <td className="box-pts">{p.pts}</td>
+              <td>{p.reb}</td>
+              <td>{p.ast}</td>
+              <td>{p.stl}</td>
+              <td>{p.blk}</td>
+              <td style={{fontSize:10}}>{p.fg}</td>
+              <td style={{fontSize:10}}>{p.fg3}</td>
+              <td style={{fontSize:10}}>{p.ft}</td>
+              <td>{p.to}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+
+  return (
+    <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="modal">
+        <div className="modal-header">
+          <div className="modal-team">
+            <div className="modal-team-city">{game.visitor_team.city}</div>
+            <div className="modal-team-name">{game.visitor_team.name.split(' ').pop()}</div>
+            <div className="modal-team-abbr">{game.visitor_team.abbreviation}</div>
+          </div>
+          <div className="modal-score-center">
+            {hasScore
+              ? <div className="modal-score-big">{game.visitor_team_score} — {game.home_team_score}</div>
+              : <div className="modal-score-vs">VS</div>
+            }
+            <div className="modal-status">
+              {type === 'live' ? <span className="live-badge">● LIVE</span> : label}
+            </div>
+          </div>
+          <div className="modal-team home">
+            <div className="modal-team-city">{game.home_team.city}</div>
+            <div className="modal-team-name">{game.home_team.name.split(' ').pop()}</div>
+            <div className="modal-team-abbr">{game.home_team.abbreviation}</div>
+          </div>
+          <button className="modal-close" onClick={onClose}>✕</button>
+        </div>
+
+        <div className="modal-body">
+          <div className="modal-tabs">
+            <button className={`modal-tab ${activeTab==='boxscore'?'active':''}`} onClick={() => setActiveTab('boxscore')}>Box Score</button>
+            <button className={`modal-tab ${activeTab==='info'?'active':''}`} onClick={() => setActiveTab('info')}>Game Info</button>
+          </div>
+
+          {activeTab === 'boxscore' && (
+            <div className="box-score">
+              {loading && <Loader label="Loading Box Score"/>}
+              {!loading && (!boxScore || boxScore.total_players === 0) && (
+                <div style={{padding:'40px', fontSize:10, letterSpacing:4, color:'#333', textAlign:'center'}}>
+                  Box Score Not Available — Game May Not Have Started
+                </div>
+              )}
+              {!loading && boxScore && boxScore.total_players > 0 && (
+                <>
+                  <StatTable players={boxScore.away_players || []} teamName={`${game.visitor_team.city} ${game.visitor_team.name} (Away)`} />
+                  <StatTable players={boxScore.home_players || []} teamName={`${game.home_team.city} ${game.home_team.name} (Home)`} />
+                </>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'info' && (
+            <div style={{padding:'32px 40px'}}>
+              {[
+                {k:'Home Team', v:`${game.home_team.city} ${game.home_team.name}`},
+                {k:'Away Team', v:`${game.visitor_team.city} ${game.visitor_team.name}`},
+                {k:'Conference Matchup', v:`${game.home_team.conference} vs ${game.visitor_team.conference}`},
+                {k:'Division Matchup', v:`${game.home_team.division} vs ${game.visitor_team.division}`},
+                {k:'Date', v:game.date},
+                {k:'Status', v:label},
+                {k:'Game ID', v:game.id},
+              ].map(row => (
+                <div key={row.k} style={{display:'flex', borderBottom:'1px solid var(--border)', padding:'14px 0', gap:32}}>
+                  <div style={{fontSize:9, letterSpacing:3, color:'#444', width:180, flexShrink:0}}>{row.k}</div>
+                  <div style={{fontSize:12, letterSpacing:2}}>{row.v}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // GAMES
 function Games() {
   const [games, setGames] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState(null);
-  const [date, setDate] = React.useState('');
-  const [sel, setSel] = React.useState(null);
+  const [selectedGame, setSelectedGame] = React.useState(null);
   const today = new Date().toISOString().split('T')[0];
 
   const fetch_ = async (d) => {
     setLoading(true); setError(null);
     try {
-      const r = await fetch(`${API}/nba/games?date=${d || today}`);
+      const ts = Date.now();
+      const r = await fetch(`${API}/nba/games?date=${d || today}&_=${ts}`);
       if (!r.ok) throw new Error(await r.text());
       const data = await r.json();
       setGames(data.games || []);
@@ -481,7 +714,16 @@ function Games() {
     finally { setLoading(false); }
   };
 
-  React.useEffect(() => { fetch_(); }, []);
+  React.useEffect(() => {
+    fetch_();
+    const interval = setInterval(() => fetch_(today), 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const hasLive = games.some(g => {
+    const l = g.status?.toLowerCase() || '';
+    return l.includes('qtr') || l.includes('half') || l === 'in progress';
+  });
 
   return (
     <div>
@@ -489,42 +731,54 @@ function Games() {
         <button className="tb-btn" onClick={() => fetch_(today)}>Today</button>
         <button className="tb-btn" onClick={() => fetch_(getYesterday())}>Yesterday</button>
         <button className="tb-btn" onClick={() => fetch_(getTomorrow())}>Tomorrow</button>
-        {games.length > 0 && <div className="tb-info">{games.length} Games</div>}
+        {games.length > 0 && <div className="tb-info">{games.length} Games{hasLive ? ' · LIVE' : ''}</div>}
+        {hasLive && <div className="tb-info" style={{color:'var(--green)', animation:'blink 1.5s infinite'}}>AUTO-REFRESH ON</div>}
       </div>
       {error && <div className="err">{error}</div>}
-      {loading && <Loader label="Fetching Games"/>}
-      {!loading && (
-        <div className="g-grid">
-          {games.map(g => {
-            const { label, type } = parseStatus(g.status);
-            const hasScore = g.home_team_score > 0 || g.visitor_team_score > 0;
-            return (
-              <div key={g.id} className={`g-card ${sel?.id === g.id ? 'sel' : ''}`} onClick={() => setSel(sel?.id === g.id ? null : g)}>
-                <div className="g-time">{label}</div>
-                <div className="g-matchup">
-                  <div className="g-team-a">
-                    <div className="g-city">{g.visitor_team.city}</div>
-                    <div className="g-name">{g.visitor_team.name.split(' ').pop()}</div>
-                    <div className="g-abbr">{g.visitor_team.abbreviation}</div>
-                  </div>
-                  <div>
-                    {hasScore
-                      ? <div className="g-score">{g.visitor_team_score}—{g.home_team_score}</div>
-                      : <div className="g-vs">VS</div>
-                    }
-                  </div>
-                  <div className="g-team-h">
-                    <div className="g-city">{g.home_team.city}</div>
-                    <div className="g-name">{g.home_team.name.split(' ').pop()}</div>
-                    <div className="g-abbr">{g.home_team.abbreviation}</div>
-                  </div>
-                </div>
-                <span className={`g-badge ${type}`}>{label}</span>
+      {loading && games.length === 0 && <Loader label="Fetching Games"/>}
+      {!loading && games.length === 0 && !error && <div className="empty">No Games Found</div>}
+      <div className="g-grid">
+        {games.map(g => {
+          const { label, type } = parseStatus(g.status);
+          const hasScore = g.home_team_score > 0 || g.visitor_team_score > 0;
+          return (
+            <div key={g.id} className={`g-card`} onClick={() => setSelectedGame(g)}
+              style={{cursor:'pointer'}}>
+              <div className="g-time">
+                {type === 'live'
+                  ? <span className="live-badge">● LIVE</span>
+                  : label
+                }
               </div>
-            );
-          })}
-          {!loading && games.length === 0 && <div className="empty">No Games Found</div>}
-        </div>
+              <div className="g-matchup">
+                <div className="g-team-a">
+                  <div className="g-city">{g.visitor_team.city}</div>
+                  <div className="g-name">{g.visitor_team.name.split(' ').pop()}</div>
+                  <div className="g-abbr">{g.visitor_team.abbreviation}</div>
+                </div>
+                <div>
+                  {hasScore
+                    ? <div className="g-score">{g.visitor_team_score}—{g.home_team_score}</div>
+                    : <div className="g-vs">VS</div>
+                  }
+                </div>
+                <div className="g-team-h">
+                  <div className="g-city">{g.home_team.city}</div>
+                  <div className="g-name">{g.home_team.name.split(' ').pop()}</div>
+                  <div className="g-abbr">{g.home_team.abbreviation}</div>
+                </div>
+              </div>
+              <div style={{display:'flex', alignItems:'center', justifyContent:'space-between'}}>
+                <span className={`g-badge ${type}`}>{label}</span>
+                <span style={{fontSize:9, letterSpacing:2, color:'#333'}}>CLICK FOR BOX SCORE →</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {selectedGame && (
+        <GameModal game={selectedGame} onClose={() => setSelectedGame(null)} />
       )}
     </div>
   );
@@ -535,12 +789,12 @@ function Analysis() {
   const [result, setResult] = React.useState(null);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState(null);
-  const [date, setDate] = React.useState('');
+  const today = new Date().toISOString().split('T')[0];
 
-  const run = async () => {
+  const run = async (d) => {
     setLoading(true); setError(null);
     try {
-      const r = await fetch(`${API}/analysis/today-games${date ? `?date=${date}` : ''}`);
+      const r = await fetch(`${API}/analysis/today-games${d ? `?date=${d}` : ''}`);
       if (!r.ok) throw new Error(await r.text());
       setResult(await r.json());
     } catch(e) { setError(e.message); }
@@ -550,59 +804,38 @@ function Analysis() {
   return (
     <div>
       <div className="toolbar">
-        <div className="tb-info" style={{marginLeft:0, borderRight:'1px solid var(--border)', borderLeft:'none'}}>AI Analysis</div>
+        <button className="tb-btn" onClick={() => run(null)}>Analyze Today</button>
+        <button className="tb-btn" onClick={() => run(getYesterday())}>Yesterday</button>
+        <button className="tb-btn" onClick={() => run(getTomorrow())}>Tomorrow</button>
+        {result && <div className="tb-info">{result.game_count} Games</div>}
       </div>
-      <div className="a-layout">
-        <div className="a-left">
-          <div className="a-output">
-            {error && <div className="err">{error}</div>}
-            {loading && <Loader label="Claude Analyzing"/>}
-            {!loading && !result && !error && (
-              <div className="a-empty">
-                <div className="a-empty-icon">◈</div>
-                <div className="a-empty-label">Set a Date and Run Analysis</div>
-              </div>
-            )}
-            {!loading && result && (
-              <>
-                <div style={{fontSize:8, letterSpacing:4, color:'#444', marginBottom:24}}>
-                  {result.game_count} Games Analyzed
-                </div>
-                <div className="a-text">{result.analysis}</div>
-              </>
-            )}
-          </div>
-          {result && (
-            <div className="a-footer">
-              {[
-                { k: 'Model', v: result.model?.split('-').slice(0,3).join('-').toUpperCase() },
-                { k: 'Tokens', v: result.tokens_used?.toLocaleString() },
-                { k: 'Games', v: result.game_count },
-              ].map(m => (
-                <div key={m.k} className="a-meta">
-                  <div className="a-mk">{m.k}</div>
-                  <div className="a-mv">{m.v}</div>
-                </div>
-              ))}
-            </div>
-          )}
+
+      {error && <div className="err" style={{margin:'24px 40px'}}>{error}</div>}
+
+      {!result && !loading && !error && (
+        <div style={{display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'60vh', gap:20}}>
+          <div style={{fontSize:'clamp(60px,10vw,120px)', letterSpacing:16, color:'var(--white)', lineHeight:1}}>ANALYSIS</div>
+          <div style={{fontSize:11, letterSpacing:6, color:'#333'}}>SELECT A DATE ABOVE TO RUN</div>
         </div>
-        <div className="a-right">
-          <div className="a-right-head">Controls</div>
-          <div className="a-controls">
-            <div>
-              <div className="a-label">Date (Blank = Today)</div>
-              <input className="a-date-input" type="date" value={date} onChange={e => setDate(e.target.value)} />
-            </div>
-            <button className="a-run" onClick={run} disabled={loading}>
-              {loading ? 'Analyzing...' : 'Run Analysis →'}
-            </button>
+      )}
+
+      {loading && (
+        <div style={{display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'60vh', gap:20}}>
+          <div style={{fontSize:11, letterSpacing:6, color:'var(--green)'}}>PIVOT IS ANALYZING</div>
+          <Loader label=""/>
+        </div>
+      )}
+
+      {!loading && result && (
+        <div style={{maxWidth:900, padding:'48px 56px'}}>
+          <div style={{fontSize:10, letterSpacing:5, color:'var(--green)', marginBottom:32}}>
+            {result.game_count} Games · {new Date().toLocaleDateString([], {month:'short', day:'numeric', year:'numeric'}).toUpperCase()}
           </div>
-          <div className="a-hint">
-            Fetches NBA game data for the selected date and sends it to Claude for professional analyst-level breakdown. Returns matchup dynamics, key storylines, and tactical predictions.
+          <div style={{fontSize:15, lineHeight:2.1, letterSpacing:.5, color:'var(--white)', whiteSpace:'pre-wrap', fontWeight:400, textTransform:'none'}}>
+            {result.analysis}
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -687,7 +920,482 @@ function Players() {
   );
 }
 
-// APP
+// ── FRONT OFFICE ─────────────────────────────────────────────────────────────
+function FrontOffice() {
+  const [subTab, setSubTab] = React.useState('trade');
+  const [loading, setLoading] = React.useState(false);
+  const [result, setResult] = React.useState(null);
+  const [error, setError] = React.useState(null);
+
+  // Trade state
+  const [teamA, setTeamA] = React.useState('');
+  const [teamB, setTeamB] = React.useState('');
+  const [teamAGives, setTeamAGives] = React.useState(['']);
+  const [teamBGives, setTeamBGives] = React.useState(['']);
+  const [tradeContext, setTradeContext] = React.useState('');
+
+  // Roster state
+  const [rosterTeam, setRosterTeam] = React.useState('');
+
+  const addItem = (setter, arr) => setter([...arr, '']);
+  const updateItem = (setter, arr, i, val) => { const n=[...arr]; n[i]=val; setter(n); };
+  const removeItem = (setter, arr, i) => setter(arr.filter((_,j)=>j!==i));
+
+  const runTrade = async () => {
+    if (!teamA || !teamB) return;
+    setLoading(true); setError(null); setResult(null);
+    try {
+      const r = await fetch(`${API}/frontoffice/trade`, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          team_a: teamA, team_b: teamB,
+          team_a_gives: teamAGives.filter(Boolean),
+          team_b_gives: teamBGives.filter(Boolean),
+          context: tradeContext
+        })
+      });
+      if (!r.ok) throw new Error(await r.text());
+      setResult(await r.json());
+    } catch(e) { setError(e.message); }
+    finally { setLoading(false); }
+  };
+
+  const runRoster = async () => {
+    if (!rosterTeam) return;
+    setLoading(true); setError(null); setResult(null);
+    try {
+      const r = await fetch(`${API}/frontoffice/roster?team_name=${encodeURIComponent(rosterTeam)}`);
+      if (!r.ok) throw new Error(await r.text());
+      setResult(await r.json());
+    } catch(e) { setError(e.message); }
+    finally { setLoading(false); }
+  };
+
+  const inputStyle = {
+    background:'var(--black)', border:'1px solid var(--border)',
+    color:'var(--white)', fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif',
+    fontWeight:700, fontSize:12, letterSpacing:2, textTransform:'uppercase',
+    padding:'10px 14px', outline:'none', width:'100%', transition:'border-color 0.1s'
+  };
+  const labelStyle = { fontSize:8, letterSpacing:4, color:'#444', marginBottom:6, display:'block' };
+  const addBtn = {
+    background:'none', border:'1px solid var(--border)', color:'#555',
+    fontSize:9, letterSpacing:3, padding:'6px 14px', cursor:'pointer',
+    fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', fontWeight:700,
+    textTransform:'uppercase', marginTop:6, transition:'all 0.1s'
+  };
+
+  return (
+    <div>
+      <div className="toolbar">
+        {[['trade','Trade Finder'],['roster','Roster & Cap']].map(([id,label]) => (
+          <button key={id} className={`tb-btn ${subTab===id?'':''}` } style={subTab===id?{background:'var(--white)',color:'var(--black)'}:{}}
+            onClick={() => { setSubTab(id); setResult(null); setError(null); }}>
+            {label}
+          </button>
+        ))}
+        
+      </div>
+
+      <div style={{display:'grid', gridTemplateColumns: result ? '1fr 520px' : '600px 1fr', minHeight:'calc(100vh - 124px)'}}>
+
+        {/* LEFT — INPUTS */}
+        <div style={{borderRight:'1px solid var(--border)', padding:'40px 48px', overflowY:'auto'}}>
+
+          {subTab === 'trade' && (
+            <div>
+              <div style={{fontSize:'clamp(28px,3vw,48px)', letterSpacing:6, marginBottom:32}}>Trade Finder</div>
+
+              <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:32, marginBottom:32}}>
+                {/* Team A */}
+                <div>
+                  <label style={labelStyle}>Team A</label>
+                  <input style={inputStyle} placeholder="Lakers..." value={teamA} onChange={e=>setTeamA(e.target.value)}/>
+                  <div style={{marginTop:20}}>
+                    <label style={labelStyle}>Team A Sends</label>
+                    {teamAGives.map((item,i) => (
+                      <div key={i} style={{display:'flex', gap:6, marginBottom:6}}>
+                        <input style={{...inputStyle, flex:1}} placeholder="Player or Pick..."
+                          value={item} onChange={e=>updateItem(setTeamAGives, teamAGives, i, e.target.value)}/>
+                        {teamAGives.length > 1 &&
+                          <button style={{...addBtn, padding:'6px 10px', color:'#f33', borderColor:'rgba(255,50,50,.3)'}}
+                            onClick={()=>removeItem(setTeamAGives, teamAGives, i)}>✕</button>}
+                      </div>
+                    ))}
+                    <button style={addBtn} onClick={()=>addItem(setTeamAGives, teamAGives)}>+ Add Player / Pick</button>
+                  </div>
+                </div>
+
+                {/* Team B */}
+                <div>
+                  <label style={labelStyle}>Team B</label>
+                  <input style={inputStyle} placeholder="Celtics..." value={teamB} onChange={e=>setTeamB(e.target.value)}/>
+                  <div style={{marginTop:20}}>
+                    <label style={labelStyle}>Team B Sends</label>
+                    {teamBGives.map((item,i) => (
+                      <div key={i} style={{display:'flex', gap:6, marginBottom:6}}>
+                        <input style={{...inputStyle, flex:1}} placeholder="Player or Pick..."
+                          value={item} onChange={e=>updateItem(setTeamBGives, teamBGives, i, e.target.value)}/>
+                        {teamBGives.length > 1 &&
+                          <button style={{...addBtn, padding:'6px 10px', color:'#f33', borderColor:'rgba(255,50,50,.3)'}}
+                            onClick={()=>removeItem(setTeamBGives, teamBGives, i)}>✕</button>}
+                      </div>
+                    ))}
+                    <button style={addBtn} onClick={()=>addItem(setTeamBGives, teamBGives)}>+ Add Player / Pick</button>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{marginBottom:24}}>
+                <label style={labelStyle}>Additional Context (Optional)</label>
+                <textarea style={{...inputStyle, height:80, resize:'vertical', fontWeight:400, textTransform:'none', fontSize:12}}
+                  placeholder="Cap considerations, injury history, team needs..."
+                  value={tradeContext} onChange={e=>setTradeContext(e.target.value)}/>
+              </div>
+
+              <button onClick={runTrade} disabled={loading || !teamA || !teamB}
+                style={{background:loading?'#222':'var(--green)', border:'none', color:loading?'#444':'var(--black)',
+                  fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', fontWeight:700,
+                  fontSize:12, letterSpacing:4, textTransform:'uppercase', padding:'16px 40px', cursor:'pointer', transition:'all 0.1s'}}>
+                {loading ? 'Analyzing Trade...' : 'Evaluate Trade →'}
+              </button>
+            </div>
+          )}
+
+          {subTab === 'roster' && (
+            <div>
+              <div style={{fontSize:'clamp(28px,3vw,48px)', letterSpacing:6, marginBottom:32}}>Roster & Cap</div>
+              <label style={labelStyle}>Team Name</label>
+              <div style={{display:'flex', gap:0, marginBottom:24}}>
+                <input style={{...inputStyle, flex:1}} placeholder="Lakers, Celtics, Warriors..."
+                  value={rosterTeam} onChange={e=>setRosterTeam(e.target.value)}
+                  onKeyDown={e=>e.key==='Enter'&&runRoster()}/>
+                <button onClick={runRoster} disabled={loading || !rosterTeam}
+                  style={{background:loading?'#222':'var(--green)', border:'none', color:loading?'#444':'var(--black)',
+                    fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', fontWeight:700,
+                    fontSize:11, letterSpacing:3, textTransform:'uppercase', padding:'0 28px', cursor:'pointer'}}>
+                  {loading ? '...' : 'Analyze →'}
+                </button>
+              </div>
+              <div style={{fontSize:10, letterSpacing:3, color:'#333', lineHeight:2}}>
+                Get a full front office breakdown: roster evaluation, cap situation, trade targets, and recommended moves.
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* RIGHT — RESULTS */}
+        <div style={{padding:'40px 48px', overflowY:'auto', background:'var(--grey)'}}>
+          {!result && !loading && !error && (
+            <div style={{display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'50vh', gap:16}}>
+              <div style={{fontSize:40, color:'#1a1a1a'}}>◈</div>
+              <div style={{fontSize:9, letterSpacing:4, color:'#333', textAlign:'center'}}>
+                {subTab==='trade' ? 'Build a Trade and Evaluate' : 'Enter a Team Name and Analyze'}
+              </div>
+            </div>
+          )}
+          {loading && (
+            <div style={{display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'50vh', gap:16}}>
+              <div style={{fontSize:10, letterSpacing:5, color:'var(--green)'}}>FRONT OFFICE AI THINKING</div>
+              <Loader label=""/>
+            </div>
+          )}
+          {error && <div className="err">{error}</div>}
+          {!loading && result && (
+            <>
+              {result.player_stats && Object.keys(result.player_stats).length > 0 && (
+                <div style={{marginBottom:28, padding:'16px 20px', border:'1px solid var(--border)', background:'var(--black)'}}>
+                  <div style={{fontSize:8, letterSpacing:4, color:'#444', marginBottom:12}}>Live Stats Retrieved</div>
+                  {Object.entries(result.player_stats).map(([name, stat]) => (
+                    <div key={name} style={{display:'flex', justifyContent:'space-between', padding:'6px 0', borderBottom:'1px solid #141414', fontSize:11, letterSpacing:1}}>
+                      <span style={{fontWeight:700}}>{name}</span>
+                      <span style={{color:'var(--green)', fontSize:10}}>{stat}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div style={{fontSize:15, lineHeight:2.1, letterSpacing:.5, color:'var(--white)', whiteSpace:'pre-wrap', fontWeight:400, textTransform:'none'}}>
+                {result.analysis}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+// ── COACH MODE ────────────────────────────────────────────────────────────────
+function CoachMode() {
+  const [games, setGames] = React.useState([]);
+  const [selectedGame, setSelectedGame] = React.useState(null);
+  const [myTeam, setMyTeam] = React.useState('');
+  const [situation, setSituation] = React.useState('');
+  const [quarter, setQuarter] = React.useState('4');
+  const [timeRemaining, setTimeRemaining] = React.useState('');
+  const [scoreDiff, setScoreDiff] = React.useState('0');
+  const [mode, setMode] = React.useState('adjust'); // adjust | timeout
+  const [result, setResult] = React.useState(null);
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState(null);
+  const [history, setHistory] = React.useState([]);
+  const [boxScore, setBoxScore] = React.useState(null);
+  const today = new Date().toISOString().split('T')[0];
+
+  React.useEffect(() => {
+    fetch(`${API}/nba/games?date=${today}`)
+      .then(r=>r.ok?r.json():null)
+      .then(d=>setGames(d?.games||[]))
+      .catch(()=>{});
+  }, []);
+
+  React.useEffect(() => {
+    if (!selectedGame) return;
+    fetch(`${API}/nba/games/${selectedGame.id}/boxscore`)
+      .then(r=>r.ok?r.json():null)
+      .then(d=>setBoxScore(d))
+      .catch(()=>{});
+    const { label } = parseStatus(selectedGame.status);
+    const home = selectedGame.home_team;
+    const away = selectedGame.visitor_team;
+    const diff = selectedGame.home_team_score - selectedGame.visitor_team_score;
+    setScoreDiff(String(diff));
+  }, [selectedGame]);
+
+  const run = async () => {
+    setLoading(true); setError(null);
+    try {
+      const endpoint = mode === 'adjust' ? '/coach/adjust' : '/coach/timeout';
+      const body = mode === 'adjust'
+        ? { game_id: selectedGame?.id, situation, my_team: myTeam }
+        : { game_id: selectedGame?.id, my_team: myTeam, score_diff: parseInt(scoreDiff)||0, time_remaining: timeRemaining, quarter: parseInt(quarter)||4, situation };
+      const r = await fetch(`${API}${endpoint}`, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(body)
+      });
+      if (!r.ok) throw new Error(await r.text());
+      const data = await r.json();
+      setResult(data);
+      setHistory(prev => [{...data, mode, timestamp: new Date().toLocaleTimeString(), situation}, ...prev.slice(0,9)]);
+    } catch(e) { setError(e.message); }
+    finally { setLoading(false); }
+  };
+
+  const inputStyle = {
+    background:'#0a0a0a', border:'1px solid var(--border)',
+    color:'var(--white)', fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif',
+    fontWeight:700, fontSize:12, letterSpacing:2, textTransform:'uppercase',
+    padding:'10px 14px', outline:'none', width:'100%', transition:'border-color 0.1s'
+  };
+  const labelStyle = { fontSize:8, letterSpacing:4, color:'#444', marginBottom:6, display:'block' };
+
+  return (
+    <div style={{display:'grid', gridTemplateColumns:'340px 1fr 320px', minHeight:'calc(100vh - 64px)'}}>
+
+      {/* LEFT — GAME SELECT + CONTROLS */}
+      <div style={{borderRight:'2px solid var(--white)', display:'flex', flexDirection:'column', overflowY:'auto'}}>
+        <div style={{padding:'20px', borderBottom:'1px solid var(--border)'}}>
+          <div style={{fontSize:9, letterSpacing:4, color:'#444', marginBottom:12}}>Select Game</div>
+          {games.length === 0 && <div style={{fontSize:9, letterSpacing:3, color:'#333'}}>No games today</div>}
+          {games.map(g => {
+            const { label, type } = parseStatus(g.status);
+            const sel = selectedGame?.id === g.id;
+            return (
+              <div key={g.id}
+                onClick={() => { setSelectedGame(g); setMyTeam(''); }}
+                style={{
+                  padding:'12px 14px', marginBottom:4, cursor:'pointer',
+                  border: sel ? '1px solid var(--green)' : '1px solid var(--border)',
+                  background: sel ? 'rgba(0,255,65,0.05)' : 'var(--black)',
+                  transition:'all 0.1s'
+                }}>
+                <div style={{fontSize:8, letterSpacing:3, color: type==='live' ? 'var(--green)' : '#555', marginBottom:4}}>
+                  {type==='live' ? '● LIVE' : label}
+                </div>
+                <div style={{fontSize:13, letterSpacing:1}}>
+                  {g.visitor_team.abbreviation} @ {g.home_team.abbreviation}
+                </div>
+                {(g.home_team_score > 0 || g.visitor_team_score > 0) && (
+                  <div style={{fontSize:11, color:'var(--green)', letterSpacing:2, marginTop:2}}>
+                    {g.visitor_team_score} — {g.home_team_score}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {selectedGame && (
+          <div style={{padding:'20px', flex:1}}>
+            <div style={{fontSize:9, letterSpacing:4, color:'#444', marginBottom:12}}>My Team</div>
+            <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:4, marginBottom:20}}>
+              {[selectedGame.visitor_team, selectedGame.home_team].map(t => (
+                <button key={t.id}
+                  onClick={() => setMyTeam(t.name)}
+                  style={{
+                    background: myTeam===t.name ? 'var(--green)' : 'var(--black)',
+                    color: myTeam===t.name ? 'var(--black)' : '#555',
+                    border:`1px solid ${myTeam===t.name ? 'var(--green)' : 'var(--border)'}`,
+                    padding:'10px 8px', cursor:'pointer', fontSize:10, letterSpacing:2,
+                    fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', fontWeight:700,
+                    textTransform:'uppercase', transition:'all 0.1s'
+                  }}>
+                  {t.abbreviation}
+                </button>
+              ))}
+            </div>
+
+            <div style={{fontSize:9, letterSpacing:4, color:'#444', marginBottom:8}}>Mode</div>
+            <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:4, marginBottom:20}}>
+              {[['adjust','Adjustment'],['timeout','Draw Play']].map(([id,label]) => (
+                <button key={id} onClick={() => setMode(id)}
+                  style={{
+                    background: mode===id ? 'var(--white)' : 'var(--black)',
+                    color: mode===id ? 'var(--black)' : '#555',
+                    border:`1px solid ${mode===id ? 'var(--white)' : 'var(--border)'}`,
+                    padding:'8px 4px', cursor:'pointer', fontSize:9, letterSpacing:2,
+                    fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', fontWeight:700,
+                    textTransform:'uppercase', transition:'all 0.1s'
+                  }}>
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {mode === 'timeout' && (
+              <div style={{marginBottom:16}}>
+                <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:8}}>
+                  <div>
+                    <label style={labelStyle}>Quarter</label>
+                    <select style={{...inputStyle, cursor:'pointer'}} value={quarter} onChange={e=>setQuarter(e.target.value)}>
+                      {[1,2,3,4,'OT'].map(q=><option key={q} value={q}>Q{q}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Time Left</label>
+                    <input style={inputStyle} placeholder="2:30" value={timeRemaining} onChange={e=>setTimeRemaining(e.target.value)}/>
+                  </div>
+                </div>
+                <label style={labelStyle}>Score Diff (+ = winning)</label>
+                <input style={inputStyle} type="number" placeholder="-4" value={scoreDiff} onChange={e=>setScoreDiff(e.target.value)}/>
+              </div>
+            )}
+
+            <label style={{...labelStyle, marginTop:8}}>Situation</label>
+            <textarea
+              style={{...inputStyle, height:90, resize:'none', fontWeight:400, textTransform:'none', fontSize:12, marginBottom:16}}
+              placeholder={mode==='adjust'
+                ? "Down 8 in the 3rd, their zone is killing our offense..."
+                : "Need a quick 2, they're running man, our PG is hot..."}
+              value={situation} onChange={e=>setSituation(e.target.value)}
+            />
+
+            <button onClick={run} disabled={loading || !myTeam}
+              style={{
+                width:'100%', padding:'14px', fontSize:11, letterSpacing:4,
+                fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', fontWeight:700,
+                textTransform:'uppercase', cursor:'pointer', border:'none', transition:'all 0.1s',
+                background: loading ? '#222' : 'var(--green)',
+                color: loading ? '#444' : 'var(--black)'
+              }}>
+              {loading ? 'Thinking...' : mode==='adjust' ? 'Get Adjustments →' : 'Draw Play →'}
+            </button>
+          </div>
+        )}
+
+        {!selectedGame && (
+          <div style={{padding:'32px 20px', fontSize:9, letterSpacing:3, color:'#333', lineHeight:2}}>
+            Select a game to activate coach mode. Works best with live games. PIVOT reads the live box score and delivers real adjustments based on what's actually happening on the court.
+          </div>
+        )}
+      </div>
+
+      {/* CENTER — RESPONSE */}
+      <div style={{borderRight:'1px solid var(--border)', overflowY:'auto'}}>
+        {!result && !loading && !error && (
+          <div style={{display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'70vh', gap:16}}>
+            <div style={{fontSize:'clamp(40px,6vw,80px)', letterSpacing:12, color:'var(--white)', lineHeight:1, textAlign:'center'}}>COACH<br/>MODE</div>
+            <div style={{fontSize:9, letterSpacing:4, color:'#333', textAlign:'center', maxWidth:300, lineHeight:2}}>
+              Select a game, pick your team, describe the situation, get real-time coaching adjustments from PIVOT
+            </div>
+          </div>
+        )}
+
+        {loading && (
+          <div style={{display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'70vh', gap:16}}>
+            <div style={{fontSize:10, letterSpacing:5, color:'var(--green)'}}>PIVOT IS COACHING</div>
+            <Loader label=""/>
+          </div>
+        )}
+
+        {error && <div className="err" style={{margin:24}}>{error}</div>}
+
+        {!loading && result && (
+          <div style={{padding:'40px 48px'}}>
+            <div style={{display:'flex', gap:12, alignItems:'center', marginBottom:28}}>
+              <div style={{fontSize:9, letterSpacing:4, color:'var(--green)'}}>
+                {result.mode === 'timeout' ? '⊙ PLAY DRAWN' : '⊙ ADJUSTMENTS READY'}
+              </div>
+              <div style={{fontSize:9, letterSpacing:2, color:'#333'}}>{result.my_team}</div>
+            </div>
+            <div style={{fontSize:15, lineHeight:2.2, letterSpacing:.5, color:'var(--white)', whiteSpace:'pre-wrap', fontWeight:400, textTransform:'none'}}>
+              {result.analysis || result.play}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* RIGHT — HISTORY + LIVE BOX */}
+      <div style={{overflowY:'auto', background:'var(--grey)'}}>
+        {selectedGame && boxScore && boxScore.total_players > 0 && (
+          <div style={{borderBottom:'1px solid var(--border)'}}>
+            <div style={{padding:'14px 20px', fontSize:8, letterSpacing:4, color:'#444', borderBottom:'1px solid var(--border)'}}>
+              Live Box — {selectedGame.visitor_team.abbreviation} @ {selectedGame.home_team.abbreviation}
+            </div>
+            <div style={{padding:'0 16px 16px'}}>
+              {['away_players','home_players'].map(key => {
+                const team = key === 'home_players' ? boxScore.home_team : boxScore.away_team;
+                const players = (boxScore[key]||[]).slice(0,6);
+                return (
+                  <div key={key} style={{marginTop:12}}>
+                    <div style={{fontSize:8, letterSpacing:3, color:'var(--green)', marginBottom:6}}>{team?.abbreviation}</div>
+                    {players.map((p,i) => (
+                      <div key={i} style={{display:'flex', justifyContent:'space-between', padding:'5px 0', borderBottom:'1px solid #141414', fontSize:10}}>
+                        <span style={{letterSpacing:1, fontWeight:700, fontSize:11}}>{p.player.split(' ').pop()}</span>
+                        <span style={{color:'var(--green)', letterSpacing:1}}>{p.pts}pt {p.reb}rb {p.ast}as</span>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        <div style={{padding:'16px 20px'}}>
+          <div style={{fontSize:8, letterSpacing:4, color:'#444', marginBottom:12}}>Call History</div>
+          {history.length === 0 && <div style={{fontSize:9, letterSpacing:3, color:'#333'}}>No calls yet this session</div>}
+          {history.map((h,i) => (
+            <div key={i} style={{padding:'12px', marginBottom:6, border:'1px solid var(--border)', background:'var(--black)', cursor:'pointer'}}
+              onClick={() => setResult(h)}>
+              <div style={{display:'flex', justifyContent:'space-between', marginBottom:4}}>
+                <span style={{fontSize:8, letterSpacing:3, color:'var(--green)'}}>{h.mode?.toUpperCase()}</span>
+                <span style={{fontSize:8, letterSpacing:2, color:'#333'}}>{h.timestamp}</span>
+              </div>
+              <div style={{fontSize:10, letterSpacing:1, color:'#888', fontWeight:400, textTransform:'none',
+                overflow:'hidden', whiteSpace:'nowrap', textOverflow:'ellipsis'}}>
+                {h.situation || 'No situation provided'}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── APP ───────────────────────────────────────────────────────────────────────
 function App() {
   const [tab, setTab] = React.useState('home');
   const [scrolled, setScrolled] = React.useState(false);
@@ -703,19 +1411,19 @@ function App() {
   return (
     <>
       <nav className={scrolled || !isHome ? 'scrolled' : ''} style={!isHome ? {background:'var(--black)', borderBottom:'1px solid var(--border)'} : {}}>
-        <div className="nav-logo" onClick={() => setTab('home')}>PIVOT</div>
         <div className="nav-tabs">
-          {[['games','Games'],['analysis','Analysis'],['players','Players']].map(([id,label]) => (
+          {[['games','Games'],['players','Players'],['frontoffice','Front Office'],['coach','Coach Mode']].map(([id,label]) => (
             <button key={id} className={`nav-tab ${tab===id?'active':''}`} onClick={() => setTab(id)}>{label}</button>
           ))}
         </div>
       </nav>
 
       <div style={{paddingTop: isHome ? 0 : 64, paddingBottom: 40}}>
-        {tab==='home'     && <Home setTab={setTab}/>}
-        {tab==='games'    && <Games/>}
-        {tab==='analysis' && <Analysis/>}
-        {tab==='players'  && <Players/>}
+        {tab==='home'        && <Home setTab={setTab}/>}
+        {tab==='games'       && <Games/>}
+        {tab==='players'     && <Players/>}
+        {tab==='frontoffice' && <FrontOffice/>}
+        {tab==='coach'       && <CoachMode/>}
       </div>
 
       <Ticker/>
