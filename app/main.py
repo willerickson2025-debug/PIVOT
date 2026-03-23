@@ -23,7 +23,7 @@ async def root():
     dashboard_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "dashboard.html")
     if os.path.exists(dashboard_path):
         return FileResponse(dashboard_path)
-    return {"app": "PIVOT", "status": "running", "message": "Dashboard not found"}
+    return {"app": "PIVOT", "status": "running", "error": "Dashboard missing", "path_checked": dashboard_path}
 
 @app.get("/health")
 async def health():
