@@ -1,21 +1,11 @@
-from contextlib import asynccontextmanager
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from app.api.routes import router
 from app.core.config import get_settings
-from app.core.http_client import GlobalHTTPClient
 
 settings = get_settings()
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Startup: Initialize the global HTTP client pool
-    await GlobalHTTPClient.start()
-    
-    yield  # The application runs while yielded
-    
-    # Shutdown: Close connections gracefully
-    await GlobalHTTPClient.stop()
 
 app = FastAPI(
     title="PIVOT",
@@ -23,7 +13,6 @@ app = FastAPI(
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
-    lifespan=lifespan,  # <-- Added the lifespan hook here
 )
 
 app.add_middleware(
@@ -39,9 +28,12 @@ app.include_router(router, prefix="/api/v1")
 
 @app.get("/")
 async def root():
-    return {
-        "app": "PIVOT",
-        "status": "running",
-        "docs": "/docs",
-        "environment": settings.environment,
-    }
+    dashboard = os.path.join(os.path.dirname(os.path.dirname(__file__)), "dashboard.html")
+    if os.path.exists(dashboard):
+        return FileResponse(dashboard)
+    return {"app": "PIVOT", "status": "running", "docs": "/docs", "environment": settings.environment}
+
+
+@app.get("/health")
+async def health():
+    return {"status": "ok", "environment": settings.environment, "version": "1.0.0"}
