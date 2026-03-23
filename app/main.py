@@ -9,10 +9,8 @@ settings = get_settings()
 
 app = FastAPI(
     title="PIVOT",
-    description="NBA intelligence platform powered by Claude + BallDontLie",
+    description="NBA intelligence platform",
     version="1.0.0",
-    docs_url="/docs",
-    redoc_url="/redoc",
 )
 
 app.add_middleware(
@@ -27,11 +25,12 @@ app.include_router(router, prefix="/api/v1")
 
 @app.get("/")
 async def root():
-    dashboard = os.path.join(os.path.dirname(os.path.dirname(__file__)), "dashboard.html")
-    if os.path.exists(dashboard):
-        return FileResponse(dashboard)
-    return {"app": "PIVOT", "status": "running", "docs": "/docs", "environment": settings.environment}
+    # Serve your dashboard.html at the root so https://your-app.up.railway.app shows the full site
+    dashboard_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "dashboard.html")
+    if os.path.exists(dashboard_path):
+        return FileResponse(dashboard_path)
+    return {"status": "running", "message": "Dashboard not found"}
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "environment": settings.environment, "version": "1.0.0"}
+    return {"status": "ok", "environment": settings.environment}
