@@ -20,11 +20,10 @@ app.include_router(router, prefix="/api/v1")
 
 @app.get("/")
 async def root():
-    # Serve the dashboard at the main URL
     dashboard_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "dashboard.html")
     if os.path.exists(dashboard_path):
         return FileResponse(dashboard_path)
-    return {"status": "ok", "message": "Dashboard file missing"}
+    return {"status": "running", "message": "Dashboard file not found"}
 
 @app.get("/health")
 async def health():
