@@ -104,6 +104,11 @@ nav.solid {
   align-items: center;
   justify-content: center;
 }
+.home-video {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; z-index: 0; opacity: 0.42;
+  filter: grayscale(100%) contrast(1.1);
+}
 .home-overlay {
   position: absolute; inset: 0; z-index: 1;
   background: radial-gradient(ellipse at center, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.85) 100%);
@@ -179,24 +184,6 @@ nav.solid {
   white-space: nowrap;
 }
 .home-scroll-line { width: 40px; height: 1px; background: #222; }
-.audio-btn {
-  position: fixed;
-  bottom: 52px;
-  right: 20px;
-  z-index: 1100;
-  background: var(--black);
-  border: 1px solid var(--green);
-  color: var(--green);
-  font-size: 9px;
-  letter-spacing: 3px;
-  padding: 8px 14px;
-  cursor: pointer;
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  font-weight: 700;
-  text-transform: uppercase;
-  transition: all 0.15s;
-}
-.audio-btn:hover { background: var(--green); color: var(--black); }
 .features-section {
   position: relative;
   padding: 120px 80px;
@@ -408,7 +395,7 @@ nav.solid {
 ::-webkit-scrollbar-track { background: var(--black); }
 ::-webkit-scrollbar-thumb { background: #2a2a2a; }
 @media print {
-  nav, .ticker, .toolbar, .export-btn, .audio-btn { display: none !important; }
+  nav, .ticker, .toolbar, .export-btn { display: none !important; }
   body { background: white !important; color: black !important; }
   * { color: black !important; border-color: #ccc !important; background: white !important; text-shadow: none !important; box-shadow: none !important; }
   .home-wrap { display: none !important; }
@@ -479,23 +466,6 @@ function Ticker() {
 }
 
 function Home({ onNavigate }) {
-  const audioRef = React.useRef(null);
-  const [muted, setMuted] = React.useState(false);
-
-  React.useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.volume = 0.35;
-      audioRef.current.play().catch(() => {});
-    }
-  }, []);
-
-  const toggleMute = () => {
-    if (audioRef.current) {
-      audioRef.current.muted = !muted;
-      setMuted(!muted);
-    }
-  };
-
   const FEATURES = [
     { num:'01', name:'Live Game Engine', desc:'Real-time scores, box scores, and live stat feeds from every NBA game. Auto-refreshes every 30 seconds.', stat:'30s', statLabel:'Refresh Rate' },
     { num:'02', name:'AI Analysis', desc:'Claude-powered breakdowns of every matchup, player performance, and game slate. No filler. Just insight.', stat:'Live', statLabel:'AI Powered' },
@@ -507,10 +477,10 @@ function Home({ onNavigate }) {
 
   return (
     <div>
-      <audio ref={audioRef} src="bg.mp3" loop preload="auto"/>
-      <button className="audio-btn" onClick={toggleMute}>{muted ? '\u25B6 SOUND ON' : '\u25A0 MUTE'}</button>
-
       <div className="home-wrap">
+        <video className="home-video"
+          src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260309_042944_4a2205b7-b061-490a-852b-92d9e9955ce9.mp4"
+          autoPlay loop muted playsInline/>
         <div className="home-overlay"/>
         <div className="home-grid-overlay"/>
         <div className="home-hero">
@@ -887,7 +857,6 @@ function Players() {
           {loading ? '...' : 'Search \u2192'}
         </button>
       </div>
-
       {!loading && !result && !error && (
         <div style={{display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'60vh', gap:20}}>
           <div style={{fontSize:'clamp(60px,10vw,120px)', letterSpacing:16, color:'var(--white)', lineHeight:1, textAlign:'center'}}>PLAYERS</div>
@@ -901,7 +870,6 @@ function Players() {
         </div>
       )}
       {error && <div className="err" style={{margin:'24px 40px'}}>{error}</div>}
-
       {!loading && result && !result.error && (
         <div style={{padding:'40px 56px', maxWidth:1300}}>
           <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:6}}>
