@@ -1,14 +1,33 @@
+from __future__ import annotations
+
 import os
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+
 from app.api.routes import router
 from app.core.config import get_settings
+from app.core.http_client import GlobalHTTPClient
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await GlobalHTTPClient.start()
+    yield
+    await GlobalHTTPClient.stop()
+
 
 settings = get_settings()
-app = FastAPI(title="PIVOT", version="1.0.0")
+app = FastAPI(title="PIVOT", version="1.0.0", lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 app.include_router(router, prefix="/api/v1")
+
+_root = os.path.dirname(os.path.dirname(__file__))
+app.mount("/static", StaticFiles(directory=_root), name="static")
+
 
 @app.get("/")
 async def root():
@@ -16,6 +35,7 @@ async def root():
     if os.path.exists(path):
         return FileResponse(path)
     return {"status": "running", "error": "dashboard.html not found", "looked_at": path}
+
 
 @app.get("/health")
 async def health():

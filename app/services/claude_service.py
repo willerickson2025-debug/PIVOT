@@ -17,6 +17,7 @@ Anthropic SDK. All other services call ``analyze()`` and receive an
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Optional
 
@@ -40,29 +41,12 @@ logger = logging.getLogger(__name__)
 # without explanation).
 _EMPTY_RESPONSE_SENTINEL = "[No text content returned by model]"
 
+# Status codes that indicate a transient server-side condition worth retrying.
+# 429 = rate limited, 529 = Anthropic overloaded.
+_RETRYABLE_STATUS_CODES: frozenset[int] = frozenset({429, 529})
 
-# ---------------------------------------------------------------------------
-# Client Factory
-# ---------------------------------------------------------------------------
-
-def _get_async_client() -> anthropic.AsyncAnthropic:
-    """
-    Instantiate a configured ``AsyncAnthropic`` client.
-
-    We construct a fresh client per call rather than caching a module-level
-    singleton. This trades a tiny amount of object-construction overhead for:
-
-    - Guaranteed settings freshness (settings can be reloaded at runtime)
-    - No shared state between concurrent requests (each request gets its own
-      client with its own connection pool, preventing connection leaks)
-    - Simpler test isolation (no need to monkey-patch module globals)
-
-    The Anthropic SDK's ``AsyncAnthropic`` is safe for concurrent use, but
-    sharing a single instance across the lifetime of a long-running process
-    can lead to connection pool exhaustion under high load.
-    """
-    settings = get_settings()
-    return anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
+_MAX_RETRIES: int = 3
+_RETRY_BACKOFF_BASE: float = 1.0   # seconds; doubled each attempt
 
 
 # ---------------------------------------------------------------------------
@@ -157,6 +141,7 @@ async def analyze(
     settings = get_settings()
     model = override_model or settings.claude_model
     max_tokens = override_max_tokens or settings.claude_max_tokens
+    api_key: str = settings.anthropic_api_key
 
     logger.info(
         "Claude request | model=%s max_tokens=%d prompt_chars=%d system_chars=%d",
@@ -175,26 +160,32 @@ async def analyze(
     if system_prompt:
         request_kwargs["system"] = system_prompt
 
-    try:
-        client = _get_async_client()
-        message = await client.messages.create(**request_kwargs)
+    for attempt in range(1, _MAX_RETRIES + 1):
+        try:
+            async with anthropic.AsyncAnthropic(api_key=api_key) as client:
+                message = await client.messages.create(**request_kwargs)
+            break  # success — exit retry loop
 
-    except anthropic.APIStatusError as exc:
-        logger.error(
-            "Claude API status error | model=%s status=%d message=%s",
-            model,
-            exc.status_code,
-            exc.message,
-        )
-        raise
+        except anthropic.APIStatusError as exc:
+            logger.error(
+                "Claude API status error | model=%s status=%d message=%s attempt=%d",
+                model, exc.status_code, exc.message, attempt,
+            )
+            if exc.status_code not in _RETRYABLE_STATUS_CODES or attempt == _MAX_RETRIES:
+                raise
+            await asyncio.sleep(_RETRY_BACKOFF_BASE * 2 ** (attempt - 1))
 
-    except anthropic.APIConnectionError as exc:
-        logger.error("Claude API connection error | model=%s error=%s", model, exc)
-        raise
+        except anthropic.APIConnectionError as exc:
+            logger.error("Claude API connection error | model=%s error=%s attempt=%d", model, exc, attempt)
+            if attempt == _MAX_RETRIES:
+                raise
+            await asyncio.sleep(_RETRY_BACKOFF_BASE * 2 ** (attempt - 1))
 
-    except anthropic.APITimeoutError as exc:
-        logger.error("Claude API timeout | model=%s", model)
-        raise
+        except anthropic.APITimeoutError as exc:
+            logger.error("Claude API timeout | model=%s attempt=%d", model, attempt)
+            if attempt == _MAX_RETRIES:
+                raise
+            await asyncio.sleep(_RETRY_BACKOFF_BASE * 2 ** (attempt - 1))
 
     # -----------------------------------------------------------------------
     # Response normalisation

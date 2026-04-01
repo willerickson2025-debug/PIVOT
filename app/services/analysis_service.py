@@ -16,7 +16,7 @@ Anthropic SDK calls (those live in claude_service.py).
 
 from __future__ import annotations
 
-import datetime
+import asyncio
 import logging
 from typing import Any, Optional
 
@@ -408,10 +408,14 @@ async def _build_player_stat_block(player_name: str, season: int) -> tuple[Any, 
         player.id,
     )
 
-    stats = await nba_service.get_player_stats(player.id, season)
-    official = await nba_service.get_season_averages(player.id, season)
+    stats, official = await asyncio.gather(
+        nba_service.get_player_stats(player.id, season),
+        nba_service.get_season_averages(player.id, season),
+    )
 
-    total_games = len(stats)
+    # Prefer game-log count; fall back to what the official averages endpoint
+    # reports when game logs are empty (e.g. partial-season trade, API lag).
+    total_games = len(stats) or int(official.get("games_played") or 0)
 
     # Full-season averages: prefer the official endpoint values; fall back to
     # computing from raw game logs when the season-averages endpoint returns
@@ -549,7 +553,6 @@ async def analyze_today_games(target_date: Optional[str] = None) -> GameAnalysis
         analysis=result.analysis,
         model=result.model,
         tokens_used=result.tokens_used,
-        game_count=len(games),
     )
 
 
@@ -585,13 +588,23 @@ async def analyze_player(
         return {"error": str(exc)}
 
     if agg["total_games"] == 0:
+        result = await claude_service.analyze(
+            prompt=(
+                f"Provide a PIVOT intelligence report on {player.first_name} {player.last_name} "
+                f"for the {season} NBA season. Note if this individual is not currently an active "
+                f"NBA player and offer what is known — career context, current role, or a redirect."
+            ),
+            system_prompt=NBA_ANALYST_SYSTEM_PROMPT,
+        )
         return {
             "player": player.model_dump(),
-            "analysis": (
-                f"No stats found for {player.first_name} {player.last_name} "
-                f"in the {season} season."
-            ),
-            "stats_count": 0,
+            "season": season,
+            "averages": None,
+            "last_10": None,
+            "games_played": 0,
+            "analysis": result.analysis,
+            "model": result.model,
+            "tokens_used": result.tokens_used,
         }
 
     stat_block = _render_stat_block(player, season, agg)
@@ -680,14 +693,20 @@ async def analyze_player_section(
         logger.warning("Player lookup failed | name=%r error=%s", player_name, exc)
         return {"error": str(exc)}
 
-    stat_block = _render_stat_block(player, season, agg)
     section_directive = SECTION_PROMPTS[section]
+
+    if agg["total_games"] > 0:
+        stat_context = f"Player data:\n{_render_stat_block(player, season, agg)}"
+    else:
+        stat_context = (
+            f"Player: {player.first_name} {player.last_name} — "
+            f"no {season} season stats on record."
+        )
 
     prompt = (
         f"{section_directive}\n\n"
-        f"Player data:\n{stat_block}\n\n"
-        f"Go deep. This is a premium product. Use your basketball knowledge "
-        f"beyond just the raw stats provided."
+        f"{stat_context}\n\n"
+        f"Go deep. Use your basketball knowledge beyond just the raw stats provided."
     )
 
     result = await claude_service.analyze(
@@ -912,16 +931,20 @@ async def coach_adjustment(body: dict[str, Any]) -> dict[str, Any]:
     box_available: bool = False
 
     if game_id:
-        # -----------------------------------------------------------------------
-        # Live game context — score, period, differential
-        # -----------------------------------------------------------------------
         try:
-            today = datetime.date.today().isoformat()
-            games = await nba_service.get_games_by_date(today)
-            game = next((g for g in games if g.id == game_id), None)
+            box = await nba_service.get_game_boxscore(game_id)
 
-            if game:
-                period = game.period or 0
+            if box and box.get("total_players", 0) > 0:
+                box_available = True
+                game_info = box.get("game_info") or {}
+                home_t = box.get("home_team") or {}
+                away_t = box.get("away_team") or {}
+
+                home_score = int(game_info.get("home_team_score") or 0)
+                away_score = int(game_info.get("away_team_score") or 0)
+                period = int(game_info.get("period") or 0)
+                clock = game_info.get("time") or ""
+
                 if period == 0:
                     quarter_label = "Pre-game"
                 elif period <= 4:
@@ -930,49 +953,24 @@ async def coach_adjustment(body: dict[str, Any]) -> dict[str, Any]:
                     ot_num = period - 4
                     quarter_label = "OT" if ot_num == 1 else f"OT{ot_num}"
 
-                home = game.home_team
-                away = game.visitor_team
-                home_score = game.home_team_score
-                away_score = game.visitor_team_score
+                home_name = home_t.get("name") or "Home"
+                away_name = away_t.get("name") or "Away"
+                home_abbr = home_t.get("abbreviation") or ""
 
-                is_home = (
-                    my_team.lower() in home.name.lower()
-                    or my_team.lower() in home.city.lower()
-                    or my_team.lower() in home.abbreviation.lower()
-                )
-
+                is_home = my_team.lower() in (home_name + " " + home_abbr).lower()
                 my_score = home_score if is_home else away_score
                 opp_score = away_score if is_home else home_score
                 diff = my_score - opp_score
+                diff_str = f"UP {abs(diff)}" if diff > 0 else f"DOWN {abs(diff)}" if diff < 0 else "TIED"
 
-                if diff > 0:
-                    diff_str = f"UP {abs(diff)}"
-                elif diff < 0:
-                    diff_str = f"DOWN {abs(diff)}"
-                else:
-                    diff_str = "TIED"
-
+                clock_str = f" | Clock: {clock}" if clock else ""
                 game_context = (
-                    f"GAME: {away.city} {away.name} ({away_score}) @ "
-                    f"{home.city} {home.name} ({home_score})\n"
-                    f"PERIOD: {quarter_label} | MY TEAM ({my_team}): {diff_str}\n"
-                    f"STATUS: {game.status}"
+                    f"SCORE: {away_name} {away_score} — {home_score} {home_name}\n"
+                    f"PERIOD: {quarter_label}{clock_str} | MY TEAM ({my_team or home_name}): {diff_str}"
                 )
-        except Exception as exc:
-            logger.warning("Failed to fetch live game context | game_id=%s error=%s", game_id, exc)
-
-        # -----------------------------------------------------------------------
-        # Box score
-        # -----------------------------------------------------------------------
-        try:
-            box = await nba_service.get_game_boxscore(game_id)
-
-            if box and box.get("total_players", 0) > 0:
-                box_available = True
 
                 def _fmt_player_lines(players: list[dict], label: str) -> str:
-                    header = f"\n{label}:"
-                    lines = [header]
+                    lines = [f"\n{label}:"]
                     for p in players[:10]:
                         lines.append(
                             f"  {p['player']} ({p['pos']}): "
@@ -983,15 +981,10 @@ async def coach_adjustment(body: dict[str, Any]) -> dict[str, Any]:
                         )
                     return "\n".join(lines)
 
-                home_t = box.get("home_team") or {}
-                away_t = box.get("away_team") or {}
-                home_label = (home_t.get("name") or "Home") + " (HOME)"
-                away_label = (away_t.get("name") or "Away") + " (AWAY)"
-
                 box_summary = (
                     "FULL BOX SCORE:"
-                    + _fmt_player_lines(box.get("home_players") or [], home_label)
-                    + _fmt_player_lines(box.get("away_players") or [], away_label)
+                    + _fmt_player_lines(box.get("home_players") or [], home_name + " (HOME)")
+                    + _fmt_player_lines(box.get("away_players") or [], away_name + " (AWAY)")
                 )
         except Exception as exc:
             logger.warning("Failed to fetch box score | game_id=%s error=%s", game_id, exc)
@@ -1065,9 +1058,15 @@ async def timeout_play(body: dict[str, Any]) -> dict[str, Any]:
     """
     game_id: Optional[int] = body.get("game_id")
     my_team: str = body.get("my_team") or ""
-    score_diff: int = int(body.get("score_diff") or 0)
+    try:
+        score_diff: int = int(body.get("score_diff") or 0)
+    except (TypeError, ValueError):
+        score_diff = 0
     time_remaining: str = body.get("time_remaining") or ""
-    quarter: int = int(body.get("quarter") or 4)
+    try:
+        quarter: int = int(body.get("quarter") or 4)
+    except (TypeError, ValueError):
+        quarter = 4
     situation: str = body.get("situation") or ""
 
     logger.info(

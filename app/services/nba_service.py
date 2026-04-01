@@ -25,6 +25,7 @@ from zoneinfo import ZoneInfo
 import httpx
 
 from app.core.config import get_settings
+from app.core.http_client import GlobalHTTPClient
 from app.models.schemas import Game, Player, PlayerStats, Team
 
 # ---------------------------------------------------------------------------
@@ -98,15 +99,13 @@ async def _fetch_data(
                 clean_params,
             )
 
-            async with httpx.AsyncClient(
-                base_url=settings.balldontlie_base_url,
+            client = GlobalHTTPClient.get_client()
+            response = await client.get(
+                settings.balldontlie_base_url + endpoint,
+                headers={"Authorization": settings.balldontlie_api_key},
+                params=clean_params,
                 timeout=_REQUEST_TIMEOUT,
-            ) as client:
-                response = await client.get(
-                    endpoint,
-                    headers={"Authorization": settings.balldontlie_api_key},
-                    params=clean_params,
-                )
+            )
 
             response.raise_for_status()
 

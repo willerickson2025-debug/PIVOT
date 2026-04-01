@@ -1,5 +1,6 @@
-from pydantic import BaseModel, Field
-from typing import Optional, List
+from __future__ import annotations
+
+from pydantic import BaseModel, ConfigDict, Field, computed_field
 
 
 # ---------------------------------------------------------------------------
@@ -8,6 +9,8 @@ from typing import Optional, List
 
 class Team(BaseModel):
     """NBA team metadata."""
+    model_config = ConfigDict(frozen=True)
+
     id: int
     name: str
     abbreviation: str
@@ -18,12 +21,14 @@ class Team(BaseModel):
 
 class Game(BaseModel):
     """Represents a single NBA game."""
+    model_config = ConfigDict(frozen=True)
+
     id: int
     date: str
     status: str
 
-    period: Optional[int] = None
-    time: Optional[str] = None
+    period: int | None = None
+    time: str | None = None
 
     home_team: Team
     visitor_team: Team
@@ -34,16 +39,20 @@ class Game(BaseModel):
 
 class Player(BaseModel):
     """Basic player profile."""
+    model_config = ConfigDict(frozen=True)
+
     id: int
     first_name: str
     last_name: str
 
-    position: Optional[str] = None
-    team: Optional[Team] = None
+    position: str | None = None
+    team: Team | None = None
 
 
 class PlayerStats(BaseModel):
     """Per-game statistical line for a player."""
+    model_config = ConfigDict(frozen=True)
+
     player: Player
     game_id: int
 
@@ -53,20 +62,11 @@ class PlayerStats(BaseModel):
     steals: int
     blocks: int
 
-    minutes: Optional[str] = None
+    minutes: str | None = None
 
-    fg_pct: Optional[float] = Field(
-        default=None,
-        description="Field goal percentage"
-    )
-    fg3_pct: Optional[float] = Field(
-        default=None,
-        description="Three-point field goal percentage"
-    )
-    ft_pct: Optional[float] = Field(
-        default=None,
-        description="Free throw percentage"
-    )
+    fg_pct: float | None = Field(default=None, description="Field goal percentage")
+    fg3_pct: float | None = Field(default=None, description="Three-point field goal percentage")
+    ft_pct: float | None = Field(default=None, description="Free throw percentage")
 
 
 # ---------------------------------------------------------------------------
@@ -74,13 +74,15 @@ class PlayerStats(BaseModel):
 # ---------------------------------------------------------------------------
 
 class AnalysisRequest(BaseModel):
-    """Request payload for AI analysis endpoints."""
+    """Request payload for direct Claude analysis endpoints."""
     prompt: str
-    context: Optional[str] = None
+    context: str | None = None
 
 
 class AnalysisResponse(BaseModel):
-    """Standard response from analysis engine."""
+    """Standard response from the Claude analysis layer."""
+    model_config = ConfigDict(frozen=True)
+
     analysis: str
     model: str
     tokens_used: int
@@ -88,13 +90,17 @@ class AnalysisResponse(BaseModel):
 
 class GameAnalysisResponse(BaseModel):
     """Analysis response containing game data."""
-    games: List[Game]
+    model_config = ConfigDict(frozen=True)
 
+    games: list[Game]
     analysis: str
     model: str
     tokens_used: int
 
-    game_count: int
+    @computed_field
+    @property
+    def game_count(self) -> int:
+        return len(self.games)
 
 
 # ---------------------------------------------------------------------------
@@ -103,6 +109,8 @@ class GameAnalysisResponse(BaseModel):
 
 class HealthResponse(BaseModel):
     """Service health check response."""
+    model_config = ConfigDict(frozen=True)
+
     status: str
     environment: str
     version: str = "1.0.0"

@@ -436,7 +436,7 @@ function Ticker() {
         if (!data?.games?.length) return;
         setItems(data.games.map(g => {
           const hasScore = g.home_team_score > 0 || g.visitor_team_score > 0;
-          if (hasScore) return `${g.visitor_team.abbreviation} ${g.visitor_team_score} — ${g.home_team_score} ${g.home_team.abbreviation}`;
+          if (hasScore) return `${g.visitor_team.abbreviation} ${g.visitor_team_score} - ${g.home_team_score} ${g.home_team.abbreviation}`;
           try {
             const d = new Date(g.status);
             const t = isNaN(d) ? g.status : d.toLocaleTimeString([], { hour:'numeric', minute:'2-digit', timeZoneName:'short' });
@@ -466,6 +466,17 @@ function Ticker() {
 }
 
 function Home({ onNavigate }) {
+  const audioRef = React.useRef(null);
+  const [muted, setMuted] = React.useState(true);
+
+  const toggleMute = () => {
+    const a = audioRef.current;
+    if (!a) return;
+    if (a.paused) { a.play().catch(() => {}); }
+    a.muted = !a.muted;
+    setMuted(a.muted);
+  };
+
   const FEATURES = [
     { num:'01', name:'Live Game Engine', desc:'Real-time scores, box scores, and live stat feeds from every NBA game. Auto-refreshes every 30 seconds.', stat:'30s', statLabel:'Refresh Rate' },
     { num:'02', name:'AI Analysis', desc:'Claude-powered breakdowns of every matchup, player performance, and game slate. No filler. Just insight.', stat:'Live', statLabel:'AI Powered' },
@@ -477,6 +488,7 @@ function Home({ onNavigate }) {
   return (
     <div>
       <div className="home-wrap">
+        <audio ref={audioRef} src="/static/bg.mp4" loop muted preload="auto"/>
         <video className="home-video" src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260309_042944_4a2205b7-b061-490a-852b-92d9e9955ce9.mp4" autoPlay loop muted playsInline/>
         <div className="home-overlay"/>
         <div className="home-grid-overlay"/>
@@ -489,6 +501,11 @@ function Home({ onNavigate }) {
           </div>
         </div>
         <div className="home-scroll-hint"><div className="home-scroll-line"/>SCROLL TO EXPLORE</div>
+        <button onClick={toggleMute} style={{position:'absolute', bottom:56, right:32, zIndex:4, background:'rgba(0,0,0,0.6)', border:'1px solid rgba(255,255,255,0.15)', color:'rgba(255,255,255,0.5)', fontSize:9, letterSpacing:3, padding:'8px 16px', cursor:'pointer', fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', fontWeight:700, textTransform:'uppercase', transition:'all 0.15s', backdropFilter:'blur(4px)'}}
+          onMouseEnter={e => e.currentTarget.style.color='var(--white)'}
+          onMouseLeave={e => e.currentTarget.style.color='rgba(255,255,255,0.5)'}>
+          {muted ? 'SOUND ON' : 'SOUND OFF'}
+        </button>
       </div>
       <div className="features-section">
         <div className="features-label">Platform Features</div>
@@ -585,7 +602,7 @@ function GameModal({ game, onClose }) {
             <div className="modal-team-abbr">{game.visitor_team.abbreviation}</div>
           </div>
           <div className="modal-score-center">
-            {hasScore ? <div className="modal-score-big">{game.visitor_team_score} — {game.home_team_score}</div> : <div className="modal-score-vs">VS</div>}
+            {hasScore ? <div className="modal-score-big">{game.visitor_team_score} - {game.home_team_score}</div> : <div className="modal-score-vs">VS</div>}
             <div className="modal-status">{type==='live' ? <span className="live-badge">● LIVE</span> : label}</div>
           </div>
           <div className="modal-team home">
@@ -688,7 +705,7 @@ function Games() {
                   <div className="g-name">{g.visitor_team.name.split(' ').pop()}</div>
                   <div className="g-abbr">{g.visitor_team.abbreviation}</div>
                 </div>
-                <div>{hasScore ? <div className="g-score">{g.visitor_team_score}—{g.home_team_score}</div> : <div className="g-vs">VS</div>}</div>
+                <div>{hasScore ? <div className="g-score">{g.visitor_team_score} - {g.home_team_score}</div> : <div className="g-vs">VS</div>}</div>
                 <div className="g-team-h">
                   <div className="g-city">{g.home_team.city}</div>
                   <div className="g-name">{g.home_team.name.split(' ').pop()}</div>
@@ -792,7 +809,7 @@ function Players() {
 
   const loadSection = async (section) => {
     if (sectionData[section]) { setExpandedSection(expandedSection === section ? null : section); return; }
-    const searchTerm = result.player.last_name;
+    const searchTerm = `${result.player.first_name} ${result.player.last_name}`;
     setSectionLoading(prev => ({...prev, [section]: true}));
     setExpandedSection(section);
     try {
@@ -812,8 +829,8 @@ function Players() {
     { id:'financials', label:'Financials' },
   ];
 
-  const pct = (v) => v ? `${(v*100).toFixed(1)}%` : '—';
-  const trendStr = (r, s) => { if (r==null||s==null) return ''; const d=Math.round((r-s)*10)/10; if(d===0) return '—'; return d>0?`+${d}`:`${d}`; };
+  const pct = (v) => v != null ? `${(v*100).toFixed(1)}%` : '-';
+  const trendStr = (r, s) => { if (r==null||s==null) return ''; const d=Math.round((r-s)*10)/10; if(d===0) return '0'; return d>0?`+${d}`:`${d}`; };
   const trendColor = (r, s) => (r==null||s==null)?'#444':r>=s?'#00FF41':'#f33';
 
   return (
@@ -836,7 +853,7 @@ function Players() {
                   onMouseEnter={e => e.currentTarget.style.background='var(--grey)'}
                   onMouseLeave={e => e.currentTarget.style.background=''}>
                   <span>{p.first_name} {p.last_name}</span>
-                  <span style={{fontSize:9, letterSpacing:3, color:'#555'}}>{p.team?.abbreviation||'—'} · {p.position||'—'}</span>
+                  <span style={{fontSize:9, letterSpacing:3, color:'#555'}}>{p.team?.abbreviation||'-'} · {p.position||'-'}</span>
                 </div>
               ))}
             </div>
@@ -868,7 +885,7 @@ function Players() {
             <button className="export-btn" onClick={() => window.print()} style={{background:'none', border:'1px solid var(--green)', color:'var(--green)', fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', fontWeight:700, fontSize:9, letterSpacing:3, textTransform:'uppercase', padding:'10px 20px', cursor:'pointer', marginTop:8}}>Export PDF →</button>
           </div>
           <div style={{fontSize:11, letterSpacing:4, color:'var(--green)', marginBottom:36}}>
-            {result.player?.team?.name||'N/A'} · {result.player?.position||'—'} · {result.season} Season · {result.games_played} GP
+            {result.player?.team?.name||'N/A'} · {result.player?.position||'N/A'} · {result.season} Season · {result.games_played} GP
           </div>
           {result.averages && (
             <div style={{marginBottom:32}}>
@@ -898,7 +915,7 @@ function Players() {
                   const trend = isPct ? trendStr(val*100, avg*100) : trendStr(val, avg);
                   return (
                     <div key={k} style={{textAlign:'center', padding:'16px 8px', borderRight:i<6?'1px solid var(--border)':'none'}}>
-                      <div style={{fontSize:26, letterSpacing:-1, color:'var(--white)', lineHeight:1}}>{display||'—'}</div>
+                      <div style={{fontSize:26, letterSpacing:-1, color:'var(--white)', lineHeight:1}}>{display != null ? display : '-'}</div>
                       <div style={{fontSize:8, letterSpacing:3, color:'#444', margin:'4px 0'}}>{l}</div>
                       {val!=null && avg!=null && <div style={{fontSize:9, letterSpacing:1, color:trendColor(val,avg), fontWeight:400, textTransform:'none'}}>{trend}</div>}
                     </div>
@@ -1136,7 +1153,7 @@ function CoachMode() {
       const r = await fetch(`${API}${endpoint}`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
       if (!r.ok) throw new Error(await r.text());
       const data = await r.json();
-      setResult(data);
+      setResult({...data, mode});
       setHistory(prev => [{...data, mode, timestamp:new Date().toLocaleTimeString(), situation}, ...prev.slice(0,9)]);
     } catch(e) { setError(e.message); } finally { setLoading(false); }
   };
@@ -1158,7 +1175,7 @@ function CoachMode() {
                 style={{ padding:'12px 14px', marginBottom:4, cursor:'pointer', border:sel?'1px solid var(--green)':'1px solid var(--border)', background:sel?'rgba(0,255,65,0.05)':'var(--black)', transition:'all 0.1s' }}>
                 <div style={{fontSize:8, letterSpacing:3, color:type==='live'?'var(--green)':'#555', marginBottom:4}}>{type==='live'?'● LIVE':label}</div>
                 <div style={{fontSize:13, letterSpacing:1}}>{g.visitor_team.abbreviation} @ {g.home_team.abbreviation}</div>
-                {(g.home_team_score > 0 || g.visitor_team_score > 0) && <div style={{fontSize:11, color:'var(--green)', letterSpacing:2, marginTop:2}}>{g.visitor_team_score} — {g.home_team_score}</div>}
+                {(g.home_team_score > 0 || g.visitor_team_score > 0) && <div style={{fontSize:11, color:'var(--green)', letterSpacing:2, marginTop:2}}>{g.visitor_team_score} - {g.home_team_score}</div>}
               </div>
             );
           })}
