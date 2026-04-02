@@ -860,7 +860,7 @@ function Players() {
           <div style={{flex:1, position:'relative'}}>
             <input
               style={{width:'100%', height:'100%', background:'transparent', border:'none', outline:'none', color:'var(--white)', fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', fontWeight:700, fontSize:16, letterSpacing:2, padding:'0 20px', textTransform:'uppercase'}}
-              placeholder="SEARCH PLAYER — e.g. LUKA DONCIC"
+              placeholder="SEARCH PLAYER — e.g. LEBRON JAMES"
               value={query}
               onChange={e => { setQuery(e.target.value); fetchSuggestions(e.target.value); setShowSugg(true); }}
               onKeyDown={e => { if(e.key==='Enter'){setShowSugg(false);search();} if(e.key==='Escape')setShowSugg(false); }}

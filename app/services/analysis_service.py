@@ -61,7 +61,9 @@ Plain prose only. No markdown. No asterisks, no pound signs, no dashes used as b
 
 FRONT_OFFICE_SYSTEM_PROMPT: str = """You are an experienced NBA front-office analyst writing for general managers and assistant GMs.
 
-When evaluating a trade: start with a concise verdict — who gains value and why — then explain the main drivers: contract timelines, age curves, fit, and roster/chemistry effects. Clearly state key risks and any important assumptions.
+When evaluating a trade: open with one sentence naming the winning team and why — this is your verdict. Every sentence that follows must support that same conclusion. Never contradict your opening verdict anywhere in the response. If you say Team A wins, all analysis must explain why Team A wins. Do not then pivot and argue that Team B wins or benefits more.
+
+After the verdict, explain the main drivers: contract timelines, age curves, fit, and roster/chemistry effects. Clearly state key risks and any important assumptions.
 
 When analyzing a roster: give a candid assessment, name the primary problem, and recommend practical, prioritized moves (trades, signings, or contract actions) to improve the roster.
 
@@ -69,6 +71,7 @@ Tone and formatting:
 - Be pragmatic and human: short paragraphs, plain prose, and clear recommendations.
 - Quantify where possible (years, dollars, sample sizes). Call out uncertainty when data is thin.
 - Deliver actionable guidance a front office can act on; avoid overly poetic or "AI-sounding" phrasing.
+- Plain prose only. No markdown. No asterisks, pound signs, dashes as bullets, bold, or headers.
 
 This prompt should produce professional, readable, and useful responses appropriate for decision-making in an NBA front office.
 """
@@ -289,6 +292,15 @@ def _name_match_score(player: Any, query: str) -> int:
         return 80
     if first and last and first in q and last in q:
         return 60
+
+    # Partial first-name prefix match + last name — handles nicknames like
+    # "Steph" matching "Stephen" while not conflating with "Seth".
+    # A query token must be a prefix of the player's first name or vice versa.
+    if first and last and last in q:
+        q_tokens = q.split()
+        if any(first.startswith(t) or t.startswith(first) for t in q_tokens if t != last):
+            return 55
+
     if last and last == q:
         return 40
     if last and last in q:
@@ -339,11 +351,13 @@ def _resolve_best_player(players: list[Any], query: str) -> Any:
     )
 
     if best_score == 0:
-        logger.warning(
-            "No strong name match for %r; defaulting to first result: %s %s",
-            query,
-            best.first_name,
-            best.last_name,
+        # Returning a zero-score match means none of the API results have any
+        # name overlap with the query — silently returning players[0] in this
+        # case produces confident wrong answers (e.g. "Steph" → Seth Curry).
+        # Raise instead so the caller can surface a useful error to the user.
+        raise ValueError(
+            f"No player found matching '{query}' — closest was "
+            f"{best.first_name} {best.last_name} but names don't match"
         )
 
     return best
@@ -390,16 +404,23 @@ async def _build_player_stat_block(player_name: str, season: int) -> tuple[Any, 
     last_token = tokens[-1] if tokens else clean_name
     first_token = tokens[0] if len(tokens) > 1 else ""
 
-    # Always search by last name — BallDontLie last-name search is more
-    # reliable than full-name fuzzy search and returns the right candidate pool.
-    players = await nba_service.search_players(last_token)
-
-    # If last-name search returns nothing (e.g. hyphenated last name, typo),
-    # fall back to full name, then first name.
-    if not players:
+    if len(tokens) >= 2:
+        # Multi-word query: search by last name first — returns the right
+        # candidate pool (e.g. all "Curry" players for "Steph Curry").
+        players = await nba_service.search_players(last_token)
+        if not players:
+            players = await nba_service.search_players(clean_name)
+        if not players and first_token:
+            players = await nba_service.search_players(first_token)
+    else:
+        # Single-word query (nickname or first name like "Steph", "LeBron").
+        # Search the full token directly — do NOT treat it as a last name, which
+        # causes BallDontLie to fuzzy-match "Steph" → "Seth" instead of
+        # "Stephen". Also try last-name search as a fallback for handles like
+        # "Giannis" where the last name is more unique.
         players = await nba_service.search_players(clean_name)
-    if not players and first_token:
-        players = await nba_service.search_players(first_token)
+        if not players:
+            players = await nba_service.search_players(last_token)
 
     if not players:
         raise ValueError(f"No player found matching '{player_name}'")
@@ -929,8 +950,11 @@ async def analyze_trade(body: dict[str, Any]) -> dict[str, Any]:
     prompt = (
         f"Evaluate this proposed NBA trade:\n\n"
         f"{trade_block}\n\n"
-        f"Give a complete front office analysis. Who wins this trade and why? "
-        f"What are the risks? What is your verdict?"
+        f"State which team wins this trade in your first sentence, then explain "
+        f"why that same team wins throughout the rest of your analysis. Your "
+        f"opening verdict and your full analysis must agree — do not name one "
+        f"winner and then argue for the other. Cover contract fit, age curves, "
+        f"roster impact, and key risks."
     )
 
     result = await claude_service.analyze(
