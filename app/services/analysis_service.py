@@ -405,22 +405,25 @@ async def _build_player_stat_block(player_name: str, season: int) -> tuple[Any, 
     first_token = tokens[0] if len(tokens) > 1 else ""
 
     if len(tokens) >= 2:
-        # Multi-word query: search by last name first — returns the right
-        # candidate pool (e.g. all "Curry" players for "Steph Curry").
-        players = await nba_service.search_players(last_token)
+        # Multi-word query: search by last name for the tightest candidate pool
+        # (e.g. "last_name=Curry" returns Seth, Stephen, Dell — then scoring
+        # picks the right one). Fall back to full search if last-name returns nothing.
+        players = await nba_service.search_players(last_token, field="last_name")
         if not players:
             players = await nba_service.search_players(clean_name)
         if not players and first_token:
-            players = await nba_service.search_players(first_token)
+            players = await nba_service.search_players(first_token, field="first_name")
     else:
-        # Single-word query (nickname or first name like "Steph", "LeBron").
-        # Search the full token directly — do NOT treat it as a last name, which
-        # causes BallDontLie to fuzzy-match "Steph" → "Seth" instead of
-        # "Stephen". Also try last-name search as a fallback for handles like
-        # "Giannis" where the last name is more unique.
-        players = await nba_service.search_players(clean_name)
+        # Single-word query — almost always a first name or nickname ("Steph",
+        # "LeBron", "Giannis"). Use first_name= so BallDontLie matches "Stephen"
+        # for "Steph" (substring hit) without fuzzy-matching "Seth" or other
+        # unrelated names. Fall back to last_name= for players better known by
+        # last name only, then generic search as a last resort.
+        players = await nba_service.search_players(clean_name, field="first_name")
         if not players:
-            players = await nba_service.search_players(last_token)
+            players = await nba_service.search_players(clean_name, field="last_name")
+        if not players:
+            players = await nba_service.search_players(clean_name)
 
     if not players:
         raise ValueError(f"No player found matching '{player_name}'")

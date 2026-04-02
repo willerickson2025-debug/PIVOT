@@ -358,30 +358,41 @@ async def get_all_teams() -> list[Team]:
     return teams
 
 
-async def search_players(name: str) -> list[Player]:
+async def search_players(
+    name: str,
+    field: str = "search",
+) -> list[Player]:
     """
-    Search NBA players by full or partial name.
-
-    The BallDontLie API performs server-side fuzzy matching on the ``search``
-    parameter, so both ``"LeBron"`` and ``"lebron james"`` are valid inputs.
+    Search NBA players by name.
 
     Parameters
     ----------
     name:
         Full or partial player name. Case-insensitive.
+    field:
+        Which BallDontLie parameter to use:
+        - ``"search"``     — matches first OR last name (default, fuzzy)
+        - ``"first_name"`` — matches first name only (substring)
+        - ``"last_name"``  — matches last name only (substring)
+
+        Use ``"first_name"`` for nickname/first-name queries like "Steph" or
+        "LeBron" so BallDontLie matches "Stephen" without also fuzzy-matching
+        unrelated names like "Seth".
 
     Returns
     -------
     list[Player]
         Matching players, ordered by API relevance. Empty list on no match.
     """
-    logger.debug("Searching players | query=%r", name)
+    if field not in ("search", "first_name", "last_name"):
+        field = "search"
+    logger.debug("Searching players | field=%s query=%r", field, name)
     payload = await _fetch_data(
         "/players",
-        params={"search": name.strip(), "per_page": 50},
+        params={field: name.strip(), "per_page": 50},
     )
     players = [_parse_player(p) for p in payload.get("data") or []]
-    logger.debug("Player search for %r returned %d result(s)", name, len(players))
+    logger.debug("Player search (%s=%r) returned %d result(s)", field, name, len(players))
     return players
 
 
