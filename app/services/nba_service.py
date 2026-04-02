@@ -376,7 +376,7 @@ async def search_players(name: str) -> list[Player]:
     logger.debug("Searching players | query=%r", name)
     payload = await _fetch_data(
         "/players",
-        params={"search": name.strip(), "per_page": 25},
+        params={"search": name.strip(), "per_page": 50},
     )
     players = [_parse_player(p) for p in payload.get("data") or []]
     logger.debug("Player search for %r returned %d result(s)", name, len(players))

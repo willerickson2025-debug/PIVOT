@@ -383,17 +383,20 @@ async def _build_player_stat_block(player_name: str, season: int) -> tuple[Any, 
         If no player matching ``player_name`` can be found.
     """
     clean_name = player_name.strip()
+    tokens = clean_name.split()
+    last_token = tokens[-1] if tokens else clean_name
+    first_token = tokens[0] if len(tokens) > 1 else ""
 
-    players = await nba_service.search_players(clean_name)
+    # Always search by last name — BallDontLie last-name search is more
+    # reliable than full-name fuzzy search and returns the right candidate pool.
+    players = await nba_service.search_players(last_token)
 
-    if not players and " " in clean_name:
-        last_token = clean_name.split()[-1]
-        logger.debug(
-            "Full-name search for %r returned no results; retrying with last token %r",
-            clean_name,
-            last_token,
-        )
-        players = await nba_service.search_players(last_token)
+    # If last-name search returns nothing (e.g. hyphenated last name, typo),
+    # fall back to full name, then first name.
+    if not players:
+        players = await nba_service.search_players(clean_name)
+    if not players and first_token:
+        players = await nba_service.search_players(first_token)
 
     if not players:
         raise ValueError(f"No player found matching '{player_name}'")
