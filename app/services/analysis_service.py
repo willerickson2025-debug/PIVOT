@@ -59,16 +59,19 @@ FORMATTING — NON-NEGOTIABLE:
 Plain prose only. No markdown. No asterisks, no pound signs, no dashes used as bullets, no numbered lists, no bold, no italics, no horizontal rules, no headers. Paragraphs separated by one blank line. Write like a column in The Athletic or a Sharp report — dense, confident, readable."""
 
 
-FRONT_OFFICE_SYSTEM_PROMPT: str = """You are one of the most respected front office minds in the NBA. You have built contenders, navigated the cap, and executed trades that reshaped franchises. GMs call you before they pull the trigger on anything significant.
+FRONT_OFFICE_SYSTEM_PROMPT: str = """You are an experienced NBA front-office analyst writing for general managers and assistant GMs.
 
-When evaluating a trade: your first sentence is your verdict — who wins and why. Then back it up. Cover the contract values and timelines, the age curves, the fit on both ends of the floor, the second-order effects on team chemistry and depth. If a trade looks bad, say it's bad. If one side is getting fleeced, name it. Give a confidence level on your verdict.
+When evaluating a trade: start with a concise verdict — who gains value and why — then explain the main drivers: contract timelines, age curves, fit, and roster/chemistry effects. Clearly state key risks and any important assumptions.
 
-When analyzing a roster: open with the most honest assessment of where this team actually is — not where they think they are. Identify the single biggest problem and the specific move that fixes it. Name overpaid players and call them overpaid. Identify trade candidates and explain who would actually want them and why. Give two actionable recommendations the front office should execute.
+When analyzing a roster: give a candid assessment, name the primary problem, and recommend practical, prioritized moves (trades, signings, or contract actions) to improve the roster.
 
-You do not hedge. You do not say "it depends." You give a position and defend it with specifics.
+Tone and formatting:
+- Be pragmatic and human: short paragraphs, plain prose, and clear recommendations.
+- Quantify where possible (years, dollars, sample sizes). Call out uncertainty when data is thin.
+- Deliver actionable guidance a front office can act on; avoid overly poetic or "AI-sounding" phrasing.
 
-FORMATTING — NON-NEGOTIABLE:
-Plain prose only. No markdown. No asterisks, no pound signs, no dashes used as bullets, no numbered lists, no bold, no italics, no horizontal rules, no headers. Paragraphs separated by one blank line. Dense, confident, readable prose. Front offices don't pay for maybe."""
+This prompt should produce professional, readable, and useful responses appropriate for decision-making in an NBA front office.
+"""
 
 
 COACH_SYSTEM_PROMPT: str = """You are an elite NBA head coach with a championship pedigree. You have full film room access, a complete coaching staff, and the live box score in front of you. Coaches and scouts pay for your input because you see things other people miss and you give answers without wasting time.
@@ -882,17 +885,22 @@ async def analyze_trade(body: dict[str, Any]) -> dict[str, Any]:
         team_b_gives,
     )
 
-    # Fetch stats only for named players, skipping pick assets.
+    # Fetch stats only for named players, skipping pick assets. Normalize keys
     all_assets: list[str] = team_a_gives + team_b_gives
-    named_players = [p for p in all_assets if "pick" not in p.lower()][:_MAX_TRADE_PLAYERS]
+    named_assets = [p for p in all_assets if "pick" not in (p or "").lower()]
+    if len(named_assets) > _MAX_TRADE_PLAYERS:
+        logger.info("Too many named players in trade payload — limiting stat lookups to %d of %d", _MAX_TRADE_PLAYERS, len(named_assets))
+    named_players = named_assets[:_MAX_TRADE_PLAYERS]
 
+    # Store stats keyed by normalized asset string (lowercase, stripped)
     player_stats: dict[str, str] = {}
 
     for name in named_players:
+        key = (name or "").lower().strip()
         try:
             _, agg = await _build_player_stat_block(name, _DEFAULT_SEASON)
             if agg["total_games"] > 0:
-                player_stats[name] = (
+                player_stats[key] = (
                     f"{agg['avg_pts']}pts / {agg['avg_reb']}reb / {agg['avg_ast']}ast "
                     f"({agg['total_games']}GP, {_DEFAULT_SEASON} season)"
                 )
@@ -904,7 +912,8 @@ async def analyze_trade(body: dict[str, Any]) -> dict[str, Any]:
     def _format_trade_side(team: str, gives: list[str]) -> str:
         lines = [f"{team} sends:"]
         for asset in gives:
-            stat = player_stats.get(asset, "")
+            lookup = (asset or "").lower().strip()
+            stat = player_stats.get(lookup, "")
             stat_suffix = f"  [{stat}]" if stat else ""
             lines.append(f"  - {asset}{stat_suffix}")
         return "\n".join(lines)

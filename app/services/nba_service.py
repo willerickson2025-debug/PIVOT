@@ -100,8 +100,10 @@ async def _fetch_data(
             )
 
             client = GlobalHTTPClient.get_client()
+            # Allow passing an absolute URL (useful for the /nba/v1 namespace)
+            url = endpoint if endpoint.startswith("http") else settings.balldontlie_base_url + endpoint
             response = await client.get(
-                settings.balldontlie_base_url + endpoint,
+                url,
                 headers={"Authorization": settings.balldontlie_api_key},
                 params=clean_params,
                 timeout=_REQUEST_TIMEOUT,
@@ -381,6 +383,130 @@ async def search_players(name: str) -> list[Player]:
     players = [_parse_player(p) for p in payload.get("data") or []]
     logger.debug("Player search for %r returned %d result(s)", name, len(players))
     return players
+
+
+# ---------------------------------------------------------------------------
+# Contracts, Advanced Stats, Lineups
+# ---------------------------------------------------------------------------
+
+
+def _parse_contract(raw: dict[str, Any]) -> Contract:  # type: ignore[name-defined]
+    from app.models.schemas import Contract as _Contract  # local import to avoid cycle
+
+    player_raw = raw.get("player") or {}
+    team_raw = raw.get("team") or {}
+
+    return _Contract(
+        id=int(raw.get("id") or 0),
+        player_id=int(raw.get("player_id") or 0),
+        season=int(raw.get("season") or 0),
+        team_id=int(raw.get("team_id") or 0),
+        cap_hit=int(raw.get("cap_hit") or 0) if raw.get("cap_hit") is not None else None,
+        total_cash=int(raw.get("total_cash") or 0) if raw.get("total_cash") is not None else None,
+        base_salary=int(raw.get("base_salary") or 0) if raw.get("base_salary") is not None else None,
+        rank=int(raw.get("rank") or 0) if raw.get("rank") is not None else None,
+        player=_parse_player(player_raw) if player_raw else None,
+        team=_parse_team(team_raw) if team_raw else None,
+    )
+
+
+async def get_player_contracts(player_id: int, seasons: Optional[list[int]] = None, per_page: int = 25, cursor: int | None = None) -> list["Contract"]:  # type: ignore[name-defined]
+    """Retrieve contract entries for a given player.
+
+    Parameters
+    ----------
+    player_id:
+        BallDontLie player id
+    seasons:
+        Optional list of seasons to filter (e.g. [2024,2025])
+    """
+    params: dict[str, Any] = {"player_id": player_id, "per_page": per_page}
+    if seasons:
+        params.update({"seasons[]": seasons})
+    if cursor:
+        params["cursor"] = cursor
+
+    payload = await _fetch_data("/contracts/players", params=params)
+    data = payload.get("data") or []
+    contracts = [_parse_contract(c) for c in data]
+    logger.debug("Contracts search for player_id=%s returned %d rows", player_id, len(contracts))
+    return contracts
+
+
+def _parse_advanced_stat(raw: dict[str, Any]) -> AdvancedStat:  # type: ignore[name-defined]
+    from app.models.schemas import AdvancedStat as _AdvancedStat  # local import
+
+    return _AdvancedStat(
+        id=int(raw.get("id") or 0),
+        pie=raw.get("pie"),
+        pace=raw.get("pace"),
+        assist_percentage=raw.get("assist_percentage"),
+        assist_ratio=raw.get("assist_ratio"),
+        defensive_rating=raw.get("defensive_rating"),
+        defensive_rebound_percentage=raw.get("defensive_rebound_percentage"),
+        effective_field_goal_percentage=raw.get("effective_field_goal_percentage"),
+        net_rating=raw.get("net_rating"),
+        offensive_rating=raw.get("offensive_rating"),
+        offensive_rebound_percentage=raw.get("offensive_rebound_percentage"),
+        rebound_percentage=raw.get("rebound_percentage"),
+        true_shooting_percentage=raw.get("true_shooting_percentage"),
+        turnover_ratio=raw.get("turnover_ratio"),
+        usage_percentage=raw.get("usage_percentage"),
+        player=_parse_player(raw.get("player") or {}),
+        team=_parse_team(raw.get("team") or {}),
+        game=raw.get("game") or None,
+    )
+
+
+async def get_advanced_stats(seasons: Optional[list[int]] = None, player_ids: Optional[list[int]] = None, per_page: int = 25, cursor: int | None = None) -> list["AdvancedStat"]:  # type: ignore[name-defined]
+    """Fetch advanced stats from the NBA namespace.
+
+    Note: advanced stats are served under the `/nba/v1` namespace on the
+    BallDontLie host; we build the absolute endpoint accordingly.
+    """
+    params: dict[str, Any] = {"per_page": per_page}
+    if seasons:
+        params.update({"seasons[]": seasons})
+    if player_ids:
+        params.update({"player_ids[]": player_ids})
+    if cursor:
+        params["cursor"] = cursor
+
+    settings = get_settings()
+    endpoint = settings.balldontlie_base_url.replace("/v1", "/nba/v1") + "/stats/advanced"
+    payload = await _fetch_data(endpoint, params=params)
+    data = payload.get("data") or []
+    stats = [_parse_advanced_stat(s) for s in data]
+    logger.debug("Advanced stats query returned %d rows", len(stats))
+    return stats
+
+
+def _parse_lineup(raw: dict[str, Any]) -> LineupEntry:  # type: ignore[name-defined]
+    from app.models.schemas import LineupEntry as _LineupEntry
+
+    player_raw = raw.get("player") or {}
+    team_raw = raw.get("team") or {}
+
+    return _LineupEntry(
+        id=int(raw.get("id") or 0),
+        game_id=int(raw.get("game_id") or 0),
+        starter=bool(raw.get("starter")) if raw.get("starter") is not None else None,
+        position=raw.get("position"),
+        player=_parse_player(player_raw) if player_raw else None,
+        team=_parse_team(team_raw) if team_raw else None,
+    )
+
+
+async def get_lineups(game_ids: list[int], per_page: int = 25, cursor: int | None = None) -> list["LineupEntry"]:  # type: ignore[name-defined]
+    params: dict[str, Any] = {"per_page": per_page, "game_ids[]": game_ids}
+    if cursor:
+        params["cursor"] = cursor
+
+    payload = await _fetch_data("/lineups", params=params)
+    data = payload.get("data") or []
+    lineups = [_parse_lineup(l) for l in data]
+    logger.debug("Lineups fetch returned %d rows for games=%s", len(lineups), game_ids)
+    return lineups
 
 
 # ---------------------------------------------------------------------------

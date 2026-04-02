@@ -67,6 +67,41 @@ async def search_players(name: str = Query(..., description="Player name to sear
         raise HTTPException(status_code=502, detail=f"BallDontLie API error: {str(e)}")
 
 
+@router.get("/nba/contracts")
+async def get_player_contracts(
+    player_id: int = Query(..., description="BallDontLie player id"),
+    seasons: Optional[List[int]] = Query(None, description="Filter by seasons: ?seasons=2024&seasons=2025"),
+    per_page: int = Query(25, description="Results per page, max 100"),
+):
+    try:
+        contracts = await nba_service.get_player_contracts(player_id, seasons, per_page)
+        return {"contracts": [c.model_dump() for c in contracts], "count": len(contracts)}
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"BallDontLie API error: {str(e)}")
+
+
+@router.get("/nba/stats/advanced")
+async def nba_advanced_stats(
+    seasons: Optional[List[int]] = Query(None, description="Seasons filter"),
+    player_ids: Optional[List[int]] = Query(None, description="Player id(s) filter"),
+    per_page: int = Query(25, description="Results per page"),
+):
+    try:
+        stats = await nba_service.get_advanced_stats(seasons=seasons, player_ids=player_ids, per_page=per_page)
+        return {"stats": [s.model_dump() for s in stats], "count": len(stats)}
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"BallDontLie API error: {str(e)}")
+
+
+@router.get("/nba/lineups")
+async def get_lineups(game_ids: List[int] = Query(..., description="game_ids array"), per_page: int = Query(25)):
+    try:
+        lineups = await nba_service.get_lineups(game_ids, per_page)
+        return {"lineups": [l.model_dump() for l in lineups], "count": len(lineups)}
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"BallDontLie API error: {str(e)}")
+
+
 @router.get("/nba/games/{game_id}/boxscore")
 async def get_game_boxscore(game_id: int):
     try:

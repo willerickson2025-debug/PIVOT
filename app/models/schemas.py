@@ -49,6 +49,58 @@ class Player(BaseModel):
     team: Team | None = None
 
 
+class Contract(BaseModel):
+    """Player contract entry returned from BallDontLie contracts endpoint."""
+    model_config = ConfigDict(frozen=True)
+
+    id: int
+    player_id: int
+    season: int
+    team_id: int
+    cap_hit: int | None = None
+    total_cash: int | None = None
+    base_salary: int | None = None
+    rank: int | None = None
+    player: Player | None = None
+    team: Team | None = None
+
+
+class AdvancedStat(BaseModel):
+    """Advanced per-game stat block from the NBA advanced stats endpoint."""
+    model_config = ConfigDict(frozen=True)
+
+    id: int
+    pie: float | None = None
+    pace: float | None = None
+    assist_percentage: float | None = None
+    assist_ratio: float | None = None
+    defensive_rating: float | None = None
+    defensive_rebound_percentage: float | None = None
+    effective_field_goal_percentage: float | None = None
+    net_rating: float | None = None
+    offensive_rating: float | None = None
+    offensive_rebound_percentage: float | None = None
+    rebound_percentage: float | None = None
+    true_shooting_percentage: float | None = None
+    turnover_ratio: float | None = None
+    usage_percentage: float | None = None
+    player: Player | None = None
+    team: Team | None = None
+    game: dict | None = None
+
+
+class LineupEntry(BaseModel):
+    """Single lineup entry (starter/bench) for a game."""
+    model_config = ConfigDict(frozen=True)
+
+    id: int
+    game_id: int
+    starter: bool | None = None
+    position: str | None = None
+    player: Player | None = None
+    team: Team | None = None
+
+
 class PlayerStats(BaseModel):
     """Per-game statistical line for a player."""
     model_config = ConfigDict(frozen=True)
