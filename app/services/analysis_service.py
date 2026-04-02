@@ -17,9 +17,12 @@ Anthropic SDK calls (those live in claude_service.py).
 from __future__ import annotations
 
 import asyncio
+import datetime
 import logging
 from typing import Any, Optional
+from zoneinfo import ZoneInfo
 
+from app.core.cache import analysis_cache
 from app.models.schemas import Game, GameAnalysisResponse
 from app.services import claude_service, nba_service
 
@@ -524,6 +527,14 @@ async def analyze_today_games(target_date: Optional[str] = None) -> GameAnalysis
         Contains the game list, full analysis text, model metadata, and token usage.
     """
     date_label = target_date or "today"
+    resolved_date = target_date or datetime.datetime.now(ZoneInfo("America/Chicago")).strftime("%Y-%m-%d")
+    cache_key = f"slate:{resolved_date}"
+
+    cached = analysis_cache.get(cache_key)
+    if cached is not None:
+        logger.info("Slate cache hit | date=%s", resolved_date)
+        return cached
+
     logger.info("Analyzing game slate | date=%s", date_label)
 
     games = await nba_service.get_games_by_date(target_date)
@@ -548,12 +559,14 @@ async def analyze_today_games(target_date: Optional[str] = None) -> GameAnalysis
         result.tokens_used,
     )
 
-    return GameAnalysisResponse(
+    response = GameAnalysisResponse(
         games=games,
         analysis=result.analysis,
         model=result.model,
         tokens_used=result.tokens_used,
     )
+    analysis_cache.set(cache_key, response, ttl=3600)
+    return response
 
 
 async def analyze_player(
@@ -580,6 +593,12 @@ async def analyze_player(
         token usage. Returns ``{"error": "..."}`` on lookup failure.
     """
     logger.info("Analyzing player | name=%r season=%d", player_name, season)
+
+    cache_key = f"player:{player_name.lower().strip()}:{season}"
+    cached = analysis_cache.get(cache_key)
+    if cached is not None:
+        logger.info("Player cache hit | key=%s", cache_key)
+        return cached
 
     try:
         player, agg = await _build_player_stat_block(player_name, season)
@@ -621,7 +640,7 @@ async def analyze_player(
         result.tokens_used,
     )
 
-    return {
+    payload = {
         "player": player.model_dump(),
         "season": season,
         "averages": {
@@ -648,6 +667,8 @@ async def analyze_player(
         "model": result.model,
         "tokens_used": result.tokens_used,
     }
+    analysis_cache.set(cache_key, payload, ttl=3600)
+    return payload
 
 
 async def analyze_player_section(

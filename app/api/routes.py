@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Query, Body, Response
 from typing import Optional, List
 
-from app.services import nba_service, claude_service, analysis_service
+from app.services import nba_service, claude_service, analysis_service, agent_service
 from app.models.schemas import (
     AnalysisRequest,
     AnalysisResponse,
@@ -190,6 +190,35 @@ async def timeout_play(body: dict = Body(...)):
     """
     try:
         return await analysis_service.timeout_play(body)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+
+# ── Agents (background, no UI) ────────────────────────────────────────────────
+
+@router.post("/agents/nightly")
+async def agent_nightly():
+    """Nightly run: pre-analyze tomorrow's slate + quality-pass today's."""
+    try:
+        return await agent_service.run_nightly()
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+
+@router.post("/agents/pregame")
+async def agent_pregame(date: Optional[str] = Query(None)):
+    """Pre-warm a specific date's slate and player caches."""
+    try:
+        return await agent_service.run_pregame_agent(date)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+
+@router.post("/agents/quality-pass")
+async def agent_quality_pass(date: Optional[str] = Query(None)):
+    """Sharpen a cached slate analysis for the given date."""
+    try:
+        return await agent_service.run_quality_pass(date)
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e))
 

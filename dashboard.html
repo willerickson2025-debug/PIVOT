@@ -467,15 +467,13 @@ function Ticker() {
 
 function Home({ onNavigate }) {
   const audioRef = React.useRef(null);
-  const [muted, setMuted] = React.useState(true);
-
-  const toggleMute = () => {
+  React.useEffect(() => {
     const a = audioRef.current;
     if (!a) return;
-    if (a.paused) { a.play().catch(() => {}); }
-    a.muted = !a.muted;
-    setMuted(a.muted);
-  };
+    const unlock = () => { a.play().catch(() => {}); document.removeEventListener('click', unlock); };
+    document.addEventListener('click', unlock);
+    return () => document.removeEventListener('click', unlock);
+  }, []);
 
   const FEATURES = [
     { num:'01', name:'Live Game Engine', desc:'Real-time scores, box scores, and live stat feeds from every NBA game. Auto-refreshes every 30 seconds.', stat:'30s', statLabel:'Refresh Rate' },
@@ -501,11 +499,6 @@ function Home({ onNavigate }) {
           </div>
         </div>
         <div className="home-scroll-hint"><div className="home-scroll-line"/>SCROLL TO EXPLORE</div>
-        <button onClick={toggleMute} style={{position:'absolute', bottom:56, right:32, zIndex:4, background:'rgba(0,0,0,0.6)', border:'1px solid rgba(255,255,255,0.15)', color:'rgba(255,255,255,0.5)', fontSize:9, letterSpacing:3, padding:'8px 16px', cursor:'pointer', fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', fontWeight:700, textTransform:'uppercase', transition:'all 0.15s', backdropFilter:'blur(4px)'}}
-          onMouseEnter={e => e.currentTarget.style.color='var(--white)'}
-          onMouseLeave={e => e.currentTarget.style.color='rgba(255,255,255,0.5)'}>
-          {muted ? 'SOUND ON' : 'SOUND OFF'}
-        </button>
       </div>
       <div className="features-section">
         <div className="features-label">Platform Features</div>
@@ -835,33 +828,40 @@ function Players() {
 
   return (
     <div>
-      <div className="toolbar" style={{position:'relative', overflow:'visible'}}>
-        <div style={{flex:1, position:'relative'}}>
-          <input className="tb-input" style={{width:'100%', fontSize:14, letterSpacing:3, padding:'0 28px'}}
-            placeholder="Search Player (e.g. LeBron James)..."
-            value={query}
-            onChange={e => { setQuery(e.target.value); fetchSuggestions(e.target.value); setShowSugg(true); }}
-            onKeyDown={e => { if(e.key==='Enter'){setShowSugg(false);search();} if(e.key==='Escape')setShowSugg(false); }}
-            onBlur={() => setTimeout(() => setShowSugg(false), 150)}
-          />
-          {showSugg && suggestions.length > 0 && (
-            <div style={{position:'absolute', top:'100%', left:0, right:0, background:'var(--black)', border:'1px solid var(--green)', borderTop:'none', zIndex:9999, maxHeight:320, overflowY:'auto'}}>
-              {suggestions.map(p => (
-                <div key={p.id}
-                  onMouseDown={() => { const name=`${p.first_name} ${p.last_name}`; setQuery(name); setShowSugg(false); search(name); }}
-                  style={{padding:'12px 28px', cursor:'pointer', fontSize:12, letterSpacing:2, borderBottom:'1px solid var(--border)', display:'flex', justifyContent:'space-between', alignItems:'center'}}
-                  onMouseEnter={e => e.currentTarget.style.background='var(--grey)'}
-                  onMouseLeave={e => e.currentTarget.style.background=''}>
-                  <span>{p.first_name} {p.last_name}</span>
-                  <span style={{fontSize:9, letterSpacing:3, color:'#555'}}>{p.team?.abbreviation||'-'} · {p.position||'-'}</span>
-                </div>
-              ))}
-            </div>
-          )}
+      <div style={{position:'relative', borderBottom:'2px solid var(--white)', background:'var(--black)'}}>
+        <div style={{display:'flex', alignItems:'stretch', height:64, position:'relative'}}>
+          <div style={{display:'flex', alignItems:'center', padding:'0 24px', borderRight:'1px solid var(--border)', color:'#333', fontSize:16, flexShrink:0}}>⌕</div>
+          <div style={{flex:1, position:'relative'}}>
+            <input
+              style={{width:'100%', height:'100%', background:'transparent', border:'none', outline:'none', color:'var(--white)', fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', fontWeight:700, fontSize:16, letterSpacing:2, padding:'0 20px', textTransform:'uppercase'}}
+              placeholder="SEARCH PLAYER — e.g. LEBRON JAMES"
+              value={query}
+              onChange={e => { setQuery(e.target.value); fetchSuggestions(e.target.value); setShowSugg(true); }}
+              onKeyDown={e => { if(e.key==='Enter'){setShowSugg(false);search();} if(e.key==='Escape')setShowSugg(false); }}
+              onBlur={() => setTimeout(() => setShowSugg(false), 150)}
+            />
+            {showSugg && suggestions.length > 0 && (
+              <div style={{position:'absolute', top:'100%', left:0, right:0, background:'#080808', border:'1px solid var(--green)', borderTop:'none', zIndex:9999, maxHeight:300, overflowY:'auto', boxShadow:'0 8px 32px rgba(0,0,0,0.8)'}}>
+                {suggestions.map((p,i) => (
+                  <div key={p.id}
+                    onMouseDown={() => { const name=`${p.first_name} ${p.last_name}`; setQuery(name); setShowSugg(false); search(name); }}
+                    style={{padding:'14px 24px', cursor:'pointer', fontSize:13, letterSpacing:2, borderBottom:'1px solid #111', display:'flex', justifyContent:'space-between', alignItems:'center', transition:'background 0.1s'}}
+                    onMouseEnter={e => e.currentTarget.style.background='#111'}
+                    onMouseLeave={e => e.currentTarget.style.background=''}>
+                    <span style={{fontWeight:700}}>{p.first_name} {p.last_name}</span>
+                    <span style={{fontSize:10, letterSpacing:3, color:'var(--green)'}}>{p.team?.abbreviation||'?'} · {p.position||'?'}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <button
+            onClick={() => { setShowSugg(false); search(); }}
+            disabled={loading || !query.trim()}
+            style={{background: loading ? '#111' : 'var(--green)', border:'none', color: loading ? '#444' : 'var(--black)', fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', fontWeight:700, fontSize:11, letterSpacing:4, textTransform:'uppercase', padding:'0 36px', cursor:'pointer', transition:'all 0.1s', flexShrink:0, opacity: !query.trim() ? 0.3 : 1}}>
+            {loading ? 'SEARCHING' : 'SEARCH'}
+          </button>
         </div>
-        <button className="tb-btn" style={{fontSize:14, padding:'0 32px'}} onClick={() => { setShowSugg(false); search(); }} disabled={loading}>
-          {loading ? '...' : 'Search →'}
-        </button>
       </div>
       {!loading && !result && !error && (
         <div style={{display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'60vh', gap:20}}>
@@ -1218,13 +1218,43 @@ function CoachMode() {
                 <input style={inp} type="number" placeholder="-4" value={scoreDiff} onChange={e=>setScoreDiff(e.target.value)}/>
               </div>
             )}
-            <label style={{...lbl, marginTop:8}}>Situation</label>
-            <textarea style={{...inp, height:90, resize:'none', fontWeight:400, textTransform:'none', fontSize:12, marginBottom:16}}
-              placeholder={mode==='adjust' ? "Down 8 in the 3rd, their zone is killing our offense..." : "Need a quick 2, they're running man, our PG is hot..."}
-              value={situation} onChange={e=>setSituation(e.target.value)}/>
-            <button onClick={run} disabled={loading||!myTeam}
+            <div style={{fontSize:9, letterSpacing:4, color:'#444', marginBottom:8, marginTop:8}}>Quick Situations</div>
+            {mode === 'adjust' ? (
+              <div style={{display:'flex', flexDirection:'column', gap:4, marginBottom:12}}>
+                {[
+                  "What defense should we run against their offense?",
+                  "We're getting killed on the perimeter — fix it.",
+                  "Need to slow the pace down and control the game.",
+                  "Their star is taking over — how do we scheme against them?",
+                  "We're up late — how do we protect this lead?",
+                  "Down big — what's our comeback scheme?",
+                ].map(s => (
+                  <button key={s} onClick={() => setSituation(s)}
+                    style={{background: situation===s ? 'rgba(0,255,65,0.1)' : 'transparent', border:`1px solid ${situation===s ? 'var(--green)' : '#1a1a1a'}`, color: situation===s ? 'var(--green)' : '#666', fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', fontWeight:400, fontSize:10, letterSpacing:1, textTransform:'none', padding:'8px 12px', cursor:'pointer', textAlign:'left', transition:'all 0.1s', lineHeight:1.4}}>
+                    {s}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div style={{display:'flex', flexDirection:'column', gap:4, marginBottom:12}}>
+                {[
+                  "Need a quick shot — get us 2 fast.",
+                  "Draw up a play to get our best scorer open.",
+                  "Inbound from half court, 5 seconds left.",
+                  "Need a 3 — set a screen for our shooter.",
+                  "They're playing zone — break it down.",
+                  "Last possession, tie game — win play.",
+                ].map(s => (
+                  <button key={s} onClick={() => setSituation(s)}
+                    style={{background: situation===s ? 'rgba(0,255,65,0.1)' : 'transparent', border:`1px solid ${situation===s ? 'var(--green)' : '#1a1a1a'}`, color: situation===s ? 'var(--green)' : '#666', fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', fontWeight:400, fontSize:10, letterSpacing:1, textTransform:'none', padding:'8px 12px', cursor:'pointer', textAlign:'left', transition:'all 0.1s', lineHeight:1.4}}>
+                    {s}
+                  </button>
+                ))}
+              </div>
+            )}
+            <button onClick={run} disabled={loading||!myTeam||!situation}
               style={{ width:'100%', padding:'14px', fontSize:11, letterSpacing:4, fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', fontWeight:700, textTransform:'uppercase', cursor:'pointer', border:'none', transition:'all 0.1s', background:loading?'#222':'var(--green)', color:loading?'#444':'var(--black)' }}>
-              {loading ? 'Thinking...' : mode==='adjust' ? 'Get Adjustments →' : 'Draw Play →'}
+              {loading ? 'PIVOT IS THINKING...' : !situation ? 'SELECT A SITUATION' : mode==='adjust' ? 'GET ADJUSTMENTS' : 'DRAW THE PLAY'}
             </button>
           </div>
         )}
