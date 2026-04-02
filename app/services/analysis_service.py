@@ -19,7 +19,7 @@ from __future__ import annotations
 import asyncio
 import datetime
 import logging
-from typing import Any, Optional
+from typing import Any, AsyncGenerator, Optional
 from zoneinfo import ZoneInfo
 
 from app.core.cache import analysis_cache
@@ -754,6 +754,95 @@ async def analyze_player_section(
         "model": result.model,
         "tokens_used": result.tokens_used,
     }
+
+
+async def analyze_player_stream(
+    player_name: str,
+    season: int = _DEFAULT_SEASON,
+) -> AsyncGenerator[dict, None]:
+    """
+    Streaming version of analyze_player.
+
+    Yields dicts:
+      {"type": "meta", "player": ..., "averages": ..., "last_10": ..., "games_played": ...}
+      {"type": "chunk", "text": "..."}
+      {"type": "done"}
+
+    If the result is cached, streams the cached analysis text character-by-character
+    so the typewriter effect still plays.
+    """
+    cache_key = f"player:{player_name.lower().strip()}:{season}"
+    cached = analysis_cache.get(cache_key)
+    if cached is not None:
+        yield {"type": "meta", "player": cached["player"], "averages": cached["averages"],
+               "last_10": cached["last_10"], "games_played": cached["games_played"]}
+        # Stream cached text in small chunks so typewriter effect still plays
+        text = cached.get("analysis", "")
+        chunk_size = 4
+        for i in range(0, len(text), chunk_size):
+            yield {"type": "chunk", "text": text[i:i + chunk_size]}
+        yield {"type": "done"}
+        return
+
+    try:
+        player, agg = await _build_player_stat_block(player_name, season)
+    except ValueError as exc:
+        yield {"type": "error", "message": str(exc)}
+        return
+
+    if agg["total_games"] == 0:
+        yield {"type": "meta", "player": player.model_dump(), "averages": None,
+               "last_10": None, "games_played": 0}
+        prompt = (
+            f"Provide a PIVOT intelligence report on {player.first_name} {player.last_name} "
+            f"for the {season} NBA season. Note if this individual is not currently an active "
+            f"NBA player and offer what is known — career context, current role, or a redirect."
+        )
+    else:
+        yield {
+            "type": "meta",
+            "player": player.model_dump(),
+            "averages": {
+                "points": agg["avg_pts"], "rebounds": agg["avg_reb"], "assists": agg["avg_ast"],
+                "steals": agg["avg_stl"], "blocks": agg["avg_blk"], "fg_pct": agg["avg_fg"],
+                "fg3_pct": agg["avg_fg3"], "ft_pct": agg["avg_ft"],
+            },
+            "last_10": {
+                "points": agg["recent_pts"], "rebounds": agg["recent_reb"], "assists": agg["recent_ast"],
+                "steals": agg["recent_stl"], "blocks": agg["recent_blk"], "fg_pct": agg["recent_fg"],
+                "fg3_pct": agg["recent_fg3"],
+            },
+            "games_played": agg["total_games"],
+        }
+        stat_block = _render_stat_block(player, season, agg)
+        prompt = f"Analyze this player's {season} NBA season:\n\n{stat_block}"
+
+    full_text = []
+    async for chunk in claude_service.analyze_stream(prompt, system_prompt=NBA_ANALYST_SYSTEM_PROMPT):
+        full_text.append(chunk)
+        yield {"type": "chunk", "text": chunk}
+
+    # Cache the full result
+    analysis_text = "".join(full_text)
+    if agg["total_games"] > 0:
+        payload = {
+            "player": player.model_dump(), "season": season,
+            "averages": {
+                "points": agg["avg_pts"], "rebounds": agg["avg_reb"], "assists": agg["avg_ast"],
+                "steals": agg["avg_stl"], "blocks": agg["avg_blk"], "fg_pct": agg["avg_fg"],
+                "fg3_pct": agg["avg_fg3"], "ft_pct": agg["avg_ft"],
+            },
+            "last_10": {
+                "points": agg["recent_pts"], "rebounds": agg["recent_reb"], "assists": agg["recent_ast"],
+                "steals": agg["recent_stl"], "blocks": agg["recent_blk"], "fg_pct": agg["recent_fg"],
+                "fg3_pct": agg["recent_fg3"],
+            },
+            "games_played": agg["total_games"],
+            "analysis": analysis_text, "model": "", "tokens_used": 0,
+        }
+        analysis_cache.set(cache_key, payload, ttl=3600)
+
+    yield {"type": "done"}
 
 
 async def analyze_trade(body: dict[str, Any]) -> dict[str, Any]:

@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Optional
+from typing import AsyncGenerator, Optional
 
 import anthropic
 
@@ -218,3 +218,31 @@ async def analyze(
         model=message.model,
         tokens_used=total_tokens,
     )
+
+
+async def analyze_stream(
+    prompt: str,
+    system_prompt: str = "",
+    *,
+    override_model: Optional[str] = None,
+    override_max_tokens: Optional[int] = None,
+) -> AsyncGenerator[str, None]:
+    """
+    Stream a Claude response, yielding text chunks as they arrive.
+    """
+    settings = get_settings()
+    model = override_model or settings.claude_model
+    max_tokens = override_max_tokens or settings.claude_max_tokens
+
+    request_kwargs: dict = {
+        "model": model,
+        "max_tokens": max_tokens,
+        "messages": [{"role": "user", "content": prompt}],
+    }
+    if system_prompt:
+        request_kwargs["system"] = system_prompt
+
+    async with anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key) as client:
+        async with client.messages.stream(**request_kwargs) as stream:
+            async for text in stream.text_stream:
+                yield text

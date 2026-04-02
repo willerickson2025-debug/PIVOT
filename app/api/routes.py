@@ -1,4 +1,9 @@
+import json
+import xml.etree.ElementTree as ET
+
+import httpx
 from fastapi import APIRouter, HTTPException, Query, Body, Response
+from fastapi.responses import StreamingResponse
 from typing import Optional, List
 
 from app.services import nba_service, claude_service, analysis_service, agent_service
@@ -79,6 +84,26 @@ async def get_player_stats(player_id: int, season: int = Query(2025, description
         raise HTTPException(status_code=502, detail=f"BallDontLie API error: {str(e)}")
 
 
+@router.get("/nba/news")
+async def nba_news():
+    """Fetch latest NBA headlines from ESPN RSS feed."""
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            r = await client.get(
+                "https://www.espn.com/espn/rss/nba/news",
+                headers={"User-Agent": "Mozilla/5.0"},
+            )
+        root = ET.fromstring(r.text)
+        headlines = [
+            item.findtext("title", "").strip()
+            for item in root.findall("./channel/item")
+            if item.findtext("title", "").strip()
+        ][:25]
+        return {"headlines": headlines}
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+
 # ── Claude ────────────────────────────────────────────────────────────────────
 
 @router.post("/claude/analyze", response_model=AnalysisResponse)
@@ -114,6 +139,23 @@ async def player_analysis(
         return await analysis_service.analyze_player(name, season)
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e))
+
+
+@router.get("/analysis/player/stream")
+async def player_analysis_stream(
+    name: str = Query(..., description="Player name"),
+    season: int = Query(2025, description="NBA season year"),
+):
+    """Stream player analysis as Server-Sent Events."""
+    async def generate():
+        try:
+            async for event in analysis_service.analyze_player_stream(name, season):
+                yield f"data: {json.dumps(event)}\n\n"
+        except Exception as e:
+            yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+
+    return StreamingResponse(generate(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 
 @router.get("/analysis/player/section")

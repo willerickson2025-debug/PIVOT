@@ -617,28 +617,17 @@ function parseStatus(s) {
 function Ticker() {
   const [items, setItems] = React.useState([]);
   React.useEffect(() => {
-    const today = new Date().toISOString().split('T')[0];
-    fetch(`${API}/nba/games?date=${today}`)
+    fetch(`${API}/nba/news`)
       .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        if (!data?.games?.length) return;
-        setItems(data.games.map(g => {
-          const hasScore = g.home_team_score > 0 || g.visitor_team_score > 0;
-          if (hasScore) return `${g.visitor_team.abbreviation} ${g.visitor_team_score} — ${g.home_team_score} ${g.home_team.abbreviation}`;
-          try {
-            const d = new Date(g.status);
-            const t = isNaN(d) ? g.status : d.toLocaleTimeString([], { hour:'numeric', minute:'2-digit', timeZoneName:'short' });
-            return `${g.visitor_team.abbreviation} @ ${g.home_team.abbreviation}  ${t}`;
-          } catch { return `${g.visitor_team.abbreviation} @ ${g.home_team.abbreviation}`; }
-        }));
-      }).catch(()=>{});
+      .then(data => { if (data?.headlines?.length) setItems(data.headlines); })
+      .catch(()=>{});
   }, []);
-  const fallback = ['PIVOT — NBA INTELLIGENCE PLATFORM', "TODAY'S SLATE NOW LOADING", 'GAMES · ANALYSIS · PLAYERS', 'POWERED BY PIVOT'];
+  const fallback = ['PIVOT — NBA INTELLIGENCE PLATFORM', 'BREAKING NBA NEWS NOW LOADING', 'GAMES · ANALYSIS · PLAYERS', 'POWERED BY PIVOT'];
   const display = items.length ? items : fallback;
   const doubled = [...display, ...display];
   return (
     <div className="ticker">
-      <div className="ticker-label">NBA LIVE</div>
+      <div className="ticker-label">NBA NEWS</div>
       <div className="ticker-track-wrap">
         <div className="ticker-track">
           {doubled.map((item,i) => (
@@ -952,6 +941,7 @@ function Players() {
   const [query, setQuery] = React.useState('');
   const [result, setResult] = React.useState(null);
   const [loading, setLoading] = React.useState(false);
+  const [streamingText, setStreamingText] = React.useState('');
   const [error, setError] = React.useState(null);
   const [sectionLoading, setSectionLoading] = React.useState({});
   const [sectionData, setSectionData] = React.useState({});
@@ -963,12 +953,40 @@ function Players() {
   const search = async (name) => {
     const q = name || query;
     if (!q.trim()) return;
-    setLoading(true); setError(null); setSectionData({}); setExpandedSection(null); setShowSugg(false);
+    setLoading(true); setError(null); setResult(null); setStreamingText('');
+    setSectionData({}); setExpandedSection(null); setShowSugg(false);
     try {
-      const r = await fetch(`${API}/analysis/player?name=${encodeURIComponent(q.trim())}&season=2025`);
+      const r = await fetch(`${API}/analysis/player/stream?name=${encodeURIComponent(q.trim())}&season=2025`);
       if (!r.ok) throw new Error(await r.text());
-      setResult(await r.json());
-    } catch(e) { setError(e.message); } finally { setLoading(false); }
+      const reader = r.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let metaSet = false;
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop();
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          try {
+            const evt = JSON.parse(line.slice(6));
+            if (evt.type === 'meta') {
+              setResult({ player: evt.player, averages: evt.averages, last_10: evt.last_10, games_played: evt.games_played, analysis: '' });
+              metaSet = true;
+              setLoading(false);
+            } else if (evt.type === 'chunk') {
+              setStreamingText(t => t + evt.text);
+            } else if (evt.type === 'error') {
+              setError(evt.message);
+              setLoading(false);
+            }
+          } catch {}
+        }
+      }
+    } catch(e) { setError(e.message); }
+    setLoading(false);
   };
 
   const fetchSuggestions = async (val) => {
@@ -1059,12 +1077,17 @@ function Players() {
     );
   }
 
-  // Loading state
-  if (loading) {
+  // Loading state — only shown before metadata arrives (usually < 1s)
+  if (loading && !result) {
     return (
       <div style={{display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'calc(100vh - 70px)', gap:20}}>
-        <div style={{fontSize:11, letterSpacing:6, color:'var(--green)'}}>PIVOT IS ANALYZING</div>
-        <Loader label=""/>
+        <div style={{fontSize:11, letterSpacing:6, color:'var(--green)', animation:'blink 1.2s infinite'}}>PIVOT IS ANALYZING</div>
+        <div style={{display:'flex', gap:6, marginTop:8}}>
+          {[0,1,2,3,4].map(i => (
+            <div key={i} style={{width:3, height:24, background:'var(--green)', opacity:0.7,
+              animation:`blink 0.8s infinite`, animationDelay:`${i*0.12}s`}}/>
+          ))}
+        </div>
       </div>
     );
   }
@@ -1151,11 +1174,12 @@ function Players() {
               </div>
             </div>
           )}
-          {result.analysis && (
+          {(streamingText || result.analysis) && (
             <div style={{marginBottom:36}}>
               <div style={{fontSize:8, letterSpacing:4, color:'#444', marginBottom:14}}>Overview</div>
               <div style={{fontSize:14, lineHeight:2.1, letterSpacing:.5, color:'var(--white)', whiteSpace:'pre-wrap', fontWeight:400, textTransform:'none', maxWidth:900}}>
-                {result.analysis}
+                {streamingText || result.analysis}
+                {streamingText && !result?.done && <span style={{display:'inline-block', width:2, height:'1em', background:'var(--green)', marginLeft:2, verticalAlign:'text-bottom', animation:'blink 0.7s infinite'}}/>}
               </div>
             </div>
           )}
