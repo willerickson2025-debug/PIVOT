@@ -639,17 +639,22 @@ async def analyze_player(
     """
     logger.info("Analyzing player | name=%r season=%d", player_name, season)
 
-    cache_key = f"player:{player_name.lower().strip()}:{season}"
-    cached = analysis_cache.get(cache_key)
-    if cached is not None:
-        logger.info("Player cache hit | key=%s", cache_key)
-        return cached
-
+    # Resolve the player by name first so the cache key is based on the
+    # canonical player ID — not the raw query string. This prevents two
+    # problems: (1) stale cache entries from previous wrong-name resolutions
+    # bypassing the updated scoring logic, and (2) "Steph Curry" and
+    # "Stephen Curry" generating duplicate Claude calls for the same player.
     try:
         player, agg = await _build_player_stat_block(player_name, season)
     except ValueError as exc:
         logger.warning("Player lookup failed | name=%r error=%s", player_name, exc)
         return {"error": str(exc)}
+
+    cache_key = f"player_analysis:{player.id}:{season}"
+    cached = analysis_cache.get(cache_key)
+    if cached is not None:
+        logger.info("Player cache hit | player_id=%d key=%s", player.id, cache_key)
+        return cached
 
     if agg["total_games"] == 0:
         result = await claude_service.analyze(
@@ -813,23 +818,25 @@ async def analyze_player_stream(
     If the result is cached, streams the cached analysis text character-by-character
     so the typewriter effect still plays.
     """
-    cache_key = f"player:{player_name.lower().strip()}:{season}"
+    # Resolve player first so cache key is ID-based, not query-string-based.
+    # Prevents stale poisoned entries and deduplicates "Steph" vs "Stephen Curry".
+    try:
+        player, agg = await _build_player_stat_block(player_name, season)
+    except ValueError as exc:
+        yield {"type": "error", "message": str(exc)}
+        return
+
+    cache_key = f"player_analysis:{player.id}:{season}"
     cached = analysis_cache.get(cache_key)
     if cached is not None:
+        logger.info("Player stream cache hit | player_id=%d key=%s", player.id, cache_key)
         yield {"type": "meta", "player": cached["player"], "averages": cached["averages"],
                "last_10": cached["last_10"], "games_played": cached["games_played"]}
-        # Stream cached text in small chunks so typewriter effect still plays
         text = cached.get("analysis", "")
         chunk_size = 4
         for i in range(0, len(text), chunk_size):
             yield {"type": "chunk", "text": text[i:i + chunk_size]}
         yield {"type": "done"}
-        return
-
-    try:
-        player, agg = await _build_player_stat_block(player_name, season)
-    except ValueError as exc:
-        yield {"type": "error", "message": str(exc)}
         return
 
     if agg["total_games"] == 0:
@@ -882,7 +889,7 @@ async def analyze_player_stream(
             "games_played": agg["total_games"],
             "analysis": analysis_text, "model": "", "tokens_used": 0,
         }
-        analysis_cache.set(cache_key, payload, ttl=3600)
+        analysis_cache.set(cache_key, payload, ttl=3600)  # cache_key = player_analysis:{id}:{season}
 
     yield {"type": "done"}
 
