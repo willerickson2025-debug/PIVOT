@@ -417,31 +417,15 @@ async def _build_player_stat_block(player_name: str, season: int) -> tuple[Any, 
     clean_name = player_name.strip()
     tokens = clean_name.split()
 
-    # Parallel Token Search: fire first-name and last-name searches concurrently
-    # and union the results before scoring.
-    #
-    # Why: BallDontLie's search= uses OR on their backend (first OR last), so
-    # passing a full name like "LeBron James" returns empty. Their explicit
-    # first_name + last_name combo is also bugged. Searching just last_name="James"
-    # hits pagination limits (50 players named James, LeBron on page 2+) and
-    # _resolve_best_player correctly scores all of them 0, raising ValueError.
-    #
-    # Solution: search the first token and the last token simultaneously.
-    # search("LeBron") returns LeBron James; search("James") returns the wrong
-    # Jameses. Combined, _name_match_score instantly picks LeBron (score=100)
-    # over all the noise.
+    # Explicit first_name + last_name parameters bypass BallDontLie's broken
+    # full-name search= (which uses a strict OR and returns empty for "LeBron James").
+    # Fallback to last_name only if the combined search returns nothing.
     if len(tokens) >= 2:
-        p1, p2 = await asyncio.gather(
-            nba_service.search_players(tokens[0]),
-            nba_service.search_players(tokens[-1]),
-        )
-        # Deduplicate by player id — both searches may return the same player.
-        seen: set[int] = set()
-        players = []
-        for p in p1 + p2:
-            if p.id not in seen:
-                seen.add(p.id)
-                players.append(p)
+        first_tok = tokens[0]
+        last_tok = " ".join(tokens[1:])
+        players = await nba_service.search_players(clean_name, first_name=first_tok, last_name=last_tok)
+        if not players:
+            players = await nba_service.search_players(clean_name, last_name=last_tok)
     else:
         players = await nba_service.search_players(clean_name)
 

@@ -1,4 +1,3 @@
-import asyncio
 import json
 import xml.etree.ElementTree as ET
 
@@ -62,27 +61,15 @@ async def get_team(team_id: int):
 @router.get("/nba/players")
 async def search_players(name: str = Query(..., description="Player name to search")):
     try:
-        from app.services.analysis_service import _name_match_score
         query = name.strip()
         tokens = query.split()
 
         if len(tokens) >= 2:
-            # Parallel token search — mirrors the strategy in _build_player_stat_block.
-            # BallDontLie full-name search= returns empty; explicit first+last combo
-            # is bugged. Searching first and last tokens concurrently guarantees the
-            # target player appears in at least one result set for scoring to work.
-            p1, p2 = await asyncio.gather(
-                nba_service.search_players(tokens[0]),
-                nba_service.search_players(tokens[-1]),
-            )
-            seen: set[int] = set()
-            combined = []
-            for p in p1 + p2:
-                if p.id not in seen:
-                    seen.add(p.id)
-                    combined.append(p)
-            # Sort by match score so the best suggestion comes first.
-            players = sorted(combined, key=lambda p: _name_match_score(p, query), reverse=True)
+            first_tok = tokens[0]
+            last_tok = " ".join(tokens[1:])
+            players = await nba_service.search_players(query, first_name=first_tok, last_name=last_tok)
+            if not players:
+                players = await nba_service.search_players(query, last_name=last_tok)
         else:
             players = await nba_service.search_players(query)
 
