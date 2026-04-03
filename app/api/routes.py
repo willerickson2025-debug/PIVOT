@@ -1,3 +1,4 @@
+import asyncio
 import json
 import xml.etree.ElementTree as ET
 
@@ -61,11 +62,30 @@ async def get_team(team_id: int):
 @router.get("/nba/players")
 async def search_players(name: str = Query(..., description="Player name to search")):
     try:
-        # Pass the full query directly — BallDontLie's search= parameter queries
-        # both first and last name on their backend. Splitting by last name caused
-        # pagination bugs where common last names ("James", "Williams") fill page 1
-        # with wrong players before the real target appears.
-        players = await nba_service.search_players(name.strip())
+        from app.services.analysis_service import _name_match_score
+        query = name.strip()
+        tokens = query.split()
+
+        if len(tokens) >= 2:
+            # Parallel token search — mirrors the strategy in _build_player_stat_block.
+            # BallDontLie full-name search= returns empty; explicit first+last combo
+            # is bugged. Searching first and last tokens concurrently guarantees the
+            # target player appears in at least one result set for scoring to work.
+            p1, p2 = await asyncio.gather(
+                nba_service.search_players(tokens[0]),
+                nba_service.search_players(tokens[-1]),
+            )
+            seen: set[int] = set()
+            combined = []
+            for p in p1 + p2:
+                if p.id not in seen:
+                    seen.add(p.id)
+                    combined.append(p)
+            # Sort by match score so the best suggestion comes first.
+            players = sorted(combined, key=lambda p: _name_match_score(p, query), reverse=True)
+        else:
+            players = await nba_service.search_players(query)
+
         return {"players": [p.model_dump() for p in players], "count": len(players)}
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"BallDontLie API error: {str(e)}")
