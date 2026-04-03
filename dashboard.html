@@ -118,11 +118,14 @@ nav.solid {
   background: radial-gradient(ellipse at center, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.9) 100%);
 }
 /* subtle green ambient glow at top-center */
-.home-ambient-glow {
-  position: absolute; top: -100px; left: 50%; transform: translateX(-50%);
-  width: 80vw; max-width: 900px; height: 600px;
-  background: radial-gradient(ellipse at center, rgba(0,255,65,0.08) 0%, transparent 70%);
-  z-index: 2; pointer-events: none;
+.home-cursor-glow {
+  position: absolute; inset: 0; z-index: 2; pointer-events: none;
+  background: radial-gradient(
+    700px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    rgba(0,255,65,0.07),
+    transparent 40%
+  );
+  transition: background 0.05s;
 }
 .home-grid-overlay {
   position: absolute; inset: 0; z-index: 2; pointer-events: none;
@@ -304,12 +307,15 @@ nav.solid {
 }
 .feature-card:hover::before { transform: scaleX(1); }
 .feature-card:hover { background: #0a0a0a; }
-/* subtle corner glow on hover */
+/* cursor-tracking glow inside each card */
 .feature-card-glow {
-  position: absolute; top: 0; right: 0;
-  width: 140px; height: 140px;
-  background: radial-gradient(circle at top right, rgba(0,255,65,0.06), transparent 70%);
-  opacity: 0; transition: opacity 0.3s; pointer-events: none;
+  position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(
+    300px circle at var(--cx, 50%) var(--cy, 50%),
+    rgba(0,255,65,0.07),
+    transparent 60%
+  );
+  opacity: 0; transition: opacity 0.3s;
 }
 .feature-card:hover .feature-card-glow { opacity: 1; }
 .feature-num { font-size: 9px; letter-spacing: 4px; color: #2a2a2a; margin-bottom: 20px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
@@ -599,6 +605,8 @@ function Ticker() {
 
 function Home({ onNavigate }) {
   const audioRef = React.useRef(null);
+  const wrapRef = React.useRef(null);
+
   React.useEffect(() => {
     const a = audioRef.current;
     if (!a) return;
@@ -606,6 +614,12 @@ function Home({ onNavigate }) {
     document.addEventListener('click', unlock);
     return () => document.removeEventListener('click', unlock);
   }, []);
+
+  const handleMouseMove = (e) => {
+    const rect = wrapRef.current.getBoundingClientRect();
+    wrapRef.current.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
+    wrapRef.current.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
+  };
 
   const FEATURES = [
     { num:'01', name:'Live Game Engine', desc:'Real-time scores, box scores, and live stat feeds from every NBA game. Auto-refreshes every 30 seconds.', stat:'30s', statLabel:'Refresh Rate' },
@@ -625,11 +639,11 @@ function Home({ onNavigate }) {
   return (
     <div>
       {/* ── Hero ── */}
-      <div className="home-wrap">
+      <div className="home-wrap" ref={wrapRef} onMouseMove={handleMouseMove}>
         <audio ref={audioRef} src="/static/bg.mp4" loop muted preload="auto"/>
         <video className="home-video" src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260309_042944_4a2205b7-b061-490a-852b-92d9e9955ce9.mp4" autoPlay loop muted playsInline/>
         <div className="home-overlay"/>
-        <div className="home-ambient-glow"/>
+        <div className="home-cursor-glow"/>
         <div className="home-grid-overlay"/>
         <div className="home-hero">
           <div className="home-badge">
@@ -669,7 +683,12 @@ function Home({ onNavigate }) {
         </div>
         <div className="features-grid">
           {FEATURES.map(f => (
-            <div key={f.num} className="feature-card">
+            <div key={f.num} className="feature-card"
+              onMouseMove={e => {
+                const r = e.currentTarget.getBoundingClientRect();
+                e.currentTarget.style.setProperty('--cx', `${e.clientX - r.left}px`);
+                e.currentTarget.style.setProperty('--cy', `${e.clientY - r.top}px`);
+              }}>
               <div className="feature-card-glow"/>
               <div className="feature-num">{f.num}</div>
               <div className="feature-name">{f.name}</div>
