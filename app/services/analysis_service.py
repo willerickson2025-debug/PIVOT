@@ -1185,9 +1185,9 @@ async def timeout_play(body: dict[str, Any]) -> dict[str, Any]:
     """
     Draw up a specific in-bounds or half-court play for use coming out of a timeout.
 
-    Optionally fetches the live box score to inform which players are available
-    and hot vs. cold, then asks Claude to design an executable play with primary
-    and secondary options.
+    Fetches the live box score to derive all game context (score, period, clock)
+    automatically — no manual inputs required. Designs an executable play with
+    primary and secondary options based on who is hot/cold in the current game.
 
     Parameters
     ----------
@@ -1195,66 +1195,76 @@ async def timeout_play(body: dict[str, Any]) -> dict[str, Any]:
         Request body containing:
         - ``game_id`` (int, optional): BallDontLie game ID for live data.
         - ``my_team`` (str, optional): Team name for roster filtering.
-        - ``score_diff`` (int, optional): Score differential (positive = leading).
-        - ``time_remaining`` (str, optional): Time remaining, e.g. ``"0:24"``.
-        - ``quarter`` (int, optional): Current quarter / period number.
-        - ``situation`` (str, optional): Additional situational context.
 
     Returns
     -------
     dict
-        Situation context, drawn-up play text, model metadata, and token usage.
+        Live game context, drawn-up play text, model metadata, and token usage.
     """
     game_id: Optional[int] = body.get("game_id")
     my_team: str = body.get("my_team") or ""
-    try:
-        score_diff: int = int(body.get("score_diff") or 0)
-    except (TypeError, ValueError):
-        score_diff = 0
-    time_remaining: str = body.get("time_remaining") or ""
-    try:
-        quarter: int = int(body.get("quarter") or 4)
-    except (TypeError, ValueError):
-        quarter = 4
-    situation: str = body.get("situation") or ""
 
-    logger.info(
-        "Timeout play | game_id=%s team=%r Q%d %s diff=%+d",
-        game_id,
-        my_team,
-        quarter,
-        time_remaining,
-        score_diff,
-    )
-
+    # All game context derived from live box score
+    score_diff: int = 0
+    time_remaining: str = ""
+    quarter: int = 4
     box_summary: str = ""
+    game_context: str = ""
+
+    logger.info("Timeout play | game_id=%s team=%r", game_id, my_team)
 
     if game_id:
         try:
             box = await nba_service.get_game_boxscore(game_id)
 
             if box and box.get("total_players", 0) > 0:
+                game_info = box.get("game_info") or {}
                 home_t = box.get("home_team") or {}
-                home_name_lower = (home_t.get("name") or "").lower()
-                is_home = my_team.lower() in home_name_lower
+                away_t = box.get("away_team") or {}
+
+                home_score = int(game_info.get("home_team_score") or 0)
+                away_score = int(game_info.get("away_team_score") or 0)
+                period = int(game_info.get("period") or 0)
+                clock = game_info.get("time") or ""
+
+                home_name = home_t.get("name") or "Home"
+                home_abbr = home_t.get("abbreviation") or ""
+                away_name = away_t.get("name") or "Away"
+
+                is_home = my_team.lower() in (home_name + " " + home_abbr).lower()
+                my_score = home_score if is_home else away_score
+                opp_score = away_score if is_home else home_score
+                score_diff = my_score - opp_score
+                quarter = period if period > 0 else 4
+                time_remaining = clock
+
+                diff_str = (
+                    f"UP {abs(score_diff)}" if score_diff > 0
+                    else f"DOWN {abs(score_diff)}" if score_diff < 0
+                    else "TIED"
+                )
+                quarter_label = (
+                    f"Q{quarter}" if quarter <= 4
+                    else ("OT" if quarter == 5 else f"OT{quarter - 4}")
+                )
+                clock_str = f" | {clock}" if clock else ""
+                game_context = (
+                    f"SCORE: {away_name} {away_score} — {home_score} {home_name}\n"
+                    f"PERIOD: {quarter_label}{clock_str} | MY TEAM ({my_team or home_name}): {diff_str}"
+                )
 
                 my_players_key = "home_players" if is_home else "away_players"
-                my_players: list[dict] = (box.get(my_players_key) or [])[:8]
-
-                # Sort by minutes played descending so we see the rotation players first.
-                my_players_sorted = sorted(
-                    my_players,
+                my_players: list[dict] = sorted(
+                    (box.get(my_players_key) or [])[:8],
                     key=lambda p: str(p.get("min") or "0"),
                     reverse=True,
                 )
-
                 player_lines = "\n".join(
                     f"  {p['player']} ({p['pos']}): "
                     f"{p['pts']}pts {p['reb']}reb {p['ast']}ast "
                     f"{p['fg']}FG {p['fg3']}3P {p['min']}min {p['pf']}PF"
-                    for p in my_players_sorted
+                    for p in my_players
                 )
-
                 box_summary = f"My active players:\n{player_lines}"
         except Exception as exc:
             logger.warning(
@@ -1263,23 +1273,22 @@ async def timeout_play(body: dict[str, Any]) -> dict[str, Any]:
                 exc,
             )
 
-    if score_diff > 0:
-        diff_str = f"up {abs(score_diff)}"
-    elif score_diff < 0:
-        diff_str = f"down {abs(score_diff)}"
-    else:
-        diff_str = "tied"
+    diff_str = (
+        f"up {abs(score_diff)}" if score_diff > 0
+        else f"down {abs(score_diff)}" if score_diff < 0
+        else "tied"
+    )
 
     prompt_parts = [
-        f"TIMEOUT — Draw up a play. I need something executable in 20 seconds.\n",
+        "TIMEOUT — Draw up a play. I need something executable in 20 seconds.\n",
         f"Team: {my_team or 'My team'}",
-        f"Situation: Q{quarter}, {time_remaining} remaining, {diff_str}",
     ]
-    if situation:
-        prompt_parts.append(f"Context: {situation}")
+    if game_context:
+        prompt_parts.append(game_context)
+    else:
+        prompt_parts.append(f"Situation: Q{quarter}, {diff_str}")
     if box_summary:
         prompt_parts.append(box_summary)
-
     prompt_parts += [
         "",
         "Give me:",
@@ -1290,10 +1299,8 @@ async def timeout_play(body: dict[str, Any]) -> dict[str, Any]:
         "5. One sentence on why this works against what they are likely running defensively",
     ]
 
-    prompt = "\n".join(prompt_parts)
-
     result = await claude_service.analyze(
-        prompt=prompt,
+        prompt="\n".join(prompt_parts),
         system_prompt=COACH_SYSTEM_PROMPT,
     )
 

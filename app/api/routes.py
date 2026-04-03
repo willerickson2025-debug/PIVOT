@@ -224,24 +224,6 @@ async def player_section_analysis(
 
 # ── Front Office ──────────────────────────────────────────────────────────────
 
-@router.post("/frontoffice/trade")
-async def analyze_trade(body: dict = Body(...)):
-    """
-    Analyze a proposed trade. Expects:
-    {
-      "team_a": "Lakers",
-      "team_b": "Celtics",
-      "team_a_gives": ["Player Name", "2025 First Round Pick"],
-      "team_b_gives": ["Player Name", "Player Name"],
-      "context": "optional extra context"
-    }
-    """
-    try:
-        return await analysis_service.analyze_trade(body)
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=str(e))
-
-
 @router.get("/frontoffice/roster")
 async def get_roster_analysis(team_name: str = Query(..., description="Team name")):
     """Get roster breakdown and financial analysis for a team."""
@@ -256,12 +238,8 @@ async def get_roster_analysis(team_name: str = Query(..., description="Team name
 @router.post("/coach/adjust")
 async def coach_adjustment(body: dict = Body(...)):
     """
-    Real-time coaching adjustment. Expects:
-    {
-      "game_id": 12345,
-      "situation": "We're down 8 in the 3rd, their zone is killing us",
-      "my_team": "Lakers"
-    }
+    Real-time coaching adjustment. Reads live box score automatically.
+    Expects: { "game_id": 12345, "my_team": "Lakers" }
     """
     try:
         return await analysis_service.coach_adjustment(body)
@@ -272,15 +250,8 @@ async def coach_adjustment(body: dict = Body(...)):
 @router.post("/coach/timeout")
 async def timeout_play(body: dict = Body(...)):
     """
-    Generate a timeout play. Expects:
-    {
-      "game_id": 12345,
-      "my_team": "Lakers",
-      "score_diff": -4,
-      "time_remaining": "2:30",
-      "quarter": 4,
-      "situation": "Need a quick bucket, they're playing man"
-    }
+    Generate a timeout play. Derives all game context from live box score.
+    Expects: { "game_id": 12345, "my_team": "Lakers" }
     """
     try:
         return await analysis_service.timeout_play(body)

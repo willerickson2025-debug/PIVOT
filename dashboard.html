@@ -568,7 +568,7 @@ function GameModal({ game, onClose }) {
       } catch(e) {} finally { setLoading(false); }
     };
     load();
-    if (type === 'live') { const iv = setInterval(load, 30000); return () => clearInterval(iv); }
+    if (type === 'live') { const iv = setInterval(load, 10000); return () => clearInterval(iv); }
   }, [game.id]);
 
   React.useEffect(() => {
@@ -631,7 +631,7 @@ function GameModal({ game, onClose }) {
           </div>
           {activeTab === 'boxscore' && (
             <div className="box-score">
-              {loading && <Loader label="Loading Box Score"/>}
+              {loading && <Loader label="PIVOT COMPUTING"/>}
               {!loading && (!boxScore || boxScore.total_players === 0) && (
                 <div style={{padding:'40px', fontSize:10, letterSpacing:4, color:'#333', textAlign:'center'}}>Box Score Not Available</div>
               )}
@@ -686,7 +686,7 @@ function Games() {
 
   React.useEffect(() => {
     fetch_();
-    const iv = setInterval(() => fetch_(today), 30000);
+    const iv = setInterval(() => fetch_(today), 10000);
     return () => clearInterval(iv);
   }, []);
 
@@ -702,7 +702,7 @@ function Games() {
         {hasLive && <div className="tb-info" style={{color:'var(--green)', animation:'blink 1.5s infinite'}}>AUTO-REFRESH ON</div>}
       </div>
       {error && <div className="err">{error}</div>}
-      {loading && games.length === 0 && <Loader label="Fetching Games"/>}
+      {loading && games.length === 0 && <Loader label="PIVOT COMPUTING"/>}
       {!loading && games.length === 0 && !error && <div className="empty">No Games Found</div>}
       <div className="g-rolodex">
         {games.map(g => {
@@ -775,7 +775,7 @@ function Analysis() {
       )}
       {loading && (
         <div style={{display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'60vh', gap:20}}>
-          <div style={{fontSize:11, letterSpacing:6, color:'var(--green)'}}>PIVOT IS ANALYZING</div>
+          <div style={{fontSize:11, letterSpacing:6, color:'var(--green)'}}>PIVOT COMPUTING</div>
           <Loader label=""/>
         </div>
       )}
@@ -885,7 +885,7 @@ function Players() {
             onClick={() => { setShowSugg(false); search(); }}
             disabled={loading || !query.trim()}
             style={{background: loading ? '#111' : 'var(--green)', border:'none', color: loading ? '#444' : 'var(--black)', fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', fontWeight:700, fontSize:11, letterSpacing:4, textTransform:'uppercase', padding:'0 36px', cursor:'pointer', transition:'all 0.1s', flexShrink:0, opacity: !query.trim() ? 0.3 : 1}}>
-            {loading ? 'SEARCHING' : 'SEARCH'}
+            {loading ? 'COMPUTING' : 'SEARCH'}
           </button>
         </div>
       </div>
@@ -897,7 +897,7 @@ function Players() {
       )}
       {loading && (
         <div style={{display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'60vh', gap:20}}>
-          <div style={{fontSize:11, letterSpacing:6, color:'var(--green)'}}>PIVOT IS ANALYZING</div>
+          <div style={{fontSize:11, letterSpacing:6, color:'var(--green)'}}>PIVOT COMPUTING</div>
           <Loader label=""/>
         </div>
       )}
@@ -965,14 +965,14 @@ function Players() {
                 <div onClick={() => loadSection(s.id)} style={{display:'flex', justifyContent:'space-between', alignItems:'center', padding:'20px 28px', cursor:'pointer', background:expandedSection===s.id?'var(--grey)':'var(--black)', transition:'background 0.1s'}}>
                   <div style={{fontSize:12, letterSpacing:4}}>{s.label}</div>
                   <div style={{display:'flex', alignItems:'center', gap:16}}>
-                    {sectionLoading[s.id] && <div style={{fontSize:9, letterSpacing:3, color:'var(--green)'}}>Analyzing...</div>}
+                    {sectionLoading[s.id] && <div style={{fontSize:9, letterSpacing:3, color:'var(--green)'}}>PIVOT COMPUTING</div>}
                     {sectionData[s.id] && !sectionLoading[s.id] && <div style={{fontSize:8, letterSpacing:2, color:'#444'}}>Loaded</div>}
                     <div style={{fontSize:11, color:'var(--green)', transform:expandedSection===s.id?'rotate(180deg)':'rotate(0deg)', transition:'transform 0.2s', display:'inline-block'}}>&#9660;</div>
                   </div>
                 </div>
                 {expandedSection === s.id && (
                   <div style={{padding:'28px 32px', background:'var(--grey2)', borderTop:'1px solid var(--border)'}}>
-                    {sectionLoading[s.id] && <Loader label="Loading Analysis"/>}
+                    {sectionLoading[s.id] && <Loader label="PIVOT COMPUTING"/>}
                     {!sectionLoading[s.id] && sectionData[s.id] && (
                       <div style={{fontSize:14, lineHeight:2.1, letterSpacing:.5, color:'var(--white)', whiteSpace:'pre-wrap', fontWeight:400, textTransform:'none', maxWidth:900}}>
                         {sectionData[s.id]}
@@ -991,30 +991,10 @@ function Players() {
 }
 
 function FrontOffice() {
-  const [subTab, setSubTab] = React.useState('trade');
   const [loading, setLoading] = React.useState(false);
   const [result, setResult] = React.useState(null);
   const [error, setError] = React.useState(null);
-  const [teamA, setTeamA] = React.useState('');
-  const [teamB, setTeamB] = React.useState('');
-  const [teamAGives, setTeamAGives] = React.useState(['']);
-  const [teamBGives, setTeamBGives] = React.useState(['']);
-  const [tradeContext, setTradeContext] = React.useState('');
   const [rosterTeam, setRosterTeam] = React.useState('');
-
-  const addItem = (setter, arr) => setter([...arr, '']);
-  const updateItem = (setter, arr, i, val) => { const n=[...arr]; n[i]=val; setter(n); };
-  const removeItem = (setter, arr, i) => setter(arr.filter((_,j)=>j!==i));
-
-  const runTrade = async () => {
-    if (!teamA||!teamB) return;
-    setLoading(true); setError(null); setResult(null);
-    try {
-      const r = await fetch(`${API}/frontoffice/trade`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ team_a:teamA, team_b:teamB, team_a_gives:teamAGives.filter(Boolean), team_b_gives:teamBGives.filter(Boolean), context:tradeContext }) });
-      if (!r.ok) throw new Error(await r.text());
-      setResult(await r.json());
-    } catch(e) { setError(e.message); } finally { setLoading(false); }
-  };
 
   const runRoster = async () => {
     if (!rosterTeam) return;
@@ -1028,114 +1008,45 @@ function FrontOffice() {
 
   const inp = { background:'var(--black)', border:'1px solid var(--border)', color:'var(--white)', fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', fontWeight:700, fontSize:12, letterSpacing:2, textTransform:'uppercase', padding:'10px 14px', outline:'none', width:'100%', transition:'border-color 0.1s' };
   const lbl = { fontSize:8, letterSpacing:4, color:'#444', marginBottom:6, display:'block' };
-  const addBtn = { background:'none', border:'1px solid var(--border)', color:'#555', fontSize:9, letterSpacing:3, padding:'6px 14px', cursor:'pointer', fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', fontWeight:700, textTransform:'uppercase', marginTop:6, transition:'all 0.1s' };
 
   return (
-    <div>
-      <div className="toolbar">
-        {[['trade','Trade Finder'],['roster','Roster & Cap']].map(([id,label]) => (
-          <button key={id} className="tb-btn" style={subTab===id?{background:'var(--white)',color:'var(--black)'}:{}}
-            onClick={() => { setSubTab(id); setResult(null); setError(null); }}>
-            {label}
+    <div style={{display:'grid', gridTemplateColumns:result?'1fr 520px':'600px 1fr', minHeight:'calc(100vh - 64px)'}}>
+      <div style={{borderRight:'1px solid var(--border)', padding:'40px 48px', overflowY:'auto'}}>
+        <div style={{fontSize:'clamp(28px,3vw,48px)', letterSpacing:6, marginBottom:32}}>Roster & Cap</div>
+        <label style={lbl}>Team Name</label>
+        <div style={{display:'flex', gap:0, marginBottom:24}}>
+          <input style={{...inp, flex:1}} placeholder="Lakers, Celtics, Warriors..." value={rosterTeam} onChange={e=>setRosterTeam(e.target.value)} onKeyDown={e=>e.key==='Enter'&&runRoster()}/>
+          <button onClick={runRoster} disabled={loading||!rosterTeam}
+            style={{background:loading?'#222':'var(--green)', border:'none', color:loading?'#444':'var(--black)', fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', fontWeight:700, fontSize:11, letterSpacing:3, textTransform:'uppercase', padding:'0 28px', cursor:'pointer'}}>
+            {loading ? 'PIVOT COMPUTING' : 'Analyze →'}
           </button>
-        ))}
+        </div>
+        <div style={{fontSize:10, letterSpacing:3, color:'#333', lineHeight:2}}>Full front office breakdown: roster evaluation, cap situation, trade targets, and recommended moves.</div>
       </div>
-      <div style={{display:'grid', gridTemplateColumns:result?'1fr 520px':'600px 1fr', minHeight:'calc(100vh - 124px)'}}>
-        <div style={{borderRight:'1px solid var(--border)', padding:'40px 48px', overflowY:'auto'}}>
-          {subTab === 'trade' && (
-            <div>
-              <div style={{fontSize:'clamp(28px,3vw,48px)', letterSpacing:6, marginBottom:32}}>Trade Finder</div>
-              <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:32, marginBottom:32}}>
-                <div>
-                  <label style={lbl}>Team A</label>
-                  <input style={inp} placeholder="Lakers..." value={teamA} onChange={e=>setTeamA(e.target.value)}/>
-                  <div style={{marginTop:20}}>
-                    <label style={lbl}>Team A Sends</label>
-                    {teamAGives.map((item,i) => (
-                      <div key={i} style={{display:'flex', gap:6, marginBottom:6}}>
-                        <input style={{...inp, flex:1}} placeholder="Player or Pick..." value={item} onChange={e=>updateItem(setTeamAGives,teamAGives,i,e.target.value)}/>
-                        {teamAGives.length>1 && <button style={{...addBtn, padding:'6px 10px', color:'#f33', borderColor:'rgba(255,50,50,.3)'}} onClick={()=>removeItem(setTeamAGives,teamAGives,i)}>✕</button>}
-                      </div>
-                    ))}
-                    <button style={addBtn} onClick={()=>addItem(setTeamAGives,teamAGives)}>+ Add Player / Pick</button>
-                  </div>
-                </div>
-                <div>
-                  <label style={lbl}>Team B</label>
-                  <input style={inp} placeholder="Celtics..." value={teamB} onChange={e=>setTeamB(e.target.value)}/>
-                  <div style={{marginTop:20}}>
-                    <label style={lbl}>Team B Sends</label>
-                    {teamBGives.map((item,i) => (
-                      <div key={i} style={{display:'flex', gap:6, marginBottom:6}}>
-                        <input style={{...inp, flex:1}} placeholder="Player or Pick..." value={item} onChange={e=>updateItem(setTeamBGives,teamBGives,i,e.target.value)}/>
-                        {teamBGives.length>1 && <button style={{...addBtn, padding:'6px 10px', color:'#f33', borderColor:'rgba(255,50,50,.3)'}} onClick={()=>removeItem(setTeamBGives,teamBGives,i)}>✕</button>}
-                      </div>
-                    ))}
-                    <button style={addBtn} onClick={()=>addItem(setTeamBGives,teamBGives)}>+ Add Player / Pick</button>
-                  </div>
-                </div>
-              </div>
-              <div style={{marginBottom:24}}>
-                <label style={lbl}>Additional Context (Optional)</label>
-                <textarea style={{...inp, height:80, resize:'vertical', fontWeight:400, textTransform:'none', fontSize:12}} placeholder="Cap considerations, injury history, team needs..." value={tradeContext} onChange={e=>setTradeContext(e.target.value)}/>
-              </div>
-              <button onClick={runTrade} disabled={loading||!teamA||!teamB}
-                style={{background:loading?'#222':'var(--green)', border:'none', color:loading?'#444':'var(--black)', fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', fontWeight:700, fontSize:12, letterSpacing:4, textTransform:'uppercase', padding:'16px 40px', cursor:'pointer', transition:'all 0.1s'}}>
-                {loading ? 'Analyzing Trade...' : 'Evaluate Trade →'}
-              </button>
+      <div style={{padding:'40px 48px', overflowY:'auto', background:'var(--grey)'}}>
+        {!result && !loading && !error && (
+          <div style={{display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'50vh', gap:16}}>
+            <div style={{fontSize:40, color:'#1a1a1a'}}>◈</div>
+            <div style={{fontSize:9, letterSpacing:4, color:'#333', textAlign:'center'}}>Enter a Team Name and Analyze</div>
+          </div>
+        )}
+        {loading && (
+          <div style={{display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'50vh', gap:16}}>
+            <div style={{fontSize:10, letterSpacing:5, color:'var(--green)'}}>PIVOT COMPUTING</div>
+            <Loader label=""/>
+          </div>
+        )}
+        {error && <div className="err">{error}</div>}
+        {!loading && result && (
+          <>
+            <div style={{display:'flex', justifyContent:'flex-end', marginBottom:20}}>
+              <button className="export-btn" onClick={() => window.print()} style={{background:'none', border:'1px solid var(--green)', color:'var(--green)', fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', fontWeight:700, fontSize:9, letterSpacing:3, textTransform:'uppercase', padding:'8px 20px', cursor:'pointer'}}>Export PDF →</button>
             </div>
-          )}
-          {subTab === 'roster' && (
-            <div>
-              <div style={{fontSize:'clamp(28px,3vw,48px)', letterSpacing:6, marginBottom:32}}>Roster & Cap</div>
-              <label style={lbl}>Team Name</label>
-              <div style={{display:'flex', gap:0, marginBottom:24}}>
-                <input style={{...inp, flex:1}} placeholder="Lakers, Celtics, Warriors..." value={rosterTeam} onChange={e=>setRosterTeam(e.target.value)} onKeyDown={e=>e.key==='Enter'&&runRoster()}/>
-                <button onClick={runRoster} disabled={loading||!rosterTeam}
-                  style={{background:loading?'#222':'var(--green)', border:'none', color:loading?'#444':'var(--black)', fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', fontWeight:700, fontSize:11, letterSpacing:3, textTransform:'uppercase', padding:'0 28px', cursor:'pointer'}}>
-                  {loading ? '...' : 'Analyze →'}
-                </button>
-              </div>
-              <div style={{fontSize:10, letterSpacing:3, color:'#333', lineHeight:2}}>Full front office breakdown: roster evaluation, cap situation, trade targets, and recommended moves.</div>
+            <div style={{fontSize:15, lineHeight:2.1, letterSpacing:.5, color:'var(--white)', whiteSpace:'pre-wrap', fontWeight:400, textTransform:'none'}}>
+              {result.analysis}
             </div>
-          )}
-        </div>
-        <div style={{padding:'40px 48px', overflowY:'auto', background:'var(--grey)'}}>
-          {!result && !loading && !error && (
-            <div style={{display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'50vh', gap:16}}>
-              <div style={{fontSize:40, color:'#1a1a1a'}}>◈</div>
-              <div style={{fontSize:9, letterSpacing:4, color:'#333', textAlign:'center'}}>{subTab==='trade'?'Build a Trade and Evaluate':'Enter a Team Name and Analyze'}</div>
-            </div>
-          )}
-          {loading && (
-            <div style={{display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'50vh', gap:16}}>
-              <div style={{fontSize:10, letterSpacing:5, color:'var(--green)'}}>FRONT OFFICE AI THINKING</div>
-              <Loader label=""/>
-            </div>
-          )}
-          {error && <div className="err">{error}</div>}
-          {!loading && result && (
-            <>
-              {result.player_stats && Object.keys(result.player_stats).length > 0 && (
-                <div style={{marginBottom:28, padding:'16px 20px', border:'1px solid var(--border)', background:'var(--black)'}}>
-                  <div style={{fontSize:8, letterSpacing:4, color:'#444', marginBottom:12}}>Live Stats Retrieved</div>
-                  {Object.entries(result.player_stats).map(([name,stat]) => (
-                    <div key={name} style={{display:'flex', justifyContent:'space-between', padding:'6px 0', borderBottom:'1px solid #141414', fontSize:11, letterSpacing:1}}>
-                      <span style={{fontWeight:700}}>{name}</span>
-                      <span style={{color:'var(--green)', fontSize:10}}>{stat}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-              <div style={{display:'flex', justifyContent:'flex-end', marginBottom:20}}>
-                <button className="export-btn" onClick={() => window.print()} style={{background:'none', border:'1px solid var(--green)', color:'var(--green)', fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', fontWeight:700, fontSize:9, letterSpacing:3, textTransform:'uppercase', padding:'8px 20px', cursor:'pointer'}}>Export PDF →</button>
-              </div>
-              <div style={{fontSize:15, lineHeight:2.1, letterSpacing:.5, color:'var(--white)', whiteSpace:'pre-wrap', fontWeight:400, textTransform:'none'}}>
-                {result.analysis}
-              </div>
-            </>
-          )}
-        </div>
+          </>
+        )}
       </div>
     </div>
   );
@@ -1145,10 +1056,6 @@ function CoachMode() {
   const [games, setGames] = React.useState([]);
   const [selectedGame, setSelectedGame] = React.useState(null);
   const [myTeam, setMyTeam] = React.useState('');
-  const [situation, setSituation] = React.useState('');
-  const [quarter, setQuarter] = React.useState('4');
-  const [timeRemaining, setTimeRemaining] = React.useState('');
-  const [scoreDiff, setScoreDiff] = React.useState('0');
   const [mode, setMode] = React.useState('adjust');
   const [result, setResult] = React.useState(null);
   const [loading, setLoading] = React.useState(false);
@@ -1158,37 +1065,37 @@ function CoachMode() {
   const today = new Date().toISOString().split('T')[0];
 
   React.useEffect(() => {
-    fetch(`${API}/nba/games?date=${today}&_=${Date.now()}`)
+    const loadGames = () => fetch(`${API}/nba/games?date=${today}&_=${Date.now()}`)
       .then(r=>r.ok?r.json():null).then(d=>setGames(d?.games||[])).catch(()=>{});
+    loadGames();
+    const iv = setInterval(loadGames, 10000);
+    return () => clearInterval(iv);
   }, []);
 
   React.useEffect(() => {
     if (!selectedGame) return;
-    fetch(`${API}/nba/games/${selectedGame.id}/boxscore`)
+    const loadBox = () => fetch(`${API}/nba/games/${selectedGame.id}/boxscore`)
       .then(r=>r.ok?r.json():null).then(d=>setBoxScore(d)).catch(()=>{});
-    setScoreDiff(String(selectedGame.home_team_score - selectedGame.visitor_team_score));
-  }, [selectedGame]);
+    loadBox();
+    const iv = setInterval(loadBox, 10000);
+    return () => clearInterval(iv);
+  }, [selectedGame?.id]);
 
   const run = async () => {
     setLoading(true); setError(null);
     try {
       const endpoint = mode==='adjust' ? '/coach/adjust' : '/coach/timeout';
-      const body = mode==='adjust'
-        ? { game_id:selectedGame?.id, situation, my_team:myTeam }
-        : { game_id:selectedGame?.id, my_team:myTeam, score_diff:parseInt(scoreDiff)||0, time_remaining:timeRemaining, quarter:parseInt(quarter)||4, situation };
+      const body = { game_id: selectedGame?.id, my_team: myTeam };
       const r = await fetch(`${API}${endpoint}`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
       if (!r.ok) throw new Error(await r.text());
       const data = await r.json();
       setResult({...data, mode});
-      setHistory(prev => [{...data, mode, timestamp:new Date().toLocaleTimeString(), situation}, ...prev.slice(0,9)]);
+      setHistory(prev => [{...data, mode, timestamp:new Date().toLocaleTimeString()}, ...prev.slice(0,9)]);
     } catch(e) { setError(e.message); } finally { setLoading(false); }
   };
 
-  const inp = { background:'#0a0a0a', border:'1px solid var(--border)', color:'var(--white)', fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', fontWeight:700, fontSize:12, letterSpacing:2, textTransform:'uppercase', padding:'10px 14px', outline:'none', width:'100%', transition:'border-color 0.1s' };
-  const lbl = { fontSize:8, letterSpacing:4, color:'#444', marginBottom:6, display:'block' };
-
   return (
-    <div style={{display:'grid', gridTemplateColumns:'340px 1fr 320px', minHeight:'calc(100vh - 64px)'}}>
+    <div style={{display:'grid', gridTemplateColumns:'300px 1fr 300px', minHeight:'calc(100vh - 64px)'}}>
       <div style={{borderRight:'2px solid var(--white)', display:'flex', flexDirection:'column', overflowY:'auto'}}>
         <div style={{padding:'20px', borderBottom:'1px solid var(--border)'}}>
           <div style={{fontSize:9, letterSpacing:4, color:'#444', marginBottom:12}}>Select Game</div>
@@ -1197,7 +1104,7 @@ function CoachMode() {
             const { label, type } = parseStatus(g.status);
             const sel = selectedGame?.id === g.id;
             return (
-              <div key={g.id} onClick={() => { setSelectedGame(g); setMyTeam(''); }}
+              <div key={g.id} onClick={() => { setSelectedGame(g); setMyTeam(''); setResult(null); }}
                 style={{ padding:'12px 14px', marginBottom:4, cursor:'pointer', border:sel?'1px solid var(--green)':'1px solid var(--border)', background:sel?'rgba(0,255,65,0.05)':'var(--black)', transition:'all 0.1s' }}>
                 <div style={{fontSize:8, letterSpacing:3, color:type==='live'?'var(--green)':'#555', marginBottom:4}}>{type==='live'?'● LIVE':label}</div>
                 <div style={{fontSize:13, letterSpacing:1}}>{g.visitor_team.abbreviation} @ {g.home_team.abbreviation}</div>
@@ -1218,7 +1125,7 @@ function CoachMode() {
               ))}
             </div>
             <div style={{fontSize:9, letterSpacing:4, color:'#444', marginBottom:8}}>Mode</div>
-            <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:4, marginBottom:20}}>
+            <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:4, marginBottom:24}}>
               {[['adjust','Adjustment'],['timeout','Draw Play']].map(([id,label]) => (
                 <button key={id} onClick={() => setMode(id)}
                   style={{ background:mode===id?'var(--white)':'var(--black)', color:mode===id?'var(--black)':'#555', border:`1px solid ${mode===id?'var(--white)':'var(--border)'}`, padding:'8px 4px', cursor:'pointer', fontSize:9, letterSpacing:2, fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', fontWeight:700, textTransform:'uppercase', transition:'all 0.1s' }}>
@@ -1226,76 +1133,27 @@ function CoachMode() {
                 </button>
               ))}
             </div>
-            {mode === 'timeout' && (
-              <div style={{marginBottom:16}}>
-                <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:8}}>
-                  <div>
-                    <label style={lbl}>Quarter</label>
-                    <select style={{...inp, cursor:'pointer'}} value={quarter} onChange={e=>setQuarter(e.target.value)}>
-                      {[1,2,3,4,'OT'].map(q=><option key={q} value={q}>Q{q}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label style={lbl}>Time Left</label>
-                    <input style={inp} placeholder="2:30" value={timeRemaining} onChange={e=>setTimeRemaining(e.target.value)}/>
-                  </div>
-                </div>
-                <label style={lbl}>Score Diff (+ = winning)</label>
-                <input style={inp} type="number" placeholder="-4" value={scoreDiff} onChange={e=>setScoreDiff(e.target.value)}/>
-              </div>
-            )}
-            <div style={{fontSize:9, letterSpacing:4, color:'#444', marginBottom:8, marginTop:8}}>Quick Situations</div>
-            {mode === 'adjust' ? (
-              <div style={{display:'flex', flexDirection:'column', gap:4, marginBottom:12}}>
-                {[
-                  "What defense should we run against their offense?",
-                  "We're getting killed on the perimeter — fix it.",
-                  "Need to slow the pace down and control the game.",
-                  "Their star is taking over — how do we scheme against them?",
-                  "We're up late — how do we protect this lead?",
-                  "Down big — what's our comeback scheme?",
-                ].map(s => (
-                  <button key={s} onClick={() => setSituation(s)}
-                    style={{background: situation===s ? 'rgba(0,255,65,0.1)' : 'transparent', border:`1px solid ${situation===s ? 'var(--green)' : '#1a1a1a'}`, color: situation===s ? 'var(--green)' : '#666', fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', fontWeight:400, fontSize:10, letterSpacing:1, textTransform:'none', padding:'8px 12px', cursor:'pointer', textAlign:'left', transition:'all 0.1s', lineHeight:1.4}}>
-                    {s}
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <div style={{display:'flex', flexDirection:'column', gap:4, marginBottom:12}}>
-                {[
-                  "Need a quick shot — get us 2 fast.",
-                  "Draw up a play to get our best scorer open.",
-                  "Inbound from half court, 5 seconds left.",
-                  "Need a 3 — set a screen for our shooter.",
-                  "They're playing zone — break it down.",
-                  "Last possession, tie game — win play.",
-                ].map(s => (
-                  <button key={s} onClick={() => setSituation(s)}
-                    style={{background: situation===s ? 'rgba(0,255,65,0.1)' : 'transparent', border:`1px solid ${situation===s ? 'var(--green)' : '#1a1a1a'}`, color: situation===s ? 'var(--green)' : '#666', fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', fontWeight:400, fontSize:10, letterSpacing:1, textTransform:'none', padding:'8px 12px', cursor:'pointer', textAlign:'left', transition:'all 0.1s', lineHeight:1.4}}>
-                    {s}
-                  </button>
-                ))}
-              </div>
-            )}
-            <button onClick={run} disabled={loading||!myTeam||!situation}
-              style={{ width:'100%', padding:'14px', fontSize:11, letterSpacing:4, fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', fontWeight:700, textTransform:'uppercase', cursor:'pointer', border:'none', transition:'all 0.1s', background:loading?'#222':'var(--green)', color:loading?'#444':'var(--black)' }}>
-              {loading ? 'PIVOT IS THINKING...' : !situation ? 'SELECT A SITUATION' : mode==='adjust' ? 'GET ADJUSTMENTS' : 'DRAW THE PLAY'}
+            <div style={{fontSize:9, letterSpacing:3, color:'#222', marginBottom:16, lineHeight:1.8}}>
+              PIVOT reads the live box score automatically — score, clock, who's hot, foul trouble. No manual input needed.
+            </div>
+            <button onClick={run} disabled={loading||!myTeam}
+              style={{ width:'100%', padding:'14px', fontSize:11, letterSpacing:4, fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', fontWeight:700, textTransform:'uppercase', cursor:loading||!myTeam?'default':'pointer', border:'none', transition:'all 0.1s', background:loading?'#222':!myTeam?'#111':'var(--green)', color:loading||!myTeam?'#444':'var(--black)' }}>
+              {loading ? 'PIVOT COMPUTING' : !myTeam ? 'SELECT YOUR TEAM' : mode==='adjust' ? 'GET ADJUSTMENTS' : 'DRAW THE PLAY'}
             </button>
           </div>
         )}
-        {!selectedGame && <div style={{padding:'32px 20px', fontSize:9, letterSpacing:3, color:'#333', lineHeight:2}}>Select a game to activate coach mode. Works best with live games. PIVOT reads the live box score and delivers real adjustments.</div>}
+        {!selectedGame && <div style={{padding:'32px 20px', fontSize:9, letterSpacing:3, color:'#333', lineHeight:2}}>Select a game to activate coach mode. PIVOT reads the live box score and delivers real adjustments — no manual input required.</div>}
       </div>
       <div style={{borderRight:'1px solid var(--border)', overflowY:'auto'}}>
         {!result && !loading && !error && (
           <div style={{display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'70vh', gap:16}}>
             <div style={{fontSize:'clamp(40px,6vw,80px)', letterSpacing:12, color:'var(--white)', lineHeight:1, textAlign:'center'}}>COACH<br/>MODE</div>
-            <div style={{fontSize:9, letterSpacing:4, color:'#333', textAlign:'center', maxWidth:300, lineHeight:2}}>Select a game, pick your team, describe the situation, get real-time coaching from PIVOT</div>
+            <div style={{fontSize:9, letterSpacing:4, color:'#333', textAlign:'center', maxWidth:300, lineHeight:2}}>Select a game, pick your team. PIVOT reads the live situation and delivers real coaching.</div>
           </div>
         )}
         {loading && (
           <div style={{display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'70vh', gap:16}}>
-            <div style={{fontSize:10, letterSpacing:5, color:'var(--green)'}}>PIVOT IS COACHING</div>
+            <div style={{fontSize:10, letterSpacing:5, color:'var(--green)'}}>PIVOT COMPUTING</div>
             <Loader label=""/>
           </div>
         )}
@@ -1305,6 +1163,7 @@ function CoachMode() {
             <div style={{display:'flex', gap:12, alignItems:'center', marginBottom:28}}>
               <div style={{fontSize:9, letterSpacing:4, color:'var(--green)'}}>{result.mode==='timeout'?'⊙ PLAY DRAWN':'⊙ ADJUSTMENTS READY'}</div>
               <div style={{fontSize:9, letterSpacing:2, color:'#333'}}>{result.my_team}</div>
+              {result.time_remaining && <div style={{fontSize:9, letterSpacing:2, color:'#333'}}>Q{result.quarter} · {result.time_remaining}</div>}
             </div>
             <div style={{fontSize:15, lineHeight:2.2, letterSpacing:.5, color:'var(--white)', whiteSpace:'pre-wrap', fontWeight:400, textTransform:'none'}}>
               {result.analysis || result.play}
@@ -1346,8 +1205,8 @@ function CoachMode() {
                 <span style={{fontSize:8, letterSpacing:3, color:'var(--green)'}}>{h.mode?.toUpperCase()}</span>
                 <span style={{fontSize:8, letterSpacing:2, color:'#333'}}>{h.timestamp}</span>
               </div>
-              <div style={{fontSize:10, letterSpacing:1, color:'#888', fontWeight:400, textTransform:'none', overflow:'hidden', whiteSpace:'nowrap', textOverflow:'ellipsis'}}>
-                {h.situation || 'No situation provided'}
+              <div style={{fontSize:10, letterSpacing:1, color:'#888', fontWeight:400, textTransform:'none'}}>
+                {h.my_team}{h.quarter ? ` · Q${h.quarter}` : ''}
               </div>
             </div>
           ))}
