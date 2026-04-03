@@ -1118,7 +1118,7 @@ function Players() {
             <button className="export-btn" onClick={() => window.print()} style={{background:'none', border:'1px solid var(--green)', color:'var(--green)', fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', fontWeight:700, fontSize:9, letterSpacing:3, textTransform:'uppercase', padding:'10px 20px', cursor:'pointer', marginTop:8}}>Export PDF →</button>
           </div>
           <div style={{fontSize:11, letterSpacing:4, color:'var(--green)', marginBottom:36}}>
-            {result.player?.team?.name||'N/A'} · {result.player?.position||'N/A'} · {result.season} Season · {result.games_played} GP
+            {result.player?.team?.name||'N/A'} · {result.player?.position||'N/A'} · {result.season} Season
           </div>
           {result.averages && (
             <div style={{marginBottom:32}}>
