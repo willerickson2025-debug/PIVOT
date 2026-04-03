@@ -823,11 +823,20 @@ function Players() {
     } catch(e) { setError(e.message); } finally { setLoading(false); }
   };
 
-  // When user presses Enter without picking from dropdown, resolve name → id first.
+  // When user presses Enter / clicks Search without picking from dropdown.
   const searchByName = async () => {
     if (selectedId) { searchById(selectedId); return; }
+    // Auto-select top suggestion if the dropdown already has results.
+    if (suggestions.length > 0) {
+      const top = suggestions[0];
+      setSelectedId(top.id);
+      setQuery(`${top.first_name} ${top.last_name}`);
+      searchById(top.id);
+      return;
+    }
     const q = query.trim();
     if (!q) return;
+    // No cached suggestions — hit the API once to resolve.
     try {
       const r = await fetch(`${API}/nba/players?name=${encodeURIComponent(q)}`);
       if (r.ok) {
