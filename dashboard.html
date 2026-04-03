@@ -12,6 +12,19 @@
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* Global cursor glow — follows mouse across entire page */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 9999; pointer-events: none;
+  background: radial-gradient(
+    600px circle at var(--cursor-x, -9999px) var(--cursor-y, -9999px),
+    rgba(0,255,65,0.055),
+    transparent 40%
+  );
+  transition: background 0.06s;
+}
+
 :root {
   --black: #000000;
   --white: #FFFFFF;
@@ -622,12 +635,12 @@ function Home({ onNavigate }) {
   };
 
   const FEATURES = [
-    { num:'01', name:'Live Game Engine', desc:'Real-time scores, box scores, and live stat feeds from every NBA game. Auto-refreshes every 30 seconds.', stat:'30s', statLabel:'Refresh Rate' },
-    { num:'02', name:'AI Analysis', desc:'Claude-powered breakdowns of every matchup, player performance, and game slate. No filler. Just insight.', stat:'Live', statLabel:'AI Powered' },
-    { num:'03', name:'Coach Mode', desc:'Live in-game adjustments powered by actual box score data. Built for coaches who need answers in 20 seconds.', stat:'Live', statLabel:'Box Score Feed' },
-    { num:'04', name:'Player Intelligence', desc:'Deep dives across offense, defense, financials, injuries, and off-court factors. 8-stat grids with last-10 trends.', stat:'8', statLabel:'Stat Dimensions' },
-    { num:'05', name:'Front Office AI', desc:'Trade finder, roster analysis, and cap evaluation powered by live 2026 stats and AI front office reasoning.', stat:'2026', statLabel:'Live Season Data' },
-    { num:'06', name:'Export Ready', desc:'One-click PDF export on every analysis. Share reports with your staff, front office, or investors.', stat:'PDF', statLabel:'Export Format' },
+    { num:'01', name:'Live Game Engine', desc:'Real-time scoring and comprehensive box scores from every NBA game. Auto-refreshes to keep you synced with the floor.', stat:'Live', statLabel:'Auto-Refresh' },
+    { num:'02', name:'AI Analysis', desc:'PIVOT-powered breakdowns of matchups, individual performance, and daily slates. No fluff. Just pure, analytical insight.', stat:'Live', statLabel:'AI Powered' },
+    { num:'03', name:'Coach Mode', desc:'Dynamic, in-game adjustments backed by live box score feeds. Designed specifically for coaches who need answers on the sideline.', stat:'Live', statLabel:'Box Score Feed' },
+    { num:'04', name:'Player Intelligence', desc:'Deep-dive evaluations spanning offense, defense, financials, and off-court factors. Visualize performance with 8-stat grids and last-10 trends.', stat:'8', statLabel:'Stat Dimensions' },
+    { num:'05', name:'Front Office AI', desc:'Navigate the trade market and manage the cap with ease. Roster analysis powered by live 2026 data and machine-learning logic.', stat:'2026', statLabel:'Live Season Data' },
+    { num:'06', name:'Export Ready', desc:'Export any analysis to PDF. Seamlessly share professional-grade reports with your staff, front office, or investors.', stat:'PDF', statLabel:'Export Format' },
   ];
   const MARQUEE_ITEMS = [
     'Powered by Claude AI', 'Live Box Scores', 'Real-Time Data',
@@ -679,7 +692,7 @@ function Home({ onNavigate }) {
         <div className="features-label">Platform Features</div>
         <div className="features-title">Precision at every level.</div>
         <div className="features-subtitle">
-          Built for coaches, GMs, and analysts who need answers — not summaries.
+          Built for coaches, GMs, and analysts who demand actionable answers — not just summaries.
         </div>
         <div className="features-grid">
           {FEATURES.map(f => (
@@ -1448,6 +1461,13 @@ function App() {
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+<script>
+  // Global cursor glow — updates CSS vars on <body> on every mousemove
+  document.addEventListener('mousemove', e => {
+    document.body.style.setProperty('--cursor-x', e.clientX + 'px');
+    document.body.style.setProperty('--cursor-y', e.clientY + 'px');
+  });
 </script>
 </body>
 </html>
