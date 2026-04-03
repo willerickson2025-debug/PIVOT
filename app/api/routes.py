@@ -71,6 +71,11 @@ async def search_players(name: str = Query(..., description="Player name to sear
             if not players:
                 players = await nba_service.search_players(query, last_name=last_tok)
         else:
+            players = await nba_service.search_players(query, first_name=query)
+            if not players:
+                players = await nba_service.search_players(query, last_name=query)
+
+        if not players:
             players = await nba_service.search_players(query)
 
         return {"players": [p.model_dump() for p in players], "count": len(players)}
