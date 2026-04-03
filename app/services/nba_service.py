@@ -42,7 +42,7 @@ _DEFAULT_PER_PAGE: int = 100
 _REQUEST_TIMEOUT: float = 12.0          # seconds per attempt
 _MAX_RETRIES: int = 3                   # total attempts before raising
 _RETRY_BACKOFF_BASE: float = 0.5        # seconds; multiplied by attempt index
-_DEFAULT_SEASON: int = 2025
+_DEFAULT_SEASON: int = 2026
 _CENTRAL_TZ: str = "America/Chicago"
 
 

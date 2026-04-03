@@ -504,7 +504,7 @@ function Home({ onNavigate }) {
     { num:'02', name:'AI Analysis', desc:'Claude-powered breakdowns of every matchup, player performance, and game slate. No filler. Just insight.', stat:'Live', statLabel:'AI Powered' },
     { num:'03', name:'Coach Mode', desc:'Live in-game adjustments powered by actual box score data. Built for coaches who need answers in 20 seconds.', stat:'Live', statLabel:'Box Score Feed' },
     { num:'04', name:'Player Intelligence', desc:'Deep dives across offense, defense, financials, injuries, and off-court factors. 8-stat grids with last-10 trends.', stat:'8', statLabel:'Stat Dimensions' },
-    { num:'05', name:'Front Office AI', desc:'Trade finder, roster analysis, and cap evaluation powered by live 2025 stats and AI front office reasoning.', stat:'2025', statLabel:'Live Season Data' },
+    { num:'05', name:'Front Office AI', desc:'Trade finder, roster analysis, and cap evaluation powered by live 2026 stats and AI front office reasoning.', stat:'2026', statLabel:'Live Season Data' },
     { num:'06', name:'Export Ready', desc:'One-click PDF export on every analysis. Share reports with your staff, front office, or investors.', stat:'PDF', statLabel:'Export Format' },
   ];
   return (
@@ -817,7 +817,7 @@ function Players() {
     if (!playerId) return;
     setLoading(true); setError(null); setSectionData({}); setExpandedSection(null); setShowSugg(false);
     try {
-      const r = await fetch(`${API}/analysis/player?player_id=${playerId}&season=2025`);
+      const r = await fetch(`${API}/analysis/player?player_id=${playerId}&season=2026`);
       if (!r.ok) throw new Error(await r.text());
       setResult(await r.json());
     } catch(e) { setError(e.message); } finally { setLoading(false); }
@@ -863,7 +863,7 @@ function Players() {
     setSectionLoading(prev => ({...prev, [section]: true}));
     setExpandedSection(section);
     try {
-      const r = await fetch(`${API}/analysis/player/section?player_id=${pid}&season=2025&section=${section}`);
+      const r = await fetch(`${API}/analysis/player/section?player_id=${pid}&season=2026&section=${section}`);
       if (!r.ok) throw new Error(await r.text());
       const data = await r.json();
       setSectionData(prev => ({...prev, [section]: data.analysis}));

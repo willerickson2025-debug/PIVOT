@@ -36,7 +36,7 @@ from app.services.analysis_service import (
 logger = logging.getLogger(__name__)
 
 _CENTRAL_TZ = "America/Chicago"
-_DEFAULT_SEASON = 2025
+_DEFAULT_SEASON = 2026
 
 # Cache TTLs
 _SLATE_TTL    = 8 * 3600   # 8 hours — pre-built overnight, good through morning
