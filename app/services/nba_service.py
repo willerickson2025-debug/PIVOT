@@ -360,7 +360,8 @@ async def get_all_teams() -> list[Team]:
 
 async def search_players(
     name: str,
-    field: str = "search",
+    first_name: Optional[str] = None,
+    last_name: Optional[str] = None,
 ) -> list[Player]:
     """
     Search NBA players by name.
@@ -368,31 +369,48 @@ async def search_players(
     Parameters
     ----------
     name:
-        Full or partial player name. Case-insensitive.
-    field:
-        Which BallDontLie parameter to use:
-        - ``"search"``     — matches first OR last name (default, fuzzy)
-        - ``"first_name"`` — matches first name only (substring)
-        - ``"last_name"``  — matches last name only (substring)
+        Full or partial player name — used as the ``search=`` fallback and
+        for logging context.
+    first_name:
+        When provided (together with ``last_name``), passed directly to
+        BallDontLie's ``first_name=`` parameter, bypassing the fuzzy
+        ``search=`` index entirely.  Combine with ``last_name`` for the most
+        precise results (e.g. first_name="Stephen", last_name="Curry").
+    last_name:
+        When provided alone, passed to BallDontLie's ``last_name=``
+        parameter.  This avoids the pagination issue where a common last name
+        like "James" fills page 1 with wrong players before the intended
+        result appears.
 
-        Use ``"first_name"`` for nickname/first-name queries like "Steph" or
-        "LeBron" so BallDontLie matches "Stephen" without also fuzzy-matching
-        unrelated names like "Seth".
+    Search priority
+    ---------------
+    1. Both first_name + last_name → ``?first_name=…&last_name=…``
+    2. last_name only              → ``?last_name=…``
+    3. first_name only             → ``?first_name=…``
+    4. Neither                     → ``?search=name``  (fuzzy fallback)
 
     Returns
     -------
     list[Player]
         Matching players, ordered by API relevance. Empty list on no match.
     """
-    if field not in ("search", "first_name", "last_name"):
-        field = "search"
-    logger.debug("Searching players | field=%s query=%r", field, name)
-    payload = await _fetch_data(
-        "/players",
-        params={field: name.strip(), "per_page": 50},
-    )
+    if first_name and last_name:
+        params: dict[str, Any] = {"first_name": first_name.strip(), "last_name": last_name.strip(), "per_page": 50}
+        mode = f"first_name={first_name!r} last_name={last_name!r}"
+    elif last_name:
+        params = {"last_name": last_name.strip(), "per_page": 50}
+        mode = f"last_name={last_name!r}"
+    elif first_name:
+        params = {"first_name": first_name.strip(), "per_page": 50}
+        mode = f"first_name={first_name!r}"
+    else:
+        params = {"search": name.strip(), "per_page": 50}
+        mode = f"search={name!r}"
+
+    logger.debug("Searching players | %s", mode)
+    payload = await _fetch_data("/players", params=params)
     players = [_parse_player(p) for p in payload.get("data") or []]
-    logger.debug("Player search (%s=%r) returned %d result(s)", field, name, len(players))
+    logger.debug("Player search (%s) returned %d result(s)", mode, len(players))
     return players
 
 

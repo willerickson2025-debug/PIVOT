@@ -415,15 +415,30 @@ async def _build_player_stat_block(player_name: str, season: int) -> tuple[Any, 
         If no player matching ``player_name`` can be found.
     """
     clean_name = player_name.strip()
+    tokens = clean_name.split()
 
-    # Pass the full unsplit name directly to the API's native search parameter.
-    # BallDontLie's search= queries both first and last name simultaneously on
-    # their backend, returning the most relevant matches first. Splitting and
-    # searching by last_token caused a pagination bug: "James" fills page 1
-    # with ~25 wrong players (James Ennis III, etc.) before LeBron James ever
-    # appears, so the fallback full-name search never fires because the list
-    # isn't empty. Let the API do the matching; we score and pick below.
-    players = await nba_service.search_players(clean_name)
+    # Use explicit first_name + last_name SDK parameters when we have a
+    # multi-word query.  This bypasses BallDontLie's fuzzy search= index and
+    # its pagination ordering, which previously put wrong players first when
+    # last names are common (e.g. "James" → James Ennis III before LeBron).
+    #
+    # Fallback chain:
+    #   1. first_name= + last_name=  (most precise, catches "Stephen Curry")
+    #   2. last_name= only           (catches full-name queries where first
+    #                                  name is a nickname the API doesn't know)
+    #   3. first_name= only          (catches single-first-name queries like
+    #                                  "Giannis" where last name is omitted)
+    #   4. search= fallback          (single-token or exotic names)
+    if len(tokens) >= 2:
+        first_tok = tokens[0]
+        last_tok = " ".join(tokens[1:])
+        players = await nba_service.search_players(clean_name, first_name=first_tok, last_name=last_tok)
+        if not players:
+            players = await nba_service.search_players(clean_name, last_name=last_tok)
+        if not players:
+            players = await nba_service.search_players(clean_name, first_name=first_tok)
+    else:
+        players = await nba_service.search_players(clean_name)
 
     if not players:
         raise ValueError(f"No player found matching '{player_name}'")
