@@ -178,24 +178,24 @@ async def today_games_analysis(date: Optional[str] = Query(None, description="Fo
 
 @router.get("/analysis/player")
 async def player_analysis(
-    name: str = Query(..., description="Player name"),
+    player_id: int = Query(..., description="BallDontLie player ID"),
     season: int = Query(2025, description="NBA season year"),
 ):
     try:
-        return await analysis_service.analyze_player(name, season)
+        return await analysis_service.analyze_player(player_id, season)
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e))
 
 
 @router.get("/analysis/player/stream")
 async def player_analysis_stream(
-    name: str = Query(..., description="Player name"),
+    player_id: int = Query(..., description="BallDontLie player ID"),
     season: int = Query(2025, description="NBA season year"),
 ):
     """Stream player analysis as Server-Sent Events."""
     async def generate():
         try:
-            async for event in analysis_service.analyze_player_stream(name, season):
+            async for event in analysis_service.analyze_player_stream(player_id, season):
                 yield f"data: {json.dumps(event)}\n\n"
         except Exception as e:
             yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
@@ -206,12 +206,12 @@ async def player_analysis_stream(
 
 @router.get("/analysis/player/section")
 async def player_section_analysis(
-    name: str = Query(..., description="Player name"),
+    player_id: int = Query(..., description="BallDontLie player ID"),
     season: int = Query(2025, description="NBA season year"),
     section: str = Query(..., description="Section: offense|defense|off_the_court|injuries|financials"),
 ):
     try:
-        return await analysis_service.analyze_player_section(name, season, section)
+        return await analysis_service.analyze_player_section(player_id, season, section)
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e))
 

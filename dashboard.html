@@ -803,6 +803,7 @@ function Analysis() {
 
 function Players() {
   const [query, setQuery] = React.useState('');
+  const [selectedId, setSelectedId] = React.useState(null);
   const [result, setResult] = React.useState(null);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState(null);
@@ -812,15 +813,30 @@ function Players() {
   const [suggestions, setSuggestions] = React.useState([]);
   const [showSugg, setShowSugg] = React.useState(false);
 
-  const search = async (name) => {
-    const q = name || query;
-    if (!q.trim()) return;
+  const searchById = async (playerId) => {
+    if (!playerId) return;
     setLoading(true); setError(null); setSectionData({}); setExpandedSection(null); setShowSugg(false);
     try {
-      const r = await fetch(`${API}/analysis/player?name=${encodeURIComponent(q.trim())}&season=2025`);
+      const r = await fetch(`${API}/analysis/player?player_id=${playerId}&season=2025`);
       if (!r.ok) throw new Error(await r.text());
       setResult(await r.json());
     } catch(e) { setError(e.message); } finally { setLoading(false); }
+  };
+
+  // When user presses Enter without picking from dropdown, resolve name → id first.
+  const searchByName = async () => {
+    if (selectedId) { searchById(selectedId); return; }
+    const q = query.trim();
+    if (!q) return;
+    try {
+      const r = await fetch(`${API}/nba/players?name=${encodeURIComponent(q)}`);
+      if (r.ok) {
+        const data = await r.json();
+        const first = (data.players || [])[0];
+        if (first) { setSelectedId(first.id); searchById(first.id); return; }
+      }
+    } catch(e) {}
+    setError('Player not found. Try selecting from the dropdown.');
   };
 
   const fetchSuggestions = async (val) => {
@@ -833,11 +849,12 @@ function Players() {
 
   const loadSection = async (section) => {
     if (sectionData[section]) { setExpandedSection(expandedSection === section ? null : section); return; }
-    const searchTerm = `${result.player.first_name} ${result.player.last_name}`;
+    const pid = result?.player?.id;
+    if (!pid) return;
     setSectionLoading(prev => ({...prev, [section]: true}));
     setExpandedSection(section);
     try {
-      const r = await fetch(`${API}/analysis/player/section?name=${encodeURIComponent(searchTerm)}&season=2025&section=${section}`);
+      const r = await fetch(`${API}/analysis/player/section?player_id=${pid}&season=2025&section=${section}`);
       if (!r.ok) throw new Error(await r.text());
       const data = await r.json();
       setSectionData(prev => ({...prev, [section]: data.analysis}));
@@ -867,15 +884,15 @@ function Players() {
               style={{width:'100%', height:'100%', background:'transparent', border:'none', outline:'none', color:'var(--white)', fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', fontWeight:700, fontSize:16, letterSpacing:2, padding:'0 20px', textTransform:'uppercase'}}
               placeholder="SEARCH PLAYER — e.g. LEBRON JAMES"
               value={query}
-              onChange={e => { setQuery(e.target.value); fetchSuggestions(e.target.value); setShowSugg(true); }}
-              onKeyDown={e => { if(e.key==='Enter'){setShowSugg(false);search();} if(e.key==='Escape')setShowSugg(false); }}
+              onChange={e => { setQuery(e.target.value); setSelectedId(null); fetchSuggestions(e.target.value); setShowSugg(true); }}
+              onKeyDown={e => { if(e.key==='Enter'){setShowSugg(false);searchByName();} if(e.key==='Escape')setShowSugg(false); }}
               onBlur={() => setTimeout(() => setShowSugg(false), 150)}
             />
             {showSugg && suggestions.length > 0 && (
               <div style={{position:'absolute', top:'100%', left:0, right:0, background:'#080808', border:'1px solid var(--green)', borderTop:'none', zIndex:9999, maxHeight:300, overflowY:'auto', boxShadow:'0 8px 32px rgba(0,0,0,0.8)'}}>
                 {suggestions.map((p,i) => (
                   <div key={p.id}
-                    onMouseDown={() => { const name=`${p.first_name} ${p.last_name}`; setQuery(name); setShowSugg(false); search(name); }}
+                    onMouseDown={() => { setQuery(`${p.first_name} ${p.last_name}`); setSelectedId(p.id); setShowSugg(false); searchById(p.id); }}
                     style={{padding:'14px 24px', cursor:'pointer', fontSize:13, letterSpacing:2, borderBottom:'1px solid #111', display:'flex', justifyContent:'space-between', alignItems:'center', transition:'background 0.1s'}}
                     onMouseEnter={e => e.currentTarget.style.background='#111'}
                     onMouseLeave={e => e.currentTarget.style.background=''}>
@@ -887,7 +904,7 @@ function Players() {
             )}
           </div>
           <button
-            onClick={() => { setShowSugg(false); search(); }}
+            onClick={() => { setShowSugg(false); searchByName(); }}
             disabled={loading || !query.trim()}
             style={{background: loading ? '#111' : 'var(--green)', border:'none', color: loading ? '#444' : 'var(--black)', fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', fontWeight:700, fontSize:11, letterSpacing:4, textTransform:'uppercase', padding:'0 36px', cursor:'pointer', transition:'all 0.1s', flexShrink:0, opacity: !query.trim() ? 0.3 : 1}}>
             {loading ? 'COMPUTING' : 'SEARCH'}

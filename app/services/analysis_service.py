@@ -382,21 +382,51 @@ def _resolve_best_player(players: list[Any], query: str) -> Any:
 # Player Stat Aggregation
 # ---------------------------------------------------------------------------
 
-async def _build_player_stat_block(player_name: str, season: int) -> tuple[Any, dict[str, Any]]:
+async def _resolve_player_by_name(player_name: str) -> Any:
     """
-    Look up a player, fetch their game logs and official averages, and return
-    both the ``Player`` object and a dict of computed stat aggregates.
+    Resolve a player name string to a Player object via BallDontLie search.
 
-    Search strategy (in order):
-      1. Full name search → score all results → pick best match
-      2. If full name returns nothing and name has multiple tokens,
-         retry with last token only → score → pick best match
-      3. Raise ValueError if still nothing
+    Used only by name-driven callers like ``analyze_trade`` where the caller
+    has a name string but not a player ID. All user-facing analysis endpoints
+    should use ``_build_player_stat_block(player_id, season)`` directly.
+
+    Search strategy:
+      1. first_name= + last_name= (explicit params, most precise)
+      2. last_name= only fallback
+      3. Single-token search=
+
+    Raises
+    ------
+    ValueError
+        If no player matching ``player_name`` can be found.
+    """
+    clean_name = player_name.strip()
+    tokens = clean_name.split()
+
+    if len(tokens) >= 2:
+        first_tok = tokens[0]
+        last_tok = " ".join(tokens[1:])
+        players = await nba_service.search_players(clean_name, first_name=first_tok, last_name=last_tok)
+        if not players:
+            players = await nba_service.search_players(clean_name, last_name=last_tok)
+    else:
+        players = await nba_service.search_players(clean_name)
+
+    if not players:
+        raise ValueError(f"No player found matching '{player_name}'")
+
+    return _resolve_best_player(players, clean_name)
+
+
+async def _build_player_stat_block(player_id: int, season: int) -> tuple[Any, dict[str, Any]]:
+    """
+    Fetch a player by ID, retrieve their game logs and official averages, and
+    return both the ``Player`` object and a dict of computed stat aggregates.
 
     Parameters
     ----------
-    player_name:
-        Full or partial player name.
+    player_id:
+        BallDontLie player ID — no name guessing, no scoring, no ambiguity.
     season:
         NBA season start year.
 
@@ -411,38 +441,16 @@ async def _build_player_stat_block(player_name: str, season: int) -> tuple[Any, 
 
     Raises
     ------
-    ValueError
-        If no player matching ``player_name`` can be found.
+    httpx.HTTPStatusError
+        If the player ID does not exist or the API returns an error.
     """
-    clean_name = player_name.strip()
-    tokens = clean_name.split()
-
-    # Explicit first_name + last_name parameters bypass BallDontLie's broken
-    # full-name search= (which uses a strict OR and returns empty for "LeBron James").
-    # Fallback to last_name only if the combined search returns nothing.
-    if len(tokens) >= 2:
-        first_tok = tokens[0]
-        last_tok = " ".join(tokens[1:])
-        players = await nba_service.search_players(clean_name, first_name=first_tok, last_name=last_tok)
-        if not players:
-            players = await nba_service.search_players(clean_name, last_name=last_tok)
-    else:
-        players = await nba_service.search_players(clean_name)
-
-    if not players:
-        raise ValueError(f"No player found matching '{player_name}'")
-
-    # Score all candidates and pick the best match instead of blindly taking
-    # players[0]. The API can return results sorted in ways that put the wrong
-    # player first (e.g. "LeBron James" → "James Ennis III").
-    player = _resolve_best_player(players, clean_name)
+    player = await nba_service.get_player_by_id(player_id)
 
     logger.info(
-        "Player resolved | query=%r matched=%s %s id=%d",
-        player_name,
+        "Player fetched by id | player_id=%d matched=%s %s",
+        player_id,
         player.first_name,
         player.last_name,
-        player.id,
     )
 
     stats, official = await asyncio.gather(
@@ -604,19 +612,17 @@ async def analyze_today_games(target_date: Optional[str] = None) -> GameAnalysis
 
 
 async def analyze_player(
-    player_name: str,
+    player_id: int,
     season: int = _DEFAULT_SEASON,
 ) -> dict[str, Any]:
     """
     Generate a full player analysis for a given season.
 
-    Retrieves game logs and official season averages, computes a recent-form
-    window, and sends the assembled stat block to Claude for expert analysis.
-
     Parameters
     ----------
-    player_name:
-        Full or partial player name.
+    player_id:
+        BallDontLie player ID — passed directly from the frontend after
+        the user selects from autocomplete. No name guessing.
     season:
         NBA season start year.
 
@@ -626,17 +632,12 @@ async def analyze_player(
         Player metadata, season and recent-form averages, analysis text, and
         token usage. Returns ``{"error": "..."}`` on lookup failure.
     """
-    logger.info("Analyzing player | name=%r season=%d", player_name, season)
+    logger.info("Analyzing player | player_id=%d season=%d", player_id, season)
 
-    # Resolve the player by name first so the cache key is based on the
-    # canonical player ID — not the raw query string. This prevents two
-    # problems: (1) stale cache entries from previous wrong-name resolutions
-    # bypassing the updated scoring logic, and (2) "Steph Curry" and
-    # "Stephen Curry" generating duplicate Claude calls for the same player.
     try:
-        player, agg = await _build_player_stat_block(player_name, season)
-    except ValueError as exc:
-        logger.warning("Player lookup failed | name=%r error=%s", player_name, exc)
+        player, agg = await _build_player_stat_block(player_id, season)
+    except Exception as exc:
+        logger.warning("Player lookup failed | player_id=%d error=%s", player_id, exc)
         return {"error": str(exc)}
 
     cache_key = f"player_analysis:{player.id}:{season}"
@@ -711,7 +712,7 @@ async def analyze_player(
 
 
 async def analyze_player_section(
-    player_name: str,
+    player_id: int,
     season: int,
     section: str,
 ) -> dict[str, Any]:
@@ -721,8 +722,8 @@ async def analyze_player_section(
 
     Parameters
     ----------
-    player_name:
-        Full or partial player name.
+    player_id:
+        BallDontLie player ID.
     season:
         NBA season start year.
     section:
@@ -735,8 +736,8 @@ async def analyze_player_section(
         Returns ``{"error": "..."}`` on lookup failure or unknown section.
     """
     logger.info(
-        "Analyzing player section | name=%r season=%d section=%s",
-        player_name,
+        "Analyzing player section | player_id=%d season=%d section=%s",
+        player_id,
         season,
         section,
     )
@@ -748,9 +749,9 @@ async def analyze_player_section(
         }
 
     try:
-        player, agg = await _build_player_stat_block(player_name, season)
-    except ValueError as exc:
-        logger.warning("Player lookup failed | name=%r error=%s", player_name, exc)
+        player, agg = await _build_player_stat_block(player_id, season)
+    except Exception as exc:
+        logger.warning("Player lookup failed | player_id=%d error=%s", player_id, exc)
         return {"error": str(exc)}
 
     section_directive = SECTION_PROMPTS[section]
@@ -793,7 +794,7 @@ async def analyze_player_section(
 
 
 async def analyze_player_stream(
-    player_name: str,
+    player_id: int,
     season: int = _DEFAULT_SEASON,
 ) -> AsyncGenerator[dict, None]:
     """
@@ -807,11 +808,9 @@ async def analyze_player_stream(
     If the result is cached, streams the cached analysis text character-by-character
     so the typewriter effect still plays.
     """
-    # Resolve player first so cache key is ID-based, not query-string-based.
-    # Prevents stale poisoned entries and deduplicates "Steph" vs "Stephen Curry".
     try:
-        player, agg = await _build_player_stat_block(player_name, season)
-    except ValueError as exc:
+        player, agg = await _build_player_stat_block(player_id, season)
+    except Exception as exc:
         yield {"type": "error", "message": str(exc)}
         return
 
@@ -933,7 +932,8 @@ async def analyze_trade(body: dict[str, Any]) -> dict[str, Any]:
     for name in named_players:
         key = (name or "").lower().strip()
         try:
-            _, agg = await _build_player_stat_block(name, _DEFAULT_SEASON)
+            trade_player = await _resolve_player_by_name(name)
+            _, agg = await _build_player_stat_block(trade_player.id, _DEFAULT_SEASON)
             if agg["total_games"] > 0:
                 player_stats[key] = (
                     f"{agg['avg_pts']}pts / {agg['avg_reb']}reb / {agg['avg_ast']}ast "

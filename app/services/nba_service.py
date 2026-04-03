@@ -358,6 +358,33 @@ async def get_all_teams() -> list[Team]:
     return teams
 
 
+async def get_player_by_id(player_id: int) -> Player:
+    """
+    Retrieve a single player by their BallDontLie player ID.
+
+    Parameters
+    ----------
+    player_id:
+        BallDontLie internal player identifier, as returned by the
+        ``/players`` search endpoint.
+
+    Returns
+    -------
+    Player
+        Hydrated Player domain object.
+
+    Raises
+    ------
+    KeyError
+        If the API response is missing expected fields.
+    httpx.HTTPStatusError
+        If the player ID does not exist (404) or another HTTP error occurs.
+    """
+    logger.debug("Fetching player by id=%d", player_id)
+    payload = await _fetch_data(f"/players/{player_id}")
+    return _parse_player(payload.get("data") or {})
+
+
 async def search_players(
     name: str,
     first_name: Optional[str] = None,
