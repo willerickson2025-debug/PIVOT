@@ -415,30 +415,15 @@ async def _build_player_stat_block(player_name: str, season: int) -> tuple[Any, 
         If no player matching ``player_name`` can be found.
     """
     clean_name = player_name.strip()
-    tokens = clean_name.split()
-    last_token = tokens[-1] if tokens else clean_name
-    first_token = tokens[0] if len(tokens) > 1 else ""
 
-    if len(tokens) >= 2:
-        # Multi-word query: search by last name for the tightest candidate pool
-        # (e.g. "last_name=Curry" returns Seth, Stephen, Dell — then scoring
-        # picks the right one). Fall back to full search if last-name returns nothing.
-        players = await nba_service.search_players(last_token, field="last_name")
-        if not players:
-            players = await nba_service.search_players(clean_name)
-        if not players and first_token:
-            players = await nba_service.search_players(first_token, field="first_name")
-    else:
-        # Single-word query — almost always a first name or nickname ("Steph",
-        # "LeBron", "Giannis"). Use first_name= so BallDontLie matches "Stephen"
-        # for "Steph" (substring hit) without fuzzy-matching "Seth" or other
-        # unrelated names. Fall back to last_name= for players better known by
-        # last name only, then generic search as a last resort.
-        players = await nba_service.search_players(clean_name, field="first_name")
-        if not players:
-            players = await nba_service.search_players(clean_name, field="last_name")
-        if not players:
-            players = await nba_service.search_players(clean_name)
+    # Pass the full unsplit name directly to the API's native search parameter.
+    # BallDontLie's search= queries both first and last name simultaneously on
+    # their backend, returning the most relevant matches first. Splitting and
+    # searching by last_token caused a pagination bug: "James" fills page 1
+    # with ~25 wrong players (James Ennis III, etc.) before LeBron James ever
+    # appears, so the fallback full-name search never fires because the list
+    # isn't empty. Let the API do the matching; we score and pick below.
+    players = await nba_service.search_players(clean_name)
 
     if not players:
         raise ValueError(f"No player found matching '{player_name}'")

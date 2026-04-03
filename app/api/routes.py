@@ -61,24 +61,11 @@ async def get_team(team_id: int):
 @router.get("/nba/players")
 async def search_players(name: str = Query(..., description="Player name to search")):
     try:
-        tokens = name.strip().split()
-        if len(tokens) >= 2:
-            # Multi-word: search by last name for the tightest pool
-            players = await nba_service.search_players(tokens[-1], field="last_name")
-            if not players:
-                players = await nba_service.search_players(name)
-        else:
-            # Single word (nickname/first name): use first_name= to avoid fuzzy
-            # mismatches like "Steph" → "Seth". Also search last_name and merge
-            # so single-last-name queries like "Durant" still work.
-            by_first = await nba_service.search_players(name, field="first_name")
-            by_last = await nba_service.search_players(name, field="last_name")
-            seen: set[int] = set()
-            players = []
-            for p in by_first + by_last:
-                if p.id not in seen:
-                    seen.add(p.id)
-                    players.append(p)
+        # Pass the full query directly — BallDontLie's search= parameter queries
+        # both first and last name on their backend. Splitting by last name caused
+        # pagination bugs where common last names ("James", "Williams") fill page 1
+        # with wrong players before the real target appears.
+        players = await nba_service.search_players(name.strip())
         return {"players": [p.model_dump() for p in players], "count": len(players)}
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"BallDontLie API error: {str(e)}")
