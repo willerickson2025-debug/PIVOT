@@ -4,6 +4,9 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>PIVOT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -94,6 +97,7 @@ nav.solid {
 }
 .nav-cta:hover { opacity: 0.85; }
 @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.2} }
+/* ── Home / Landing ──────────────────────────────────────────────────────── */
 .home-wrap {
   position: relative;
   width: 100vw;
@@ -106,19 +110,28 @@ nav.solid {
 }
 .home-video {
   position: absolute; inset: 0; width: 100%; height: 100%;
-  object-fit: cover; z-index: 0; opacity: 0.42;
-  filter: grayscale(100%) contrast(1.1);
+  object-fit: cover; z-index: 0; opacity: 0.28;
+  filter: grayscale(100%) contrast(1.15);
 }
 .home-overlay {
   position: absolute; inset: 0; z-index: 1;
-  background: radial-gradient(ellipse at center, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.85) 100%);
+  background: radial-gradient(ellipse at center, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.9) 100%);
+}
+/* subtle green ambient glow at top-center */
+.home-ambient-glow {
+  position: absolute; top: -100px; left: 50%; transform: translateX(-50%);
+  width: 80vw; max-width: 900px; height: 600px;
+  background: radial-gradient(ellipse at center, rgba(0,255,65,0.08) 0%, transparent 70%);
+  z-index: 2; pointer-events: none;
 }
 .home-grid-overlay {
   position: absolute; inset: 0; z-index: 2; pointer-events: none;
   background-image:
-    linear-gradient(rgba(255,255,255,0.012) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.012) 1px, transparent 1px);
-  background-size: 20px 20px;
+    linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px);
+  background-size: 50px 50px;
+  -webkit-mask-image: radial-gradient(ellipse at center, black 40%, transparent 80%);
+  mask-image: radial-gradient(ellipse at center, black 40%, transparent 80%);
 }
 .home-hero {
   position: relative; z-index: 3;
@@ -127,88 +140,154 @@ nav.solid {
   text-align: center;
   padding: 0 40px;
   width: 100%;
+  max-width: 900px;
+}
+.home-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 5px 14px; border-radius: 99px;
+  border: 1px solid rgba(0,255,65,0.35);
+  background: rgba(0,255,65,0.08);
+  font-family: 'Inter', sans-serif;
+  font-size: 11px; font-weight: 500; letter-spacing: 2px;
+  color: var(--green); text-transform: uppercase;
+  margin-bottom: 32px;
+}
+.home-badge-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--green);
+  animation: blink 1.4s ease-in-out infinite;
+  flex-shrink: 0;
 }
 .home-pivot-text {
-  font-size: clamp(100px, 20vw, 240px);
-  letter-spacing: -8px;
+  font-size: clamp(72px, 14vw, 160px);
+  letter-spacing: -6px;
   color: var(--white);
   font-weight: 700;
-  line-height: 0.9;
-  margin-bottom: 32px;
-  text-shadow: 0 0 80px rgba(0,255,65,0.15);
+  line-height: 0.92;
+  margin-bottom: 28px;
+  text-shadow: 0 0 60px rgba(0,255,65,0.12);
 }
 .home-tagline {
-  font-size: 12px;
-  letter-spacing: 6px;
-  color: rgba(255,255,255,0.4);
-  font-weight: 400;
-  text-transform: uppercase;
+  font-family: 'Inter', sans-serif;
+  font-size: 18px;
+  letter-spacing: 0;
+  color: rgba(255,255,255,0.5);
+  font-weight: 300;
+  text-transform: none;
   max-width: 560px;
-  line-height: 2.2;
-  margin-bottom: 52px;
+  line-height: 1.7;
+  margin-bottom: 44px;
   text-align: center;
 }
 .home-ctas { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; }
+/* glowing primary button */
 .home-cta-primary {
-  background: var(--green);
-  color: var(--black);
-  border: none;
-  padding: 16px 40px;
-  font-size: 11px;
-  letter-spacing: 4px;
-  font-weight: 700;
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-.home-cta-primary:hover { opacity: 0.85; transform: translateY(-1px); }
-.home-cta-secondary {
-  background: transparent;
+  position: relative;
+  background: var(--black);
   color: var(--white);
-  border: 1px solid rgba(255,255,255,0.25);
-  padding: 16px 40px;
-  font-size: 11px;
+  border: 1px solid rgba(0,255,65,0.5);
+  padding: 14px 36px;
+  font-size: 10px;
   letter-spacing: 4px;
   font-weight: 700;
   font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
   text-transform: uppercase;
   cursor: pointer;
-  transition: all 0.15s;
+  border-radius: 2px;
+  transition: all 0.2s;
+  box-shadow: 0 0 20px rgba(0,255,65,0.15), inset 0 0 20px rgba(0,255,65,0.04);
 }
-.home-cta-secondary:hover { border-color: var(--white); background: rgba(255,255,255,0.06); }
+.home-cta-primary:hover {
+  background: rgba(0,255,65,0.08);
+  border-color: var(--green);
+  box-shadow: 0 0 32px rgba(0,255,65,0.3), inset 0 0 20px rgba(0,255,65,0.06);
+  transform: translateY(-1px);
+}
+.home-cta-secondary {
+  background: rgba(255,255,255,0.04);
+  color: var(--white);
+  border: 1px solid rgba(255,255,255,0.12);
+  padding: 14px 36px;
+  font-size: 10px;
+  letter-spacing: 4px;
+  font-weight: 700;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.2s;
+}
+.home-cta-secondary:hover { border-color: rgba(255,255,255,0.3); background: rgba(255,255,255,0.08); }
 .home-scroll-hint {
   position: absolute; bottom: 48px; left: 50%; transform: translateX(-50%); z-index: 3;
-  font-size: 8px; letter-spacing: 4px; color: #333;
+  font-family: 'Inter', sans-serif;
+  font-size: 9px; letter-spacing: 4px; color: #333; text-transform: uppercase;
   display: flex; align-items: center; gap: 12px;
   white-space: nowrap;
 }
 .home-scroll-line { width: 40px; height: 1px; background: #222; }
+
+/* ── Tech Marquee ─────────────────────────────────────────────────────────── */
+.home-marquee-wrap {
+  overflow: hidden;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background: rgba(0,0,0,0.5);
+  padding: 14px 0;
+  display: flex;
+}
+.home-marquee-track {
+  display: flex; align-items: center;
+  white-space: nowrap;
+  animation: ticker-scroll 35s linear infinite;
+  will-change: transform;
+}
+.home-marquee-track:hover { animation-play-state: paused; }
+.home-marquee-item {
+  display: flex; align-items: center; gap: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 10px; font-weight: 500;
+  letter-spacing: 3px; text-transform: uppercase;
+  color: #444; padding: 0 40px;
+}
+.home-marquee-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--green); opacity: 0.6; }
+
+/* ── Feature Cards ────────────────────────────────────────────────────────── */
 .features-section {
   position: relative;
-  padding: 120px 80px;
+  padding: 100px 80px;
   background: var(--black);
-  border-top: 1px solid var(--border);
   text-align: center;
 }
-.features-label { font-size: 9px; letter-spacing: 6px; color: var(--green); margin-bottom: 24px; }
-.features-title {
-  font-size: clamp(32px, 4vw, 56px);
-  letter-spacing: 2px;
-  color: var(--white);
-  margin-bottom: 64px;
-  line-height: 1.1;
-  max-width: 700px;
-  font-weight: 700;
-  margin-left: auto;
-  margin-right: auto;
+@media (max-width: 768px) { .features-section { padding: 80px 24px; } }
+.features-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 10px; font-weight: 500; letter-spacing: 4px;
+  color: var(--green); text-transform: uppercase; margin-bottom: 20px;
 }
-.features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; text-align: left; }
+.features-title {
+  font-size: clamp(28px, 3.5vw, 48px);
+  letter-spacing: -1px;
+  color: var(--white);
+  margin-bottom: 16px;
+  line-height: 1.15;
+  max-width: 640px;
+  font-weight: 700;
+  margin-left: auto; margin-right: auto;
+}
+.features-subtitle {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px; color: #555; font-weight: 300;
+  max-width: 480px; margin: 0 auto 64px; line-height: 1.7;
+  text-transform: none; letter-spacing: 0;
+}
+.features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; text-align: left; background: var(--border); }
+@media (max-width: 900px) { .features-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 600px) { .features-grid { grid-template-columns: 1fr; } }
 .feature-card {
-  background: var(--grey);
-  border: 1px solid var(--border);
+  background: var(--black);
   padding: 40px 36px;
-  transition: all 0.2s;
+  transition: background 0.2s;
   position: relative;
   overflow: hidden;
 }
@@ -218,42 +297,71 @@ nav.solid {
   top: 0; left: 0; right: 0;
   height: 2px;
   background: var(--green);
+  box-shadow: 0 0 12px rgba(0,255,65,0.5);
   transform: scaleX(0);
-  transition: transform 0.2s;
+  transition: transform 0.25s;
   transform-origin: left;
 }
 .feature-card:hover::before { transform: scaleX(1); }
-.feature-card:hover { background: #151515; }
-.feature-num { font-size: 9px; letter-spacing: 4px; color: #333; margin-bottom: 24px; }
-.feature-name { font-size: 18px; letter-spacing: 3px; color: var(--white); margin-bottom: 16px; }
-.feature-desc { font-size: 11px; letter-spacing: 1px; color: #555; font-weight: 400; text-transform: none; line-height: 2; margin-bottom: 32px; }
-.feature-stat { font-size: 28px; letter-spacing: -1px; color: var(--green); text-shadow: 0 0 20px rgba(0,255,65,0.3); }
-.feature-stat-label { font-size: 8px; letter-spacing: 3px; color: #333; margin-top: 4px; }
+.feature-card:hover { background: #0a0a0a; }
+/* subtle corner glow on hover */
+.feature-card-glow {
+  position: absolute; top: 0; right: 0;
+  width: 140px; height: 140px;
+  background: radial-gradient(circle at top right, rgba(0,255,65,0.06), transparent 70%);
+  opacity: 0; transition: opacity 0.3s; pointer-events: none;
+}
+.feature-card:hover .feature-card-glow { opacity: 1; }
+.feature-num { font-size: 9px; letter-spacing: 4px; color: #2a2a2a; margin-bottom: 20px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+.feature-name { font-size: 15px; letter-spacing: 2px; color: var(--white); margin-bottom: 14px; font-weight: 700; }
+.feature-desc {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px; color: #555; font-weight: 300;
+  text-transform: none; line-height: 1.8; margin-bottom: 28px; letter-spacing: 0;
+}
+.feature-stat { font-size: 26px; letter-spacing: -1px; color: var(--green); text-shadow: 0 0 20px rgba(0,255,65,0.25); }
+.feature-stat-label { font-size: 8px; letter-spacing: 3px; color: #2a2a2a; margin-top: 4px; }
+
+/* ── CTA Section ──────────────────────────────────────────────────────────── */
 .cta-section {
   position: relative;
   padding: 120px 80px;
-  background: var(--grey);
+  background: #040404;
   border-top: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
+  display: flex; flex-direction: column;
+  align-items: center; text-align: center;
+  overflow: hidden;
 }
-.cta-title { font-size: clamp(32px, 4vw, 56px); letter-spacing: 4px; color: var(--white); margin-bottom: 20px; line-height: 1.1; }
-.cta-sub { font-size: 11px; letter-spacing: 4px; color: #555; font-weight: 400; text-transform: uppercase; margin-bottom: 48px; }
+.cta-section::before {
+  content: '';
+  position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  width: 60%; height: 1px;
+  background: linear-gradient(to right, transparent, rgba(0,255,65,0.4), transparent);
+}
+.cta-title {
+  font-size: clamp(28px, 3.5vw, 48px);
+  letter-spacing: -1px;
+  color: var(--white); margin-bottom: 16px; line-height: 1.1; font-weight: 700;
+}
+.cta-sub {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px; color: #555; font-weight: 300;
+  text-transform: none; letter-spacing: 0; margin-bottom: 48px;
+}
 .cta-btns { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+
+/* ── Footer ───────────────────────────────────────────────────────────────── */
 .home-footer {
   background: var(--black);
   border-top: 1px solid var(--border);
-  padding: 32px 80px;
+  padding: 28px 80px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 9px;
-  letter-spacing: 3px;
-  color: #333;
+  font-family: 'Inter', sans-serif;
+  font-size: 10px; letter-spacing: 1px; color: #333;
 }
-.home-footer-logo { color: var(--white); font-size: 14px; letter-spacing: 6px; }
+.home-footer-logo { color: var(--white); font-size: 13px; letter-spacing: 6px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: 700; }
 .ticker {
   position: fixed;
   bottom: 0; left: 0; right: 0;
@@ -507,29 +615,62 @@ function Home({ onNavigate }) {
     { num:'05', name:'Front Office AI', desc:'Trade finder, roster analysis, and cap evaluation powered by live 2026 stats and AI front office reasoning.', stat:'2026', statLabel:'Live Season Data' },
     { num:'06', name:'Export Ready', desc:'One-click PDF export on every analysis. Share reports with your staff, front office, or investors.', stat:'PDF', statLabel:'Export Format' },
   ];
+  const MARQUEE_ITEMS = [
+    'Powered by Claude AI', 'Live Box Scores', 'Real-Time Data',
+    'Coach Mode', 'Player Intelligence', 'Front Office AI',
+    'Powered by Claude AI', 'Live Box Scores', 'Real-Time Data',
+    'Coach Mode', 'Player Intelligence', 'Front Office AI',
+  ];
+
   return (
     <div>
+      {/* ── Hero ── */}
       <div className="home-wrap">
         <audio ref={audioRef} src="/static/bg.mp4" loop muted preload="auto"/>
         <video className="home-video" src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260309_042944_4a2205b7-b061-490a-852b-92d9e9955ce9.mp4" autoPlay loop muted playsInline/>
         <div className="home-overlay"/>
+        <div className="home-ambient-glow"/>
         <div className="home-grid-overlay"/>
         <div className="home-hero">
+          <div className="home-badge">
+            <span className="home-badge-dot"/>
+            NBA Intelligence Platform
+          </div>
           <div className="home-pivot-text">PIVOT</div>
-          <div className="home-tagline">NBA intelligence for coaches, front offices, and analysts who refuse to guess.</div>
+          <div className="home-tagline">
+            NBA intelligence for coaches, front offices, and analysts who refuse to guess.
+          </div>
           <div className="home-ctas">
-            <button className="home-cta-primary" onClick={() => onNavigate('games')}>View Today's Games</button>
+            <button className="home-cta-primary" onClick={() => onNavigate('games')}>View Today's Games →</button>
             <button className="home-cta-secondary" onClick={() => onNavigate('players')}>Player Analysis</button>
           </div>
         </div>
-        <div className="home-scroll-hint"><div className="home-scroll-line"/>SCROLL TO EXPLORE</div>
+        <div className="home-scroll-hint"><div className="home-scroll-line"/>Scroll to Explore</div>
       </div>
+
+      {/* ── Marquee ── */}
+      <div className="home-marquee-wrap">
+        <div className="home-marquee-track">
+          {MARQUEE_ITEMS.map((item, i) => (
+            <span key={i} className="home-marquee-item">
+              <span className="home-marquee-dot"/>
+              {item}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Features ── */}
       <div className="features-section">
         <div className="features-label">Platform Features</div>
-        <div className="features-title">Built For Teams That Need an Edge</div>
+        <div className="features-title">Precision at every level.</div>
+        <div className="features-subtitle">
+          Built for coaches, GMs, and analysts who need answers — not summaries.
+        </div>
         <div className="features-grid">
           {FEATURES.map(f => (
             <div key={f.num} className="feature-card">
+              <div className="feature-card-glow"/>
               <div className="feature-num">{f.num}</div>
               <div className="feature-name">{f.name}</div>
               <div className="feature-desc">{f.desc}</div>
@@ -539,18 +680,22 @@ function Home({ onNavigate }) {
           ))}
         </div>
       </div>
+
+      {/* ── CTA ── */}
       <div className="cta-section">
         <div className="features-label">Get Started</div>
         <div className="cta-title">Ready to Outpace the Game?</div>
-        <div className="cta-sub">Join coaches and front offices already using PIVOT to win.</div>
+        <div className="cta-sub">Join coaches and front offices already using PIVOT.</div>
         <div className="cta-btns">
-          <button className="home-cta-primary" onClick={() => onNavigate('games')}>Open Live Games</button>
+          <button className="home-cta-primary" onClick={() => onNavigate('games')}>Open Live Games →</button>
           <button className="home-cta-secondary" onClick={() => onNavigate('coach')}>Try Coach Mode</button>
         </div>
       </div>
+
+      {/* ── Footer ── */}
       <div className="home-footer">
         <div className="home-footer-logo">PIVOT</div>
-        <div>© 2026 PIVOT. All rights reserved.</div>
+        <div>© 2026 PIVOT Analytics. All rights reserved.</div>
         <div>NBA Intelligence Platform</div>
       </div>
     </div>
