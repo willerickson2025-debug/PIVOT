@@ -282,29 +282,44 @@ def _name_match_score(player: Any, query: str) -> int:
         Match quality score. Higher is better.
     """
     q = query.lower().strip()
+    tokens = q.split()
     first = (player.first_name or "").lower().strip()
     last = (player.last_name or "").lower().strip()
     full = f"{first} {last}".strip()
 
+    # Exact full match
     if full == q:
         return 100
-    if full in q or q in full:
+
+    # Two-token query: enforce strict first + last correctness.
+    # This kills "Seth Curry" when searching "Stephen Curry" — partial
+    # containment scoring no longer lets wrong first names compete.
+    if len(tokens) >= 2:
+        q_first = tokens[0]
+        q_last = tokens[-1]
+
+        # Last name must match exactly or the player is invalid
+        if last != q_last:
+            return 0
+
+        # Exact first name match
+        if first == q_first:
+            return 95
+
+        # Prefix match only — "Steph" → "Stephen", not "Seth"
+        if first.startswith(q_first) or q_first.startswith(first):
+            return 85
+
+        # First name doesn't match at all → reject
+        return 0
+
+    # Single-token query ("Steph", "LeBron", "Giannis")
+    if first.startswith(q) or q.startswith(first):
         return 80
-    if first and last and first in q and last in q:
+    if last == q:
         return 60
-
-    # Partial first-name prefix match + last name — handles nicknames like
-    # "Steph" matching "Stephen" while not conflating with "Seth".
-    # A query token must be a prefix of the player's first name or vice versa.
-    if first and last and last in q:
-        q_tokens = q.split()
-        if any(first.startswith(t) or t.startswith(first) for t in q_tokens if t != last):
-            return 55
-
-    if last and last == q:
+    if last in q:
         return 40
-    if last and last in q:
-        return 20
     return 0
 
 

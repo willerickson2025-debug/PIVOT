@@ -426,8 +426,13 @@ nav.solid {
 <script type="text/babel">
 const API = "https://web-production-1d82.up.railway.app/api/v1";
 
-function getYesterday() { const d = new Date(); d.setDate(d.getDate()-1); return d.toISOString().split('T')[0]; }
-function getTomorrow()  { const d = new Date(); d.setDate(d.getDate()+1); return d.toISOString().split('T')[0]; }
+function localDate(offset = 0) {
+  const d = new Date(); d.setDate(d.getDate() + offset);
+  const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+function getYesterday() { return localDate(-1); }
+function getTomorrow()  { return localDate(1); }
 
 function Loader({ label = 'LOADING' }) {
   return <div className="loader"><div className="loader-bar"/>{label}</div>;
@@ -448,7 +453,7 @@ function parseStatus(s) {
 function Ticker() {
   const [items, setItems] = React.useState([]);
   React.useEffect(() => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = localDate();
     fetch(`${API}/nba/games?date=${today}`)
       .then(r => r.ok ? r.json() : null)
       .then(data => {
@@ -672,7 +677,7 @@ function Games() {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState(null);
   const [selectedGame, setSelectedGame] = React.useState(null);
-  const today = new Date().toISOString().split('T')[0];
+  const today = localDate();
 
   const fetch_ = async (d) => {
     setLoading(true); setError(null);
@@ -1062,7 +1067,7 @@ function CoachMode() {
   const [error, setError] = React.useState(null);
   const [history, setHistory] = React.useState([]);
   const [boxScore, setBoxScore] = React.useState(null);
-  const today = new Date().toISOString().split('T')[0];
+  const today = localDate();
 
   React.useEffect(() => {
     const loadGames = () => fetch(`${API}/nba/games?date=${today}&_=${Date.now()}`)
