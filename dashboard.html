@@ -611,18 +611,22 @@ nav.solid {
 }
 
 /* War Room — CoachMode */
-.war-room { background: #070A0E; position: relative; }
+.war-room { background: #0B0F13; position: relative; }
 .war-room-grid {
   background-image:
-    linear-gradient(rgba(0,230,118,0.018) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0,230,118,0.018) 1px, transparent 1px);
-  background-size: 48px 48px;
+    linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+  background-size: 44px 44px;
 }
 .heat-fire  { color: #FF4444; text-shadow: 0 0 8px rgba(255,68,68,0.5); }
 .heat-hot   { color: #FF8C00; }
 .heat-warm  { color: #FFB800; }
 .heat-ok    { color: var(--green); }
 .heat-cold  { color: #3a3a3a; }
+@keyframes scan-pulse { 0%,100%{opacity:0.25} 50%{opacity:0.7} }
+@keyframes live-ping  { 0%{box-shadow:0 0 0 0 rgba(0,255,85,0.7)} 100%{box-shadow:0 0 0 6px rgba(0,255,85,0)} }
+.game-card { transition: border-color 0.15s, background 0.15s; }
+.game-card:hover { border-color: rgba(0,255,85,0.3) !important; background: rgba(0,255,85,0.04) !important; }
 </style>
 </head>
 <body>
@@ -2267,30 +2271,35 @@ function CoachMode() {
   })() : null;
 
   return (
-    <div className="war-room war-room-grid" style={{display:'grid', gridTemplateColumns:'280px 1fr 300px', minHeight:'calc(100vh - 56px)'}}>
+    <div className="war-room war-room-grid" style={{display:'grid', gridTemplateColumns:'22% 1fr 22%', minHeight:'calc(100vh - 56px)'}}>
 
       {/* ── Left: Command Panel ── */}
       <div style={{borderRight:'1px solid var(--border)', background:'rgba(0,0,0,0.4)', display:'flex', flexDirection:'column', overflowY:'auto'}}>
         <div style={{padding:'16px', borderBottom:'1px solid var(--border)'}}>
-          <div style={{fontSize:8, letterSpacing:5, color:'rgba(0,230,118,0.4)', marginBottom:10, fontFamily:'monospace'}}>⬡ GAME SELECT</div>
-          {games.length === 0 && <div style={{fontSize:9, letterSpacing:2, color:'#222', fontFamily:'monospace'}}>NO GAMES TODAY</div>}
+          <div style={{fontSize:7, letterSpacing:5, color:'rgba(0,255,85,0.55)', marginBottom:12, fontFamily:'Helvetica, Arial, sans-serif', fontWeight:800, textTransform:'uppercase'}}>Game Select</div>
+          {games.length === 0 && <div style={{fontSize:8, letterSpacing:2, color:'#2a2a2a', fontFamily:'Helvetica, Arial, sans-serif', fontWeight:700}}>NO GAMES TODAY</div>}
           {games.map(g => {
             const { label, type } = parseStatus(g.status);
             const sel = selectedGame?.id === g.id;
             const ha = g.home_team_score > 0 || g.visitor_team_score > 0;
+            const isLive = type === 'live';
             return (
-              <div key={g.id} onClick={() => { setSelectedGame(g); setMyTeam(''); setResult(null); setError(null); }}
-                style={{padding:'10px 12px', marginBottom:3, cursor:'pointer',
-                  border: sel ? '1px solid var(--green)' : '1px solid rgba(255,255,255,0.05)',
-                  background: sel ? 'rgba(0,230,118,0.04)' : 'rgba(0,0,0,0.3)',
-                  transition:'all 0.1s'}}>
-                <div style={{fontSize:7, letterSpacing:3, color: type==='live'?'var(--green)':'#333', marginBottom:3, fontFamily:'monospace'}}>
-                  {type==='live' ? '● LIVE' : label}
+              <div key={g.id} className="game-card" onClick={() => { setSelectedGame(g); setMyTeam(''); setResult(null); setError(null); }}
+                style={{padding:'12px 14px', marginBottom:4, cursor:'pointer', borderRadius:6,
+                  border: sel ? '1px solid rgba(0,255,85,0.5)' : '1px solid rgba(255,255,255,0.08)',
+                  background: sel ? 'rgba(0,255,85,0.06)' : 'rgba(255,255,255,0.03)',
+                  backdropFilter:'blur(4px)'}}>
+                <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:4}}>
+                  {isLive && <span style={{width:6, height:6, borderRadius:'50%', background:'#00FF55', display:'inline-block', animation:'live-ping 1.2s ease-out infinite'}}/>}
+                  <span style={{fontSize:7, letterSpacing:3, color: isLive?'#00FF55':'#444', fontFamily:'Helvetica, Arial, sans-serif', fontWeight:700, textTransform:'uppercase'}}>
+                    {isLive ? 'LIVE' : label}
+                  </span>
                 </div>
-                <div style={{fontSize:12, letterSpacing:1, color: sel?'var(--white)':'#777'}}>
-                  {g.visitor_team.abbreviation} @ {g.home_team.abbreviation}
+                <div style={{fontSize:13, letterSpacing:1, fontFamily:'Helvetica, Arial, sans-serif', fontWeight:700,
+                  color: sel ? '#fff' : 'rgba(255,255,255,0.65)'}}>
+                  {g.visitor_team.abbreviation} <span style={{color:'rgba(255,255,255,0.25)'}}>@</span> {g.home_team.abbreviation}
                 </div>
-                {ha && <div style={{fontSize:10, color:'var(--green)', letterSpacing:2, marginTop:1, fontFamily:'monospace'}}>
+                {ha && <div style={{fontSize:13, color:'#00FF55', letterSpacing:2, marginTop:4, fontFamily:'Helvetica, Arial, sans-serif', fontWeight:800}}>
                   {g.visitor_team_score} — {g.home_team_score}
                 </div>}
               </div>
@@ -2341,8 +2350,9 @@ function CoachMode() {
         )}
 
         {!selectedGame && (
-          <div style={{padding:'24px 16px', fontSize:8, letterSpacing:3, color:'#1a1a1a', lineHeight:2.2, fontFamily:'monospace'}}>
-            SELECT A GAME TO<br/>ACTIVATE COACH<br/>MODE. PIVOT READS<br/>THE LIVE BOX AND<br/>DELIVERS REAL<br/>ADJUSTMENTS.
+          <div style={{padding:'24px 16px', fontSize:8, letterSpacing:2, color:'#2a2a2a', lineHeight:2.4,
+            fontFamily:'Helvetica, Arial, sans-serif', fontWeight:700, textTransform:'uppercase'}}>
+            Select a game<br/>to activate<br/>Coach Mode.
           </div>
         )}
       </div>
@@ -2366,18 +2376,57 @@ function CoachMode() {
           </div>
         )}
 
-        {/* Empty state */}
+        {/* Tactical Board Standby HUD */}
         {!result && !loading && !error && (
-          <div style={{display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'70vh', gap:20}}>
-            <div style={{fontSize:'clamp(32px,5vw,64px)', letterSpacing:16, color:'rgba(255,255,255,0.06)', lineHeight:1, textAlign:'center', fontFamily:'monospace', fontWeight:900}}>
-              TACTICAL<br/>BOARD
-            </div>
-            <div style={{fontSize:8, letterSpacing:5, color:'#1a1a1a', textAlign:'center', fontFamily:'monospace', lineHeight:2.5}}>
-              {selectedGame && myTeam
-                ? `READY — SELECT MODE AND EXECUTE`
-                : selectedGame
-                  ? 'SELECT YOUR TEAM'
-                  : 'SELECT A GAME'}
+          <div style={{position:'relative', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'calc(100vh - 96px)', overflow:'hidden'}}>
+
+            {/* Ghosted wireframe court SVG background */}
+            <svg style={{position:'absolute', width:'72%', maxWidth:520, opacity:0.055, pointerEvents:'none'}} viewBox="0 0 380 320" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="129" y="190" width="122" height="102" stroke="white" strokeWidth="1.5"/>
+              <path d="M 129 190 A 41 41 0 0 1 251 190" stroke="white" strokeWidth="1.5"/>
+              <path d="M 129 190 A 41 41 0 0 0 251 190" stroke="white" strokeWidth="1.5" strokeDasharray="5,4"/>
+              <line x1="23" y1="292" x2="23" y2="225" stroke="white" strokeWidth="1.5"/>
+              <line x1="357" y1="292" x2="357" y2="225" stroke="white" strokeWidth="1.5"/>
+              <path d="M 23 225 A 180 162 0 0 1 357 225" stroke="white" strokeWidth="1.5"/>
+              <path d="M 160 292 A 30 30 0 0 1 220 292" stroke="white" strokeWidth="1.5"/>
+              <line x1="167" y1="292" x2="213" y2="292" stroke="white" strokeWidth="2.5"/>
+              <circle cx="190" cy="284" r="9" stroke="white" strokeWidth="2"/>
+              <line x1="0" y1="292" x2="380" y2="292" stroke="white" strokeWidth="1"/>
+            </svg>
+
+            {/* Main headline */}
+            <div style={{position:'relative', textAlign:'center', zIndex:1}}>
+              <div style={{
+                fontSize:'clamp(28px,4.5vw,58px)', lineHeight:1.05, fontWeight:900,
+                fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif',
+                letterSpacing:8,
+                background:'linear-gradient(180deg, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.35) 100%)',
+                WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent',
+              }}>
+                TACTICAL<br/>BOARD
+              </div>
+              <div style={{
+                marginTop:14, fontSize:9, letterSpacing:6,
+                fontFamily:'Helvetica, Arial, sans-serif', fontWeight:700,
+                color:'rgba(0,255,85,0.45)', textTransform:'uppercase',
+              }}>
+                {selectedGame && myTeam
+                  ? 'READY — SELECT MODE AND EXECUTE'
+                  : selectedGame
+                    ? 'SELECT YOUR TEAM'
+                    : 'AWAITING GAME FEED'}
+              </div>
+
+              {/* Scanning pulse */}
+              <div style={{display:'flex', alignItems:'center', justifyContent:'center', gap:8, marginTop:24}}>
+                <div style={{width:32, height:1, background:'rgba(0,255,85,0.2)'}}/>
+                <div style={{width:5, height:5, borderRadius:'50%', background:'rgba(0,255,85,0.5)', animation:'scan-pulse 2s ease-in-out infinite'}}/>
+                <div style={{fontSize:7, letterSpacing:4, color:'rgba(0,255,85,0.3)', fontFamily:'Helvetica, Arial, sans-serif', fontWeight:700, animation:'scan-pulse 2s ease-in-out 0.3s infinite'}}>
+                  SCANNING
+                </div>
+                <div style={{width:5, height:5, borderRadius:'50%', background:'rgba(0,255,85,0.5)', animation:'scan-pulse 2s ease-in-out 0.6s infinite'}}/>
+                <div style={{width:32, height:1, background:'rgba(0,255,85,0.2)'}}/>
+              </div>
             </div>
           </div>
         )}
@@ -2473,9 +2522,21 @@ function CoachMode() {
         )}
 
         <div style={{padding:'16px'}}>
-          <div style={{fontSize:7, letterSpacing:5, color:'rgba(0,230,118,0.35)', marginBottom:10, fontFamily:'monospace'}}>⬡ CALL HISTORY</div>
+          <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12}}>
+            <div style={{fontSize:7, letterSpacing:4, color:'rgba(255,255,255,0.3)', fontFamily:'Helvetica, Arial, sans-serif', fontWeight:700, textTransform:'uppercase'}}>Call History & Intel</div>
+          </div>
+          <div style={{fontSize:7, letterSpacing:3, color:'#00FF55', fontFamily:'Helvetica, Arial, sans-serif', fontWeight:700, marginBottom:14, opacity:0.6}}>[ SYSTEM READY ]</div>
           {history.length === 0 && (
-            <div style={{fontSize:8, letterSpacing:3, color:'#1a1a1a', fontFamily:'monospace', lineHeight:2}}>NO CALLS YET</div>
+            <div style={{display:'flex', flexDirection:'column', gap:6}}>
+              {[0,1,2,3].map(i => (
+                <div key={i} style={{padding:'12px 10px', borderRadius:4,
+                  border:'1px dashed rgba(255,255,255,0.1)',
+                  background:'transparent', opacity: 1 - i * 0.18}}>
+                  <div style={{height:6, width:'55%', background:'rgba(255,255,255,0.06)', borderRadius:2, marginBottom:6}}/>
+                  <div style={{height:6, width:'35%', background:'rgba(255,255,255,0.04)', borderRadius:2}}/>
+                </div>
+              ))}
+            </div>
           )}
           {history.map((h, i) => (
             <div key={i} onClick={() => setResult(h)} style={{padding:'10px 12px', marginBottom:4, cursor:'pointer',
