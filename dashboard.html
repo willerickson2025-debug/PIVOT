@@ -1035,34 +1035,42 @@ function Games() {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState(null);
   const [selectedGame, setSelectedGame] = React.useState(null);
+  const [activeDate, setActiveDate] = React.useState(localDate());
   const today = localDate();
 
   const fetch_ = async (d) => {
+    const date = d || today;
+    setActiveDate(date);
     setLoading(true); setError(null);
     try {
-      const r = await fetch(`${API}/nba/games?date=${d||today}&_=${Date.now()}`);
+      const r = await fetch(`${API}/nba/games?date=${date}&_=${Date.now()}`);
       if (!r.ok) throw new Error(await r.text());
       const data = await r.json();
       setGames(data.games || []);
     } catch(e) { setError(e.message); } finally { setLoading(false); }
   };
 
+  // Auto-refresh only when viewing today and there are live games
   React.useEffect(() => {
     fetch_();
-    const iv = setInterval(() => fetch_(today), 10000);
-    return () => clearInterval(iv);
   }, []);
 
   const hasLive = games.some(g => { const l = g.status?.toLowerCase()||''; return l.includes('qtr')||l.includes('half')||l==='in progress'; });
 
+  React.useEffect(() => {
+    if (!hasLive || activeDate !== today) return;
+    const iv = setInterval(() => fetch_(today), 10000);
+    return () => clearInterval(iv);
+  }, [hasLive, activeDate]);
+
   return (
     <div>
       <div className="toolbar">
-        <button className="tb-btn" onClick={() => fetch_(today)}>Today</button>
-        <button className="tb-btn" onClick={() => fetch_(getYesterday())}>Yesterday</button>
-        <button className="tb-btn" onClick={() => fetch_(getTomorrow())}>Tomorrow</button>
+        <button className="tb-btn" onClick={() => fetch_(today)} style={{color: activeDate===today ? 'var(--white)' : ''}}>Today</button>
+        <button className="tb-btn" onClick={() => fetch_(getYesterday())} style={{color: activeDate===getYesterday() ? 'var(--white)' : ''}}>Yesterday</button>
+        <button className="tb-btn" onClick={() => fetch_(getTomorrow())} style={{color: activeDate===getTomorrow() ? 'var(--white)' : ''}}>Tomorrow</button>
         {games.length > 0 && <div className="tb-info">{games.length} Games{hasLive?' · LIVE':''}</div>}
-        {hasLive && <div className="tb-info" style={{color:'var(--green)', animation:'blink 1.5s infinite'}}>AUTO-REFRESH ON</div>}
+        {hasLive && activeDate===today && <div className="tb-info" style={{color:'var(--green)', animation:'blink 1.5s infinite'}}>AUTO-REFRESH ON</div>}
       </div>
       {error && <div className="err">{error}</div>}
       {loading && games.length === 0 && <Loader label="PIVOT COMPUTING"/>}
