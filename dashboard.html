@@ -458,42 +458,90 @@ nav.solid {
   color: var(--text-muted); text-transform: none;
   margin-left: auto; border-left: 1px solid var(--border);
 }
-.g-rolodex {
-  display: flex;
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  -webkit-overflow-scrolling: touch;
-  gap: 0;
-  padding: 0;
-  scrollbar-width: none;
+.g-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 32px 40px;
 }
-.g-rolodex::-webkit-scrollbar { display: none; }
-.g-card {
-  flex: 0 0 300px;
-  scroll-snap-align: start;
-  border-right: 1px solid var(--border);
-  padding: 28px 24px 24px;
+.g-card2 {
+  background: #111318;
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+  padding: 24px;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: all 0.2s ease;
   position: relative;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  min-height: 200px;
+  gap: 16px;
 }
-.g-card:hover { background: var(--grey); }
-.g-card:hover .g-card-arrow { opacity: 1; }
-.g-card-arrow { position: absolute; bottom: 20px; right: 20px; font-size: 11px; letter-spacing: 2px; color: var(--green); opacity: 0; transition: opacity 0.15s; }
-.g-time { font-size: 9px; letter-spacing: 3px; color: var(--green); margin-bottom: 20px; }
-.g-teams { display: flex; flex-direction: column; gap: 14px; margin-bottom: 20px; }
-.g-team-row { display: flex; align-items: center; justify-content: space-between; }
-.g-abbr-big { font-size: 22px; letter-spacing: 2px; font-weight: 700; }
-.g-city-small { font-size: 8px; letter-spacing: 2px; color: #444; margin-top: 2px; }
-.g-score-val { font-size: 26px; letter-spacing: 1px; color: var(--green); text-shadow: 0 0 10px rgba(0,255,65,.3); font-weight: 700; min-width: 40px; text-align: right; }
-.g-score-dash { font-size: 10px; letter-spacing: 2px; color: #222; text-align: center; padding: 0 8px; }
-.g-divider { height: 1px; background: var(--border); margin: 0 0 16px; }
-.g-badge { display: inline-block; font-size: 8px; letter-spacing: 3px; padding: 3px 8px; border: 1px solid #222; color: #444; }
-.g-badge.live { border-color: var(--green); color: var(--green); animation: blink 1s infinite; }
+.g-card2:hover {
+  border-color: rgba(0,230,118,0.45);
+  box-shadow: 0 8px 32px rgba(0,230,118,0.1);
+}
+.g-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 9px;
+  letter-spacing: 2px;
+  padding: 3px 10px;
+  border-radius: 99px;
+  border: 1px solid rgba(255,255,255,0.1);
+  color: #555;
+  background: rgba(255,255,255,0.03);
+  width: fit-content;
+}
+.g-status-badge.live {
+  background: rgba(0,230,118,0.1);
+  border-color: rgba(0,230,118,0.3);
+  color: #00E676;
+}
+.g-live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #00E676;
+  animation: blink 1s infinite;
+  flex-shrink: 0;
+}
+.g-team-sep { height: 1px; background: rgba(255,255,255,0.05); margin: 4px 0; }
+.g-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+}
+.g-conf-pill {
+  font-size: 8px;
+  letter-spacing: 2px;
+  color: #444;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 99px;
+  padding: 2px 8px;
+}
+.g-box-link {
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: #00E676;
+  font-weight: 600;
+}
+.g-glow-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: 12px;
+  background: radial-gradient(circle at var(--cx, 50%) var(--cy, 50%), rgba(0,230,118,0.04) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.g-card2:hover .g-glow-overlay { opacity: 1; }
 .modal-backdrop {
   position: fixed; inset: 0; background: rgba(0,0,0,0.88);
   z-index: 2000; display: flex; align-items: center; justify-content: center;
@@ -856,6 +904,86 @@ function GameModal({ game, onClose }) {
   );
 }
 
+const ESPN_TEAM_IDS = {
+  ATL:1,BOS:2,BKN:17,CHA:30,CHI:4,CLE:5,DAL:6,DEN:7,DET:8,GSW:9,
+  HOU:10,IND:11,LAC:12,LAL:13,MEM:29,MIA:14,MIL:15,MIN:16,NOP:3,
+  NYK:18,OKC:25,ORL:19,PHI:20,PHX:21,POR:22,SAC:23,SAS:24,TOR:28,
+  UTA:26,WAS:27
+};
+function teamLogoUrl(abbr) {
+  const id = ESPN_TEAM_IDS[abbr];
+  return id ? `https://a.espn.com/combiner/i?img=/i/teamlogos/nba/500/${abbr.toLowerCase()}.png&h=80&w=80` : null;
+}
+
+function TeamRow({ team, score, isLive, hasScore }) {
+  const [logoErr, setLogoErr] = React.useState(false);
+  const logoUrl = teamLogoUrl(team.abbreviation);
+  return (
+    <div style={{display:'flex', alignItems:'center', gap:12, padding:'10px 0'}}>
+      <div style={{width:40, height:40, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center'}}>
+        {logoUrl && !logoErr
+          ? <img src={logoUrl} alt={team.abbreviation} width={40} height={40}
+              style={{objectFit:'contain', display:'block'}}
+              onError={() => setLogoErr(true)}/>
+          : <div style={{width:40, height:40, display:'flex', alignItems:'center', justifyContent:'center',
+              background:'rgba(255,255,255,0.04)', borderRadius:6, fontSize:9, letterSpacing:1, color:'#555', fontWeight:700}}>
+              {team.abbreviation}
+            </div>
+        }
+      </div>
+      <div style={{flex:1, minWidth:0}}>
+        <div style={{fontSize:22, fontWeight:700, letterSpacing:1, lineHeight:1}}>{team.abbreviation}</div>
+        <div style={{fontSize:10, color:'#555', letterSpacing:1, marginTop:2, textTransform:'uppercase'}}>{team.city}</div>
+      </div>
+      {hasScore && (
+        <div style={{fontSize:28, fontWeight:700, letterSpacing:1, color: isLive ? '#00E676' : '#fff', minWidth:40, textAlign:'right'}}>
+          {score}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function GameCard({ g, onSelect }) {
+  const { label, type } = parseStatus(g.status);
+  const hasScore = g.home_team_score > 0 || g.visitor_team_score > 0;
+  const isLive = type === 'live';
+  const glowRef = React.useRef(null);
+
+  const handleMouseMove = (e) => {
+    const card = e.currentTarget;
+    const rect = card.getBoundingClientRect();
+    const cx = ((e.clientX - rect.left) / rect.width * 100).toFixed(1) + '%';
+    const cy = ((e.clientY - rect.top) / rect.height * 100).toFixed(1) + '%';
+    card.style.setProperty('--cx', cx);
+    card.style.setProperty('--cy', cy);
+  };
+
+  const confLabel = [g.home_team?.conference, g.home_team?.division].filter(Boolean).join(' · ');
+
+  return (
+    <div className="g-card2" onClick={() => onSelect(g)} onMouseMove={handleMouseMove}>
+      <div className="g-glow-overlay"/>
+      <div className={`g-status-badge${isLive ? ' live' : ''}`}>
+        {isLive && <span className="g-live-dot"/>}
+        {isLive ? 'LIVE' : label}
+      </div>
+      <div>
+        <TeamRow team={g.visitor_team} score={g.visitor_team_score} isLive={isLive} hasScore={hasScore}/>
+        <div className="g-team-sep"/>
+        <TeamRow team={g.home_team} score={g.home_team_score} isLive={isLive} hasScore={hasScore}/>
+      </div>
+      <div className="g-card-footer">
+        {confLabel
+          ? <span className="g-conf-pill">{confLabel}</span>
+          : <span/>
+        }
+        <span className="g-box-link">Box Score →</span>
+      </div>
+    </div>
+  );
+}
+
 function Games() {
   const [games, setGames] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
@@ -893,40 +1021,10 @@ function Games() {
       {error && <div className="err">{error}</div>}
       {loading && games.length === 0 && <Loader label="PIVOT COMPUTING"/>}
       {!loading && games.length === 0 && !error && <div className="empty">No Games Found</div>}
-      <div className="g-rolodex">
-        {games.map(g => {
-          const { label, type } = parseStatus(g.status);
-          const hasScore = g.home_team_score > 0 || g.visitor_team_score > 0;
-          return (
-            <div key={g.id} className="g-card" onClick={() => setSelectedGame(g)}>
-              <div>
-                <div className="g-time">{type==='live' ? <span className="live-badge">● LIVE</span> : label}</div>
-                <div className="g-divider"/>
-                <div className="g-teams">
-                  <div className="g-team-row">
-                    <div>
-                      <div className="g-abbr-big">{g.visitor_team.abbreviation}</div>
-                      <div className="g-city-small">{g.visitor_team.city}</div>
-                    </div>
-                    {hasScore ? <div className="g-score-val">{g.visitor_team_score}</div> : null}
-                  </div>
-                  {hasScore && <div style={{height:1, background:'#111'}}/>}
-                  <div className="g-team-row">
-                    <div>
-                      <div className="g-abbr-big">{g.home_team.abbreviation}</div>
-                      <div className="g-city-small">{g.home_team.city}</div>
-                    </div>
-                    {hasScore ? <div className="g-score-val">{g.home_team_score}</div> : null}
-                  </div>
-                </div>
-              </div>
-              <div>
-                <span className={`g-badge ${type}`}>{hasScore ? label : 'PREVIEW'}</span>
-                <div className="g-card-arrow">BOX SCORE →</div>
-              </div>
-            </div>
-          );
-        })}
+      <div className="g-grid">
+        {games.map(g => (
+          <GameCard key={g.id} g={g} onSelect={setSelectedGame}/>
+        ))}
       </div>
       {selectedGame && <GameModal game={selectedGame} onClose={() => setSelectedGame(null)}/>}
     </div>
