@@ -468,7 +468,7 @@ nav.solid {
   padding: 40px 20px;
 }
 .g-card2 {
-  width: 320px;
+  width: 420px;
   flex-shrink: 0;
   background: #111318;
   border: 1px solid rgba(255,255,255,0.07);
@@ -951,36 +951,79 @@ function GameCard({ g, onSelect }) {
   const { label, type } = parseStatus(g.status);
   const hasScore = g.home_team_score > 0 || g.visitor_team_score > 0;
   const isLive = type === 'live';
-  const glowRef = React.useRef(null);
+  const [performers, setPerformers] = React.useState([]);
+
+  React.useEffect(() => {
+    if (!hasScore) return;
+    fetch(`${API}/nba/games/${g.id}/boxscore`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (!data || data.total_players === 0) return;
+        const all = [...(data.away_players||[]), ...(data.home_players||[])];
+        const top = all
+          .filter(p => p.pts > 0)
+          .sort((a,b) => (b.pts + b.reb*0.5 + b.ast*0.5) - (a.pts + a.reb*0.5 + a.ast*0.5))
+          .slice(0, 3)
+          .map(p => ({
+            name: p.player.split(' ').slice(-1)[0],
+            full: p.player,
+            pts: p.pts, reb: p.reb, ast: p.ast,
+            team: all.indexOf(p) < (data.away_players||[]).length ? g.visitor_team.abbreviation : g.home_team.abbreviation,
+          }));
+        setPerformers(top);
+      }).catch(() => {});
+  }, [g.id, hasScore]);
 
   const handleMouseMove = (e) => {
     const card = e.currentTarget;
     const rect = card.getBoundingClientRect();
-    const cx = ((e.clientX - rect.left) / rect.width * 100).toFixed(1) + '%';
-    const cy = ((e.clientY - rect.top) / rect.height * 100).toFixed(1) + '%';
-    card.style.setProperty('--cx', cx);
-    card.style.setProperty('--cy', cy);
+    card.style.setProperty('--cx', ((e.clientX - rect.left) / rect.width * 100).toFixed(1) + '%');
+    card.style.setProperty('--cy', ((e.clientY - rect.top) / rect.height * 100).toFixed(1) + '%');
   };
-
-  const confLabel = [g.home_team?.conference, g.home_team?.division].filter(Boolean).join(' · ');
 
   return (
     <div className="g-card2" onClick={() => onSelect(g)} onMouseMove={handleMouseMove}>
       <div className="g-glow-overlay"/>
+
+      {/* Status */}
       <div className={`g-status-badge${isLive ? ' live' : ''}`}>
         {isLive && <span className="g-live-dot"/>}
         {isLive ? 'LIVE' : label}
       </div>
+
+      {/* Teams */}
       <div>
         <TeamRow team={g.visitor_team} score={g.visitor_team_score} isLive={isLive} hasScore={hasScore}/>
         <div className="g-team-sep"/>
         <TeamRow team={g.home_team} score={g.home_team_score} isLive={isLive} hasScore={hasScore}/>
       </div>
-      <div className="g-card-footer">
-        {confLabel
-          ? <span className="g-conf-pill">{confLabel}</span>
-          : <span/>
-        }
+
+      {/* Top Performers */}
+      {performers.length > 0 && (
+        <div style={{borderTop:'1px solid rgba(255,255,255,0.05)', paddingTop:14}}>
+          <div style={{fontFamily:'Inter, sans-serif', fontSize:8, letterSpacing:3, color:'rgba(0,230,118,0.45)', textTransform:'uppercase', fontWeight:600, marginBottom:10}}>Top Performers</div>
+          <div style={{display:'flex', flexDirection:'column', gap:8}}>
+            {performers.map((p, i) => (
+              <div key={i} style={{display:'flex', alignItems:'center', justifyContent:'space-between'}}>
+                <div style={{display:'flex', alignItems:'center', gap:8, minWidth:0}}>
+                  <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:2, fontWeight:700, color:'rgba(255,255,255,0.25)', width:14}}>{i+1}</div>
+                  <div style={{fontFamily:'Inter, sans-serif', fontSize:13, fontWeight:600, color:'rgba(255,255,255,0.88)', letterSpacing:0, textTransform:'none', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{p.full}</div>
+                  <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, letterSpacing:2, color:'rgba(0,230,118,0.4)', fontWeight:700, flexShrink:0}}>{p.team}</div>
+                </div>
+                <div style={{display:'flex', gap:10, flexShrink:0, marginLeft:8}}>
+                  <span style={{fontFamily:'Inter, sans-serif', fontSize:12, fontWeight:700, color:'var(--green)'}}>{p.pts}<span style={{fontSize:8, letterSpacing:1, color:'rgba(0,230,118,0.45)', fontWeight:500, marginLeft:2}}>PTS</span></span>
+                  <span style={{fontFamily:'Inter, sans-serif', fontSize:12, fontWeight:500, color:'rgba(255,255,255,0.35)'}}>{p.reb}<span style={{fontSize:8, letterSpacing:1, color:'rgba(255,255,255,0.2)', marginLeft:2}}>REB</span></span>
+                  <span style={{fontFamily:'Inter, sans-serif', fontSize:12, fontWeight:500, color:'rgba(255,255,255,0.35)'}}>{p.ast}<span style={{fontSize:8, letterSpacing:1, color:'rgba(255,255,255,0.2)', marginLeft:2}}>AST</span></span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Footer */}
+      <div className="g-card-footer" style={{marginTop:'auto'}}>
+        <span className="g-conf-pill">{[g.home_team?.conference, g.home_team?.division].filter(Boolean).join(' · ')}</span>
         <span className="g-box-link">Box Score →</span>
       </div>
     </div>
