@@ -119,6 +119,7 @@ nav.solid {
 }
 .nav-cta:hover { opacity: 0.85; }
 @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.2} }
+@keyframes pulse-dot { 0%,80%,100%{opacity:0.15;transform:scale(0.7)} 40%{opacity:1;transform:scale(1)} }
 /* ── Home / Landing ──────────────────────────────────────────────────────── */
 .home-wrap {
   position: relative;
@@ -988,6 +989,91 @@ function Analysis() {
   );
 }
 
+function PlayersCanvas({ dimmed }) {
+  const canvasRef = React.useRef(null);
+  React.useEffect(() => {
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    let animId;
+    let pulses = [];
+    const resize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
+    resize();
+    window.addEventListener('resize', resize);
+    const N = 65;
+    const pts = Array.from({length: N}, () => ({
+      x: Math.random() * window.innerWidth,
+      y: Math.random() * window.innerHeight,
+      vx: (Math.random() - 0.5) * 0.22,
+      vy: (Math.random() - 0.5) * 0.22,
+      r: Math.random() * 1.3 + 0.4,
+    }));
+    const iv = setInterval(() => {
+      const p = pts[Math.floor(Math.random() * pts.length)];
+      pulses.push({ x: p.x, y: p.y, r: 0, alpha: 0.75 });
+    }, 2200);
+    const draw = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      pts.forEach(p => {
+        p.x += p.vx; p.y += p.vy;
+        if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
+        if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+      });
+      for (let i = 0; i < pts.length; i++) {
+        for (let j = i+1; j < pts.length; j++) {
+          const dx = pts[i].x - pts[j].x, dy = pts[i].y - pts[j].y;
+          const d = Math.sqrt(dx*dx + dy*dy);
+          if (d < 145) {
+            ctx.beginPath(); ctx.moveTo(pts[i].x, pts[i].y); ctx.lineTo(pts[j].x, pts[j].y);
+            ctx.strokeStyle = `rgba(0,230,118,${0.045*(1-d/145)})`; ctx.lineWidth = 0.6; ctx.stroke();
+          }
+        }
+      }
+      pts.forEach(p => {
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+        ctx.fillStyle = 'rgba(0,230,118,0.25)'; ctx.fill();
+      });
+      pulses = pulses.filter(p => p.alpha > 0.015);
+      pulses.forEach(p => {
+        p.r += 1.4; p.alpha *= 0.964;
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+        ctx.strokeStyle = `rgba(0,230,118,${p.alpha*0.55})`; ctx.lineWidth = 0.9; ctx.stroke();
+        if (p.r < 30) {
+          ctx.beginPath(); ctx.arc(p.x, p.y, p.r*0.3, 0, Math.PI*2);
+          ctx.fillStyle = `rgba(0,230,118,${p.alpha*0.15})`; ctx.fill();
+        }
+      });
+      animId = requestAnimationFrame(draw);
+    };
+    draw();
+    return () => { cancelAnimationFrame(animId); clearInterval(iv); window.removeEventListener('resize', resize); };
+  }, []);
+  return <canvas ref={canvasRef} style={{position:'fixed', top:70, left:0, right:0, bottom:40, zIndex:0, pointerEvents:'none', opacity: dimmed ? 0.06 : 0.45, transition:'opacity 1.6s ease'}}/>;
+}
+
+function TrendBar({ val, avg, maxVal, label, isPct }) {
+  const pct = (v) => v != null ? `${(v*100).toFixed(1)}%` : '-';
+  const display = isPct ? pct(val) : val;
+  const barH = maxVal > 0 ? Math.min(100, (val / maxVal) * 100) : 0;
+  const avgH = maxVal > 0 ? Math.min(100, (avg / maxVal) * 100) : 0;
+  const up = val >= avg;
+  const color = up ? 'var(--green)' : '#ef4444';
+  return (
+    <div style={{textAlign:'center', flex:1, padding:'0 4px'}}>
+      <div style={{height:52, position:'relative', display:'flex', alignItems:'flex-end', justifyContent:'center', marginBottom:8}}>
+        <div style={{width:24, background:color, opacity:0.75, height:`${barH}%`, minHeight:2, borderRadius:'3px 3px 0 0', transition:'height 0.8s ease', position:'relative', zIndex:1}}/>
+        <div style={{position:'absolute', bottom:`${avgH}%`, left:'10%', right:'10%', borderTop:'1px dashed rgba(255,255,255,0.25)', zIndex:2}}/>
+      </div>
+      <div style={{fontFamily:'Inter, sans-serif', fontSize:15, fontWeight:700, color, letterSpacing:-0.5}}>{display != null ? display : '-'}</div>
+      <div style={{fontFamily:'Inter, sans-serif', fontSize:8, letterSpacing:2, color:'var(--text-muted)', marginTop:4, textTransform:'uppercase'}}>{label}</div>
+      {val!=null && avg!=null && (
+        <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color, marginTop:2, fontWeight:500}}>
+          {up ? '+' : ''}{isPct ? `${((val-avg)*100).toFixed(1)}%` : `${(val-avg).toFixed(1)}`}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Players() {
   const [query, setQuery] = React.useState('');
   const [selectedId, setSelectedId] = React.useState(null);
@@ -1010,27 +1096,16 @@ function Players() {
     } catch(e) { setError(e.message); } finally { setLoading(false); }
   };
 
-  // When user presses Enter / clicks Search without picking from dropdown.
   const searchByName = async () => {
     if (selectedId) { searchById(selectedId); return; }
-    // Auto-select top suggestion if the dropdown already has results.
     if (suggestions.length > 0) {
       const top = suggestions[0];
-      setSelectedId(top.id);
-      setQuery(`${top.first_name} ${top.last_name}`);
-      searchById(top.id);
-      return;
+      setSelectedId(top.id); setQuery(`${top.first_name} ${top.last_name}`); searchById(top.id); return;
     }
-    const q = query.trim();
-    if (!q) return;
-    // No cached suggestions — hit the API once to resolve.
+    const q = query.trim(); if (!q) return;
     try {
       const r = await fetch(`${API}/nba/players?name=${encodeURIComponent(q)}`);
-      if (r.ok) {
-        const data = await r.json();
-        const first = (data.players || [])[0];
-        if (first) { setSelectedId(first.id); searchById(first.id); return; }
-      }
+      if (r.ok) { const data = await r.json(); const first = (data.players||[])[0]; if (first) { setSelectedId(first.id); searchById(first.id); return; } }
     } catch(e) {}
     setError('Player not found. Try selecting from the dropdown.');
   };
@@ -1045,10 +1120,8 @@ function Players() {
 
   const loadSection = async (section) => {
     if (sectionData[section]) { setExpandedSection(expandedSection === section ? null : section); return; }
-    const pid = result?.player?.id;
-    if (!pid) return;
-    setSectionLoading(prev => ({...prev, [section]: true}));
-    setExpandedSection(section);
+    const pid = result?.player?.id; if (!pid) return;
+    setSectionLoading(prev => ({...prev, [section]: true})); setExpandedSection(section);
     try {
       const r = await fetch(`${API}/analysis/player/section?player_id=${pid}&season=2025&section=${section}`);
       if (!r.ok) throw new Error(await r.text());
@@ -1059,205 +1132,276 @@ function Players() {
   };
 
   const SECTIONS = [
-    { id:'offense', label:'Offense' },
-    { id:'defense', label:'Defense' },
-    { id:'off_the_court', label:'Off The Court' },
-    { id:'injuries', label:'Injuries' },
-    { id:'financials', label:'Financials' },
+    { id:'offense', label:'Offense', icon:'⚡' },
+    { id:'defense', label:'Defense', icon:'🛡' },
+    { id:'off_the_court', label:'Off The Court', icon:'◈' },
+    { id:'injuries', label:'Injuries & Durability', icon:'⊙' },
+    { id:'financials', label:'Financials', icon:'$' },
+  ];
+
+  const TRENDING = [
+    {id:237,name:'LeBron James',team:'LAL',pos:'F'},
+    {id:115,name:'Stephen Curry',team:'GSW',pos:'G'},
+    {id:246,name:'Nikola Jokic',team:'DEN',pos:'C'},
+    {id:434,name:'Jayson Tatum',team:'BOS',pos:'F'},
+    {id:140,name:'Kevin Durant',team:'HOU',pos:'F'},
+    {id:15,name:'Giannis Antetokounmpo',team:'MIL',pos:'F'},
+    {id:132,name:'Luka Doncic',team:'LAL',pos:'G'},
+    {id:117,name:'Anthony Davis',team:'WAS',pos:'C'},
   ];
 
   const pct = (v) => v != null ? `${(v*100).toFixed(1)}%` : '-';
-  const trendStr = (r, s) => { if (r==null||s==null) return ''; const d=Math.round((r-s)*10)/10; if(d===0) return '0'; return d>0?`+${d}`:`${d}`; };
-  const trendColor = (r, s) => (r==null||s==null)?'#444':r>=s?'#00FF41':'#f33';
+  const hasResult = !loading && result && !result.error;
 
   return (
-    <div style={{position:'relative', minHeight:'calc(100vh - 56px)'}}>
-      {/* ── Video Background (always present, dims when result loads) ── */}
-      <div style={{position:'fixed', inset:0, zIndex:0, pointerEvents:'none', top:70, bottom:40, opacity: result ? 0.04 : 0.18, transition:'opacity 1.2s ease'}}>
-        <video autoPlay loop muted playsInline style={{width:'100%', height:'100%', objectFit:'cover', filter:'grayscale(100%) contrast(1.1)'}}
-          src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260309_042944_4a2205b7-b061-490a-852b-92d9e9955ce9.mp4"/>
-        <div style={{position:'absolute', inset:0, background:'radial-gradient(ellipse at center, rgba(0,0,0,0.2) 0%, rgba(15,17,21,0.95) 100%)'}}/>
-      </div>
-      <div style={{position:'relative', zIndex:1}}>
+    <div style={{position:'relative', minHeight:'calc(100vh - 96px)'}}>
+      <PlayersCanvas dimmed={hasResult || loading} />
+
       {/* ── Search Bar ── */}
-      <div style={{position:'relative', borderBottom:'1px solid var(--border)', background:'rgba(22,27,34,0.85)', backdropFilter:'blur(12px)'}}>
-        <div style={{display:'flex', alignItems:'stretch', height:64, position:'relative'}}>
-          <div style={{display:'flex', alignItems:'center', padding:'0 24px', borderRight:'1px solid var(--border)', color:'var(--text-muted)', fontSize:16, flexShrink:0}}>⌕</div>
+      <div style={{position:'sticky', top:70, zIndex:100, background:'rgba(8,10,14,0.82)', backdropFilter:'blur(20px)', borderBottom:'1px solid var(--border)'}}>
+        <div style={{display:'flex', alignItems:'stretch', height:60}}>
+          <div style={{display:'flex', alignItems:'center', padding:'0 20px', color:'rgba(0,230,118,0.5)', fontSize:18, flexShrink:0}}>⌕</div>
           <div style={{flex:1, position:'relative'}}>
             <input
-              style={{width:'100%', height:'100%', background:'transparent', border:'none', outline:'none', color:'var(--white)', fontFamily:'Inter, Helvetica Neue, sans-serif', fontWeight:500, fontSize:15, letterSpacing:0.5, padding:'0 20px', textTransform:'none'}}
-              placeholder="Search player — e.g. LeBron James"
+              style={{width:'100%', height:'100%', background:'transparent', border:'none', outline:'none', color:'var(--white)', fontFamily:'Inter, sans-serif', fontWeight:400, fontSize:15, letterSpacing:0, padding:'0 16px', textTransform:'none'}}
+              placeholder="Search any NBA player…"
               value={query}
               onChange={e => { setQuery(e.target.value); setSelectedId(null); fetchSuggestions(e.target.value); setShowSugg(true); }}
               onKeyDown={e => { if(e.key==='Enter'){setShowSugg(false);searchByName();} if(e.key==='Escape')setShowSugg(false); }}
               onBlur={() => setTimeout(() => setShowSugg(false), 150)}
             />
             {showSugg && suggestions.length > 0 && (
-              <div style={{position:'absolute', top:'100%', left:0, right:0, background:'var(--grey2)', border:'1px solid var(--border-strong)', borderTop:'none', zIndex:9999, maxHeight:300, overflowY:'auto', boxShadow:'var(--shadow-lg)', borderRadius:'0 0 6px 6px'}}>
+              <div style={{position:'absolute', top:'100%', left:0, right:0, background:'rgba(22,27,34,0.97)', backdropFilter:'blur(20px)', border:'1px solid var(--border-strong)', borderTop:'none', zIndex:9999, borderRadius:'0 0 8px 8px', overflow:'hidden', boxShadow:'0 20px 60px rgba(0,0,0,0.7)'}}>
                 {suggestions.map((p,i) => (
                   <div key={p.id}
                     onMouseDown={() => { setQuery(`${p.first_name} ${p.last_name}`); setSelectedId(p.id); setShowSugg(false); searchById(p.id); }}
-                    style={{padding:'12px 20px', cursor:'pointer', borderBottom:'1px solid var(--border)', display:'flex', justifyContent:'space-between', alignItems:'center', transition:'background 0.1s'}}
-                    onMouseEnter={e => e.currentTarget.style.background='var(--grey3)'}
-                    onMouseLeave={e => e.currentTarget.style.background=''}>
+                    style={{padding:'13px 20px', cursor:'pointer', borderBottom: i < suggestions.length-1 ? '1px solid var(--border)' : 'none', display:'flex', justifyContent:'space-between', alignItems:'center', transition:'background 0.1s'}}
+                    onMouseEnter={e => { e.currentTarget.style.background='rgba(0,230,118,0.05)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background=''; }}>
                     <span style={{fontFamily:'Inter, sans-serif', fontWeight:500, fontSize:14, letterSpacing:0, textTransform:'none'}}>{p.first_name} {p.last_name}</span>
-                    <span style={{fontFamily:'Inter, sans-serif', fontSize:11, letterSpacing:0, color:'var(--green)', fontWeight:400, textTransform:'none'}}>{p.team?.abbreviation||'?'} · {p.position||'?'}</span>
+                    <div style={{display:'flex', alignItems:'center', gap:12}}>
+                      <span style={{fontFamily:'Inter, sans-serif', fontSize:11, color:'var(--text-muted)', fontWeight:400}}>{p.position||'?'}</span>
+                      <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:10, letterSpacing:2, color:'var(--green)', fontWeight:700, background:'rgba(0,230,118,0.08)', border:'1px solid rgba(0,230,118,0.2)', padding:'2px 8px', borderRadius:3}}>{p.team?.abbreviation||'—'}</span>
+                    </div>
                   </div>
                 ))}
               </div>
             )}
           </div>
-          <button
-            onClick={() => { setShowSugg(false); searchByName(); }}
-            disabled={loading || !query.trim()}
-            style={{background: loading ? 'var(--grey3)' : 'var(--green)', border:'none', color: loading ? 'var(--text-muted)' : 'var(--black-deep)', fontFamily:'Helvetica Neue, sans-serif', fontWeight:700, fontSize:11, letterSpacing:3, textTransform:'uppercase', padding:'0 32px', cursor:'pointer', transition:'all 0.15s', flexShrink:0, opacity: !query.trim() ? 0.4 : 1}}>
-            {loading ? 'Computing' : 'Search'}
+          <button onClick={() => { setShowSugg(false); searchByName(); }} disabled={loading || !query.trim()}
+            style={{background: loading ? 'transparent' : 'var(--green)', border:'none', borderLeft: loading ? '1px solid var(--border)' : 'none', color: loading ? 'var(--text-muted)' : 'var(--black-deep)', fontFamily:'Helvetica Neue, sans-serif', fontWeight:700, fontSize:10, letterSpacing:3, textTransform:'uppercase', padding:'0 28px', cursor: !query.trim() ? 'default' : 'pointer', transition:'all 0.2s', flexShrink:0, opacity: !query.trim() ? 0.3 : 1}}>
+            {loading ? '…' : 'Analyze'}
           </button>
         </div>
       </div>
+
       {/* ── Empty State ── */}
       {!loading && !result && !error && (
-        <div style={{display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', minHeight:'70vh', gap:32, padding:'40px 24px'}}>
-          <div style={{textAlign:'center'}}>
-            <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:'clamp(48px,8vw,96px)', letterSpacing:8, color:'var(--white)', lineHeight:1, marginBottom:12}}>PLAYERS</div>
-            <div style={{fontFamily:'Inter, sans-serif', fontSize:13, letterSpacing:0, color:'var(--text-muted)', textTransform:'none', fontWeight:400}}>Search any NBA player for a full AI-powered analysis</div>
+        <div style={{position:'relative', zIndex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', minHeight:'75vh', padding:'60px 24px', textAlign:'center'}}>
+          <div style={{marginBottom:48}}>
+            <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:'clamp(56px,10vw,120px)', letterSpacing:-2, color:'rgba(255,255,255,0.06)', lineHeight:0.9, fontWeight:700, userSelect:'none', marginBottom:0}}>PLAYER</div>
+            <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:'clamp(56px,10vw,120px)', letterSpacing:-2, color:'rgba(255,255,255,0.06)', lineHeight:0.9, fontWeight:700, userSelect:'none'}}>INTEL</div>
+            <div style={{fontFamily:'Inter, sans-serif', fontSize:13, letterSpacing:3, color:'var(--text-muted)', textTransform:'uppercase', fontWeight:400, marginTop:24}}>Select a player to begin</div>
           </div>
-          <div style={{display:'flex', flexWrap:'wrap', gap:10, justifyContent:'center', maxWidth:600}}>
-            {[{id:237,name:'LeBron James'},{id:115,name:'Stephen Curry'},{id:246,name:'Nikola Jokic'},{id:434,name:'Jayson Tatum'},{id:140,name:'Kevin Durant'},{id:15,name:'Giannis Antetokounmpo'},{id:132,name:'Luka Doncic'},{id:117,name:'Anthony Davis'}].map(p => (
-              <button key={p.id}
-                onMouseDown={() => { setQuery(p.name); setSelectedId(p.id); searchById(p.id); }}
-                style={{fontFamily:'Inter, sans-serif', fontWeight:500, fontSize:12, letterSpacing:0, textTransform:'none', padding:'8px 16px', background:'var(--grey)', border:'1px solid var(--border)', color:'var(--white)', cursor:'pointer', borderRadius:99, transition:'all 0.15s'}}
-                onMouseEnter={e => { e.currentTarget.style.borderColor='var(--green)'; e.currentTarget.style.color='var(--green)'; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor='var(--border)'; e.currentTarget.style.color='var(--white)'; }}>
-                {p.name}
-              </button>
+          <div style={{marginBottom:16}}>
+            <div style={{fontFamily:'Inter, sans-serif', fontSize:9, letterSpacing:4, color:'rgba(0,230,118,0.4)', textTransform:'uppercase', marginBottom:16, fontWeight:600}}>Trending Now</div>
+            <div style={{display:'flex', flexWrap:'wrap', gap:8, justifyContent:'center', maxWidth:640}}>
+              {TRENDING.map(p => (
+                <button key={p.id} onMouseDown={() => { setQuery(p.name); setSelectedId(p.id); searchById(p.id); }}
+                  style={{fontFamily:'Inter, sans-serif', fontWeight:500, fontSize:12, letterSpacing:0, textTransform:'none', padding:'9px 18px', background:'rgba(22,27,34,0.6)', border:'1px solid var(--border)', color:'rgba(255,255,255,0.7)', cursor:'pointer', borderRadius:99, transition:'all 0.2s', backdropFilter:'blur(8px)', display:'flex', alignItems:'center', gap:8}}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor='rgba(0,230,118,0.5)'; e.currentTarget.style.color='var(--green)'; e.currentTarget.style.background='rgba(0,230,118,0.06)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor='var(--border)'; e.currentTarget.style.color='rgba(255,255,255,0.7)'; e.currentTarget.style.background='rgba(22,27,34,0.6)'; }}>
+                  <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, letterSpacing:2, color:'inherit', opacity:0.6, fontWeight:700}}>{p.team}</span>
+                  {p.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Loading ── */}
+      {loading && (
+        <div style={{position:'relative', zIndex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'65vh', gap:24}}>
+          <div style={{display:'flex', gap:8}}>
+            {[0,1,2].map(i => (
+              <div key={i} style={{width:6, height:6, borderRadius:'50%', background:'var(--green)', animation:`pulse-dot 1.2s ease-in-out ${i*0.2}s infinite`}}/>
             ))}
           </div>
+          <div style={{fontFamily:'Inter, sans-serif', fontSize:11, letterSpacing:4, color:'rgba(0,230,118,0.6)', textTransform:'uppercase', fontWeight:500}}>Analyzing</div>
         </div>
       )}
-      {loading && (
-        <div style={{display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'60vh', gap:20}}>
-          <div style={{fontSize:11, letterSpacing:6, color:'var(--green)'}}>PIVOT COMPUTING</div>
-          <Loader label=""/>
+
+      {error && (
+        <div style={{position:'relative', zIndex:1, margin:'32px 48px'}}>
+          <div style={{background:'rgba(239,68,68,0.06)', border:'1px solid rgba(239,68,68,0.2)', borderRadius:8, padding:'16px 20px', fontFamily:'Inter, sans-serif', fontSize:13, color:'#ef4444', letterSpacing:0, textTransform:'none'}}>{error}</div>
         </div>
       )}
-      {error && <div className="err" style={{margin:'24px 40px'}}>{error}</div>}
-      {!loading && result && !result.error && (
-        <div style={{padding:'40px 56px', maxWidth:1300}}>
-          <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:8}}>
-            <div style={{fontSize:'clamp(32px,4.5vw,64px)', letterSpacing:1, lineHeight:1, fontWeight:700}}>
-              {result.player?.first_name} {result.player?.last_name}
+
+      {/* ── Result ── */}
+      {hasResult && (
+        <div style={{position:'relative', zIndex:1, padding:'0 0 80px'}}>
+
+          {/* Player hero */}
+          <div style={{padding:'40px 52px 32px', borderBottom:'1px solid var(--border)', background:'rgba(8,10,14,0.5)', backdropFilter:'blur(8px)'}}>
+            <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', flexWrap:'wrap', gap:16}}>
+              <div>
+                <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:'clamp(36px,5vw,72px)', letterSpacing:-1, lineHeight:1, fontWeight:700, color:'var(--white)', textShadow:'0 0 60px rgba(0,230,118,0.1)'}}>
+                  {result.player?.first_name} {result.player?.last_name}
+                </div>
+                <div style={{display:'flex', alignItems:'center', gap:12, marginTop:10, flexWrap:'wrap'}}>
+                  <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:10, letterSpacing:3, fontWeight:700, color:'var(--green)', background:'rgba(0,230,118,0.08)', border:'1px solid rgba(0,230,118,0.25)', padding:'4px 12px', borderRadius:3}}>{result.player?.team?.abbreviation||'—'}</span>
+                  <span style={{fontFamily:'Inter, sans-serif', fontSize:13, color:'rgba(255,255,255,0.5)', fontWeight:400, textTransform:'none', letterSpacing:0}}>{result.player?.team?.full_name||result.player?.team?.name||'—'}</span>
+                  <span style={{color:'var(--border-strong)'}}>·</span>
+                  <span style={{fontFamily:'Inter, sans-serif', fontSize:13, color:'rgba(255,255,255,0.5)', fontWeight:400, textTransform:'none', letterSpacing:0}}>{result.player?.position||'—'}</span>
+                  <span style={{color:'var(--border-strong)'}}>·</span>
+                  <span style={{fontFamily:'Inter, sans-serif', fontSize:13, color:'rgba(255,255,255,0.4)', fontWeight:400, textTransform:'none', letterSpacing:0}}>2025–26 Season</span>
+                </div>
+              </div>
+              <div style={{display:'flex', gap:8, alignItems:'center'}}>
+                <button onClick={() => { setResult(null); setQuery(''); setSelectedId(null); setError(null); }}
+                  style={{fontFamily:'Inter, sans-serif', fontWeight:500, fontSize:12, letterSpacing:0, padding:'8px 16px', background:'transparent', border:'1px solid var(--border)', color:'var(--text-muted)', cursor:'pointer', borderRadius:6, transition:'all 0.15s', textTransform:'none'}}
+                  onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--border-strong)';e.currentTarget.style.color='var(--white)';}}
+                  onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border)';e.currentTarget.style.color='var(--text-muted)';}}>
+                  ← New Search
+                </button>
+                <button onClick={() => window.print()}
+                  style={{fontFamily:'Helvetica Neue, sans-serif', fontWeight:700, fontSize:9, letterSpacing:3, textTransform:'uppercase', padding:'9px 18px', background:'transparent', border:'1px solid var(--border)', color:'var(--text-muted)', cursor:'pointer', borderRadius:6, transition:'all 0.15s'}}
+                  onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--green)';e.currentTarget.style.color='var(--green)';}}
+                  onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border)';e.currentTarget.style.color='var(--text-muted)';}}>
+                  Export PDF →
+                </button>
+              </div>
             </div>
-            <button onClick={() => window.print()} style={{background:'none', border:'1px solid var(--border)', color:'var(--text-muted)', fontFamily:'Helvetica Neue, sans-serif', fontWeight:700, fontSize:9, letterSpacing:3, textTransform:'uppercase', padding:'10px 16px', cursor:'pointer', marginTop:8, borderRadius:4, transition:'all 0.15s'}}
-              onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--green)';e.currentTarget.style.color='var(--green)';}}
-              onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border)';e.currentTarget.style.color='var(--text-muted)';}}>
-              Export PDF →
-            </button>
           </div>
-          <div style={{fontFamily:'Inter, sans-serif', fontSize:12, letterSpacing:0, color:'var(--text-muted)', marginBottom:36, fontWeight:400, textTransform:'none', display:'flex', gap:16, alignItems:'center'}}>
-            <span style={{color:'var(--green)', fontWeight:500}}>{result.player?.team?.name||'N/A'}</span>
-            <span style={{color:'var(--border-strong)'}}>·</span>
-            <span>{result.player?.position||'N/A'}</span>
-            <span style={{color:'var(--border-strong)'}}>·</span>
-            <span>{result.season}-{String(result.season+1).slice(-2)} Season</span>
-          </div>
+
+          {/* Stat cards */}
           {result.averages && (
-            <div style={{marginBottom:32}}>
-              <div style={{fontFamily:'Inter, sans-serif', fontSize:10, letterSpacing:3, color:'var(--text-muted)', fontWeight:500, textTransform:'uppercase', marginBottom:12}}>Season Averages</div>
-              <div style={{display:'grid', gridTemplateColumns:'repeat(8,1fr)', background:'var(--grey)', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden', boxShadow:'var(--shadow)'}}>
+            <div style={{padding:'32px 52px 0'}}>
+              <div style={{fontFamily:'Inter, sans-serif', fontSize:9, letterSpacing:4, color:'rgba(0,230,118,0.5)', fontWeight:600, textTransform:'uppercase', marginBottom:14}}>Season Averages · {result.games_played} GP</div>
+              <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12, marginBottom:12}}>
                 {[
-                  [result.averages.points,'PTS'],[result.averages.rebounds,'REB'],[result.averages.assists,'AST'],
-                  [result.averages.steals,'STL'],[result.averages.blocks,'BLK'],
-                  [pct(result.averages.fg_pct),'FG%'],[pct(result.averages.fg3_pct),'3P%'],[pct(result.averages.ft_pct),'FT%'],
-                ].map(([val,lbl],i) => (
-                  <div key={lbl} style={{textAlign:'center', padding:'20px 8px', borderRight:i<7?'1px solid var(--border)':'none'}}>
-                    <div style={{fontSize:28, letterSpacing:-1, color:'var(--green)', textShadow:'0 0 15px rgba(0,255,65,.2)', lineHeight:1, fontWeight:700}}>{val}</div>
-                    <div style={{fontFamily:'Inter, sans-serif', fontSize:9, letterSpacing:2, color:'var(--text-muted)', marginTop:8, fontWeight:500, textTransform:'uppercase'}}>{lbl}</div>
+                  {val:result.averages.points, lbl:'PTS', primary:true},
+                  {val:result.averages.rebounds, lbl:'REB', primary:true},
+                  {val:result.averages.assists, lbl:'AST', primary:true},
+                  {val:result.averages.blocks, lbl:'BLK', primary:false},
+                ].map(({val,lbl,primary}) => (
+                  <div key={lbl} style={{background:'rgba(22,27,34,0.7)', border:'1px solid var(--border)', borderRadius:10, padding:'20px 24px', backdropFilter:'blur(8px)', position:'relative', overflow:'hidden'}}>
+                    <div style={{position:'absolute', top:0, left:0, right:0, height:2, background: primary ? 'var(--green)' : 'rgba(0,230,118,0.3)', boxShadow: primary ? '0 0 12px rgba(0,230,118,0.4)' : 'none'}}/>
+                    <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:42, letterSpacing:-2, color: primary ? 'var(--green)' : 'var(--white)', fontWeight:700, lineHeight:1, textShadow: primary ? '0 0 30px rgba(0,230,118,0.2)' : 'none'}}>{val}</div>
+                    <div style={{fontFamily:'Inter, sans-serif', fontSize:10, letterSpacing:3, color:'var(--text-muted)', marginTop:8, textTransform:'uppercase', fontWeight:500}}>{lbl}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12, marginBottom:36}}>
+                {[
+                  {val:result.averages.steals, lbl:'STL'},
+                  {val:pct(result.averages.fg_pct), lbl:'FG%'},
+                  {val:pct(result.averages.fg3_pct), lbl:'3P%'},
+                  {val:pct(result.averages.ft_pct), lbl:'FT%'},
+                ].map(({val,lbl}) => (
+                  <div key={lbl} style={{background:'rgba(15,17,21,0.6)', border:'1px solid var(--border)', borderRadius:8, padding:'14px 20px', backdropFilter:'blur(4px)', display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+                    <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:22, letterSpacing:-0.5, color:'var(--white)', fontWeight:700}}>{val}</div>
+                    <div style={{fontFamily:'Inter, sans-serif', fontSize:9, letterSpacing:3, color:'var(--text-muted)', textTransform:'uppercase', fontWeight:500}}>{lbl}</div>
                   </div>
                 ))}
               </div>
             </div>
           )}
-          {result.last_10 && (
-            <div style={{marginBottom:36}}>
-              <div style={{fontFamily:'Inter, sans-serif', fontSize:10, letterSpacing:3, color:'var(--text-muted)', fontWeight:500, textTransform:'uppercase', marginBottom:12}}>Last 10 Games</div>
-              <div style={{display:'grid', gridTemplateColumns:'repeat(7,1fr)', border:'1px solid var(--border)', background:'var(--grey2)', borderRadius:8, overflow:'hidden', boxShadow:'var(--shadow)'}}>
-                {[['points','PTS',false],['rebounds','REB',false],['assists','AST',false],['steals','STL',false],['blocks','BLK',false],['fg_pct','FG%',true],['fg3_pct','3P%',true]].map(([k,l,isPct],i) => {
-                  const val = result.last_10[k];
-                  const avg = result.averages[k];
-                  const display = isPct ? pct(val) : val;
-                  const trend = isPct ? trendStr(val*100, avg*100) : trendStr(val, avg);
-                  return (
-                    <div key={k} style={{textAlign:'center', padding:'16px 8px', borderRight:i<6?'1px solid var(--border)':'none'}}>
-                      <div style={{fontSize:24, letterSpacing:-1, color:'var(--white)', lineHeight:1, fontWeight:700}}>{display != null ? display : '-'}</div>
-                      <div style={{fontFamily:'Inter, sans-serif', fontSize:9, letterSpacing:2, color:'var(--text-muted)', margin:'6px 0 4px', fontWeight:500, textTransform:'uppercase'}}>{l}</div>
-                      {val!=null && avg!=null && <div style={{fontFamily:'Inter, sans-serif', fontSize:10, letterSpacing:0, color:trendColor(val,avg), fontWeight:500, textTransform:'none'}}>{trend}</div>}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-          {result.analysis && (
-            <div style={{marginBottom:36, background:'var(--grey)', border:'1px solid var(--border)', borderRadius:8, padding:'24px 28px', boxShadow:'var(--shadow)'}}>
-              <div style={{fontFamily:'Inter, sans-serif', fontSize:10, letterSpacing:3, color:'var(--text-muted)', fontWeight:500, textTransform:'uppercase', marginBottom:16}}>Overview</div>
-              <div style={{fontFamily:'Inter, sans-serif', fontSize:14, lineHeight:2, letterSpacing:0, color:'var(--white)', whiteSpace:'pre-wrap', fontWeight:400, textTransform:'none', maxWidth:860}}>
-                {result.analysis}
-              </div>
-            </div>
-          )}
-          <div style={{fontFamily:'Inter, sans-serif', fontSize:10, letterSpacing:3, color:'var(--text-muted)', fontWeight:500, textTransform:'uppercase', marginBottom:12}}>Deep Dive</div>
-          <div style={{border:'1px solid var(--border)', borderRadius:8, overflow:'hidden', marginBottom:48, boxShadow:'var(--shadow)'}}>
-            {SECTIONS.map((s,i) => (
-              <div key={s.id} style={{borderBottom:i<SECTIONS.length-1?'1px solid var(--border)':'none'}}>
-                <div onClick={() => loadSection(s.id)} style={{display:'flex', justifyContent:'space-between', alignItems:'center', padding:'18px 24px', cursor:'pointer', background:expandedSection===s.id?'var(--grey2)':'var(--grey)', transition:'background 0.15s'}}>
-                  <div style={{fontFamily:'Inter, sans-serif', fontSize:13, letterSpacing:0, fontWeight:500, textTransform:'none'}}>{s.label}</div>
-                  <div style={{display:'flex', alignItems:'center', gap:16}}>
-                    {sectionLoading[s.id] && <div style={{fontFamily:'Inter, sans-serif', fontSize:10, letterSpacing:1, color:'var(--green)', fontWeight:500}}>Loading…</div>}
-                    {sectionData[s.id] && !sectionLoading[s.id] && <div style={{fontFamily:'Inter, sans-serif', fontSize:10, letterSpacing:0, color:'var(--text-muted)'}}>Loaded</div>}
-                    <div style={{fontSize:10, color:'var(--text-muted)', transform:expandedSection===s.id?'rotate(180deg)':'rotate(0deg)', transition:'transform 0.2s', display:'inline-block'}}>&#9660;</div>
-                  </div>
+
+          {/* Two-column: analysis + trend bars */}
+          <div style={{padding:'0 52px', display:'grid', gridTemplateColumns:'1fr 340px', gap:24, marginBottom:36, alignItems:'start'}}>
+            {result.analysis && (
+              <div style={{background:'rgba(22,27,34,0.65)', border:'1px solid var(--border)', borderRadius:10, padding:'28px 32px', backdropFilter:'blur(8px)'}}>
+                <div style={{fontFamily:'Inter, sans-serif', fontSize:9, letterSpacing:4, color:'rgba(0,230,118,0.5)', fontWeight:600, textTransform:'uppercase', marginBottom:16}}>Overview</div>
+                <div style={{fontFamily:'Inter, sans-serif', fontSize:14, lineHeight:1.95, letterSpacing:0, color:'rgba(255,255,255,0.85)', whiteSpace:'pre-wrap', fontWeight:400, textTransform:'none'}}>
+                  {result.analysis}
                 </div>
-                {expandedSection === s.id && (
-                  <div style={{padding:'24px 28px', background:'var(--grey2)', borderTop:'1px solid var(--border)'}}>
-                    {sectionLoading[s.id] && <Loader label="PIVOT COMPUTING"/>}
-                    {!sectionLoading[s.id] && sectionData[s.id] && (
-                      <div style={{fontFamily:'Inter, sans-serif', fontSize:14, lineHeight:2, letterSpacing:0, color:'var(--white)', whiteSpace:'pre-wrap', fontWeight:400, textTransform:'none', maxWidth:860}}>
-                        {sectionData[s.id]}
-                      </div>
-                    )}
-                  </div>
-                )}
               </div>
-            ))}
+            )}
+            {result.last_10 && result.averages && (
+              <div style={{background:'rgba(22,27,34,0.65)', border:'1px solid var(--border)', borderRadius:10, padding:'24px 20px', backdropFilter:'blur(8px)'}}>
+                <div style={{fontFamily:'Inter, sans-serif', fontSize:9, letterSpacing:4, color:'rgba(0,230,118,0.5)', fontWeight:600, textTransform:'uppercase', marginBottom:6}}>Last 10 Games</div>
+                <div style={{fontFamily:'Inter, sans-serif', fontSize:9, letterSpacing:0, color:'var(--text-muted)', marginBottom:20, textTransform:'none'}}>vs season avg (dashed line)</div>
+                <div style={{display:'flex', gap:4}}>
+                  {[
+                    {k:'points', avg:result.averages.points, max:Math.max(result.averages.points*1.4, 35), lbl:'PTS', isPct:false},
+                    {k:'rebounds', avg:result.averages.rebounds, max:Math.max(result.averages.rebounds*1.6, 14), lbl:'REB', isPct:false},
+                    {k:'assists', avg:result.averages.assists, max:Math.max(result.averages.assists*1.6, 12), lbl:'AST', isPct:false},
+                    {k:'steals', avg:result.averages.steals, max:Math.max(result.averages.steals*2, 3), lbl:'STL', isPct:false},
+                    {k:'blocks', avg:result.averages.blocks, max:Math.max(result.averages.blocks*2, 3), lbl:'BLK', isPct:false},
+                    {k:'fg_pct', avg:result.averages.fg_pct, max:0.7, lbl:'FG%', isPct:true},
+                    {k:'fg3_pct', avg:result.averages.fg3_pct, max:0.6, lbl:'3P%', isPct:true},
+                  ].map(({k,avg,max,lbl,isPct}) => (
+                    <TrendBar key={k} val={result.last_10[k]} avg={avg} maxVal={max} label={lbl} isPct={isPct} />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Deep Dive */}
+          <div style={{padding:'0 52px'}}>
+            <div style={{fontFamily:'Inter, sans-serif', fontSize:9, letterSpacing:4, color:'rgba(0,230,118,0.5)', fontWeight:600, textTransform:'uppercase', marginBottom:14}}>Deep Dive</div>
+            <div style={{borderRadius:10, overflow:'hidden', border:'1px solid var(--border)'}}>
+              {SECTIONS.map((s,i) => (
+                <div key={s.id} style={{borderBottom:i<SECTIONS.length-1?'1px solid var(--border)':'none'}}>
+                  <div onClick={() => loadSection(s.id)}
+                    style={{display:'flex', justifyContent:'space-between', alignItems:'center', padding:'18px 24px', cursor:'pointer', background: expandedSection===s.id ? 'rgba(0,230,118,0.04)' : 'rgba(22,27,34,0.5)', transition:'background 0.15s', backdropFilter:'blur(8px)'}}>
+                    <div style={{display:'flex', alignItems:'center', gap:14}}>
+                      <span style={{fontSize:14, opacity:0.6}}>{s.icon}</span>
+                      <span style={{fontFamily:'Inter, sans-serif', fontSize:13, letterSpacing:0, fontWeight:500, color: expandedSection===s.id ? 'var(--white)' : 'rgba(255,255,255,0.7)', textTransform:'none'}}>{s.label}</span>
+                    </div>
+                    <div style={{display:'flex', alignItems:'center', gap:12}}>
+                      {sectionLoading[s.id] && <div style={{fontFamily:'Inter, sans-serif', fontSize:10, letterSpacing:2, color:'var(--green)', fontWeight:500}}>Analyzing…</div>}
+                      {sectionData[s.id] && !sectionLoading[s.id] && <div style={{width:6, height:6, borderRadius:'50%', background:'var(--green)', opacity:0.6}}/>}
+                      <div style={{fontSize:10, color:'var(--text-muted)', transform:expandedSection===s.id?'rotate(180deg)':'none', transition:'transform 0.2s'}}>▼</div>
+                    </div>
+                  </div>
+                  {expandedSection === s.id && (
+                    <div style={{padding:'24px 28px 28px', background:'rgba(12,14,18,0.6)', borderTop:'1px solid var(--border)', backdropFilter:'blur(8px)'}}>
+                      {sectionLoading[s.id] && (
+                        <div style={{display:'flex', gap:6, alignItems:'center', padding:'8px 0'}}>
+                          {[0,1,2].map(i=><div key={i} style={{width:5,height:5,borderRadius:'50%',background:'var(--green)',animation:`pulse-dot 1.2s ease-in-out ${i*0.2}s infinite`}}/>)}
+                        </div>
+                      )}
+                      {!sectionLoading[s.id] && sectionData[s.id] && (
+                        <div style={{fontFamily:'Inter, sans-serif', fontSize:14, lineHeight:1.95, letterSpacing:0, color:'rgba(255,255,255,0.82)', whiteSpace:'pre-wrap', fontWeight:400, textTransform:'none', maxWidth:900}}>
+                          {sectionData[s.id]}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}
+
+      {/* ── No Stats Error ── */}
       {!loading && result?.error && (
-        <div style={{padding:'40px 56px', maxWidth:1300}}>
+        <div style={{position:'relative', zIndex:1, padding:'48px 52px'}}>
           {result.player && (
-            <>
-              <div style={{fontSize:'clamp(32px,4.5vw,64px)', letterSpacing:1, lineHeight:1, fontWeight:700, marginBottom:8}}>
+            <div style={{marginBottom:24}}>
+              <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:'clamp(32px,4vw,60px)', letterSpacing:-1, lineHeight:1, fontWeight:700, marginBottom:10}}>
                 {result.player.first_name} {result.player.last_name}
               </div>
-              <div style={{fontFamily:'Inter, sans-serif', fontSize:12, letterSpacing:0, color:'var(--text-muted)', marginBottom:32, fontWeight:400, textTransform:'none', display:'flex', gap:16, alignItems:'center'}}>
-                <span style={{color:'var(--green)', fontWeight:500}}>{result.player.team?.name||'N/A'}</span>
-                <span style={{color:'var(--border-strong)'}}>·</span>
-                <span>{result.player.position||'N/A'}</span>
+              <div style={{display:'flex', alignItems:'center', gap:10}}>
+                <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:10, letterSpacing:3, fontWeight:700, color:'var(--green)', background:'rgba(0,230,118,0.08)', border:'1px solid rgba(0,230,118,0.2)', padding:'3px 10px', borderRadius:3}}>{result.player.team?.abbreviation||'—'}</span>
+                <span style={{fontFamily:'Inter, sans-serif', fontSize:13, color:'var(--text-muted)', textTransform:'none', letterSpacing:0}}>{result.player.position||'—'}</span>
               </div>
-            </>
-          )}
-          <div style={{background:'var(--grey)', border:'1px solid var(--border)', borderRadius:8, padding:'20px 24px'}}>
-            <div style={{fontFamily:'Inter, sans-serif', fontSize:13, letterSpacing:0, color:'var(--text-muted)', textTransform:'none', lineHeight:1.7}}>
-              {result.error}
             </div>
+          )}
+          <div style={{background:'rgba(22,27,34,0.6)', border:'1px solid var(--border)', borderRadius:8, padding:'20px 24px', maxWidth:500, backdropFilter:'blur(8px)'}}>
+            <div style={{fontFamily:'Inter, sans-serif', fontSize:13, color:'var(--text-muted)', textTransform:'none', lineHeight:1.7, letterSpacing:0}}>{result.error}</div>
           </div>
         </div>
       )}
-    </div>
     </div>
   );
 }
+
 
 function FrontOfficeCard({ title, accent, children }) {
   return (
