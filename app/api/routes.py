@@ -127,7 +127,7 @@ async def get_game_boxscore(game_id: int):
 
 
 @router.get("/nba/players/{player_id}/stats")
-async def get_player_stats(player_id: int, season: int = Query(2026, description="NBA season year")):
+async def get_player_stats(player_id: int, season: int = Query(2025, description="NBA season year")):
     try:
         stats = await nba_service.get_player_stats(player_id, season)
         return {"stats": [s.model_dump() for s in stats], "count": len(stats)}
@@ -184,7 +184,7 @@ async def today_games_analysis(date: Optional[str] = Query(None, description="Fo
 @router.get("/analysis/player")
 async def player_analysis(
     player_id: int = Query(..., description="BallDontLie player ID"),
-    season: int = Query(2026, description="NBA season year"),
+    season: int = Query(2025, description="NBA season year"),
 ):
     try:
         return await analysis_service.analyze_player(player_id, season)
@@ -195,7 +195,7 @@ async def player_analysis(
 @router.get("/analysis/player/stream")
 async def player_analysis_stream(
     player_id: int = Query(..., description="BallDontLie player ID"),
-    season: int = Query(2026, description="NBA season year"),
+    season: int = Query(2025, description="NBA season year"),
 ):
     """Stream player analysis as Server-Sent Events."""
     async def generate():
@@ -212,7 +212,7 @@ async def player_analysis_stream(
 @router.get("/analysis/player/section")
 async def player_section_analysis(
     player_id: int = Query(..., description="BallDontLie player ID"),
-    season: int = Query(2026, description="NBA season year"),
+    season: int = Query(2025, description="NBA season year"),
     section: str = Query(..., description="Section: offense|defense|off_the_court|injuries|financials"),
 ):
     try:
