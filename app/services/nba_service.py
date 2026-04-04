@@ -45,6 +45,39 @@ _RETRY_BACKOFF_BASE: float = 0.5        # seconds; multiplied by attempt index
 _DEFAULT_SEASON: int = 2025
 _CENTRAL_TZ: str = "America/Chicago"
 
+# NBA.com player ID lookup by full name for headshot CDN URLs.
+# Only include verified IDs — never add unverified entries.
+_NBA_ID_BY_NAME: dict[str, int] = {
+    "LeBron James": 2544,
+    "Stephen Curry": 201939,
+    "Nikola Jokic": 203999,
+    "Jayson Tatum": 1628369,
+    "Kevin Durant": 201142,
+    "Giannis Antetokounmpo": 203507,
+    "Luka Doncic": 1629029,
+    "Anthony Davis": 203076,
+    "Shai Gilgeous-Alexander": 1628983,
+    "OG Anunoby": 1628384,
+    "Joel Embiid": 203954,
+    "Kawhi Leonard": 202695,
+    "Kyrie Irving": 202681,
+    "James Harden": 201935,
+    "Trae Young": 1629027,
+    "Damian Lillard": 203081,
+    "Devin Booker": 1626164,
+    "Ja Morant": 1629630,
+    "Zion Williamson": 1629627,
+    "Jimmy Butler": 202710,
+    "De'Aaron Fox": 1628368,
+    "Jalen Brunson": 1628386,
+    "Donovan Mitchell": 1628378,
+    "Victor Wembanyama": 1641705,
+    "Paolo Banchero": 1631094,
+    "Tyrese Haliburton": 1630169,
+    "Evan Mobley": 1630596,
+    "Scottie Barnes": 1630567,
+}
+
 
 # ---------------------------------------------------------------------------
 # Internal HTTP Layer
@@ -233,13 +266,17 @@ def _parse_player(raw: dict[str, Any]) -> Player:
     assignment (free agents, two-way contracts in flux) are handled gracefully.
     """
     team_raw: dict[str, Any] | None = raw.get("team")
+    first = raw.get("first_name") or ""
+    last = raw.get("last_name") or ""
+    full_name = f"{first} {last}".strip()
 
     return Player(
         id=_require(raw, "id", "player"),
-        first_name=raw.get("first_name") or "",
-        last_name=raw.get("last_name") or "",
+        first_name=first,
+        last_name=last,
         position=raw.get("position") or None,
         team=_parse_team(team_raw) if team_raw else None,
+        nba_id=_NBA_ID_BY_NAME.get(full_name),
     )
 
 

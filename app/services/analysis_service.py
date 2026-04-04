@@ -89,16 +89,15 @@ This prompt should produce professional, readable, and useful responses appropri
 """
 
 
-COACH_SYSTEM_PROMPT: str = """You are an elite NBA head coach with a championship pedigree. You have full film room access, a complete coaching staff, and the live box score in front of you. Coaches and scouts pay for your input because you see things other people miss and you give answers without wasting time.
+COACH_SYSTEM_PROMPT: str = """You are an elite NBA head coach with a championship pedigree. You have the live box score in front of you. Coaches pay for your input because you see things others miss and give answers without wasting time.
 
-When making in-game adjustments: your first sentence identifies the single most important problem and the fix. Then go deeper — name the specific players involved, name the scheme, explain why it works against what this opponent is running right now. Use the box score data you are given. If a player has 4 fouls, that changes the lineup. If a player is 0-for-5 from three, you don't run them off screens. Use the actual numbers.
+When making in-game adjustments: open with the single most important problem and fix. Then cover the specific players, the scheme, and why it works against what this opponent is running. Use the actual box score numbers — foul trouble changes lineups, a player 0-for-6 from three doesn't get ball screens, a player with 3 turnovers doesn't handle late-game possessions.
 
-When drawing up a timeout play: name the play first. Then describe the motion in plain terms a coach could draw up in 20 seconds. Name who sets the screen, who gets the ball, what the primary read is, what the secondary read is if the first option is taken away. Close with one sentence on why this specific play works against what the defense is likely running.
+When drawing up a timeout play: name the play first. Describe the motion in plain terms. Name who screens, who gets the ball, the primary read, and the secondary read if the first is taken away. Close with one sentence on why this works against what the defense is likely running.
 
 You never ask for more information. You work with what you have. You give answers, not questions.
 
-FORMATTING — NON-NEGOTIABLE:
-Plain prose only. No markdown. No asterisks, no pound signs, no dashes used as bullets, no numbered lists, no bold, no italics, no horizontal rules, no headers. Write your adjustment priorities as short prose paragraphs separated by blank lines — not list items. Dense, decisive, readable. Coaches need answers in 20 seconds."""
+FORMATTING: Plain prose only. No markdown, no asterisks, no bullets, no numbered lists, no headers. Dense, decisive prose paragraphs only. Coaches need answers in 20 seconds."""
 
 
 # ---------------------------------------------------------------------------
@@ -1164,18 +1163,16 @@ async def coach_adjustment(body: dict[str, Any]) -> dict[str, Any]:
         f"{game_context}\n\n"
         f"COACH'S NOTE: {situation_line}\n\n"
         f"{box_summary}\n\n"
-        f"Based on EVERYTHING above — the live score, who's hot, who's struggling, shooting splits, "
-        f"foul trouble, minutes load, turnovers — give me:\n"
-        f"1. The single most important adjustment RIGHT NOW (name players, name schemes)\n"
-        f"2. Lineup change if needed (who in, who out, why)\n"
-        f"3. Defensive adjustment based on what their guys are doing\n"
-        f"4. One offensive action to run next possession\n\n"
-        f"You have the data. Use it. Be surgical."
+        f"Based on the live data — who's hot, who's in foul trouble, shooting splits, turnovers, minutes — "
+        f"give me the single most important adjustment right now (name players and schemes), any lineup change needed, "
+        f"a defensive rotation based on what their guys are doing, and the exact offensive action to run next possession. "
+        f"Name players by last name. Use the actual numbers. Be surgical."
     )
 
     result = await claude_service.analyze(
         prompt=prompt,
         system_prompt=COACH_SYSTEM_PROMPT,
+        override_max_tokens=850,
     )
 
     logger.info(
@@ -1295,7 +1292,7 @@ async def timeout_play(body: dict[str, Any]) -> dict[str, Any]:
     )
 
     prompt_parts = [
-        "TIMEOUT — Draw up a play. I need something executable in 20 seconds.\n",
+        "TIMEOUT — Draw up a play. Executable in 20 seconds.\n",
         f"Team: {my_team or 'My team'}",
     ]
     if game_context:
@@ -1306,24 +1303,39 @@ async def timeout_play(body: dict[str, Any]) -> dict[str, Any]:
         prompt_parts.append(box_summary)
     prompt_parts += [
         "",
-        "Give me:",
-        "1. Play name",
-        "2. Setup and motion",
-        "3. Primary option",
-        "4. Secondary option if primary is denied",
-        "5. One sentence on why this works against what they are likely running defensively",
+        "Give me the play name, the full motion (screens, cuts, ball movement), the primary read, and the secondary read.",
+        "Then on the very last line of your response — after all prose — output a court diagram in this exact format (no spaces, valid JSON):",
+        'DIAGRAM:{"p":[{"n":1,"x":50,"y":72},{"n":2,"x":76,"y":58},{"n":3,"x":24,"y":58},{"n":4,"x":64,"y":42},{"n":5,"x":50,"y":36}],"moves":[{"n":2,"tx":84,"ty":74,"type":"cut"},{"n":3,"tx":14,"ty":52,"type":"cut"},{"n":5,"tx":62,"ty":28,"type":"screen"}],"ball":{"from":1,"to":4}}',
+        "Coordinate system: x=0 left sideline, x=100 right sideline, y=0 half court line, y=100 baseline. Basket is at x=50, y=89.",
+        "Player roles: n=1 PG (primary ball handler), n=2 SG, n=3 SF, n=4 PF, n=5 C.",
+        "move.type options: cut, screen, curl, dribble. Use actual player positions from the box score to assign roles.",
+        "The DIAGRAM line must be the absolute last line. It is machine-parsed — output valid JSON only.",
     ]
 
     result = await claude_service.analyze(
         prompt="\n".join(prompt_parts),
         system_prompt=COACH_SYSTEM_PROMPT,
+        override_max_tokens=900,
     )
 
+    # Parse the court diagram JSON from the response
+    import re as _re, json as _json
+    play_text = result.analysis
+    diagram = None
+    diag_match = _re.search(r'DIAGRAM:(\{.+\})\s*$', play_text, _re.MULTILINE)
+    if diag_match:
+        try:
+            diagram = _json.loads(diag_match.group(1))
+            play_text = play_text[:diag_match.start()].rstrip()
+        except (ValueError, KeyError):
+            pass
+
     logger.info(
-        "Timeout play complete | game_id=%s team=%r tokens=%d",
+        "Timeout play complete | game_id=%s team=%r tokens=%d diagram=%s",
         game_id,
         my_team,
         result.tokens_used,
+        "yes" if diagram else "no",
     )
 
     return {
@@ -1332,7 +1344,8 @@ async def timeout_play(body: dict[str, Any]) -> dict[str, Any]:
         "quarter": quarter,
         "time_remaining": time_remaining,
         "score_diff": score_diff,
-        "play": result.analysis,
+        "play": play_text,
+        "diagram": diagram,
         "model": result.model,
         "tokens_used": result.tokens_used,
     }

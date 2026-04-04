@@ -609,6 +609,20 @@ nav.solid {
   * { color: black !important; border-color: #ccc !important; background: white !important; text-shadow: none !important; box-shadow: none !important; }
   .home-wrap { display: none !important; }
 }
+
+/* War Room — CoachMode */
+.war-room { background: #070A0E; position: relative; }
+.war-room-grid {
+  background-image:
+    linear-gradient(rgba(0,230,118,0.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,230,118,0.018) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+.heat-fire  { color: #FF4444; text-shadow: 0 0 8px rgba(255,68,68,0.5); }
+.heat-hot   { color: #FF8C00; }
+.heat-warm  { color: #FFB800; }
+.heat-ok    { color: var(--green); }
+.heat-cold  { color: #3a3a3a; }
 </style>
 </head>
 <body>
@@ -1560,7 +1574,7 @@ function Players() {
           666:203507,    // Giannis (alt BDL id)
           723:1629029,   // Luka (alt BDL id)
         };
-        const nbaId = NBA_HEADSHOT_IDS[result.player?.id];
+        const nbaId = result.player?.nba_id || NBA_HEADSHOT_IDS[result.player?.id];
         const headshotUrl = nbaId ? `https://cdn.nba.com/headshots/nba/latest/1040x760/${nbaId}.png` : null;
         const teamAbbr = result.player?.team?.abbreviation;
 
@@ -2062,6 +2076,121 @@ function FrontOffice() {
 }
 
 
+function CourtDiagram({ diagram }) {
+  if (!diagram) return null;
+  const W = 380, H = 320;
+  const toX = p => p / 100 * W;
+  const toY = p => p / 100 * H;
+
+  // Hardcoded court pixel coordinates (NBA dimensions scaled to 380×320)
+  const BX = 190, BY = 284;           // basket center
+  const KEY_L = 129, KEY_R = 251;
+  const KEY_TOP = 190, BASELINE = 292;
+  const FT_R = 41;
+  const C3L = 23, C3R = 357, C3Y = 225;
+
+  const players = diagram.p || [];
+  const moves   = diagram.moves || [];
+  const ball    = diagram.ball;
+
+  const psvg = {};
+  players.forEach(p => { psvg[p.n] = [toX(p.x), toY(p.y)]; });
+
+  const curvedPath = (sx, sy, tx, ty) => {
+    const mx = (sx + tx) / 2 + (ty - sy) * 0.25;
+    const my = (sy + ty) / 2 - (tx - sx) * 0.25;
+    return `M ${sx} ${sy} Q ${mx} ${my} ${tx} ${ty}`;
+  };
+
+  return (
+    <svg width={W} height={H} style={{display:'block', background:'#070A0E', borderRadius:3}}>
+      <defs>
+        <marker id="arr-cut"  viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#00E676"/></marker>
+        <marker id="arr-ball" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#FFB800"/></marker>
+        <marker id="arr-scr"  viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#FFB800"/></marker>
+      </defs>
+
+      {/* Paint */}
+      <rect x={KEY_L} y={KEY_TOP} width={KEY_R - KEY_L} height={BASELINE - KEY_TOP}
+        fill="rgba(0,80,180,0.07)" stroke="rgba(255,255,255,0.18)" strokeWidth={1.5}/>
+
+      {/* FT circle top (solid) */}
+      <path d={`M ${KEY_L} ${KEY_TOP} A ${FT_R} ${FT_R} 0 0 1 ${KEY_R} ${KEY_TOP}`}
+        fill="none" stroke="rgba(255,255,255,0.18)" strokeWidth={1.5}/>
+      {/* FT circle bottom (dashed) */}
+      <path d={`M ${KEY_L} ${KEY_TOP} A ${FT_R} ${FT_R} 0 0 0 ${KEY_R} ${KEY_TOP}`}
+        fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth={1.5} strokeDasharray="5,4"/>
+
+      {/* 3pt corners */}
+      <line x1={C3L} y1={BASELINE} x2={C3L} y2={C3Y} stroke="rgba(255,255,255,0.18)" strokeWidth={1.5}/>
+      <line x1={C3R} y1={BASELINE} x2={C3R} y2={C3Y} stroke="rgba(255,255,255,0.18)" strokeWidth={1.5}/>
+
+      {/* 3pt arc */}
+      <path d={`M ${C3L} ${C3Y} A 180 162 0 0 1 ${C3R} ${C3Y}`}
+        fill="none" stroke="rgba(255,255,255,0.18)" strokeWidth={1.5}/>
+
+      {/* Restricted area */}
+      <path d={`M ${BX-30} ${BASELINE} A 30 30 0 0 1 ${BX+30} ${BASELINE}`}
+        fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth={1.5}/>
+
+      {/* Backboard */}
+      <line x1={167} y1={292} x2={213} y2={292} stroke="rgba(255,140,0,0.75)" strokeWidth={2.5}/>
+
+      {/* Basket ring */}
+      <circle cx={BX} cy={BY} r={9} fill="none" stroke="rgba(255,140,0,0.75)" strokeWidth={2}/>
+
+      {/* Baseline */}
+      <line x1={0} y1={BASELINE} x2={W} y2={BASELINE} stroke="rgba(255,255,255,0.1)" strokeWidth={1}/>
+
+      {/* Ball pass */}
+      {ball && psvg[ball.from] && psvg[ball.to] && (
+        <line
+          x1={psvg[ball.from][0]} y1={psvg[ball.from][1]}
+          x2={psvg[ball.to][0]}   y2={psvg[ball.to][1]}
+          stroke="#FFB800" strokeWidth={2} strokeDasharray="8,5"
+          markerEnd="url(#arr-ball)" opacity={0.9}/>
+      )}
+
+      {/* Moves */}
+      {moves.map((m, i) => {
+        if (!psvg[m.n]) return null;
+        const [sx, sy] = psvg[m.n];
+        const tx2 = toX(m.tx), ty2 = toY(m.ty);
+        if (m.type === 'screen') {
+          return (
+            <g key={i}>
+              <line x1={sx} y1={sy} x2={tx2} y2={ty2} stroke="#FFB800" strokeWidth={1.5} markerEnd="url(#arr-scr)"/>
+              <line x1={tx2-10} y1={ty2} x2={tx2+10} y2={ty2} stroke="#FFB800" strokeWidth={3}/>
+            </g>
+          );
+        }
+        return (
+          <path key={i} d={curvedPath(sx, sy, tx2, ty2)}
+            fill="none" stroke="#00E676" strokeWidth={1.5}
+            markerEnd="url(#arr-cut)"/>
+        );
+      })}
+
+      {/* Players */}
+      {players.map(p => {
+        const [px2, py2] = psvg[p.n] || [0, 0];
+        const isReceiver = ball && ball.to === p.n;
+        return (
+          <g key={p.n}>
+            {isReceiver && <circle cx={px2} cy={py2} r={22} fill="rgba(0,230,118,0.08)"/>}
+            <circle cx={px2} cy={py2} r={14} fill="#0D1117"
+              stroke={isReceiver ? '#00E676' : 'rgba(0,230,118,0.55)'}
+              strokeWidth={isReceiver ? 2.5 : 1.5}/>
+            <text x={px2} y={py2+5} textAnchor="middle"
+              fill={isReceiver ? '#00E676' : 'rgba(0,230,118,0.75)'}
+              fontSize={12} fontWeight="bold" fontFamily="monospace">{p.n}</text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
 function CoachMode() {
   const [games, setGames] = React.useState([]);
   const [selectedGame, setSelectedGame] = React.useState(null);
@@ -2075,147 +2204,291 @@ function CoachMode() {
   const today = localDate();
 
   React.useEffect(() => {
-    const loadGames = () => fetch(`${API}/nba/games?date=${today}&_=${Date.now()}`)
-      .then(r=>r.ok?r.json():null).then(d=>setGames(d?.games||[])).catch(()=>{});
-    loadGames();
-    const iv = setInterval(loadGames, 10000);
+    const load = () => fetch(`${API}/nba/games?date=${today}&_=${Date.now()}`)
+      .then(r => r.ok ? r.json() : null).then(d => setGames(d?.games || [])).catch(() => {});
+    load();
+    const iv = setInterval(load, 15000);
     return () => clearInterval(iv);
   }, []);
 
   React.useEffect(() => {
     if (!selectedGame) return;
-    const loadBox = () => fetch(`${API}/nba/games/${selectedGame.id}/boxscore`)
-      .then(r=>r.ok?r.json():null).then(d=>setBoxScore(d)).catch(()=>{});
-    loadBox();
-    const iv = setInterval(loadBox, 10000);
+    const load = () => fetch(`${API}/nba/games/${selectedGame.id}/boxscore`)
+      .then(r => r.ok ? r.json() : null).then(d => setBoxScore(d)).catch(() => {});
+    load();
+    const iv = setInterval(load, 10000);
     return () => clearInterval(iv);
   }, [selectedGame?.id]);
 
   const run = async () => {
     setLoading(true); setError(null);
     try {
-      const endpoint = mode==='adjust' ? '/coach/adjust' : '/coach/timeout';
-      const body = { game_id: selectedGame?.id, my_team: myTeam };
-      const r = await fetch(`${API}${endpoint}`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+      const endpoint = mode === 'adjust' ? '/coach/adjust' : '/coach/timeout';
+      const r = await fetch(`${API}${endpoint}`, {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ game_id: selectedGame?.id, my_team: myTeam }),
+      });
       if (!r.ok) throw new Error(await r.text());
       const data = await r.json();
       setResult({...data, mode});
-      setHistory(prev => [{...data, mode, timestamp:new Date().toLocaleTimeString()}, ...prev.slice(0,9)]);
+      setHistory(prev => [{...data, mode, timestamp: new Date().toLocaleTimeString()}, ...prev.slice(0, 9)]);
     } catch(e) { setError(e.message); } finally { setLoading(false); }
   };
 
+  // Heat class for box score
+  const heatClass = (pts, minStr) => {
+    const min = parseInt(minStr) || 0;
+    if (min < 2) return 'heat-cold';
+    if (pts >= 20) return 'heat-fire';
+    if (pts >= 15) return 'heat-hot';
+    if (pts >= 10) return 'heat-warm';
+    if (pts >= 5)  return 'heat-ok';
+    return 'heat-cold';
+  };
+
+  const formatName = n => {
+    if (!n) return '—';
+    const parts = n.trim().split(' ');
+    if (parts.length <= 1) return parts[0];
+    const last = parts[parts.length - 1];
+    return ['Jr','Jr.','Sr','Sr.','II','III','IV'].includes(last)
+      ? `${parts[parts.length - 2]} ${last}` : last;
+  };
+
+  const gameStatus = selectedGame ? (() => {
+    const { label, type } = parseStatus(selectedGame.status);
+    const sa = selectedGame.visitor_team_score, sb = selectedGame.home_team_score;
+    const hasScore = sa > 0 || sb > 0;
+    return {
+      statusLabel: type === 'live' ? `● ${label}` : label,
+      isLive: type === 'live',
+      scoreStr: hasScore ? `${selectedGame.visitor_team.abbreviation} ${sa} — ${sb} ${selectedGame.home_team.abbreviation}` : `${selectedGame.visitor_team.abbreviation} @ ${selectedGame.home_team.abbreviation}`,
+    };
+  })() : null;
+
   return (
-    <div style={{display:'grid', gridTemplateColumns:'300px 1fr 300px', minHeight:'calc(100vh - 56px)'}}>
-      <div style={{borderRight:'1px solid var(--border)', background:'var(--grey)', display:'flex', flexDirection:'column', overflowY:'auto'}}>
-        <div style={{padding:'20px', borderBottom:'1px solid var(--border)'}}>
-          <div style={{fontSize:9, letterSpacing:4, color:'#444', marginBottom:12}}>Select Game</div>
-          {games.length === 0 && <div style={{fontSize:9, letterSpacing:3, color:'#333'}}>No games today</div>}
+    <div className="war-room war-room-grid" style={{display:'grid', gridTemplateColumns:'280px 1fr 300px', minHeight:'calc(100vh - 56px)'}}>
+
+      {/* ── Left: Command Panel ── */}
+      <div style={{borderRight:'1px solid var(--border)', background:'rgba(0,0,0,0.4)', display:'flex', flexDirection:'column', overflowY:'auto'}}>
+        <div style={{padding:'16px', borderBottom:'1px solid var(--border)'}}>
+          <div style={{fontSize:8, letterSpacing:5, color:'rgba(0,230,118,0.4)', marginBottom:10, fontFamily:'monospace'}}>⬡ GAME SELECT</div>
+          {games.length === 0 && <div style={{fontSize:9, letterSpacing:2, color:'#222', fontFamily:'monospace'}}>NO GAMES TODAY</div>}
           {games.map(g => {
             const { label, type } = parseStatus(g.status);
             const sel = selectedGame?.id === g.id;
+            const ha = g.home_team_score > 0 || g.visitor_team_score > 0;
             return (
-              <div key={g.id} onClick={() => { setSelectedGame(g); setMyTeam(''); setResult(null); }}
-                style={{ padding:'12px 14px', marginBottom:4, cursor:'pointer', border:sel?'1px solid var(--green)':'1px solid var(--border)', background:sel?'rgba(0,255,65,0.05)':'var(--black)', transition:'all 0.1s' }}>
-                <div style={{fontSize:8, letterSpacing:3, color:type==='live'?'var(--green)':'#555', marginBottom:4}}>{type==='live'?'● LIVE':label}</div>
-                <div style={{fontSize:13, letterSpacing:1}}>{g.visitor_team.abbreviation} @ {g.home_team.abbreviation}</div>
-                {(g.home_team_score > 0 || g.visitor_team_score > 0) && <div style={{fontSize:11, color:'var(--green)', letterSpacing:2, marginTop:2}}>{g.visitor_team_score} - {g.home_team_score}</div>}
+              <div key={g.id} onClick={() => { setSelectedGame(g); setMyTeam(''); setResult(null); setError(null); }}
+                style={{padding:'10px 12px', marginBottom:3, cursor:'pointer',
+                  border: sel ? '1px solid var(--green)' : '1px solid rgba(255,255,255,0.05)',
+                  background: sel ? 'rgba(0,230,118,0.04)' : 'rgba(0,0,0,0.3)',
+                  transition:'all 0.1s'}}>
+                <div style={{fontSize:7, letterSpacing:3, color: type==='live'?'var(--green)':'#333', marginBottom:3, fontFamily:'monospace'}}>
+                  {type==='live' ? '● LIVE' : label}
+                </div>
+                <div style={{fontSize:12, letterSpacing:1, color: sel?'var(--white)':'#777'}}>
+                  {g.visitor_team.abbreviation} @ {g.home_team.abbreviation}
+                </div>
+                {ha && <div style={{fontSize:10, color:'var(--green)', letterSpacing:2, marginTop:1, fontFamily:'monospace'}}>
+                  {g.visitor_team_score} — {g.home_team_score}
+                </div>}
               </div>
             );
           })}
         </div>
+
         {selectedGame && (
-          <div style={{padding:'20px', flex:1}}>
-            <div style={{fontSize:9, letterSpacing:4, color:'#444', marginBottom:12}}>My Team</div>
+          <div style={{padding:'16px', flex:1}}>
+            <div style={{fontSize:8, letterSpacing:5, color:'rgba(0,230,118,0.4)', marginBottom:10, fontFamily:'monospace'}}>⬡ MY TEAM</div>
             <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:4, marginBottom:20}}>
               {[selectedGame.visitor_team, selectedGame.home_team].map(t => (
                 <button key={t.id} onClick={() => setMyTeam(t.name)}
-                  style={{ background:myTeam===t.name?'var(--green)':'var(--black)', color:myTeam===t.name?'var(--black)':'#555', border:`1px solid ${myTeam===t.name?'var(--green)':'var(--border)'}`, padding:'10px 8px', cursor:'pointer', fontSize:10, letterSpacing:2, fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', fontWeight:700, textTransform:'uppercase', transition:'all 0.1s' }}>
+                  style={{background: myTeam===t.name ? 'var(--green)' : 'rgba(0,0,0,0.5)',
+                    color: myTeam===t.name ? '#000' : '#444',
+                    border: `1px solid ${myTeam===t.name ? 'var(--green)' : 'rgba(255,255,255,0.08)'}`,
+                    padding:'10px 6px', cursor:'pointer', fontSize:10, letterSpacing:3,
+                    fontFamily:'monospace', fontWeight:700, textTransform:'uppercase', transition:'all 0.1s'}}>
                   {t.abbreviation}
                 </button>
               ))}
             </div>
-            <div style={{fontSize:9, letterSpacing:4, color:'#444', marginBottom:8}}>Mode</div>
+
+            <div style={{fontSize:8, letterSpacing:5, color:'rgba(0,230,118,0.4)', marginBottom:10, fontFamily:'monospace'}}>⬡ MODE</div>
             <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:4, marginBottom:24}}>
-              {[['adjust','Adjustment'],['timeout','Draw Play']].map(([id,label]) => (
+              {[['adjust','ADJUST'],['timeout','DRAW PLAY']].map(([id, lbl]) => (
                 <button key={id} onClick={() => setMode(id)}
-                  style={{ background:mode===id?'var(--white)':'var(--black)', color:mode===id?'var(--black)':'#555', border:`1px solid ${mode===id?'var(--white)':'var(--border)'}`, padding:'8px 4px', cursor:'pointer', fontSize:9, letterSpacing:2, fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', fontWeight:700, textTransform:'uppercase', transition:'all 0.1s' }}>
-                  {label}
+                  style={{background: mode===id ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.5)',
+                    color: mode===id ? '#000' : '#333',
+                    border: `1px solid ${mode===id ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.06)'}`,
+                    padding:'8px 4px', cursor:'pointer', fontSize:8, letterSpacing:3,
+                    fontFamily:'monospace', fontWeight:700, transition:'all 0.1s'}}>
+                  {lbl}
                 </button>
               ))}
             </div>
-            <div style={{fontSize:9, letterSpacing:3, color:'#222', marginBottom:16, lineHeight:1.8}}>
-              PIVOT reads the live box score automatically — score, clock, who's hot, foul trouble. No manual input needed.
-            </div>
-            <button onClick={run} disabled={loading||!myTeam}
-              style={{ width:'100%', padding:'14px', fontSize:11, letterSpacing:4, fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', fontWeight:700, textTransform:'uppercase', cursor:loading||!myTeam?'default':'pointer', border:'none', transition:'all 0.1s', background:loading?'#222':!myTeam?'#111':'var(--green)', color:loading||!myTeam?'#444':'var(--black)' }}>
-              {loading ? 'PIVOT COMPUTING' : !myTeam ? 'SELECT YOUR TEAM' : mode==='adjust' ? 'GET ADJUSTMENTS' : 'DRAW THE PLAY'}
+
+            <button onClick={run} disabled={loading || !myTeam}
+              style={{width:'100%', padding:'13px', fontSize:9, letterSpacing:4,
+                fontFamily:'monospace', fontWeight:700, textTransform:'uppercase',
+                cursor: loading||!myTeam ? 'default' : 'pointer', border:'none', transition:'all 0.15s',
+                background: loading ? '#111' : !myTeam ? '#0a0a0a' : 'var(--green)',
+                color: loading||!myTeam ? '#2a2a2a' : '#000',
+                boxShadow: (!loading && myTeam) ? '0 0 20px rgba(0,230,118,0.2)' : 'none'}}>
+              {loading ? '◌ COMPUTING' : !myTeam ? 'SELECT TEAM' : mode==='adjust' ? 'GET ADJUSTMENTS' : 'DRAW THE PLAY'}
             </button>
           </div>
         )}
-        {!selectedGame && <div style={{padding:'32px 20px', fontSize:9, letterSpacing:3, color:'#333', lineHeight:2}}>Select a game to activate coach mode. PIVOT reads the live box score and delivers real adjustments — no manual input required.</div>}
+
+        {!selectedGame && (
+          <div style={{padding:'24px 16px', fontSize:8, letterSpacing:3, color:'#1a1a1a', lineHeight:2.2, fontFamily:'monospace'}}>
+            SELECT A GAME TO<br/>ACTIVATE COACH<br/>MODE. PIVOT READS<br/>THE LIVE BOX AND<br/>DELIVERS REAL<br/>ADJUSTMENTS.
+          </div>
+        )}
       </div>
-      <div style={{borderRight:'1px solid var(--border)', overflowY:'auto'}}>
+
+      {/* ── Center: Tactical Display ── */}
+      <div style={{borderRight:'1px solid var(--border)', overflowY:'auto', position:'relative'}}>
+
+        {/* Status bar at top when game selected */}
+        {selectedGame && gameStatus && (
+          <div style={{padding:'10px 24px', borderBottom:'1px solid var(--border)',
+            display:'flex', alignItems:'center', gap:24, background:'rgba(0,0,0,0.5)', position:'sticky', top:0, zIndex:10}}>
+            <div style={{fontSize:8, letterSpacing:3, color: gameStatus.isLive ? 'var(--green)' : '#444', fontFamily:'monospace'}}>
+              {gameStatus.statusLabel}
+            </div>
+            <div style={{fontSize:13, letterSpacing:2, color:'var(--white)', fontFamily:'monospace'}}>
+              {gameStatus.scoreStr}
+            </div>
+            {myTeam && <div style={{fontSize:8, letterSpacing:2, color:'rgba(0,230,118,0.5)', marginLeft:'auto', fontFamily:'monospace'}}>
+              ◎ {myTeam.toUpperCase()}
+            </div>}
+          </div>
+        )}
+
+        {/* Empty state */}
         {!result && !loading && !error && (
-          <div style={{display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'70vh', gap:16}}>
-            <div style={{fontSize:'clamp(40px,6vw,80px)', letterSpacing:12, color:'var(--white)', lineHeight:1, textAlign:'center'}}>COACH<br/>MODE</div>
-            <div style={{fontSize:9, letterSpacing:4, color:'#333', textAlign:'center', maxWidth:300, lineHeight:2}}>Select a game, pick your team. PIVOT reads the live situation and delivers real coaching.</div>
-          </div>
-        )}
-        {loading && (
-          <div style={{display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'70vh', gap:16}}>
-            <div style={{fontSize:10, letterSpacing:5, color:'var(--green)'}}>PIVOT COMPUTING</div>
-            <Loader label=""/>
-          </div>
-        )}
-        {error && <div className="err" style={{margin:24}}>{error}</div>}
-        {!loading && result && (
-          <div style={{padding:'40px 48px'}}>
-            <div style={{display:'flex', gap:12, alignItems:'center', marginBottom:28}}>
-              <div style={{fontSize:9, letterSpacing:4, color:'var(--green)'}}>{result.mode==='timeout'?'⊙ PLAY DRAWN':'⊙ ADJUSTMENTS READY'}</div>
-              <div style={{fontSize:9, letterSpacing:2, color:'#333'}}>{result.my_team}</div>
-              {result.time_remaining && <div style={{fontSize:9, letterSpacing:2, color:'#333'}}>Q{result.quarter} · {result.time_remaining}</div>}
+          <div style={{display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'70vh', gap:20}}>
+            <div style={{fontSize:'clamp(32px,5vw,64px)', letterSpacing:16, color:'rgba(255,255,255,0.06)', lineHeight:1, textAlign:'center', fontFamily:'monospace', fontWeight:900}}>
+              TACTICAL<br/>BOARD
             </div>
-            <div style={{fontSize:15, lineHeight:2.2, letterSpacing:.5, color:'var(--white)', whiteSpace:'pre-wrap', fontWeight:400, textTransform:'none'}}>
-              {result.analysis || result.play}
+            <div style={{fontSize:8, letterSpacing:5, color:'#1a1a1a', textAlign:'center', fontFamily:'monospace', lineHeight:2.5}}>
+              {selectedGame && myTeam
+                ? `READY — SELECT MODE AND EXECUTE`
+                : selectedGame
+                  ? 'SELECT YOUR TEAM'
+                  : 'SELECT A GAME'}
+            </div>
+          </div>
+        )}
+
+        {/* Loading */}
+        {loading && (
+          <div style={{display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'70vh', gap:20}}>
+            <div style={{display:'flex', gap:8}}>
+              {[0,1,2].map(i => (
+                <div key={i} style={{width:6, height:6, borderRadius:'50%', background:'var(--green)',
+                  animation:`pulse-dot 1.2s ease-in-out ${i*0.2}s infinite`}}/>
+              ))}
+            </div>
+            <div style={{fontSize:8, letterSpacing:6, color:'rgba(0,230,118,0.5)', fontFamily:'monospace'}}>
+              {mode === 'timeout' ? 'DRAWING PLAY' : 'COMPUTING ADJUSTMENTS'}
+            </div>
+          </div>
+        )}
+
+        {error && <div className="err" style={{margin:24}}>{error}</div>}
+
+        {/* Result */}
+        {!loading && result && (
+          <div style={{padding:'32px 40px'}}>
+            <div style={{display:'flex', gap:16, alignItems:'center', marginBottom:24}}>
+              <div style={{fontSize:8, letterSpacing:4, color:'var(--green)', fontFamily:'monospace'}}>
+                {result.mode === 'timeout' ? '⊙ PLAY DRAWN' : '⊙ ADJUSTMENTS READY'}
+              </div>
+              <div style={{fontSize:8, letterSpacing:2, color:'#333', fontFamily:'monospace'}}>{result.my_team?.toUpperCase()}</div>
+              {result.time_remaining && <div style={{fontSize:8, letterSpacing:2, color:'#333', fontFamily:'monospace'}}>
+                Q{result.quarter} · {result.time_remaining}
+              </div>}
+            </div>
+
+            {/* Court diagram for timeout plays */}
+            {result.mode === 'timeout' && result.diagram && (
+              <div style={{marginBottom:28, borderRadius:4, overflow:'hidden', border:'1px solid rgba(0,230,118,0.1)'}}>
+                <div style={{padding:'8px 12px', background:'rgba(0,0,0,0.6)', borderBottom:'1px solid rgba(0,230,118,0.1)',
+                  fontSize:7, letterSpacing:4, color:'rgba(0,230,118,0.4)', fontFamily:'monospace'}}>
+                  PLAY DIAGRAM  ·  ● OFFENSE  ─ ─ BALL  → CUT
+                </div>
+                <CourtDiagram diagram={result.diagram}/>
+              </div>
+            )}
+
+            <div style={{fontSize:14, lineHeight:2.1, letterSpacing:.3, color:'var(--white)',
+              whiteSpace:'pre-wrap', fontWeight:400, textTransform:'none', fontFamily:'Inter, sans-serif'}}>
+              {result.play || result.analysis}
             </div>
           </div>
         )}
       </div>
-      <div style={{overflowY:'auto', background:'var(--grey)'}}>
-        {selectedGame && boxScore && boxScore.total_players > 0 && (
+
+      {/* ── Right: Live Intel ── */}
+      <div style={{overflowY:'auto', background:'rgba(0,0,0,0.35)'}}>
+        {selectedGame && boxScore && (boxScore.total_players || 0) > 0 && (
           <div style={{borderBottom:'1px solid var(--border)'}}>
-            <div style={{padding:'14px 20px', fontSize:8, letterSpacing:4, color:'#444', borderBottom:'1px solid var(--border)'}}>
-              Live Box — {selectedGame.visitor_team.abbreviation} @ {selectedGame.home_team.abbreviation}
+            <div style={{padding:'12px 16px', fontSize:7, letterSpacing:5, color:'rgba(0,230,118,0.35)',
+              borderBottom:'1px solid var(--border)', fontFamily:'monospace'}}>
+              ⬡ LIVE INTEL
             </div>
-            <div style={{padding:'0 16px 16px'}}>
-              {['away_players','home_players'].map(key => {
-                const team = key==='home_players' ? boxScore.home_team : boxScore.away_team;
-                const players = (boxScore[key]||[]).slice(0,6);
-                return (
-                  <div key={key} style={{marginTop:12}}>
-                    <div style={{fontSize:8, letterSpacing:3, color:'var(--green)', marginBottom:6}}>{team?.abbreviation}</div>
-                    {players.map((p,i) => (
-                      <div key={i} style={{display:'flex', justifyContent:'space-between', padding:'5px 0', borderBottom:'1px solid #141414', fontSize:10}}>
-                        <span style={{letterSpacing:1, fontWeight:700, fontSize:11}}>{(() => { const parts = p.player.trim().split(' '); if (parts.length <= 1) return parts[0]; const last = parts[parts.length-1]; return ['Jr','Jr.','Sr','Sr.','II','III','IV'].includes(last) ? `${parts[parts.length-2]} ${last}` : last; })()}</span>
-                        <span style={{color:'var(--green)', letterSpacing:1}}>{p.pts}pt {p.reb}rb {p.ast}as</span>
+            {['away_players','home_players'].map(key => {
+              const team = key === 'home_players' ? boxScore.home_team : boxScore.away_team;
+              const players = (boxScore[key] || []).slice(0, 7);
+              const isMyTeam = myTeam && team && myTeam.toLowerCase().includes((team.name||'').toLowerCase().split(' ').pop());
+              return (
+                <div key={key} style={{marginBottom:0}}>
+                  <div style={{padding:'8px 16px 4px', fontSize:7, letterSpacing:4,
+                    color: isMyTeam ? 'var(--green)' : '#444',
+                    background: isMyTeam ? 'rgba(0,230,118,0.03)' : 'transparent',
+                    fontFamily:'monospace', borderBottom:'1px solid rgba(255,255,255,0.03)'}}>
+                    {team?.abbreviation} {isMyTeam ? '◎' : ''}
+                  </div>
+                  <div style={{padding:'4px 0 8px'}}>
+                    {players.map((p, i) => (
+                      <div key={i} style={{display:'flex', justifyContent:'space-between', alignItems:'center',
+                        padding:'5px 16px', borderBottom:'1px solid rgba(255,255,255,0.02)'}}>
+                        <span style={{fontSize:10, letterSpacing:.5, fontWeight:600, color:'#888',
+                          fontFamily:'monospace', flex:1}}>{formatName(p.player)}</span>
+                        <span className={heatClass(p.pts, p.min)}
+                          style={{fontSize:10, letterSpacing:1, fontFamily:'monospace', fontWeight:700}}>
+                          {p.pts}
+                        </span>
+                        <span style={{fontSize:9, color:'#333', letterSpacing:1, marginLeft:6,
+                          fontFamily:'monospace'}}>{p.reb}r {p.ast}a</span>
                       </div>
                     ))}
                   </div>
-                );
-              })}
-            </div>
+                </div>
+              );
+            })}
           </div>
         )}
-        <div style={{padding:'16px 20px'}}>
-          <div style={{fontSize:8, letterSpacing:4, color:'#444', marginBottom:12}}>Call History</div>
-          {history.length === 0 && <div style={{fontSize:9, letterSpacing:3, color:'#333'}}>No calls yet this session</div>}
-          {history.map((h,i) => (
-            <div key={i} style={{padding:'12px', marginBottom:6, border:'1px solid var(--border)', background:'var(--black)', cursor:'pointer'}} onClick={() => setResult(h)}>
-              <div style={{display:'flex', justifyContent:'space-between', marginBottom:4}}>
-                <span style={{fontSize:8, letterSpacing:3, color:'var(--green)'}}>{h.mode?.toUpperCase()}</span>
-                <span style={{fontSize:8, letterSpacing:2, color:'#333'}}>{h.timestamp}</span>
+
+        <div style={{padding:'16px'}}>
+          <div style={{fontSize:7, letterSpacing:5, color:'rgba(0,230,118,0.35)', marginBottom:10, fontFamily:'monospace'}}>⬡ CALL HISTORY</div>
+          {history.length === 0 && (
+            <div style={{fontSize:8, letterSpacing:3, color:'#1a1a1a', fontFamily:'monospace', lineHeight:2}}>NO CALLS YET</div>
+          )}
+          {history.map((h, i) => (
+            <div key={i} onClick={() => setResult(h)} style={{padding:'10px 12px', marginBottom:4, cursor:'pointer',
+              border:'1px solid rgba(255,255,255,0.04)', background:'rgba(0,0,0,0.3)',
+              transition:'border-color 0.1s'}}
+              onMouseEnter={e => e.currentTarget.style.borderColor='rgba(0,230,118,0.2)'}
+              onMouseLeave={e => e.currentTarget.style.borderColor='rgba(255,255,255,0.04)'}>
+              <div style={{display:'flex', justifyContent:'space-between', marginBottom:3}}>
+                <span style={{fontSize:7, letterSpacing:3, color: h.mode==='timeout'?'#FFB800':'var(--green)',
+                  fontFamily:'monospace'}}>{h.mode?.toUpperCase()}</span>
+                <span style={{fontSize:7, letterSpacing:1, color:'#222', fontFamily:'monospace'}}>{h.timestamp}</span>
               </div>
-              <div style={{fontSize:10, letterSpacing:1, color:'#888', fontWeight:400, textTransform:'none'}}>
+              <div style={{fontSize:9, letterSpacing:1, color:'#555', fontFamily:'monospace'}}>
                 {h.my_team}{h.quarter ? ` · Q${h.quarter}` : ''}
               </div>
             </div>

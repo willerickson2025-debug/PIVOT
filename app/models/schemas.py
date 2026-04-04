@@ -47,6 +47,7 @@ class Player(BaseModel):
 
     position: str | None = None
     team: Team | None = None
+    nba_id: int | None = None
 
 
 class Contract(BaseModel):
