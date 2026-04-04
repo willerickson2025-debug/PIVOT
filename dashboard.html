@@ -19,19 +19,27 @@ body::before {
   position: fixed; inset: 0; z-index: 9999; pointer-events: none;
   background: radial-gradient(
     600px circle at var(--cursor-x, -9999px) var(--cursor-y, -9999px),
-    rgba(0,255,65,0.055),
+    rgba(0,230,118,0.045),
     transparent 40%
   );
   transition: background 0.06s;
 }
 
 :root {
-  --black: #000000;
-  --white: #FFFFFF;
-  --green: #00FF41;
-  --grey: #111111;
-  --grey2: #1A1A1A;
-  --border: #222222;
+  --black: #0F1115;
+  --black-deep: #080A0E;
+  --white: #F0F2F5;
+  --green: #00E676;
+  --green-dim: rgba(0,230,118,0.15);
+  --grey: #161B22;
+  --grey2: #1C2128;
+  --grey3: #242B35;
+  --border: rgba(255,255,255,0.08);
+  --border-strong: rgba(255,255,255,0.14);
+  --text-muted: #6B7280;
+  --text-subtle: #374151;
+  --shadow: 0 4px 24px rgba(0,0,0,0.4);
+  --shadow-lg: 0 8px 40px rgba(0,0,0,0.6);
 }
 html, body {
   background: var(--black);
@@ -55,8 +63,9 @@ nav {
   transition: background 0.3s, border-color 0.3s;
 }
 nav.solid {
-  background: rgba(0,0,0,0.96);
+  background: rgba(15,17,21,0.97);
   border-bottom: 1px solid var(--border);
+  box-shadow: 0 1px 0 var(--border), var(--shadow);
 }
 .nav-logo {
   font-size: 18px;
@@ -414,36 +423,38 @@ nav.solid {
 .ticker-item { font-size: 11px; letter-spacing: 2px; color: var(--green); padding: 0 32px; text-shadow: 0 0 8px rgba(0,255,65,0.4); white-space: nowrap; }
 .ticker-sep { color: #1a1a1a; font-size: 14px; padding: 0 8px; }
 .toolbar {
-  height: 60px;
-  border-bottom: 2px solid var(--white);
+  height: 56px;
+  border-bottom: 1px solid var(--border);
   display: flex;
   align-items: stretch;
-  background: var(--black);
+  background: var(--grey);
 }
 .tb-btn {
-  background: var(--black); border: none;
+  background: transparent; border: none;
   border-right: 1px solid var(--border);
-  color: var(--green);
-  font-size: 12px; letter-spacing: 3px; font-weight: 700;
+  color: var(--text-muted);
+  font-size: 10px; letter-spacing: 3px; font-weight: 700;
   font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  text-transform: uppercase; padding: 0 28px;
-  cursor: pointer; transition: all 0.1s; white-space: nowrap;
+  text-transform: uppercase; padding: 0 24px;
+  cursor: pointer; transition: all 0.15s; white-space: nowrap;
 }
-.tb-btn:hover { background: var(--green); color: var(--black); }
-.tb-btn:disabled { color: #333; cursor: not-allowed; }
+.tb-btn:hover { background: var(--grey2); color: var(--white); }
+.tb-btn:disabled { color: #2a2a2a; cursor: not-allowed; }
 .tb-input {
-  background: var(--black); border: none;
+  background: transparent; border: none;
   border-right: 1px solid var(--border);
   color: var(--white);
-  font-size: 12px; letter-spacing: 2px; font-weight: 700;
+  font-size: 11px; letter-spacing: 2px; font-weight: 700;
   font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
   text-transform: uppercase; padding: 0 20px;
   outline: none; width: 220px;
 }
-.tb-input::placeholder { color: #333; }
+.tb-input::placeholder { color: #2a2a2a; }
 .tb-info {
   display: flex; align-items: center; padding: 0 24px;
-  font-size: 11px; letter-spacing: 3px; color: #333;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px; letter-spacing: 0.5px; font-weight: 400;
+  color: var(--text-muted); text-transform: none;
   margin-left: auto; border-left: 1px solid var(--border);
 }
 .g-rolodex {
@@ -460,16 +471,16 @@ nav.solid {
   flex: 0 0 300px;
   scroll-snap-align: start;
   border-right: 1px solid var(--border);
-  padding: 32px 28px 28px;
+  padding: 28px 24px 24px;
   cursor: pointer;
   transition: background 0.15s;
   position: relative;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  min-height: 220px;
+  min-height: 200px;
 }
-.g-card:hover { background: #0a0a0a; }
+.g-card:hover { background: var(--grey); }
 .g-card:hover .g-card-arrow { opacity: 1; }
 .g-card-arrow { position: absolute; bottom: 20px; right: 20px; font-size: 11px; letter-spacing: 2px; color: var(--green); opacity: 0; transition: opacity 0.15s; }
 .g-time { font-size: 9px; letter-spacing: 3px; color: var(--green); margin-bottom: 20px; }
@@ -487,12 +498,12 @@ nav.solid {
   z-index: 2000; display: flex; align-items: center; justify-content: center;
   padding: 24px; backdrop-filter: blur(4px);
 }
-.modal { background: var(--black); border: 2px solid var(--white); width: 100%; max-width: 1100px; max-height: 85vh; overflow-y: auto; position: relative; }
+.modal { background: var(--grey); border: 1px solid var(--border-strong); width: 100%; max-width: 1100px; max-height: 85vh; overflow-y: auto; position: relative; box-shadow: var(--shadow-lg); border-radius: 4px; }
 .modal-header {
   display: grid; grid-template-columns: 1fr auto 1fr auto;
   align-items: center; padding: 20px 24px;
   border-bottom: 2px solid var(--white);
-  position: sticky; top: 0; background: var(--black); z-index: 10;
+  position: sticky; top: 0; background: var(--grey); z-index: 10;
 }
 .modal-team { display: flex; flex-direction: column; }
 .modal-team.home { text-align: right; }
@@ -961,14 +972,18 @@ function Analysis() {
         </div>
       )}
       {!loading && result && (
-        <div style={{maxWidth:900, padding:'48px 56px'}}>
-          <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:32}}>
-            <div style={{fontSize:10, letterSpacing:5, color:'var(--green)'}}>
-              {result.game_count} Games · {new Date().toLocaleDateString([],{month:'short',day:'numeric',year:'numeric'}).toUpperCase()}
+        <div style={{maxWidth:900, padding:'40px 56px'}}>
+          <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:24}}>
+            <div style={{fontFamily:'Inter, sans-serif', fontSize:12, letterSpacing:0, color:'var(--text-muted)', fontWeight:400, textTransform:'none'}}>
+              <span style={{color:'var(--green)', fontWeight:500}}>{result.game_count} Games</span> · {new Date().toLocaleDateString([],{month:'short',day:'numeric',year:'numeric'})}
             </div>
-            <button className="export-btn" onClick={() => window.print()} style={{background:'none', border:'1px solid var(--green)', color:'var(--green)', fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', fontWeight:700, fontSize:9, letterSpacing:3, textTransform:'uppercase', padding:'8px 20px', cursor:'pointer'}}>Export PDF →</button>
+            <button onClick={() => window.print()} style={{background:'none', border:'1px solid var(--border)', color:'var(--text-muted)', fontFamily:'Helvetica Neue, sans-serif', fontWeight:700, fontSize:9, letterSpacing:3, textTransform:'uppercase', padding:'8px 16px', cursor:'pointer', borderRadius:4, transition:'all 0.15s'}}
+              onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--green)';e.currentTarget.style.color='var(--green)';}}
+              onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border)';e.currentTarget.style.color='var(--text-muted)';}}>
+              Export PDF →
+            </button>
           </div>
-          <div style={{fontSize:15, lineHeight:2.1, letterSpacing:.5, color:'var(--white)', whiteSpace:'pre-wrap', fontWeight:400, textTransform:'none'}}>
+          <div style={{fontFamily:'Inter, sans-serif', fontSize:14, lineHeight:2, letterSpacing:0, color:'var(--white)', whiteSpace:'pre-wrap', fontWeight:400, textTransform:'none'}}>
             {result.analysis}
           </div>
         </div>
@@ -1061,28 +1076,29 @@ function Players() {
 
   return (
     <div>
-      <div style={{position:'relative', borderBottom:'2px solid var(--white)', background:'var(--black)'}}>
+      {/* ── Search Bar ── */}
+      <div style={{position:'relative', borderBottom:'1px solid var(--border)', background:'var(--grey)'}}>
         <div style={{display:'flex', alignItems:'stretch', height:64, position:'relative'}}>
-          <div style={{display:'flex', alignItems:'center', padding:'0 24px', borderRight:'1px solid var(--border)', color:'#333', fontSize:16, flexShrink:0}}>⌕</div>
+          <div style={{display:'flex', alignItems:'center', padding:'0 24px', borderRight:'1px solid var(--border)', color:'var(--text-muted)', fontSize:16, flexShrink:0}}>⌕</div>
           <div style={{flex:1, position:'relative'}}>
             <input
-              style={{width:'100%', height:'100%', background:'transparent', border:'none', outline:'none', color:'var(--white)', fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', fontWeight:700, fontSize:16, letterSpacing:2, padding:'0 20px', textTransform:'uppercase'}}
-              placeholder="SEARCH PLAYER — e.g. LEBRON JAMES"
+              style={{width:'100%', height:'100%', background:'transparent', border:'none', outline:'none', color:'var(--white)', fontFamily:'Inter, Helvetica Neue, sans-serif', fontWeight:500, fontSize:15, letterSpacing:0.5, padding:'0 20px', textTransform:'none'}}
+              placeholder="Search player — e.g. LeBron James"
               value={query}
               onChange={e => { setQuery(e.target.value); setSelectedId(null); fetchSuggestions(e.target.value); setShowSugg(true); }}
               onKeyDown={e => { if(e.key==='Enter'){setShowSugg(false);searchByName();} if(e.key==='Escape')setShowSugg(false); }}
               onBlur={() => setTimeout(() => setShowSugg(false), 150)}
             />
             {showSugg && suggestions.length > 0 && (
-              <div style={{position:'absolute', top:'100%', left:0, right:0, background:'#080808', border:'1px solid var(--green)', borderTop:'none', zIndex:9999, maxHeight:300, overflowY:'auto', boxShadow:'0 8px 32px rgba(0,0,0,0.8)'}}>
+              <div style={{position:'absolute', top:'100%', left:0, right:0, background:'var(--grey2)', border:'1px solid var(--border-strong)', borderTop:'none', zIndex:9999, maxHeight:300, overflowY:'auto', boxShadow:'var(--shadow-lg)', borderRadius:'0 0 6px 6px'}}>
                 {suggestions.map((p,i) => (
                   <div key={p.id}
                     onMouseDown={() => { setQuery(`${p.first_name} ${p.last_name}`); setSelectedId(p.id); setShowSugg(false); searchById(p.id); }}
-                    style={{padding:'14px 24px', cursor:'pointer', fontSize:13, letterSpacing:2, borderBottom:'1px solid #111', display:'flex', justifyContent:'space-between', alignItems:'center', transition:'background 0.1s'}}
-                    onMouseEnter={e => e.currentTarget.style.background='#111'}
+                    style={{padding:'12px 20px', cursor:'pointer', borderBottom:'1px solid var(--border)', display:'flex', justifyContent:'space-between', alignItems:'center', transition:'background 0.1s'}}
+                    onMouseEnter={e => e.currentTarget.style.background='var(--grey3)'}
                     onMouseLeave={e => e.currentTarget.style.background=''}>
-                    <span style={{fontWeight:700}}>{p.first_name} {p.last_name}</span>
-                    <span style={{fontSize:10, letterSpacing:3, color:'var(--green)'}}>{p.team?.abbreviation||'?'} · {p.position||'?'}</span>
+                    <span style={{fontFamily:'Inter, sans-serif', fontWeight:500, fontSize:14, letterSpacing:0, textTransform:'none'}}>{p.first_name} {p.last_name}</span>
+                    <span style={{fontFamily:'Inter, sans-serif', fontSize:11, letterSpacing:0, color:'var(--green)', fontWeight:400, textTransform:'none'}}>{p.team?.abbreviation||'?'} · {p.position||'?'}</span>
                   </div>
                 ))}
               </div>
@@ -1091,15 +1107,29 @@ function Players() {
           <button
             onClick={() => { setShowSugg(false); searchByName(); }}
             disabled={loading || !query.trim()}
-            style={{background: loading ? '#111' : 'var(--green)', border:'none', color: loading ? '#444' : 'var(--black)', fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', fontWeight:700, fontSize:11, letterSpacing:4, textTransform:'uppercase', padding:'0 36px', cursor:'pointer', transition:'all 0.1s', flexShrink:0, opacity: !query.trim() ? 0.3 : 1}}>
-            {loading ? 'COMPUTING' : 'SEARCH'}
+            style={{background: loading ? 'var(--grey3)' : 'var(--green)', border:'none', color: loading ? 'var(--text-muted)' : 'var(--black-deep)', fontFamily:'Helvetica Neue, sans-serif', fontWeight:700, fontSize:11, letterSpacing:3, textTransform:'uppercase', padding:'0 32px', cursor:'pointer', transition:'all 0.15s', flexShrink:0, opacity: !query.trim() ? 0.4 : 1}}>
+            {loading ? 'Computing' : 'Search'}
           </button>
         </div>
       </div>
+      {/* ── Empty State ── */}
       {!loading && !result && !error && (
-        <div style={{display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'60vh', gap:20}}>
-          <div style={{fontSize:'clamp(60px,10vw,120px)', letterSpacing:16, color:'var(--white)', lineHeight:1, textAlign:'center'}}>PLAYERS</div>
-          <div style={{fontSize:11, letterSpacing:6, color:'#333', textAlign:'center'}}>TYPE A NAME ABOVE AND HIT ENTER</div>
+        <div style={{display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', minHeight:'70vh', gap:32, padding:'40px 24px'}}>
+          <div style={{textAlign:'center'}}>
+            <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:'clamp(48px,8vw,96px)', letterSpacing:8, color:'var(--white)', lineHeight:1, marginBottom:12}}>PLAYERS</div>
+            <div style={{fontFamily:'Inter, sans-serif', fontSize:13, letterSpacing:0, color:'var(--text-muted)', textTransform:'none', fontWeight:400}}>Search any NBA player for a full AI-powered analysis</div>
+          </div>
+          <div style={{display:'flex', flexWrap:'wrap', gap:10, justifyContent:'center', maxWidth:600}}>
+            {[{id:237,name:'LeBron James'},{id:115,name:'Stephen Curry'},{id:246,name:'Nikola Jokic'},{id:38017517,name:'Jayson Tatum'},{id:434,name:'Kevin Durant'},{id:666,name:'Giannis Antetokounmpo'},{id:723,name:'Luka Doncic'},{id:192,name:'Anthony Davis'}].map(p => (
+              <button key={p.id}
+                onMouseDown={() => { setQuery(p.name); setSelectedId(p.id); searchById(p.id); }}
+                style={{fontFamily:'Inter, sans-serif', fontWeight:500, fontSize:12, letterSpacing:0, textTransform:'none', padding:'8px 16px', background:'var(--grey)', border:'1px solid var(--border)', color:'var(--white)', cursor:'pointer', borderRadius:99, transition:'all 0.15s'}}
+                onMouseEnter={e => { e.currentTarget.style.borderColor='var(--green)'; e.currentTarget.style.color='var(--green)'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor='var(--border)'; e.currentTarget.style.color='var(--white)'; }}>
+                {p.name}
+              </button>
+            ))}
+          </div>
         </div>
       )}
       {loading && (
@@ -1111,27 +1141,35 @@ function Players() {
       {error && <div className="err" style={{margin:'24px 40px'}}>{error}</div>}
       {!loading && result && !result.error && (
         <div style={{padding:'40px 56px', maxWidth:1300}}>
-          <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:6}}>
-            <div style={{fontSize:'clamp(36px,5vw,72px)', letterSpacing:2, lineHeight:1}}>
+          <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:8}}>
+            <div style={{fontSize:'clamp(32px,4.5vw,64px)', letterSpacing:1, lineHeight:1, fontWeight:700}}>
               {result.player?.first_name} {result.player?.last_name}
             </div>
-            <button className="export-btn" onClick={() => window.print()} style={{background:'none', border:'1px solid var(--green)', color:'var(--green)', fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', fontWeight:700, fontSize:9, letterSpacing:3, textTransform:'uppercase', padding:'10px 20px', cursor:'pointer', marginTop:8}}>Export PDF →</button>
+            <button onClick={() => window.print()} style={{background:'none', border:'1px solid var(--border)', color:'var(--text-muted)', fontFamily:'Helvetica Neue, sans-serif', fontWeight:700, fontSize:9, letterSpacing:3, textTransform:'uppercase', padding:'10px 16px', cursor:'pointer', marginTop:8, borderRadius:4, transition:'all 0.15s'}}
+              onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--green)';e.currentTarget.style.color='var(--green)';}}
+              onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border)';e.currentTarget.style.color='var(--text-muted)';}}>
+              Export PDF →
+            </button>
           </div>
-          <div style={{fontSize:11, letterSpacing:4, color:'var(--green)', marginBottom:36}}>
-            {result.player?.team?.name||'N/A'} · {result.player?.position||'N/A'} · {result.season} Season
+          <div style={{fontFamily:'Inter, sans-serif', fontSize:12, letterSpacing:0, color:'var(--text-muted)', marginBottom:36, fontWeight:400, textTransform:'none', display:'flex', gap:16, alignItems:'center'}}>
+            <span style={{color:'var(--green)', fontWeight:500}}>{result.player?.team?.name||'N/A'}</span>
+            <span style={{color:'var(--border-strong)'}}>·</span>
+            <span>{result.player?.position||'N/A'}</span>
+            <span style={{color:'var(--border-strong)'}}>·</span>
+            <span>{result.season} Season</span>
           </div>
           {result.averages && (
             <div style={{marginBottom:32}}>
-              <div style={{fontSize:8, letterSpacing:4, color:'#444', marginBottom:10}}>Season Averages</div>
-              <div style={{display:'grid', gridTemplateColumns:'repeat(8,1fr)', border:'2px solid var(--white)'}}>
+              <div style={{fontFamily:'Inter, sans-serif', fontSize:10, letterSpacing:3, color:'var(--text-muted)', fontWeight:500, textTransform:'uppercase', marginBottom:12}}>Season Averages</div>
+              <div style={{display:'grid', gridTemplateColumns:'repeat(8,1fr)', background:'var(--grey)', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden', boxShadow:'var(--shadow)'}}>
                 {[
                   [result.averages.points,'PTS'],[result.averages.rebounds,'REB'],[result.averages.assists,'AST'],
                   [result.averages.steals,'STL'],[result.averages.blocks,'BLK'],
                   [pct(result.averages.fg_pct),'FG%'],[pct(result.averages.fg3_pct),'3P%'],[pct(result.averages.ft_pct),'FT%'],
                 ].map(([val,lbl],i) => (
                   <div key={lbl} style={{textAlign:'center', padding:'20px 8px', borderRight:i<7?'1px solid var(--border)':'none'}}>
-                    <div style={{fontSize:32, letterSpacing:-1, color:'var(--green)', textShadow:'0 0 15px rgba(0,255,65,.25)', lineHeight:1}}>{val}</div>
-                    <div style={{fontSize:8, letterSpacing:4, color:'#444', marginTop:6}}>{lbl}</div>
+                    <div style={{fontSize:28, letterSpacing:-1, color:'var(--green)', textShadow:'0 0 15px rgba(0,255,65,.2)', lineHeight:1, fontWeight:700}}>{val}</div>
+                    <div style={{fontFamily:'Inter, sans-serif', fontSize:9, letterSpacing:2, color:'var(--text-muted)', marginTop:8, fontWeight:500, textTransform:'uppercase'}}>{lbl}</div>
                   </div>
                 ))}
               </div>
@@ -1139,8 +1177,8 @@ function Players() {
           )}
           {result.last_10 && (
             <div style={{marginBottom:36}}>
-              <div style={{fontSize:8, letterSpacing:4, color:'#444', marginBottom:10}}>Last 10 Games</div>
-              <div style={{display:'grid', gridTemplateColumns:'repeat(7,1fr)', border:'1px solid var(--border)', background:'var(--grey)'}}>
+              <div style={{fontFamily:'Inter, sans-serif', fontSize:10, letterSpacing:3, color:'var(--text-muted)', fontWeight:500, textTransform:'uppercase', marginBottom:12}}>Last 10 Games</div>
+              <div style={{display:'grid', gridTemplateColumns:'repeat(7,1fr)', border:'1px solid var(--border)', background:'var(--grey2)', borderRadius:8, overflow:'hidden', boxShadow:'var(--shadow)'}}>
                 {[['points','PTS',false],['rebounds','REB',false],['assists','AST',false],['steals','STL',false],['blocks','BLK',false],['fg_pct','FG%',true],['fg3_pct','3P%',true]].map(([k,l,isPct],i) => {
                   const val = result.last_10[k];
                   const avg = result.averages[k];
@@ -1148,9 +1186,9 @@ function Players() {
                   const trend = isPct ? trendStr(val*100, avg*100) : trendStr(val, avg);
                   return (
                     <div key={k} style={{textAlign:'center', padding:'16px 8px', borderRight:i<6?'1px solid var(--border)':'none'}}>
-                      <div style={{fontSize:26, letterSpacing:-1, color:'var(--white)', lineHeight:1}}>{display != null ? display : '-'}</div>
-                      <div style={{fontSize:8, letterSpacing:3, color:'#444', margin:'4px 0'}}>{l}</div>
-                      {val!=null && avg!=null && <div style={{fontSize:9, letterSpacing:1, color:trendColor(val,avg), fontWeight:400, textTransform:'none'}}>{trend}</div>}
+                      <div style={{fontSize:24, letterSpacing:-1, color:'var(--white)', lineHeight:1, fontWeight:700}}>{display != null ? display : '-'}</div>
+                      <div style={{fontFamily:'Inter, sans-serif', fontSize:9, letterSpacing:2, color:'var(--text-muted)', margin:'6px 0 4px', fontWeight:500, textTransform:'uppercase'}}>{l}</div>
+                      {val!=null && avg!=null && <div style={{fontFamily:'Inter, sans-serif', fontSize:10, letterSpacing:0, color:trendColor(val,avg), fontWeight:500, textTransform:'none'}}>{trend}</div>}
                     </div>
                   );
                 })}
@@ -1158,30 +1196,30 @@ function Players() {
             </div>
           )}
           {result.analysis && (
-            <div style={{marginBottom:36}}>
-              <div style={{fontSize:8, letterSpacing:4, color:'#444', marginBottom:14}}>Overview</div>
-              <div style={{fontSize:14, lineHeight:2.1, letterSpacing:.5, color:'var(--white)', whiteSpace:'pre-wrap', fontWeight:400, textTransform:'none', maxWidth:900}}>
+            <div style={{marginBottom:36, background:'var(--grey)', border:'1px solid var(--border)', borderRadius:8, padding:'24px 28px', boxShadow:'var(--shadow)'}}>
+              <div style={{fontFamily:'Inter, sans-serif', fontSize:10, letterSpacing:3, color:'var(--text-muted)', fontWeight:500, textTransform:'uppercase', marginBottom:16}}>Overview</div>
+              <div style={{fontFamily:'Inter, sans-serif', fontSize:14, lineHeight:2, letterSpacing:0, color:'var(--white)', whiteSpace:'pre-wrap', fontWeight:400, textTransform:'none', maxWidth:860}}>
                 {result.analysis}
               </div>
             </div>
           )}
-          <div style={{fontSize:8, letterSpacing:4, color:'#444', marginBottom:12}}>Deep Dive</div>
-          <div style={{border:'2px solid var(--white)', marginBottom:48}}>
+          <div style={{fontFamily:'Inter, sans-serif', fontSize:10, letterSpacing:3, color:'var(--text-muted)', fontWeight:500, textTransform:'uppercase', marginBottom:12}}>Deep Dive</div>
+          <div style={{border:'1px solid var(--border)', borderRadius:8, overflow:'hidden', marginBottom:48, boxShadow:'var(--shadow)'}}>
             {SECTIONS.map((s,i) => (
               <div key={s.id} style={{borderBottom:i<SECTIONS.length-1?'1px solid var(--border)':'none'}}>
-                <div onClick={() => loadSection(s.id)} style={{display:'flex', justifyContent:'space-between', alignItems:'center', padding:'20px 28px', cursor:'pointer', background:expandedSection===s.id?'var(--grey)':'var(--black)', transition:'background 0.1s'}}>
-                  <div style={{fontSize:12, letterSpacing:4}}>{s.label}</div>
+                <div onClick={() => loadSection(s.id)} style={{display:'flex', justifyContent:'space-between', alignItems:'center', padding:'18px 24px', cursor:'pointer', background:expandedSection===s.id?'var(--grey2)':'var(--grey)', transition:'background 0.15s'}}>
+                  <div style={{fontFamily:'Inter, sans-serif', fontSize:13, letterSpacing:0, fontWeight:500, textTransform:'none'}}>{s.label}</div>
                   <div style={{display:'flex', alignItems:'center', gap:16}}>
-                    {sectionLoading[s.id] && <div style={{fontSize:9, letterSpacing:3, color:'var(--green)'}}>PIVOT COMPUTING</div>}
-                    {sectionData[s.id] && !sectionLoading[s.id] && <div style={{fontSize:8, letterSpacing:2, color:'#444'}}>Loaded</div>}
-                    <div style={{fontSize:11, color:'var(--green)', transform:expandedSection===s.id?'rotate(180deg)':'rotate(0deg)', transition:'transform 0.2s', display:'inline-block'}}>&#9660;</div>
+                    {sectionLoading[s.id] && <div style={{fontFamily:'Inter, sans-serif', fontSize:10, letterSpacing:1, color:'var(--green)', fontWeight:500}}>Loading…</div>}
+                    {sectionData[s.id] && !sectionLoading[s.id] && <div style={{fontFamily:'Inter, sans-serif', fontSize:10, letterSpacing:0, color:'var(--text-muted)'}}>Loaded</div>}
+                    <div style={{fontSize:10, color:'var(--text-muted)', transform:expandedSection===s.id?'rotate(180deg)':'rotate(0deg)', transition:'transform 0.2s', display:'inline-block'}}>&#9660;</div>
                   </div>
                 </div>
                 {expandedSection === s.id && (
-                  <div style={{padding:'28px 32px', background:'var(--grey2)', borderTop:'1px solid var(--border)'}}>
+                  <div style={{padding:'24px 28px', background:'var(--grey2)', borderTop:'1px solid var(--border)'}}>
                     {sectionLoading[s.id] && <Loader label="PIVOT COMPUTING"/>}
                     {!sectionLoading[s.id] && sectionData[s.id] && (
-                      <div style={{fontSize:14, lineHeight:2.1, letterSpacing:.5, color:'var(--white)', whiteSpace:'pre-wrap', fontWeight:400, textTransform:'none', maxWidth:900}}>
+                      <div style={{fontFamily:'Inter, sans-serif', fontSize:14, lineHeight:2, letterSpacing:0, color:'var(--white)', whiteSpace:'pre-wrap', fontWeight:400, textTransform:'none', maxWidth:860}}>
                         {sectionData[s.id]}
                       </div>
                     )}
@@ -1193,6 +1231,18 @@ function Players() {
         </div>
       )}
       {!loading && result?.error && <div style={{fontSize:13, letterSpacing:3, color:'#444', padding:'40px 56px'}}>{result.error}</div>}
+    </div>
+  );
+}
+
+function FrontOfficeCard({ title, accent, children }) {
+  return (
+    <div style={{background:'var(--grey2)', border:'1px solid var(--border)', borderRadius:8, overflow:'hidden', boxShadow:'var(--shadow)', marginBottom:16}}>
+      <div style={{display:'flex', alignItems:'center', gap:10, padding:'14px 20px', borderBottom:'1px solid var(--border)', background:'var(--grey)'}}>
+        {accent && <div style={{width:3, height:14, background:'var(--green)', borderRadius:2, flexShrink:0}}/>}
+        <div style={{fontFamily:'Inter, sans-serif', fontSize:11, letterSpacing:2, fontWeight:600, color:'var(--white)', textTransform:'uppercase'}}>{title}</div>
+      </div>
+      <div style={{padding:'20px'}}>{children}</div>
     </div>
   );
 }
@@ -1213,46 +1263,107 @@ function FrontOffice() {
     } catch(e) { setError(e.message); } finally { setLoading(false); }
   };
 
-  const inp = { background:'var(--black)', border:'1px solid var(--border)', color:'var(--white)', fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', fontWeight:700, fontSize:12, letterSpacing:2, textTransform:'uppercase', padding:'10px 14px', outline:'none', width:'100%', transition:'border-color 0.1s' };
-  const lbl = { fontSize:8, letterSpacing:4, color:'#444', marginBottom:6, display:'block' };
+  // Parse sections from AI analysis text
+  const parseSection = (text, keyword) => {
+    if (!text) return null;
+    const lines = text.split('\n');
+    const idx = lines.findIndex(l => l.toLowerCase().includes(keyword.toLowerCase()));
+    if (idx === -1) return null;
+    const section = [];
+    for (let i = idx + 1; i < Math.min(idx + 8, lines.length); i++) {
+      const l = lines[i].trim();
+      if (l && !l.match(/^[A-Z\s&]+:$/) && l.length > 3) section.push(l);
+      else if (section.length > 0 && !l) break;
+    }
+    return section.join('\n') || null;
+  };
+
+  const inp = { background:'var(--grey2)', border:'1px solid var(--border)', color:'var(--white)', fontFamily:'Inter, sans-serif', fontWeight:500, fontSize:14, letterSpacing:0, textTransform:'none', padding:'12px 16px', outline:'none', width:'100%', borderRadius:6, transition:'border-color 0.15s' };
 
   return (
-    <div style={{display:'grid', gridTemplateColumns:result?'1fr 520px':'600px 1fr', minHeight:'calc(100vh - 64px)'}}>
-      <div style={{borderRight:'1px solid var(--border)', padding:'40px 48px', overflowY:'auto'}}>
-        <div style={{fontSize:'clamp(28px,3vw,48px)', letterSpacing:6, marginBottom:32}}>Roster & Cap</div>
-        <label style={lbl}>Team Name</label>
-        <div style={{display:'flex', gap:0, marginBottom:24}}>
-          <input style={{...inp, flex:1}} placeholder="Lakers, Celtics, Warriors..." value={rosterTeam} onChange={e=>setRosterTeam(e.target.value)} onKeyDown={e=>e.key==='Enter'&&runRoster()}/>
+    <div style={{display:'grid', gridTemplateColumns:result?'380px 1fr':'480px 1fr', minHeight:'calc(100vh - 56px)'}}>
+      {/* Left panel */}
+      <div style={{borderRight:'1px solid var(--border)', padding:'40px 36px', overflowY:'auto', background:'var(--grey)'}}>
+        <div style={{fontSize:'clamp(24px,2.5vw,40px)', letterSpacing:4, marginBottom:8, fontWeight:700}}>Roster & Cap</div>
+        <div style={{fontFamily:'Inter, sans-serif', fontSize:13, letterSpacing:0, color:'var(--text-muted)', fontWeight:400, textTransform:'none', marginBottom:32, lineHeight:1.6}}>
+          Full front office breakdown: roster evaluation, cap situation, trade targets, and recommended moves.
+        </div>
+        <div style={{fontFamily:'Inter, sans-serif', fontSize:11, letterSpacing:1, color:'var(--text-muted)', fontWeight:500, textTransform:'uppercase', marginBottom:8}}>Team Name</div>
+        <div style={{display:'flex', gap:0, marginBottom:8}}>
+          <input style={{...inp, flex:1, borderRadius:'6px 0 0 6px'}} placeholder="Lakers, Celtics, Warriors…" value={rosterTeam} onChange={e=>setRosterTeam(e.target.value)} onKeyDown={e=>e.key==='Enter'&&runRoster()}
+            onFocus={e=>e.currentTarget.style.borderColor='rgba(0,230,118,0.5)'}
+            onBlur={e=>e.currentTarget.style.borderColor='var(--border)'}/>
           <button onClick={runRoster} disabled={loading||!rosterTeam}
-            style={{background:loading?'#222':'var(--green)', border:'none', color:loading?'#444':'var(--black)', fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', fontWeight:700, fontSize:11, letterSpacing:3, textTransform:'uppercase', padding:'0 28px', cursor:'pointer'}}>
-            {loading ? 'PIVOT COMPUTING' : 'Analyze →'}
+            style={{background:loading||!rosterTeam?'var(--grey3)':'var(--green)', border:'none', color:loading||!rosterTeam?'var(--text-muted)':'var(--black-deep)', fontFamily:'Helvetica Neue, sans-serif', fontWeight:700, fontSize:10, letterSpacing:2, textTransform:'uppercase', padding:'0 24px', cursor:loading||!rosterTeam?'default':'pointer', borderRadius:'0 6px 6px 0', transition:'all 0.15s'}}>
+            {loading ? '…' : '→'}
           </button>
         </div>
-        <div style={{fontSize:10, letterSpacing:3, color:'#333', lineHeight:2}}>Full front office breakdown: roster evaluation, cap situation, trade targets, and recommended moves.</div>
+        <div style={{fontFamily:'Inter, sans-serif', fontSize:11, letterSpacing:0, color:'var(--text-muted)', lineHeight:1.6, textTransform:'none'}}>
+          Enter any NBA team name to generate a complete front office analysis.
+        </div>
+
+        {/* Quick access teams */}
+        <div style={{marginTop:28}}>
+          <div style={{fontFamily:'Inter, sans-serif', fontSize:10, letterSpacing:2, color:'var(--text-muted)', fontWeight:500, textTransform:'uppercase', marginBottom:12}}>Quick Access</div>
+          <div style={{display:'flex', flexWrap:'wrap', gap:8}}>
+            {['Lakers','Celtics','Warriors','Nuggets','Bucks','Heat','Knicks','Suns'].map(t => (
+              <button key={t} onClick={() => { setRosterTeam(t); }}
+                style={{fontFamily:'Inter, sans-serif', fontWeight:500, fontSize:11, letterSpacing:0, textTransform:'none', padding:'6px 14px', background:'var(--grey3)', border:'1px solid var(--border)', color:'var(--white)', cursor:'pointer', borderRadius:99, transition:'all 0.15s'}}
+                onMouseEnter={e => { e.currentTarget.style.borderColor='var(--green)'; e.currentTarget.style.color='var(--green)'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor='var(--border)'; e.currentTarget.style.color='var(--white)'; }}>
+                {t}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
-      <div style={{padding:'40px 48px', overflowY:'auto', background:'var(--grey)'}}>
+
+      {/* Right panel — results */}
+      <div style={{padding:'32px 40px', overflowY:'auto', background:'var(--black)'}}>
         {!result && !loading && !error && (
-          <div style={{display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'50vh', gap:16}}>
-            <div style={{fontSize:40, color:'#1a1a1a'}}>◈</div>
-            <div style={{fontSize:9, letterSpacing:4, color:'#333', textAlign:'center'}}>Enter a Team Name and Analyze</div>
+          <div style={{display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'60vh', gap:16}}>
+            <div style={{fontSize:48, color:'#1a1a1a'}}>◈</div>
+            <div style={{fontFamily:'Inter, sans-serif', fontSize:13, letterSpacing:0, color:'var(--text-muted)', textAlign:'center', textTransform:'none'}}>Select a team to generate front office analysis</div>
           </div>
         )}
         {loading && (
-          <div style={{display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'50vh', gap:16}}>
-            <div style={{fontSize:10, letterSpacing:5, color:'var(--green)'}}>PIVOT COMPUTING</div>
+          <div style={{display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'60vh', gap:16}}>
+            <div style={{fontFamily:'Inter, sans-serif', fontSize:12, letterSpacing:2, color:'var(--green)', fontWeight:500}}>PIVOT COMPUTING</div>
             <Loader label=""/>
           </div>
         )}
         {error && <div className="err">{error}</div>}
         {!loading && result && (
-          <>
-            <div style={{display:'flex', justifyContent:'flex-end', marginBottom:20}}>
-              <button className="export-btn" onClick={() => window.print()} style={{background:'none', border:'1px solid var(--green)', color:'var(--green)', fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', fontWeight:700, fontSize:9, letterSpacing:3, textTransform:'uppercase', padding:'8px 20px', cursor:'pointer'}}>Export PDF →</button>
+          <div style={{maxWidth:780}}>
+            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:28}}>
+              <div>
+                <div style={{fontSize:'clamp(24px,3vw,40px)', letterSpacing:2, fontWeight:700, lineHeight:1}}>{rosterTeam}</div>
+                <div style={{fontFamily:'Inter, sans-serif', fontSize:12, letterSpacing:0, color:'var(--green)', marginTop:6, textTransform:'none', fontWeight:400}}>2025–26 Season Analysis</div>
+              </div>
+              <button onClick={() => window.print()} style={{background:'none', border:'1px solid var(--border)', color:'var(--text-muted)', fontFamily:'Helvetica Neue, sans-serif', fontWeight:700, fontSize:9, letterSpacing:3, textTransform:'uppercase', padding:'8px 16px', cursor:'pointer', borderRadius:4, transition:'all 0.15s'}}
+                onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--green)';e.currentTarget.style.color='var(--green)';}}
+                onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border)';e.currentTarget.style.color='var(--text-muted)';}}>
+                Export PDF →
+              </button>
             </div>
-            <div style={{fontSize:15, lineHeight:2.1, letterSpacing:.5, color:'var(--white)', whiteSpace:'pre-wrap', fontWeight:400, textTransform:'none'}}>
-              {result.analysis}
+
+            {/* Summary stat strip */}
+            <div style={{display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:1, background:'var(--border)', borderRadius:8, overflow:'hidden', marginBottom:24}}>
+              {[['Team','NBA 2025–26'],['Season','Active'],['Report','AI-Generated']].map(([label,val]) => (
+                <div key={label} style={{background:'var(--grey)', padding:'16px 20px', textAlign:'center'}}>
+                  <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:16, letterSpacing:1, fontWeight:700, color:'var(--white)'}}>{val}</div>
+                  <div style={{fontFamily:'Inter, sans-serif', fontSize:9, letterSpacing:2, color:'var(--text-muted)', marginTop:4, textTransform:'uppercase'}}>{label}</div>
+                </div>
+              ))}
             </div>
-          </>
+
+            {/* Scouting Report card */}
+            <FrontOfficeCard title="AI Scouting Report" accent>
+              <div style={{fontFamily:'Inter, sans-serif', fontSize:14, lineHeight:1.95, letterSpacing:0, color:'var(--white)', whiteSpace:'pre-wrap', fontWeight:400, textTransform:'none'}}>
+                {result.analysis}
+              </div>
+            </FrontOfficeCard>
+          </div>
         )}
       </div>
     </div>
@@ -1302,8 +1413,8 @@ function CoachMode() {
   };
 
   return (
-    <div style={{display:'grid', gridTemplateColumns:'300px 1fr 300px', minHeight:'calc(100vh - 64px)'}}>
-      <div style={{borderRight:'2px solid var(--white)', display:'flex', flexDirection:'column', overflowY:'auto'}}>
+    <div style={{display:'grid', gridTemplateColumns:'300px 1fr 300px', minHeight:'calc(100vh - 56px)'}}>
+      <div style={{borderRight:'1px solid var(--border)', background:'var(--grey)', display:'flex', flexDirection:'column', overflowY:'auto'}}>
         <div style={{padding:'20px', borderBottom:'1px solid var(--border)'}}>
           <div style={{fontSize:9, letterSpacing:4, color:'#444', marginBottom:12}}>Select Game</div>
           {games.length === 0 && <div style={{fontSize:9, letterSpacing:3, color:'#333'}}>No games today</div>}
