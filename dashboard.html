@@ -1120,7 +1120,7 @@ function Players() {
             <div style={{fontFamily:'Inter, sans-serif', fontSize:13, letterSpacing:0, color:'var(--text-muted)', textTransform:'none', fontWeight:400}}>Search any NBA player for a full AI-powered analysis</div>
           </div>
           <div style={{display:'flex', flexWrap:'wrap', gap:10, justifyContent:'center', maxWidth:600}}>
-            {[{id:237,name:'LeBron James'},{id:115,name:'Stephen Curry'},{id:246,name:'Nikola Jokic'},{id:38017517,name:'Jayson Tatum'},{id:434,name:'Kevin Durant'},{id:666,name:'Giannis Antetokounmpo'},{id:723,name:'Luka Doncic'},{id:192,name:'Anthony Davis'}].map(p => (
+            {[{id:237,name:'LeBron James'},{id:115,name:'Stephen Curry'},{id:246,name:'Nikola Jokic'},{id:434,name:'Jayson Tatum'},{id:140,name:'Kevin Durant'},{id:15,name:'Giannis Antetokounmpo'},{id:132,name:'Luka Doncic'},{id:117,name:'Anthony Davis'}].map(p => (
               <button key={p.id}
                 onMouseDown={() => { setQuery(p.name); setSelectedId(p.id); searchById(p.id); }}
                 style={{fontFamily:'Inter, sans-serif', fontWeight:500, fontSize:12, letterSpacing:0, textTransform:'none', padding:'8px 16px', background:'var(--grey)', border:'1px solid var(--border)', color:'var(--white)', cursor:'pointer', borderRadius:99, transition:'all 0.15s'}}
@@ -1230,7 +1230,27 @@ function Players() {
           </div>
         </div>
       )}
-      {!loading && result?.error && <div style={{fontSize:13, letterSpacing:3, color:'#444', padding:'40px 56px'}}>{result.error}</div>}
+      {!loading && result?.error && (
+        <div style={{padding:'40px 56px', maxWidth:1300}}>
+          {result.player && (
+            <>
+              <div style={{fontSize:'clamp(32px,4.5vw,64px)', letterSpacing:1, lineHeight:1, fontWeight:700, marginBottom:8}}>
+                {result.player.first_name} {result.player.last_name}
+              </div>
+              <div style={{fontFamily:'Inter, sans-serif', fontSize:12, letterSpacing:0, color:'var(--text-muted)', marginBottom:32, fontWeight:400, textTransform:'none', display:'flex', gap:16, alignItems:'center'}}>
+                <span style={{color:'var(--green)', fontWeight:500}}>{result.player.team?.name||'N/A'}</span>
+                <span style={{color:'var(--border-strong)'}}>·</span>
+                <span>{result.player.position||'N/A'}</span>
+              </div>
+            </>
+          )}
+          <div style={{background:'var(--grey)', border:'1px solid var(--border)', borderRadius:8, padding:'20px 24px'}}>
+            <div style={{fontFamily:'Inter, sans-serif', fontSize:13, letterSpacing:0, color:'var(--text-muted)', textTransform:'none', lineHeight:1.7}}>
+              {result.error}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -651,26 +651,14 @@ async def analyze_player(
         return cached
 
     if agg["total_games"] == 0:
-        result = await claude_service.analyze(
-            prompt=(
-                f"It is April 2026 and the 2025-26 NBA season is in progress. "
-                f"The live stats API returned no game logs for {player.first_name} {player.last_name} "
-                f"in the {season} season — this likely means they are injured, on a two-way contract, "
-                f"or have limited appearances so far. Provide a sharp intelligence report based on "
-                f"everything you know about this player through the 2024-25 season, project how they "
-                f"fit into the current 2025-26 season, and flag any known durability or role concerns."
-            ),
-            system_prompt=NBA_ANALYST_SYSTEM_PROMPT,
-        )
         return {
             "player": player.model_dump(),
             "season": season,
             "averages": None,
             "last_10": None,
             "games_played": 0,
-            "analysis": result.analysis,
-            "model": result.model,
-            "tokens_used": result.tokens_used,
+            "analysis": None,
+            "error": f"No {season} season data available for {player.first_name} {player.last_name}. The stats feed may be delayed or this player has not appeared in a game yet this season.",
         }
 
     stat_block = _render_stat_block(player, season, agg)
