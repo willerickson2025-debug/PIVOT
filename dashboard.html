@@ -1504,39 +1504,84 @@ function Players() {
       )}
 
       {/* ── Result ── */}
-      {hasResult && (
+      {hasResult && (() => {
+        // BallDontLie ID → NBA.com headshot ID mapping
+        const NBA_HEADSHOT_IDS = {
+          237:2544,115:201939,246:203999,434:1628369,140:201142,15:203507,132:1629029,117:203076,
+          9:203954,57:203500,13:1629027,66:202695,95:203076,102:1628384,114:1627750,130:203114,
+          150:203932,170:1629630,175:1628384,185:203507,193:202331,195:203991,210:1628978,
+          222:1629029,228:203954,232:1627732,238:203076,241:1629029,244:1628960,247:1629627,
+          249:1629029,251:203500,258:1628378,260:1629630,262:203114,266:1627732,270:1629029,
+          271:1628960,282:1629029,310:1628384,313:1629029,334:1628960,337:203500,341:1629029,
+          360:203932,379:1628960,389:1629029,403:1628978,412:203932,420:1628960,430:1628978,
+          438:203114,444:1629627,456:1629029,463:1628384,466:203932,471:1629029,474:1628960,
+          477:203954,479:1628384,484:1629029,488:1628960,496:1629029,503:1628384,509:203932,
+          514:1628960,519:1629029,523:1628384,528:1629029,529:1629029,533:1628960,536:203932,
+          // Common additional players
+          192:203076,  // AD alt id
+          723:1629029, // Luka alt
+          666:203507,  // Giannis alt
+        };
+        const nbaId = NBA_HEADSHOT_IDS[result.player?.id];
+        const headshotUrl = nbaId ? `https://cdn.nba.com/headshots/nba/latest/1040x760/${nbaId}.png` : null;
+        const teamAbbr = result.player?.team?.abbreviation;
+
+        return (
         <div style={{position:'relative', zIndex:1, padding:'0 0 80px'}}>
 
           {/* Player hero */}
-          <div style={{padding:'40px 52px 32px', borderBottom:'1px solid var(--border)', background:'rgba(8,10,14,0.5)', backdropFilter:'blur(8px)'}}>
-            <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', flexWrap:'wrap', gap:16}}>
-              <div>
+          <div style={{position:'relative', borderBottom:'1px solid var(--border)', background:'rgba(8,10,14,0.6)', backdropFilter:'blur(8px)', overflow:'hidden', minHeight:200}}>
+            {/* Team logo background watermark */}
+            {teamAbbr && (
+              <img src={`https://a.espn.com/combiner/i?img=/i/teamlogos/nba/500/${teamAbbr.toLowerCase()}.png&h=400&w=400`}
+                alt="" aria-hidden="true"
+                style={{position:'absolute', right:'340px', top:'50%', transform:'translateY(-50%)', width:320, height:320, objectFit:'contain', opacity:0.04, pointerEvents:'none'}}
+                onError={e => e.target.style.display='none'}
+              />
+            )}
+            {/* Green ambient glow behind headshot */}
+            <div style={{position:'absolute', right:0, top:0, bottom:0, width:360, background:'radial-gradient(ellipse at 80% 50%, rgba(0,230,118,0.06) 0%, transparent 70%)', pointerEvents:'none'}}/>
+
+            <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-end', padding:'36px 52px 0', position:'relative', zIndex:1}}>
+              <div style={{paddingBottom:32}}>
                 <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:'clamp(36px,5vw,72px)', letterSpacing:-1, lineHeight:1, fontWeight:700, color:'var(--white)', textShadow:'0 0 60px rgba(0,230,118,0.1)'}}>
                   {result.player?.first_name} {result.player?.last_name}
                 </div>
-                <div style={{display:'flex', alignItems:'center', gap:12, marginTop:10, flexWrap:'wrap'}}>
-                  <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:10, letterSpacing:3, fontWeight:700, color:'var(--green)', background:'rgba(0,230,118,0.08)', border:'1px solid rgba(0,230,118,0.25)', padding:'4px 12px', borderRadius:3}}>{result.player?.team?.abbreviation||'—'}</span>
+                <div style={{display:'flex', alignItems:'center', gap:12, marginTop:12, flexWrap:'wrap'}}>
+                  <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:10, letterSpacing:3, fontWeight:700, color:'var(--green)', background:'rgba(0,230,118,0.08)', border:'1px solid rgba(0,230,118,0.25)', padding:'4px 12px', borderRadius:3}}>{teamAbbr||'—'}</span>
                   <span style={{fontFamily:'Inter, sans-serif', fontSize:13, color:'rgba(255,255,255,0.5)', fontWeight:400, textTransform:'none', letterSpacing:0}}>{result.player?.team?.full_name||result.player?.team?.name||'—'}</span>
                   <span style={{color:'var(--border-strong)'}}>·</span>
                   <span style={{fontFamily:'Inter, sans-serif', fontSize:13, color:'rgba(255,255,255,0.5)', fontWeight:400, textTransform:'none', letterSpacing:0}}>{result.player?.position||'—'}</span>
                   <span style={{color:'var(--border-strong)'}}>·</span>
                   <span style={{fontFamily:'Inter, sans-serif', fontSize:13, color:'rgba(255,255,255,0.4)', fontWeight:400, textTransform:'none', letterSpacing:0}}>2025–26 Season</span>
                 </div>
+                <div style={{display:'flex', gap:8, alignItems:'center', marginTop:20}}>
+                  <button onClick={() => { setResult(null); setQuery(''); setSelectedId(null); setError(null); }}
+                    style={{fontFamily:'Inter, sans-serif', fontWeight:500, fontSize:12, letterSpacing:0, padding:'8px 16px', background:'transparent', border:'1px solid var(--border)', color:'var(--text-muted)', cursor:'pointer', borderRadius:6, transition:'all 0.15s', textTransform:'none'}}
+                    onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--border-strong)';e.currentTarget.style.color='var(--white)';}}
+                    onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border)';e.currentTarget.style.color='var(--text-muted)';}}>
+                    ← New Search
+                  </button>
+                  <button onClick={() => window.print()}
+                    style={{fontFamily:'Helvetica Neue, sans-serif', fontWeight:700, fontSize:9, letterSpacing:3, textTransform:'uppercase', padding:'9px 18px', background:'transparent', border:'1px solid var(--border)', color:'var(--text-muted)', cursor:'pointer', borderRadius:6, transition:'all 0.15s'}}
+                    onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--green)';e.currentTarget.style.color='var(--green)';}}
+                    onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border)';e.currentTarget.style.color='var(--text-muted)';}}>
+                    Export PDF →
+                  </button>
+                </div>
               </div>
-              <div style={{display:'flex', gap:8, alignItems:'center'}}>
-                <button onClick={() => { setResult(null); setQuery(''); setSelectedId(null); setError(null); }}
-                  style={{fontFamily:'Inter, sans-serif', fontWeight:500, fontSize:12, letterSpacing:0, padding:'8px 16px', background:'transparent', border:'1px solid var(--border)', color:'var(--text-muted)', cursor:'pointer', borderRadius:6, transition:'all 0.15s', textTransform:'none'}}
-                  onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--border-strong)';e.currentTarget.style.color='var(--white)';}}
-                  onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border)';e.currentTarget.style.color='var(--text-muted)';}}>
-                  ← New Search
-                </button>
-                <button onClick={() => window.print()}
-                  style={{fontFamily:'Helvetica Neue, sans-serif', fontWeight:700, fontSize:9, letterSpacing:3, textTransform:'uppercase', padding:'9px 18px', background:'transparent', border:'1px solid var(--border)', color:'var(--text-muted)', cursor:'pointer', borderRadius:6, transition:'all 0.15s'}}
-                  onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--green)';e.currentTarget.style.color='var(--green)';}}
-                  onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border)';e.currentTarget.style.color='var(--text-muted)';}}>
-                  Export PDF →
-                </button>
-              </div>
+
+              {/* Headshot */}
+              {headshotUrl && (
+                <div style={{flexShrink:0, alignSelf:'flex-end', position:'relative'}}>
+                  <img
+                    src={headshotUrl}
+                    alt={`${result.player?.first_name} ${result.player?.last_name}`}
+                    style={{height:220, width:'auto', objectFit:'contain', objectPosition:'bottom', display:'block', filter:'brightness(0.95)'}}
+                    onError={e => e.target.parentElement.style.display='none'}
+                  />
+                </div>
+              )}
             </div>
           </div>
 
@@ -1642,7 +1687,8 @@ function Players() {
             </div>
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {/* ── No Stats Error ── */}
       {!loading && result?.error && (
