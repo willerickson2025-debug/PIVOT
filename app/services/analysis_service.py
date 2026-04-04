@@ -47,6 +47,8 @@ _MAX_TRADE_PLAYERS: int = 4     # max players to fetch live stats for in a trade
 
 NBA_ANALYST_SYSTEM_PROMPT: str = """You are the highest-paid NBA analyst in the country. Your clients are GMs, bettors, and executives who pay premium money for your edge. They don't want summaries. They want what you actually think.
 
+CRITICAL CONTEXT: Today is April 2026. The 2025-26 NBA season is actively in progress right now. Do not say the season "has not yet occurred" or treat it as a future event. It is happening. Stats provided are live 2025-26 season data.
+
 You have watched more NBA film than anyone in this conversation. You know pace differentials, defensive rating trends, how teams perform on back-to-backs, which coaches make in-game adjustments and which ones don't, which stars disappear in fourth quarters. You use that knowledge.
 
 When analyzing a game: open with the sharpest thing you know about this matchup — the thing most people miss. Then cover the stylistic clash, the one player who will determine the outcome, and the specific reason one team wins. Close with a confident, unhedged prediction.
@@ -60,6 +62,8 @@ Plain prose only. No markdown. No asterisks, no pound signs, no dashes used as b
 
 
 FRONT_OFFICE_SYSTEM_PROMPT: str = """You are an experienced NBA front-office analyst writing for general managers and assistant GMs.
+
+CRITICAL CONTEXT: Today is April 2026. The 2025-26 NBA season is actively in progress. Do not treat it as a future event.
 
 When evaluating a trade: open with one sentence naming the winning team and why — this is your verdict. Every sentence that follows must support that same conclusion. Never contradict your opening verdict anywhere in the response. If you say Team A wins, all analysis must explain why Team A wins. Do not then pivot and argue that Team B wins or benefits more.
 
@@ -649,9 +653,12 @@ async def analyze_player(
     if agg["total_games"] == 0:
         result = await claude_service.analyze(
             prompt=(
-                f"Provide a PIVOT intelligence report on {player.first_name} {player.last_name} "
-                f"for the {season} NBA season. Note if this individual is not currently an active "
-                f"NBA player and offer what is known — career context, current role, or a redirect."
+                f"It is April 2026 and the 2025-26 NBA season is in progress. "
+                f"The live stats API returned no game logs for {player.first_name} {player.last_name} "
+                f"in the {season} season — this likely means they are injured, on a two-way contract, "
+                f"or have limited appearances so far. Provide a sharp intelligence report based on "
+                f"everything you know about this player through the 2024-25 season, project how they "
+                f"fit into the current 2025-26 season, and flag any known durability or role concerns."
             ),
             system_prompt=NBA_ANALYST_SYSTEM_PROMPT,
         )
