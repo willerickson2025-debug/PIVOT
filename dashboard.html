@@ -1312,10 +1312,13 @@ function Players() {
           const logs = data?.stats || [];
           if (!logs.length) return;
           const last10 = logs.slice(-10);
+          // Filter out DNP games (minutes null, '0', or '0:00') before averaging
+          const played = logs.filter(x => x.minutes && x.minutes !== '0' && x.minutes !== '0:00');
+          const played10 = last10.filter(x => x.minutes && x.minutes !== '0' && x.minutes !== '0:00');
           const avg = (arr, key) => { const v = arr.filter(x => x[key] != null); return v.length ? Math.round(v.reduce((s,x)=>s+x[key],0)/v.length*10)/10 : null; };
           setTrendingStats(prev => ({...prev, [p.id]: {
-            pts: avg(logs,'points'), reb: avg(logs,'rebounds'), ast: avg(logs,'assists'),
-            pts10: avg(last10,'points'), reb10: avg(last10,'rebounds'), ast10: avg(last10,'assists'),
+            pts: avg(played,'points'), reb: avg(played,'rebounds'), ast: avg(played,'assists'),
+            pts10: avg(played10,'points'), reb10: avg(played10,'rebounds'), ast10: avg(played10,'assists'),
           }}));
         }).catch(()=>{});
     });

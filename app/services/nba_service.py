@@ -742,11 +742,15 @@ async def get_player_stats(player_id: int, season: int = _DEFAULT_SEASON) -> lis
             )
         )
 
+    # Strip DNP entries (minutes null, '0', or '0:00') — including them in averages
+    # produces wildly inaccurate per-game stats (e.g. 3.6 PPG for Tatum).
+    results = [r for r in results if r.minutes and r.minutes not in ('0', '0:00')]
+
     # Sort ascending by game_id so recent-form slicing (stats[-10:]) is valid.
     results.sort(key=lambda x: x.game_id)
 
     logger.debug(
-        "Fetched %d stat entries | player_id=%d season=%d",
+        "Fetched %d stat entries (DNPs removed) | player_id=%d season=%d",
         len(results),
         player_id,
         season,
