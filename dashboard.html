@@ -641,36 +641,74 @@ function parseStatus(s) {
 }
 
 function Ticker() {
-  const [items, setItems] = React.useState([]);
+  const [scores, setScores] = React.useState([]);
+  const [news, setNews] = React.useState([]);
+
   React.useEffect(() => {
     const today = localDate();
-    fetch(`${API}/nba/games?date=${today}`)
-      .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        if (!data?.games?.length) return;
-        setItems(data.games.map(g => {
-          const hasScore = g.home_team_score > 0 || g.visitor_team_score > 0;
-          if (hasScore) return `${g.visitor_team.abbreviation} ${g.visitor_team_score} - ${g.home_team_score} ${g.home_team.abbreviation}`;
-          try {
-            const d = new Date(g.status);
-            const t = isNaN(d) ? g.status : d.toLocaleTimeString([], { hour:'numeric', minute:'2-digit', timeZoneName:'short' });
-            return `${g.visitor_team.abbreviation} @ ${g.home_team.abbreviation}  ${t}`;
-          } catch { return `${g.visitor_team.abbreviation} @ ${g.home_team.abbreviation}`; }
-        }));
-      }).catch(()=>{});
+    const loadScores = () =>
+      fetch(`${API}/nba/games?date=${today}&_=${Date.now()}`)
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+          if (!data?.games?.length) return;
+          setScores(data.games.map(g => {
+            const hasScore = g.home_team_score > 0 || g.visitor_team_score > 0;
+            const { label, type } = parseStatus(g.status);
+            const liveTag = type === 'live' ? `● ${label}  ` : '';
+            if (hasScore) return `${liveTag}${g.visitor_team.abbreviation} ${g.visitor_team_score}–${g.home_team_score} ${g.home_team.abbreviation}`;
+            try {
+              const d = new Date(g.status);
+              const t = isNaN(d) ? g.status : d.toLocaleTimeString([], { hour:'numeric', minute:'2-digit', timeZoneName:'short' });
+              return `${g.visitor_team.abbreviation} @ ${g.home_team.abbreviation}  ${t}`;
+            } catch { return `${g.visitor_team.abbreviation} @ ${g.home_team.abbreviation}`; }
+          }));
+        }).catch(() => {});
+
+    const loadNews = () =>
+      fetch(`${API}/nba/news`)
+        .then(r => r.ok ? r.json() : null)
+        .then(d => { if (d?.headlines?.length) setNews(d.headlines.slice(0, 12)); })
+        .catch(() => {});
+
+    loadScores();
+    loadNews();
+    const scoreIv = setInterval(loadScores, 30000);
+    const newsIv = setInterval(loadNews, 300000); // refresh news every 5 min
+    return () => { clearInterval(scoreIv); clearInterval(newsIv); };
   }, []);
-  const fallback = ['PIVOT — NBA INTELLIGENCE PLATFORM', "TODAY'S SLATE NOW LOADING", 'GAMES · ANALYSIS · PLAYERS', 'POWERED BY PIVOT'];
-  const display = items.length ? items : fallback;
-  const doubled = [...display, ...display];
+
+  // Interleave: score, news, score, news...
+  const interleaved = React.useMemo(() => {
+    const out = [];
+    const maxLen = Math.max(scores.length, news.length);
+    for (let i = 0; i < maxLen; i++) {
+      if (i < scores.length) out.push({ text: scores[i], type: 'score' });
+      if (i < news.length)   out.push({ text: news[i],   type: 'news'  });
+    }
+    if (!out.length) {
+      return [
+        { text: 'PIVOT — NBA INTELLIGENCE PLATFORM', type: 'news' },
+        { text: "TODAY'S SLATE LOADING", type: 'score' },
+        { text: 'GAMES · ANALYSIS · PLAYERS · COACH MODE', type: 'news' },
+        { text: 'POWERED BY PIVOT', type: 'score' },
+      ];
+    }
+    return out;
+  }, [scores, news]);
+
+  const doubled = [...interleaved, ...interleaved];
+
   return (
     <div className="ticker">
-      <div className="ticker-label">NBA LIVE</div>
+      <div className="ticker-label">LIVE WIRE</div>
       <div className="ticker-track-wrap">
         <div className="ticker-track">
-          {doubled.map((item,i) => (
+          {doubled.map((item, i) => (
             <React.Fragment key={i}>
-              <span className="ticker-item">{item}</span>
-              <span className="ticker-sep">◆</span>
+              <span className="ticker-item" style={item.type === 'score' ? {color:'var(--green)', textShadow:'0 0 8px rgba(0,255,65,0.5)'} : {color:'rgba(255,255,255,0.75)', textShadow:'none', fontWeight:400, letterSpacing:'1.5px'}}>
+                {item.text}
+              </span>
+              <span className="ticker-sep">{item.type === 'score' ? '◆' : '·'}</span>
             </React.Fragment>
           ))}
         </div>
