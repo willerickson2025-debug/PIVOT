@@ -1292,15 +1292,34 @@ function Players() {
   ];
 
   const TRENDING = [
-    {id:237,name:'LeBron James',team:'LAL',pos:'F'},
-    {id:115,name:'Stephen Curry',team:'GSW',pos:'G'},
-    {id:246,name:'Nikola Jokic',team:'DEN',pos:'C'},
-    {id:434,name:'Jayson Tatum',team:'BOS',pos:'F'},
-    {id:140,name:'Kevin Durant',team:'HOU',pos:'F'},
-    {id:15,name:'Giannis Antetokounmpo',team:'MIL',pos:'F'},
-    {id:132,name:'Luka Doncic',team:'LAL',pos:'G'},
-    {id:117,name:'Anthony Davis',team:'WAS',pos:'C'},
+    {id:237, name:'LeBron James',    first:'LeBron',   last:'James',         team:'LAL', pos:'SF', nbaId:2544,    narrative:'Legacy Season'},
+    {id:115, name:'Stephen Curry',   first:'Stephen',  last:'Curry',         team:'GSW', pos:'PG', nbaId:201939,  narrative:'Elite Efficiency'},
+    {id:246, name:'Nikola Jokic',    first:'Nikola',   last:'Jokic',         team:'DEN', pos:'C',  nbaId:203999,  narrative:'MVP Frontrunner'},
+    {id:434, name:'Jayson Tatum',    first:'Jayson',   last:'Tatum',         team:'BOS', pos:'SF', nbaId:1628369, narrative:'Celtics Anchor'},
+    {id:140, name:'Kevin Durant',    first:'Kevin',    last:'Durant',        team:'HOU', pos:'SF', nbaId:201142,  narrative:'Scoring Machine'},
+    {id:15,  name:'Giannis',         first:'Giannis',  last:'Antetokounmpo', team:'MIL', pos:'PF', nbaId:203507,  narrative:'Two-Way Force'},
+    {id:132, name:'Luka Doncic',     first:'Luka',     last:'Doncic',        team:'LAL', pos:'PG', nbaId:1629029, narrative:'Playmaking Elite'},
+    {id:117, name:'Anthony Davis',   first:'Anthony',  last:'Davis',         team:'WAS', pos:'C',  nbaId:203076,  narrative:'Defensive Anchor'},
   ];
+
+  const [trendingStats, setTrendingStats] = React.useState({});
+  React.useEffect(() => {
+    if (result) return;
+    TRENDING.forEach(p => {
+      fetch(`${API}/nba/players/${p.id}/stats?season=2025`)
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+          const logs = data?.stats || [];
+          if (!logs.length) return;
+          const last10 = logs.slice(-10);
+          const avg = (arr, key) => { const v = arr.filter(x => x[key] != null); return v.length ? Math.round(v.reduce((s,x)=>s+x[key],0)/v.length*10)/10 : null; };
+          setTrendingStats(prev => ({...prev, [p.id]: {
+            pts: avg(logs,'points'), reb: avg(logs,'rebounds'), ast: avg(logs,'assists'),
+            pts10: avg(last10,'points'), reb10: avg(last10,'rebounds'), ast10: avg(last10,'assists'),
+          }}));
+        }).catch(()=>{});
+    });
+  }, []);
 
   const pct = (v) => v != null ? `${(v*100).toFixed(1)}%` : '-';
   const hasResult = !loading && result && !result.error;
@@ -1349,24 +1368,118 @@ function Players() {
 
       {/* ── Empty State ── */}
       {!loading && !result && !error && (
-        <div style={{position:'relative', zIndex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', minHeight:'75vh', padding:'60px 24px', textAlign:'center'}}>
-          <div style={{marginBottom:48}}>
-            <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:'clamp(56px,10vw,120px)', letterSpacing:-2, color:'rgba(255,255,255,0.06)', lineHeight:0.9, fontWeight:700, userSelect:'none', marginBottom:0}}>PLAYER</div>
-            <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:'clamp(56px,10vw,120px)', letterSpacing:-2, color:'rgba(255,255,255,0.06)', lineHeight:0.9, fontWeight:700, userSelect:'none'}}>INTEL</div>
-            <div style={{fontFamily:'Inter, sans-serif', fontSize:13, letterSpacing:3, color:'var(--text-muted)', textTransform:'uppercase', fontWeight:400, marginTop:24}}>Select a player to begin</div>
+        <div style={{position:'relative', zIndex:1}}>
+
+          {/* Hero */}
+          <div style={{position:'relative', overflow:'hidden', padding:'72px 40px 56px', textAlign:'center',
+            background:'radial-gradient(ellipse at 50% 0%, rgba(0,230,118,0.04) 0%, transparent 65%)'}}>
+            {/* court schematic lines */}
+            <div style={{position:'absolute', inset:0, opacity:0.07, backgroundImage:`
+              radial-gradient(circle at 50% 85%, transparent 18%, rgba(255,255,255,0.6) 18.5%, transparent 19%),
+              radial-gradient(circle at 50% 85%, transparent 38%, rgba(255,255,255,0.4) 38.5%, transparent 39%),
+              linear-gradient(rgba(255,255,255,0.3) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(255,255,255,0.3) 1px, transparent 1px)`,
+              backgroundSize:'100% 100%, 100% 100%, 60px 60px, 60px 60px',
+              WebkitMaskImage:'radial-gradient(ellipse at center, black 30%, transparent 75%)',
+              maskImage:'radial-gradient(ellipse at center, black 30%, transparent 75%)'}}/>
+            <div style={{position:'relative', zIndex:1}}>
+              <div style={{fontFamily:'Inter, sans-serif', fontSize:10, letterSpacing:5, color:'rgba(0,230,118,0.5)', textTransform:'uppercase', fontWeight:600, marginBottom:20}}>
+                PIVOT Player Intel Engine · Most Advanced Scouting Platform Available
+              </div>
+              <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:'clamp(64px,11vw,140px)', fontWeight:700, letterSpacing:-4, lineHeight:0.88,
+                background:'linear-gradient(180deg, #ffffff 0%, #c0c0c0 40%, #888 100%)',
+                WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text',
+                filter:'drop-shadow(0 0 40px rgba(0,230,118,0.12))', userSelect:'none'}}>
+                PLAYER<br/>INTEL
+              </div>
+              <div style={{fontFamily:'Inter, sans-serif', fontSize:14, letterSpacing:1, color:'rgba(255,255,255,0.3)', fontWeight:300, marginTop:20, textTransform:'none'}}>
+                Select any player below or search above
+              </div>
+            </div>
           </div>
-          <div style={{marginBottom:16}}>
-            <div style={{fontFamily:'Inter, sans-serif', fontSize:9, letterSpacing:4, color:'rgba(0,230,118,0.4)', textTransform:'uppercase', marginBottom:16, fontWeight:600}}>Trending Now</div>
-            <div style={{display:'flex', flexWrap:'wrap', gap:8, justifyContent:'center', maxWidth:640}}>
-              {TRENDING.map(p => (
-                <button key={p.id} onMouseDown={() => { setQuery(p.name); setSelectedId(p.id); searchById(p.id); }}
-                  style={{fontFamily:'Inter, sans-serif', fontWeight:500, fontSize:12, letterSpacing:0, textTransform:'none', padding:'9px 18px', background:'rgba(22,27,34,0.6)', border:'1px solid var(--border)', color:'rgba(255,255,255,0.7)', cursor:'pointer', borderRadius:99, transition:'all 0.2s', backdropFilter:'blur(8px)', display:'flex', alignItems:'center', gap:8}}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor='rgba(0,230,118,0.5)'; e.currentTarget.style.color='var(--green)'; e.currentTarget.style.background='rgba(0,230,118,0.06)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor='var(--border)'; e.currentTarget.style.color='rgba(255,255,255,0.7)'; e.currentTarget.style.background='rgba(22,27,34,0.6)'; }}>
-                  <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, letterSpacing:2, color:'inherit', opacity:0.6, fontWeight:700}}>{p.team}</span>
-                  {p.name}
-                </button>
-              ))}
+
+          {/* Trending Grid */}
+          <div style={{padding:'0 32px 80px', maxWidth:1200, margin:'0 auto'}}>
+            <div style={{display:'flex', alignItems:'center', gap:16, marginBottom:24}}>
+              <div style={{fontFamily:'Inter, sans-serif', fontSize:9, letterSpacing:5, color:'rgba(0,230,118,0.55)', textTransform:'uppercase', fontWeight:700}}>Trending Now</div>
+              <div style={{flex:1, height:1, background:'rgba(255,255,255,0.05)'}}/>
+              <div style={{fontFamily:'Inter, sans-serif', fontSize:9, letterSpacing:2, color:'rgba(255,255,255,0.18)', textTransform:'none'}}>2025–26 Season</div>
+            </div>
+            <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(260px, 1fr))', gap:16}}>
+              {TRENDING.map(p => {
+                const s = trendingStats[p.id];
+                const Stat = ({val, val10, label}) => {
+                  const up = val10 != null && val != null && val10 >= val;
+                  const down = val10 != null && val != null && val10 < val;
+                  return (
+                    <div style={{textAlign:'center'}}>
+                      <div style={{display:'flex', alignItems:'center', justifyContent:'center', gap:3}}>
+                        <span style={{fontFamily:'Inter, sans-serif', fontSize:20, fontWeight:700, color:'var(--white)', letterSpacing:-0.5}}>{val != null ? val : '—'}</span>
+                        {up && <span style={{fontSize:9, color:'#00E676', lineHeight:1}}>▲</span>}
+                        {down && <span style={{fontSize:9, color:'#ef4444', lineHeight:1}}>▼</span>}
+                      </div>
+                      <div style={{fontFamily:'Inter, sans-serif', fontSize:8, letterSpacing:2, color:'var(--text-muted)', textTransform:'uppercase', marginTop:2}}>{label}</div>
+                    </div>
+                  );
+                };
+                return (
+                  <div key={p.id}
+                    onClick={() => { setQuery(p.name); setSelectedId(p.id); searchById(p.id); }}
+                    style={{background:'rgba(17,19,24,0.8)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:12, overflow:'hidden', cursor:'pointer', transition:'all 0.2s ease', backdropFilter:'blur(8px)'}}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor='rgba(0,230,118,0.35)'; e.currentTarget.style.transform='translateY(-2px)'; e.currentTarget.style.boxShadow='0 12px 40px rgba(0,230,118,0.08)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor='rgba(255,255,255,0.07)'; e.currentTarget.style.transform='none'; e.currentTarget.style.boxShadow='none'; }}>
+
+                    {/* Card top: headshot + team logo */}
+                    <div style={{position:'relative', height:140, background:'linear-gradient(135deg, #0d1117 0%, #111820 100%)', overflow:'hidden'}}>
+                      {/* subtle team color wash */}
+                      <div style={{position:'absolute', inset:0, background:'radial-gradient(ellipse at 70% 100%, rgba(0,230,118,0.04) 0%, transparent 60%)'}}/>
+                      {/* player headshot */}
+                      <img
+                        src={`https://cdn.nba.com/headshots/nba/latest/1040x760/${p.nbaId}.png`}
+                        alt={p.name}
+                        style={{position:'absolute', bottom:0, right:0, height:'135px', objectFit:'contain', objectPosition:'bottom right', filter:'brightness(0.92)'}}
+                        onError={e => { e.target.style.display='none'; }}
+                      />
+                      {/* team logo top-left */}
+                      <div style={{position:'absolute', top:10, left:10}}>
+                        <img
+                          src={`https://a.espn.com/combiner/i?img=/i/teamlogos/nba/500/${p.team.toLowerCase()}.png&h=36&w=36`}
+                          alt={p.team} width={32} height={32} style={{objectFit:'contain', opacity:0.85}}
+                          onError={e => e.target.style.display='none'}
+                        />
+                      </div>
+                      {/* position badge */}
+                      <div style={{position:'absolute', bottom:10, left:12, fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:2, fontWeight:700, color:'rgba(255,255,255,0.3)'}}>{p.pos}</div>
+                    </div>
+
+                    {/* Card body */}
+                    <div style={{padding:'14px 16px 16px'}}>
+                      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:15, fontWeight:700, letterSpacing:0.5, color:'var(--white)', marginBottom:12, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{p.name}</div>
+
+                      {/* Stats row */}
+                      {s ? (
+                        <div style={{display:'flex', justifyContent:'space-around', marginBottom:14, paddingBottom:14, borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
+                          <Stat val={s.pts} val10={s.pts10} label="PTS"/>
+                          <Stat val={s.reb} val10={s.reb10} label="REB"/>
+                          <Stat val={s.ast} val10={s.ast10} label="AST"/>
+                        </div>
+                      ) : (
+                        <div style={{height:52, display:'flex', alignItems:'center', justifyContent:'center', marginBottom:14, paddingBottom:14, borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
+                          <div style={{display:'flex', gap:5}}>
+                            {[0,1,2].map(i=><div key={i} style={{width:4,height:4,borderRadius:'50%',background:'rgba(0,230,118,0.3)',animation:`pulse-dot 1.2s ease-in-out ${i*0.2}s infinite`}}/>)}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Narrative pill */}
+                      <div style={{display:'inline-flex', alignItems:'center', gap:6, background:'rgba(0,230,118,0.06)', border:'1px solid rgba(0,230,118,0.15)', borderRadius:99, padding:'4px 10px'}}>
+                        <div style={{width:4, height:4, borderRadius:'50%', background:'var(--green)', opacity:0.7}}/>
+                        <span style={{fontFamily:'Inter, sans-serif', fontSize:10, letterSpacing:0.5, color:'rgba(0,230,118,0.7)', fontWeight:500, textTransform:'none'}}>{p.narrative}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
