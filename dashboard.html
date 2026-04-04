@@ -2161,7 +2161,7 @@ function CoachMode() {
                     <div style={{fontSize:8, letterSpacing:3, color:'var(--green)', marginBottom:6}}>{team?.abbreviation}</div>
                     {players.map((p,i) => (
                       <div key={i} style={{display:'flex', justifyContent:'space-between', padding:'5px 0', borderBottom:'1px solid #141414', fontSize:10}}>
-                        <span style={{letterSpacing:1, fontWeight:700, fontSize:11}}>{p.player.split(' ').pop()}</span>
+                        <span style={{letterSpacing:1, fontWeight:700, fontSize:11}}>{(() => { const parts = p.player.trim().split(' '); if (parts.length <= 1) return parts[0]; const last = parts[parts.length-1]; return ['Jr','Jr.','Sr','Sr.','II','III','IV'].includes(last) ? `${parts[parts.length-2]} ${last}` : last; })()}</span>
                         <span style={{color:'var(--green)', letterSpacing:1}}>{p.pts}pt {p.reb}rb {p.ast}as</span>
                       </div>
                     ))}
