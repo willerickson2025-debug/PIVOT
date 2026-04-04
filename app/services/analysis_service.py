@@ -462,9 +462,10 @@ async def _build_player_stat_block(player_id: int, season: int) -> tuple[Any, di
         nba_service.get_season_averages(player.id, season),
     )
 
-    # Prefer game-log count; fall back to what the official averages endpoint
-    # reports when game logs are empty (e.g. partial-season trade, API lag).
-    total_games = len(stats) or int(official.get("games_played") or 0)
+    # Always prefer the official games_played from the season averages endpoint —
+    # the raw game logs can include playoff/preseason entries that inflate the count.
+    # Fall back to len(stats) only if the official endpoint returns nothing.
+    total_games = int(official.get("games_played") or 0) or len(stats)
 
     # Full-season averages: prefer the official endpoint values; fall back to
     # computing from raw game logs when the season-averages endpoint returns
@@ -658,7 +659,7 @@ async def analyze_player(
             "last_10": None,
             "games_played": 0,
             "analysis": None,
-            "error": f"No {season} season data available for {player.first_name} {player.last_name}. The stats feed may be delayed or this player has not appeared in a game yet this season.",
+            "error": f"No {season}-{str(season+1)[-2:]} season data available for {player.first_name} {player.last_name}. The stats feed may be delayed or this player has not appeared in a game yet this season.",
         }
 
     stat_block = _render_stat_block(player, season, agg)
