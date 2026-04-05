@@ -171,10 +171,10 @@ async def claude_analyze(body: AnalysisRequest):
 
 # ── Analysis (Combined) ───────────────────────────────────────────────────────
 
-@router.get("/analysis/game/{game_id}")
-async def game_analysis(game_id: int):
+@router.post("/analysis/game")
+async def game_analysis(body: dict = Body(...)):
     try:
-        return await analysis_service.analyze_game(game_id)
+        return await analysis_service.analyze_game(body)
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e))
 

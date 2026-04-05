@@ -1064,30 +1064,51 @@ async def analyze_roster(team_name: str) -> dict[str, Any]:
     }
 
 
-async def analyze_game(game_id: int) -> dict[str, Any]:
+async def analyze_game(body: dict[str, Any]) -> dict[str, Any]:
     """
     Generate a PIVOT analysis for a single game — adapts to game state:
     pre-game preview, live breakdown, or post-game recap.
+
+    Accepts the full game object from the frontend so team/score data is always
+    available even when the BallDontLie boxscore endpoint is unavailable.
     """
+    game_id: int = int(body.get("id") or 0)
     logger.info("Game analysis | game_id=%d", game_id)
 
-    box = await nba_service.get_game_boxscore(game_id)
-    if not box:
-        raise ValueError(f"No data for game {game_id}")
+    # Seed from the game object passed by the frontend (always available)
+    home_t_seed = body.get("home_team") or {}
+    away_t_seed = body.get("visitor_team") or {}
 
-    game_info = box.get("game_info") or {}
-    home_t    = box.get("home_team") or {}
-    away_t    = box.get("away_team") or {}
+    home_name  = home_t_seed.get("full_name") or home_t_seed.get("name") or "Home"
+    away_name  = away_t_seed.get("full_name") or away_t_seed.get("name") or "Away"
+    home_abbr  = home_t_seed.get("abbreviation") or ""
+    away_abbr  = away_t_seed.get("abbreviation") or ""
+    home_score = int(body.get("home_team_score") or 0)
+    away_score = int(body.get("visitor_team_score") or 0)
+    status_raw = (body.get("status") or "").lower()
+    period     = int(body.get("period") or 0)
+    clock      = body.get("time") or ""
 
-    home_name  = home_t.get("name") or "Home"
-    away_name  = away_t.get("name") or "Away"
-    home_abbr  = home_t.get("abbreviation") or ""
-    away_abbr  = away_t.get("abbreviation") or ""
-    home_score = int(game_info.get("home_team_score") or 0)
-    away_score = int(game_info.get("away_team_score") or 0)
-    period     = int(game_info.get("period") or 0)
-    clock      = game_info.get("time") or ""
-    status_raw = (game_info.get("status") or "").lower()
+    # Attempt to enrich with live boxscore data — fail gracefully
+    box: dict[str, Any] = {}
+    if game_id:
+        try:
+            box = await nba_service.get_game_boxscore(game_id) or {}
+            # Prefer live scores from boxscore when available
+            bi = box.get("game_info") or {}
+            if bi.get("home_team_score"):
+                home_score = int(bi["home_team_score"])
+            if bi.get("away_team_score"):
+                away_score = int(bi["away_team_score"])
+            if bi.get("period"):
+                period = int(bi["period"])
+            if bi.get("time"):
+                clock = bi["time"]
+            if bi.get("status"):
+                status_raw = bi["status"].lower()
+        except Exception as exc:
+            logger.warning("Boxscore fetch failed for game_id=%d, using frontend data | %s", game_id, exc)
+            box = {}
 
     has_score = home_score > 0 or away_score > 0
     is_final  = "final" in status_raw or "complete" in status_raw

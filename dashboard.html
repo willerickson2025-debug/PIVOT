@@ -1010,7 +1010,11 @@ function GameAnalysisModal({ game, onClose }) {
   const { label, type } = parseStatus(game.status);
 
   React.useEffect(() => {
-    fetch(`${API}/analysis/game/${game.id}`)
+    fetch(`${API}/analysis/game`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(game),
+    })
       .then(r => r.ok ? r.json() : r.json().then(e => { throw new Error(e.detail || 'Analysis unavailable'); }))
       .then(data => { setResult(data); setLoading(false); })
       .catch(e => { setError(e.message); setLoading(false); });
