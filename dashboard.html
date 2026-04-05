@@ -2076,58 +2076,71 @@ function FrontOffice() {
               </div>
 
               {/* ── Playoff Picture ── */}
-              <div style={{background:'rgba(17,20,26,0.8)', border:'1px solid var(--border)', borderRadius:12, padding:'20px 22px'}}>
-                <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14}}>
-                  <div style={{fontFamily:'Inter, sans-serif', fontSize:9, letterSpacing:4, color:'rgba(0,230,118,0.55)', fontWeight:700, textTransform:'uppercase'}}>Playoff Picture</div>
-                  <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.2)', textTransform:'none'}}>2025–26</div>
-                </div>
-                {[
-                  {conf:'EAST', seeds:[
-                    {seed:1, team:'CLE', name:'Cavaliers', gb:'—',   in:true},
-                    {seed:2, team:'BOS', name:'Celtics',   gb:'4',   in:true},
-                    {seed:3, team:'NYK', name:'Knicks',    gb:'7',   in:true},
-                    {seed:4, team:'MIA', name:'Heat',      gb:'16',  in:true},
-                    {seed:7, team:'ATL', name:'Hawks',     gb:'19',  in:false},
-                    {seed:8, team:'CHI', name:'Bulls',     gb:'20',  in:false},
-                  ]},
-                  {conf:'WEST', seeds:[
-                    {seed:1, team:'OKC', name:'Thunder',      gb:'—',  in:true},
-                    {seed:2, team:'DEN', name:'Nuggets',      gb:'13', in:true},
-                    {seed:3, team:'MIN', name:'T-Wolves',     gb:'14', in:true},
-                    {seed:4, team:'LAL', name:'Lakers',       gb:'21', in:true},
-                    {seed:7, team:'PHX', name:'Suns',         gb:'22', in:false},
-                    {seed:8, team:'DAL', name:'Mavericks',    gb:'23', in:false},
-                  ]},
-                ].map(({conf, seeds}) => (
-                  <div key={conf} style={{marginBottom:14}}>
-                    <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, letterSpacing:3, fontWeight:700, color:'rgba(255,255,255,0.2)', marginBottom:6}}>{conf}</div>
-                    {seeds.map((s, i) => (
-                      <div key={s.team} onClick={() => runRoster(s.name)} style={{cursor:'pointer', display:'flex', alignItems:'center', gap:8, padding:'5px 6px', borderRadius:4, marginBottom:2,
-                        background: s.in ? 'rgba(0,230,118,0.04)' : 'transparent',
-                        border: `1px solid ${s.in ? 'rgba(0,230,118,0.12)' : 'rgba(255,255,255,0.04)'}`,
-                        opacity: s.in ? 1 : 0.55}}
-                        onMouseEnter={e => e.currentTarget.style.borderColor='rgba(0,230,118,0.3)'}
-                        onMouseLeave={e => e.currentTarget.style.borderColor=s.in?'rgba(0,230,118,0.12)':'rgba(255,255,255,0.04)'}>
-                        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, fontWeight:700, color: s.seed <= 4 ? 'var(--green)' : 'rgba(255,255,255,0.3)', width:12, flexShrink:0}}>{s.seed}</div>
-                        <img src={`https://a.espn.com/combiner/i?img=/i/teamlogos/nba/500/${s.team.toLowerCase()}.png&h=20&w=20`} alt={s.team} width={16} height={16} style={{objectFit:'contain', flexShrink:0}} onError={e=>e.target.style.display='none'}/>
-                        <div style={{flex:1, fontFamily:'Inter, sans-serif', fontSize:11, fontWeight:500, color:'rgba(255,255,255,0.75)'}}>{s.name}</div>
-                        <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.3)', flexShrink:0}}>{s.gb === '—' ? '—' : `${s.gb} GB`}</div>
-                        {s.in && <div style={{width:4, height:4, borderRadius:'50%', background:'var(--green)', opacity:0.7, flexShrink:0}}/>}
+              {(() => {
+                const SeedRow = ({s}) => (
+                  <div onClick={() => runRoster(s.name)}
+                    style={{cursor:'pointer', display:'flex', alignItems:'center', gap:7, padding:'4px 6px', borderRadius:4, marginBottom:2,
+                      background: s.seed <= 6 ? 'rgba(0,230,118,0.04)' : 'transparent',
+                      border: `1px solid ${s.seed <= 6 ? 'rgba(0,230,118,0.1)' : 'rgba(255,255,255,0.04)'}`,
+                      opacity: s.seed <= 6 ? 1 : 0.45}}
+                    onMouseEnter={e => e.currentTarget.style.borderColor='rgba(0,230,118,0.35)'}
+                    onMouseLeave={e => e.currentTarget.style.borderColor=s.seed<=6?'rgba(0,230,118,0.1)':'rgba(255,255,255,0.04)'}>
+                    <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, fontWeight:700, color: s.seed <= 4 ? 'var(--green)' : 'rgba(255,255,255,0.25)', width:10, flexShrink:0, textAlign:'right'}}>{s.seed}</div>
+                    <img src={`https://a.espn.com/combiner/i?img=/i/teamlogos/nba/500/${s.team.toLowerCase()}.png&h=20&w=20`} alt={s.team} width={14} height={14} style={{objectFit:'contain', flexShrink:0}} onError={e=>e.target.style.display='none'}/>
+                    <div style={{flex:1, fontFamily:'Inter, sans-serif', fontSize:10, fontWeight:500, color:'rgba(255,255,255,0.8)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{s.name}</div>
+                    <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.25)', flexShrink:0}}>{s.gb}</div>
+                    {s.seed === 5 && <div style={{width:'100%', position:'absolute', left:0, bottom:-1, height:1, background:'rgba(255,255,255,0.08)'}}/>}
+                  </div>
+                );
+                const EAST = [
+                  {seed:1, team:'CLE', name:'Cavaliers',   gb:'—'},
+                  {seed:2, team:'BOS', name:'Celtics',     gb:'+4'},
+                  {seed:3, team:'NYK', name:'Knicks',      gb:'+7'},
+                  {seed:4, team:'MIL', name:'Bucks',       gb:'+13'},
+                  {seed:5, team:'MIA', name:'Heat',        gb:'+16'},
+                  {seed:6, team:'IND', name:'Pacers',      gb:'+17'},
+                  {seed:7, team:'ATL', name:'Hawks',       gb:'+19'},
+                  {seed:8, team:'CHI', name:'Bulls',       gb:'+20'},
+                ];
+                const WEST = [
+                  {seed:1, team:'OKC', name:'Thunder',     gb:'—'},
+                  {seed:2, team:'DEN', name:'Nuggets',     gb:'+13'},
+                  {seed:3, team:'MIN', name:'T-Wolves',    gb:'+14'},
+                  {seed:4, team:'LAL', name:'Lakers',      gb:'+21'},
+                  {seed:5, team:'GSW', name:'Warriors',    gb:'+22'},
+                  {seed:6, team:'SAC', name:'Kings',       gb:'+23'},
+                  {seed:7, team:'PHX', name:'Suns',        gb:'+24'},
+                  {seed:8, team:'DAL', name:'Mavericks',   gb:'+25'},
+                ];
+                return (
+                  <div style={{background:'rgba(17,20,26,0.8)', border:'1px solid var(--border)', borderRadius:12, padding:'20px 22px'}}>
+                    <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14}}>
+                      <div style={{fontFamily:'Inter, sans-serif', fontSize:9, letterSpacing:4, color:'rgba(0,230,118,0.55)', fontWeight:700, textTransform:'uppercase'}}>Playoff Picture</div>
+                      <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.2)'}}>2025–26</div>
+                    </div>
+                    <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:12}}>
+                      <div>
+                        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, letterSpacing:3, fontWeight:700, color:'rgba(255,255,255,0.2)', marginBottom:6}}>EAST</div>
+                        {EAST.map(s => <SeedRow key={s.team} s={s}/>)}
                       </div>
-                    ))}
+                      <div>
+                        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, letterSpacing:3, fontWeight:700, color:'rgba(255,255,255,0.2)', marginBottom:6}}>WEST</div>
+                        {WEST.map(s => <SeedRow key={s.team} s={s}/>)}
+                      </div>
+                    </div>
+                    <div style={{display:'flex', gap:14, marginTop:10, paddingTop:8, borderTop:'1px solid rgba(255,255,255,0.04)'}}>
+                      <div style={{display:'flex', alignItems:'center', gap:5}}>
+                        <div style={{width:8,height:8,borderRadius:2,background:'rgba(0,230,118,0.15)',border:'1px solid rgba(0,230,118,0.2)'}}/>
+                        <span style={{fontFamily:'Inter, sans-serif', fontSize:8, color:'rgba(255,255,255,0.25)'}}>Seeds 1–6</span>
+                      </div>
+                      <div style={{display:'flex', alignItems:'center', gap:5}}>
+                        <div style={{width:8,height:8,borderRadius:2,background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.08)'}}/>
+                        <span style={{fontFamily:'Inter, sans-serif', fontSize:8, color:'rgba(255,255,255,0.25)'}}>Play-in (7–8)</span>
+                      </div>
+                    </div>
                   </div>
-                ))}
-                <div style={{display:'flex', gap:12, marginTop:6}}>
-                  <div style={{display:'flex', alignItems:'center', gap:5}}>
-                    <div style={{width:4,height:4,borderRadius:'50%',background:'var(--green)',opacity:0.7}}/>
-                    <span style={{fontFamily:'Inter, sans-serif', fontSize:8, color:'rgba(255,255,255,0.25)'}}>In playoffs</span>
-                  </div>
-                  <div style={{display:'flex', alignItems:'center', gap:5}}>
-                    <div style={{width:8,height:1,background:'rgba(255,255,255,0.2)'}}/>
-                    <span style={{fontFamily:'Inter, sans-serif', fontSize:8, color:'rgba(255,255,255,0.25)'}}>Play-in zone</span>
-                  </div>
-                </div>
-              </div>
+                );
+              })()}
             </div>
           </div>
         )}
