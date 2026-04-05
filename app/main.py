@@ -33,7 +33,7 @@ app.mount("/static", StaticFiles(directory=_root), name="static")
 async def root():
     path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "dashboard.html")
     if os.path.exists(path):
-        return FileResponse(path)
+        return FileResponse(path, headers={"Cache-Control": "no-store, no-cache, must-revalidate"})
     return {"status": "running", "error": "dashboard.html not found", "looked_at": path}
 
 
