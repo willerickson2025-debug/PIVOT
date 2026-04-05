@@ -941,5 +941,31 @@ async def get_trending_players(days: int = 5, top_n: int = 8) -> list[dict[str, 
         })
 
     qualified.sort(key=lambda x: x["pts"], reverse=True)
+    top = qualified[:top_n]
+
+    # Batch-fetch full player records to get nba_player_id (not present in /stats payloads).
+    missing_ids = [p["id"] for p in top if p["nba_id"] is None]
+    if missing_ids:
+        try:
+            settings = get_settings()
+            client = GlobalHTTPClient.get_client()
+            resp = await client.get(
+                settings.balldontlie_base_url + "/players",
+                headers={"Authorization": settings.balldontlie_api_key},
+                params=[("per_page", len(missing_ids) + 1)] + [("ids[]", pid) for pid in missing_ids],
+                timeout=_REQUEST_TIMEOUT,
+            )
+            resp.raise_for_status()
+            id_to_nba: dict[int, int] = {
+                pr["id"]: pr["nba_player_id"]
+                for pr in (resp.json().get("data") or [])
+                if pr.get("nba_player_id")
+            }
+            for p in top:
+                if p["nba_id"] is None:
+                    p["nba_id"] = id_to_nba.get(p["id"])
+        except Exception as exc:
+            logger.warning("Batch nba_player_id lookup failed: %s", exc)
+
     logger.info("Trending players: found %d qualified | returning top %d", len(qualified), top_n)
-    return qualified[:top_n]
+    return top

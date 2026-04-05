@@ -1378,7 +1378,9 @@ function Players() {
     try {
       const r = await fetch(`${API}/analysis/player?player_id=${playerId}&season=2025`);
       if (!r.ok) throw new Error(await r.text());
-      setResult(await r.json());
+      const data = await r.json();
+      if (data.error) throw new Error(data.error);
+      setResult(data);
     } catch(e) { setError(e.message); } finally { setLoading(false); }
   };
 
