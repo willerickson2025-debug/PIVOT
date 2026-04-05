@@ -2741,6 +2741,278 @@ function CoachMode() {
   );
 }
 
+function About() {
+  return (
+    <div style={{background:'#0B0F13', minHeight:'100vh', padding:'80px 0 120px'}}>
+
+      {/* ── Section 1: Hero / Mission ───────────────────────────────────── */}
+      <div style={{maxWidth:860, margin:'0 auto', textAlign:'center', padding:'80px 40px 100px'}}>
+        <div style={{
+          display:'inline-flex', alignItems:'center', gap:8,
+          padding:'5px 16px', borderRadius:99,
+          border:'1px solid rgba(0,255,85,0.3)', background:'rgba(0,255,85,0.07)',
+          fontFamily:'Inter,sans-serif', fontSize:10, fontWeight:500,
+          letterSpacing:3, color:'#00FF55', textTransform:'uppercase', marginBottom:40
+        }}>
+          <span style={{width:6,height:6,borderRadius:'50%',background:'#00FF55',animation:'blink 1.4s ease-in-out infinite',display:'inline-block'}}/>
+          INTELLIGENCE BRIEF — CLASSIFIED
+        </div>
+
+        <h1 style={{
+          fontFamily:"'Helvetica Neue',Helvetica,Arial,sans-serif",
+          fontWeight:700, fontSize:'clamp(52px,9vw,110px)',
+          letterSpacing:'-3px', lineHeight:0.9,
+          color:'#F0F2F5', textTransform:'uppercase',
+          marginBottom:40,
+          textShadow:'0 0 80px rgba(0,255,85,0.18)'
+        }}>
+          THE PIVOT<br/>
+          <span style={{color:'#00FF55'}}>ENGINE</span>
+        </h1>
+
+        <p style={{
+          fontFamily:'Inter,sans-serif', fontWeight:300, fontSize:17,
+          lineHeight:1.8, letterSpacing:0, textTransform:'none',
+          color:'rgba(255,255,255,0.55)', maxWidth:680, margin:'0 auto 24px'
+        }}>
+          PIVOT is not a dashboard. It is a decision infrastructure — an AI-powered intelligence engine purpose-built to eliminate noise from the game of basketball and deliver only what matters: pure, actionable advantage.
+        </p>
+        <p style={{
+          fontFamily:'Inter,sans-serif', fontWeight:300, fontSize:17,
+          lineHeight:1.8, letterSpacing:0, textTransform:'none',
+          color:'rgba(255,255,255,0.55)', maxWidth:680, margin:'0 auto 24px'
+        }}>
+          By processing live box scores, cap ledgers, and player behavioral data in real time, PIVOT synthesizes raw signal into tactical clarity. From in-game adjustments to multi-year roster construction, every output is grounded in current data, cross-referenced, and battle-tested against the actual intelligence a front office needs to win.
+        </p>
+        <p style={{
+          fontFamily:'Inter,sans-serif', fontWeight:300, fontSize:17,
+          lineHeight:1.8, letterSpacing:0, textTransform:'none',
+          color:'rgba(255,255,255,0.55)', maxWidth:680, margin:'0 auto 0'
+        }}>
+          This is not analytics for the casual observer. PIVOT was engineered for those who understand the game at a molecular level — and who refuse to make decisions without the data to back them.
+        </p>
+      </div>
+
+      {/* thin divider */}
+      <div style={{borderTop:'1px solid rgba(255,255,255,0.06)', maxWidth:1100, margin:'0 auto'}}/>
+
+      {/* ── Section 2: Deployment Strategy ─────────────────────────────── */}
+      <div style={{maxWidth:1100, margin:'0 auto', padding:'100px 40px'}}>
+        <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:80, alignItems:'center'}}>
+
+          {/* Left: wireframe graphic */}
+          <div style={{
+            border:'1px solid rgba(0,255,85,0.2)',
+            borderRadius:4,
+            background:'rgba(0,255,85,0.03)',
+            height:360,
+            display:'flex', flexDirection:'column',
+            alignItems:'center', justifyContent:'center',
+            gap:20,
+            position:'relative',
+            overflow:'hidden'
+          }}>
+            {/* grid lines overlay */}
+            <div style={{
+              position:'absolute', inset:0, pointerEvents:'none',
+              backgroundImage:'linear-gradient(rgba(0,255,85,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,85,0.05) 1px, transparent 1px)',
+              backgroundSize:'32px 32px'
+            }}/>
+            {/* court shape */}
+            <div style={{position:'relative', zIndex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:12}}>
+              <div style={{width:140, height:140, border:'1px solid rgba(0,255,85,0.4)', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center'}}>
+                <div style={{width:60, height:60, border:'1px solid rgba(0,255,85,0.25)', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center'}}>
+                  <div style={{width:8, height:8, borderRadius:'50%', background:'#00FF55', boxShadow:'0 0 12px #00FF55'}}/>
+                </div>
+              </div>
+              <div style={{display:'flex', gap:8}}>
+                {[...Array(3)].map((_,i) => (
+                  <div key={i} style={{width:28, height:4, borderRadius:2, background:'rgba(0,255,85,0.3)'}}/>
+                ))}
+              </div>
+              <div style={{fontFamily:'Inter,sans-serif', fontSize:9, letterSpacing:4, color:'rgba(0,255,85,0.5)', textTransform:'uppercase', marginTop:8}}>
+                LIVE INTELLIGENCE LAYER
+              </div>
+            </div>
+            {/* corner brackets */}
+            {[{top:12,left:12},{top:12,right:12},{bottom:12,left:12},{bottom:12,right:12}].map((pos,i)=>(
+              <div key={i} style={{position:'absolute', width:16, height:16, ...pos,
+                borderTop: (pos.top!=null ? '2px solid rgba(0,255,85,0.4)' : 'none'),
+                borderBottom: (pos.bottom!=null ? '2px solid rgba(0,255,85,0.4)' : 'none'),
+                borderLeft: (pos.left!=null ? '2px solid rgba(0,255,85,0.4)' : 'none'),
+                borderRight: (pos.right!=null ? '2px solid rgba(0,255,85,0.4)' : 'none')
+              }}/>
+            ))}
+          </div>
+
+          {/* Right: text */}
+          <div>
+            <div style={{fontFamily:'Inter,sans-serif', fontSize:10, fontWeight:500, letterSpacing:4, color:'#00FF55', textTransform:'uppercase', marginBottom:20}}>
+              DEPLOYMENT STRATEGY
+            </div>
+            <h2 style={{
+              fontFamily:"'Helvetica Neue',Helvetica,Arial,sans-serif",
+              fontWeight:700, fontSize:'clamp(26px,2.8vw,40px)',
+              letterSpacing:'-1px', lineHeight:1.1,
+              color:'#F0F2F5', textTransform:'uppercase', marginBottom:28
+            }}>
+              BRIDGING RAW DATA<br/>
+              <span style={{color:'rgba(255,255,255,0.35)'}}>AND ON-COURT EXECUTION</span>
+            </h2>
+            <p style={{fontFamily:'Inter,sans-serif', fontWeight:300, fontSize:15, lineHeight:1.85, letterSpacing:0, textTransform:'none', color:'rgba(255,255,255,0.5)', marginBottom:20}}>
+              Traditional scouting operates on a 48-hour delay. PIVOT operates in the present. Our deployment strategy centers on real-time intelligence at three critical layers: the sideline, the war room, and the front office.
+            </p>
+            <p style={{fontFamily:'Inter,sans-serif', fontWeight:300, fontSize:15, lineHeight:1.85, letterSpacing:0, textTransform:'none', color:'rgba(255,255,255,0.5)', marginBottom:32}}>
+              Coach Mode delivers live tactical adjustments keyed to the active box score. Front Office tools surface cap constraints and leverage points before the trade deadline. Player modeling predicts trajectory arcs before the market prices them in. Every layer is designed to compress decision time and eliminate guesswork at the moment it costs most.
+            </p>
+            <div style={{display:'flex', flexDirection:'column', gap:12}}>
+              {[
+                ['COACH MODE', 'Real-time in-game adjustments from live box score data'],
+                ['CAP INTELLIGENCE', 'Salary ledger analysis and multi-year financial modeling'],
+                ['PLAYER MODELING', 'Predictive trajectory scoring and contract valuation'],
+              ].map(([label, desc]) => (
+                <div key={label} style={{display:'flex', alignItems:'flex-start', gap:14}}>
+                  <div style={{width:3, height:3, borderRadius:'50%', background:'#00FF55', marginTop:7, flexShrink:0, boxShadow:'0 0 6px #00FF55'}}/>
+                  <div>
+                    <div style={{fontFamily:"'Helvetica Neue',Helvetica,Arial,sans-serif", fontWeight:700, fontSize:10, letterSpacing:3, color:'#00FF55', marginBottom:2}}>{label}</div>
+                    <div style={{fontFamily:'Inter,sans-serif', fontWeight:300, fontSize:13, letterSpacing:0, textTransform:'none', color:'rgba(255,255,255,0.4)'}}>{desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* thin divider */}
+      <div style={{borderTop:'1px solid rgba(255,255,255,0.06)', maxWidth:1100, margin:'0 auto'}}/>
+
+      {/* ── Section 3: The Architects ───────────────────────────────────── */}
+      <div style={{maxWidth:1100, margin:'0 auto', padding:'100px 40px 60px'}}>
+        <div style={{textAlign:'center', marginBottom:70}}>
+          <div style={{fontFamily:'Inter,sans-serif', fontSize:10, fontWeight:500, letterSpacing:4, color:'#00FF55', textTransform:'uppercase', marginBottom:16}}>
+            PERSONNEL FILE — CLASSIFIED
+          </div>
+          <h2 style={{
+            fontFamily:"'Helvetica Neue',Helvetica,Arial,sans-serif",
+            fontWeight:700, fontSize:'clamp(32px,4vw,58px)',
+            letterSpacing:'-2px', color:'#F0F2F5', textTransform:'uppercase', lineHeight:1
+          }}>
+            THE ARCHITECTS
+          </h2>
+        </div>
+
+        <div style={{display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:24}}>
+          {[
+            {
+              initials: 'WE',
+              name: 'WILL ERICKSON',
+              role: 'LEAD ARCHITECT / CO-FOUNDER',
+              bio: 'Will builds the intelligence core — engineering AI models, structuring data pipelines, and translating raw basketball signal into systems that actually perform under pressure. He bridges the gap between statistical complexity and the clean, actionable outputs that coaches and front offices can act on immediately.'
+            },
+            {
+              initials: 'EJ',
+              name: 'EVAN JACKSON',
+              role: 'DIRECTOR OF INTELLIGENCE / CO-FOUNDER',
+              bio: 'Evan operates at the intersection of scouting and system execution. His background in film study and strategic deployment means he stress-tests every PIVOT output against the way the game is actually played — not how the numbers suggest it should be.'
+            },
+            {
+              initials: 'WM',
+              name: 'WORTH McMILLEN',
+              role: 'HEAD OF SYSTEMS / CO-FOUNDER',
+              bio: "Worth owns the architecture that makes scale possible. From platform infrastructure to UI/UX framing, he ensures that PIVOT's intelligence layer is not only technically sound but operationally deployable at the speed of a real front office decision cycle."
+            },
+          ].map(({initials, name, role, bio}) => (
+            <div key={name} style={{
+              background:'rgba(255,255,255,0.03)',
+              backdropFilter:'blur(16px)',
+              WebkitBackdropFilter:'blur(16px)',
+              border:'1px solid rgba(255,255,255,0.08)',
+              borderRadius:4,
+              padding:'40px 32px 36px',
+              display:'flex', flexDirection:'column',
+              transition:'border-color 0.2s',
+              cursor:'default',
+            }}
+            onMouseEnter={e => e.currentTarget.style.borderColor='rgba(0,255,85,0.25)'}
+            onMouseLeave={e => e.currentTarget.style.borderColor='rgba(255,255,255,0.08)'}
+            >
+              {/* Photo placeholder */}
+              <div style={{
+                width:'100%', aspectRatio:'1/1', maxHeight:200,
+                background:'rgba(0,0,0,0.5)',
+                border:'1px solid rgba(255,255,255,0.07)',
+                borderRadius:2, marginBottom:28,
+                display:'flex', alignItems:'center', justifyContent:'center',
+                position:'relative', overflow:'hidden'
+              }}>
+                {/* Subtle grid */}
+                <div style={{
+                  position:'absolute', inset:0, pointerEvents:'none',
+                  backgroundImage:'linear-gradient(rgba(255,255,255,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.025) 1px,transparent 1px)',
+                  backgroundSize:'20px 20px'
+                }}/>
+                {/* Initials */}
+                <div style={{
+                  fontFamily:"'Helvetica Neue',Helvetica,Arial,sans-serif",
+                  fontWeight:700, fontSize:48, color:'rgba(255,255,255,0.1)',
+                  letterSpacing:'-2px', zIndex:1, textTransform:'uppercase'
+                }}>
+                  {initials}
+                </div>
+                {/* Corner bracket top-left */}
+                <div style={{position:'absolute',top:10,left:10,width:18,height:18,borderTop:'1px solid rgba(0,255,85,0.4)',borderLeft:'1px solid rgba(0,255,85,0.4)'}}/>
+                <div style={{position:'absolute',bottom:10,right:10,width:18,height:18,borderBottom:'1px solid rgba(0,255,85,0.4)',borderRight:'1px solid rgba(0,255,85,0.4)'}}/>
+              </div>
+
+              {/* Name */}
+              <h3 style={{
+                fontFamily:"'Helvetica Neue',Helvetica,Arial,sans-serif",
+                fontWeight:700, fontSize:20, letterSpacing:'-0.5px',
+                color:'#F0F2F5', textTransform:'uppercase', marginBottom:6, lineHeight:1
+              }}>
+                {name}
+              </h3>
+
+              {/* Role */}
+              <div style={{
+                fontFamily:'Inter,sans-serif', fontWeight:500, fontSize:9,
+                letterSpacing:3, color:'#00FF55', textTransform:'uppercase', marginBottom:20
+              }}>
+                {role}
+              </div>
+
+              {/* Divider */}
+              <div style={{height:1, background:'rgba(255,255,255,0.06)', marginBottom:20}}/>
+
+              {/* Bio */}
+              <p style={{
+                fontFamily:'Inter,sans-serif', fontWeight:300, fontSize:13,
+                lineHeight:1.85, letterSpacing:0, textTransform:'none',
+                color:'rgba(255,255,255,0.45)', flexGrow:1
+              }}>
+                {bio}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Footer strip ────────────────────────────────────────────────── */}
+      <div style={{maxWidth:1100, margin:'60px auto 0', padding:'0 40px'}}>
+        <div style={{borderTop:'1px solid rgba(255,255,255,0.06)', paddingTop:40, display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+          <div style={{fontFamily:"'Helvetica Neue',Helvetica,Arial,sans-serif", fontWeight:700, fontSize:14, letterSpacing:6, color:'rgba(255,255,255,0.15)'}}>
+            PIVOT
+          </div>
+          <div style={{fontFamily:'Inter,sans-serif', fontWeight:300, fontSize:11, letterSpacing:2, color:'rgba(255,255,255,0.15)', textTransform:'uppercase'}}>
+            Intelligence Engine — Confidential
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function App() {
   const [tab, setTab] = React.useState('home');
   const [scrolled, setScrolled] = React.useState(false);
@@ -2758,7 +3030,7 @@ function App() {
       <nav className={scrolled || !isHome ? 'solid' : ''}>
         <div className="nav-logo" onClick={() => setTab('home')}>PIVOT</div>
         <div className="nav-tabs">
-          {[['games','Games'],['players','Players'],['frontoffice','Front Office'],['coach','Coach Mode']].map(([id,label]) => (
+          {[['games','Games'],['players','Players'],['frontoffice','Front Office'],['coach','Coach Mode'],['about','The Architects']].map(([id,label]) => (
             <button key={id} className={`nav-tab ${tab===id?'active':''}`} onClick={() => setTab(id)}>{label}</button>
           ))}
         </div>
@@ -2771,6 +3043,7 @@ function App() {
         {tab === 'frontoffice' && <FrontOffice/>}
         {tab === 'coach'       && <CoachMode/>}
         {tab === 'analysis'    && <Analysis/>}
+        {tab === 'about'       && <About/>}
       </div>
       <Ticker/>
     </>
