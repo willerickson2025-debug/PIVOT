@@ -135,6 +135,16 @@ async def get_player_stats(player_id: int, season: int = Query(2025, description
         raise HTTPException(status_code=502, detail=f"BallDontLie API error: {str(e)}")
 
 
+@router.get("/nba/trending")
+async def get_trending_players():
+    """Top NBA performers from the last 5 days by points scored."""
+    try:
+        players = await nba_service.get_trending_players()
+        return {"players": players, "count": len(players)}
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+
 @router.get("/nba/news")
 async def nba_news():
     """Fetch latest NBA headlines from ESPN RSS feed."""
