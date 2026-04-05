@@ -1428,10 +1428,10 @@ function Players() {
   ];
 
   const FEATURED_PLAYERS = [
-    { id: 237,        name: 'LeBron James',      position: 'F',   team: 'LAL' },
-    { id: 56677822,   name: 'Victor Wembanyama', position: 'F-C', team: 'SAS' },
-    { id: 1057262088, name: 'Cooper Flagg',       position: 'F',   team: 'DAL' },
-    { id: 3547238,    name: 'Anthony Edwards',    position: 'G',   team: 'MIN' },
+    { id: 237,        nbaId: 2544,    name: 'LeBron James',      position: 'F',   team: 'LAL', pts: 20.6, reb: 6.0, ast: 6.9 },
+    { id: 56677822,   nbaId: 1641705, name: 'Victor Wembanyama', position: 'F-C', team: 'SAS', pts: 24.8, reb: 11.5, ast: 3.1 },
+    { id: 1057262088, nbaId: 1642843, name: 'Cooper Flagg',       position: 'F',   team: 'DAL', pts: 20.8, reb: 6.6, ast: 4.5 },
+    { id: 3547238,    nbaId: 1630162, name: 'Anthony Edwards',    position: 'G',   team: 'MIN', pts: 28.9, reb: 5.0, ast: 3.7 },
   ];
 
   const pct = (v) => v != null ? `${(v*100).toFixed(1)}%` : '-';
@@ -1526,13 +1526,33 @@ function Players() {
                   onMouseEnter={e => { e.currentTarget.style.borderColor='rgba(0,230,118,0.35)'; e.currentTarget.style.transform='translateY(-2px)'; e.currentTarget.style.boxShadow='0 12px 40px rgba(0,230,118,0.08)'; }}
                   onMouseLeave={e => { e.currentTarget.style.borderColor='rgba(255,255,255,0.07)'; e.currentTarget.style.transform='none'; e.currentTarget.style.boxShadow='none'; }}>
 
-                  {/* Card accent bar */}
-                  <div style={{height:3, background:'linear-gradient(90deg, var(--green), transparent)'}}/>
+                  {/* Headshot area */}
+                  <div style={{position:'relative', height:160, background:'linear-gradient(160deg, #0d1117 0%, #111820 100%)', overflow:'hidden'}}>
+                    <div style={{position:'absolute', inset:0, background:'radial-gradient(ellipse at 80% 100%, rgba(0,230,118,0.05) 0%, transparent 65%)'}}/>
+                    <img
+                      src={`${API}/headshot/${p.nbaId}`}
+                      alt={p.name}
+                      style={{position:'absolute', bottom:0, right:0, height:'155px', objectFit:'contain', objectPosition:'bottom right'}}
+                      onError={e => { e.target.style.display='none'; }}
+                    />
+                    <div style={{position:'absolute', top:10, left:12, fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:3, fontWeight:700, color:'var(--green)', opacity:0.8}}>{p.team}</div>
+                    <div style={{position:'absolute', bottom:10, left:12, fontFamily:'Helvetica Neue, sans-serif', fontSize:8, letterSpacing:2, fontWeight:700, color:'rgba(255,255,255,0.25)'}}>{p.position}</div>
+                  </div>
 
                   {/* Card body */}
-                  <div style={{padding:'20px 20px 18px'}}>
-                    <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:3, fontWeight:700, color:'var(--green)', textTransform:'uppercase', marginBottom:10, opacity:0.7}}>{p.team} · {p.position}</div>
-                    <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:18, fontWeight:700, letterSpacing:0.2, color:'var(--white)', marginBottom:16, lineHeight:1.2}}>{p.name}</div>
+                  <div style={{padding:'14px 16px 16px'}}>
+                    <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:15, fontWeight:700, letterSpacing:0.2, color:'var(--white)', marginBottom:14, lineHeight:1.2}}>{p.name}</div>
+
+                    {/* Stat bar */}
+                    <div style={{display:'flex', justifyContent:'space-around', marginBottom:14, paddingBottom:14, borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
+                      {[{v:p.pts,l:'PTS'},{v:p.reb,l:'REB'},{v:p.ast,l:'AST'}].map(({v,l}) => (
+                        <div key={l} style={{textAlign:'center'}}>
+                          <div style={{fontFamily:'Inter, sans-serif', fontSize:18, fontWeight:700, color:'var(--white)', letterSpacing:-0.5}}>{v}</div>
+                          <div style={{fontFamily:'Inter, sans-serif', fontSize:8, letterSpacing:2, color:'var(--text-muted)', textTransform:'uppercase', marginTop:2}}>{l}</div>
+                        </div>
+                      ))}
+                    </div>
+
                     <div style={{display:'inline-flex', alignItems:'center', gap:6, background:'rgba(0,230,118,0.06)', border:'1px solid rgba(0,230,118,0.15)', borderRadius:99, padding:'4px 10px'}}>
                       <div style={{width:4, height:4, borderRadius:'50%', background:'var(--green)', opacity:0.7}}/>
                       <span style={{fontFamily:'Inter, sans-serif', fontSize:10, letterSpacing:0.5, color:'rgba(0,230,118,0.7)', fontWeight:500}}>View Analysis →</span>
