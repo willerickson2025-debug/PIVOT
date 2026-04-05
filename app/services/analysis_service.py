@@ -1064,6 +1064,124 @@ async def analyze_roster(team_name: str) -> dict[str, Any]:
     }
 
 
+async def analyze_game(game_id: int) -> dict[str, Any]:
+    """
+    Generate a PIVOT analysis for a single game — adapts to game state:
+    pre-game preview, live breakdown, or post-game recap.
+    """
+    logger.info("Game analysis | game_id=%d", game_id)
+
+    box = await nba_service.get_game_boxscore(game_id)
+    if not box:
+        raise ValueError(f"No data for game {game_id}")
+
+    game_info = box.get("game_info") or {}
+    home_t    = box.get("home_team") or {}
+    away_t    = box.get("away_team") or {}
+
+    home_name  = home_t.get("name") or "Home"
+    away_name  = away_t.get("name") or "Away"
+    home_abbr  = home_t.get("abbreviation") or ""
+    away_abbr  = away_t.get("abbreviation") or ""
+    home_score = int(game_info.get("home_team_score") or 0)
+    away_score = int(game_info.get("away_team_score") or 0)
+    period     = int(game_info.get("period") or 0)
+    clock      = game_info.get("time") or ""
+    status_raw = (game_info.get("status") or "").lower()
+
+    has_score = home_score > 0 or away_score > 0
+    is_final  = "final" in status_raw or "complete" in status_raw
+    is_live   = has_score and not is_final
+
+    if is_final:
+        game_type = "FINAL"
+    elif is_live:
+        ql = f"Q{period}" if period <= 4 else ("OT" if period == 5 else f"OT{period-4}")
+        game_type = f"LIVE — {ql} {clock}".strip()
+    else:
+        game_type = "UPCOMING"
+
+    score_line = (
+        f"{away_abbr} {away_score} — {home_score} {home_abbr}"
+        if has_score else f"{away_abbr} @ {home_abbr}"
+    )
+
+    def _fmt(players: list[dict], label: str) -> str:
+        if not players:
+            return ""
+        lines = [f"\n{label}:"]
+        for p in players[:8]:
+            lines.append(
+                f"  {p['player']} ({p['pos']}): "
+                f"{p['pts']}pts {p['reb']}reb {p['ast']}ast "
+                f"{p['fg']}FG {p['fg3']}3P {p['min']}min {p['pf']}PF"
+            )
+        return "\n".join(lines)
+
+    has_box = box.get("total_players", 0) > 0
+
+    if is_final:
+        prompt = (
+            f"POST-GAME RECAP — {score_line} FINAL\n"
+            f"{away_name} (Away) vs {home_name} (Home)\n"
+        )
+        if has_box:
+            prompt += _fmt(box.get("away_players", []), away_name)
+            prompt += _fmt(box.get("home_players", []), home_name)
+        prompt += (
+            "\n\nBreak down what decided this game: the key performers, the turning point, "
+            "what the winning team did right, and what this result means for both franchises going forward."
+        )
+    elif is_live:
+        prompt = (
+            f"LIVE GAME ANALYSIS — {score_line} ({game_type})\n"
+            f"{away_name} (Away) vs {home_name} (Home)\n"
+        )
+        if has_box:
+            prompt += _fmt(box.get("away_players", []), away_name)
+            prompt += _fmt(box.get("home_players", []), home_name)
+        prompt += (
+            "\n\nAnalyze the current game state: who is winning and why, the key individual performances, "
+            "what is driving the score differential, and who closes this game out."
+        )
+    else:
+        prompt = (
+            f"PRE-GAME MATCHUP PREVIEW — {score_line}\n"
+            f"{away_name} at {home_name}\n\n"
+            "Break down this matchup: the stylistic clash, the key individual battles, "
+            "home/away advantages, and which team has the edge. Close with a confident prediction."
+        )
+
+    # Cache: 3 min live, 20 min final, 10 min upcoming
+    cache_ttl = 180 if is_live else (1200 if is_final else 600)
+    cache_key = f"game_analysis:{game_id}:{period}:{home_score}:{away_score}"
+    cached = analysis_cache.get(cache_key)
+    if cached:
+        logger.info("Game analysis cache hit | game_id=%d", game_id)
+        return cached
+
+    result = await claude_service.analyze(
+        prompt=prompt,
+        system_prompt=NBA_ANALYST_SYSTEM_PROMPT,
+        override_max_tokens=950,
+    )
+
+    logger.info("Game analysis complete | game_id=%d type=%s tokens=%d", game_id, game_type, result.tokens_used)
+
+    response = {
+        "game_id": game_id,
+        "game_type": game_type,
+        "score_line": score_line,
+        "home_team": home_name,
+        "away_team": away_name,
+        "analysis": result.analysis,
+        "model": result.model,
+        "tokens_used": result.tokens_used,
+    }
+    analysis_cache.set(cache_key, response, cache_ttl)
+    return response
+
+
 async def coach_adjustment(body: dict[str, Any]) -> dict[str, Any]:
     """
     Generate live in-game coaching adjustments based on the current box score.

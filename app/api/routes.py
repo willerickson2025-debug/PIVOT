@@ -171,6 +171,14 @@ async def claude_analyze(body: AnalysisRequest):
 
 # ── Analysis (Combined) ───────────────────────────────────────────────────────
 
+@router.get("/analysis/game/{game_id}")
+async def game_analysis(game_id: int):
+    try:
+        return await analysis_service.analyze_game(game_id)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+
 @router.get("/analysis/today-games", response_model=GameAnalysisResponse)
 async def today_games_analysis(date: Optional[str] = Query(None, description="Format: YYYY-MM-DD")):
     if date and not validate_date_string(date):
