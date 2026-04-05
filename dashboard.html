@@ -2184,6 +2184,44 @@ function CourtDiagram({ diagram }) {
   );
 }
 
+function CoachGameCard({ g, onSelect }) {
+  const { label, type } = parseStatus(g.status);
+  const hasScore = g.home_team_score > 0 || g.visitor_team_score > 0;
+  const isLive = type === 'live';
+
+  const handleMouseMove = (e) => {
+    const card = e.currentTarget;
+    const rect = card.getBoundingClientRect();
+    card.style.setProperty('--cx', ((e.clientX - rect.left) / rect.width * 100).toFixed(1) + '%');
+    card.style.setProperty('--cy', ((e.clientY - rect.top) / rect.height * 100).toFixed(1) + '%');
+  };
+
+  return (
+    <div className="g-card2" onClick={() => onSelect(g)} onMouseMove={handleMouseMove} style={{cursor:'pointer'}}>
+      <div className="g-glow-overlay"/>
+
+      <div className={`g-status-badge${isLive ? ' live' : ''}`}>
+        {isLive && <span className="g-live-dot"/>}
+        {isLive ? 'LIVE' : label}
+      </div>
+
+      <div>
+        <TeamRow team={g.visitor_team} score={g.visitor_team_score} isLive={isLive} hasScore={hasScore}/>
+        <div className="g-team-sep"/>
+        <TeamRow team={g.home_team} score={g.home_team_score} isLive={isLive} hasScore={hasScore}/>
+      </div>
+
+      <div className="g-card-footer" style={{marginTop:'auto'}}>
+        <span className="g-conf-pill">{[g.home_team?.conference, g.home_team?.division].filter(Boolean).join(' · ')}</span>
+        <div style={{display:'inline-flex', alignItems:'center', gap:6, background:'rgba(0,230,118,0.06)', border:'1px solid rgba(0,230,118,0.2)', borderRadius:3, padding:'7px 14px'}}>
+          <div style={{width:4, height:4, borderRadius:'50%', background:'var(--green)', opacity:0.8}}/>
+          <span style={{fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', fontSize:9, letterSpacing:3, fontWeight:700, color:'var(--green)', textTransform:'uppercase'}}>Coach Mode</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function CoachMode() {
   const [games, setGames] = React.useState([]);
   const [selectedGame, setSelectedGame] = React.useState(null);
@@ -2259,91 +2297,101 @@ function CoachMode() {
     };
   })() : null;
 
+  // Game grid view — shown before a game is selected
+  if (!selectedGame) {
+    return (
+      <div style={{padding:'40px 32px 80px', maxWidth:1200, margin:'0 auto'}}>
+        <div style={{display:'flex', alignItems:'center', gap:16, marginBottom:32}}>
+          <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:'clamp(28px,4vw,48px)', fontWeight:900, letterSpacing:-1, color:'var(--white)', lineHeight:1}}>COACH MODE</div>
+          <div style={{flex:1, height:1, background:'rgba(255,255,255,0.05)'}}/>
+          <div style={{fontFamily:'Inter, sans-serif', fontSize:9, letterSpacing:4, color:'rgba(0,230,118,0.5)', textTransform:'uppercase', fontWeight:600}}>Select a game to begin</div>
+        </div>
+
+        {games.length === 0 ? (
+          <div style={{textAlign:'center', padding:'80px 0', fontFamily:'Inter, sans-serif', fontSize:11, letterSpacing:4, color:'rgba(255,255,255,0.15)', textTransform:'uppercase'}}>No games scheduled today</div>
+        ) : (
+          <div className="g-grid">
+            {games.map(g => (
+              <CoachGameCard key={g.id} g={g} onSelect={g => { setSelectedGame(g); setMyTeam(''); setResult(null); setError(null); }}/>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="war-room war-room-grid" style={{display:'grid', gridTemplateColumns:'22% 1fr 22%', minHeight:'calc(100vh - 56px)'}}>
 
       {/* ── Left: Command Panel ── */}
       <div style={{borderRight:'1px solid var(--border)', background:'rgba(0,0,0,0.4)', display:'flex', flexDirection:'column', overflowY:'auto'}}>
         <div style={{padding:'16px', borderBottom:'1px solid var(--border)'}}>
-          <div style={{fontSize:7, letterSpacing:5, color:'rgba(0,230,118,0.55)', marginBottom:12, fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', fontWeight:800, textTransform:'uppercase'}}>Game Select</div>
-          {games.length === 0 && <div style={{fontSize:8, letterSpacing:2, color:'#2a2a2a', fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', fontWeight:700}}>NO GAMES TODAY</div>}
-          {games.map(g => {
-            const { label, type } = parseStatus(g.status);
-            const sel = selectedGame?.id === g.id;
-            const ha = g.home_team_score > 0 || g.visitor_team_score > 0;
-            const isLive = type === 'live';
-            return (
-              <div key={g.id} className="game-card" onClick={() => { setSelectedGame(g); setMyTeam(''); setResult(null); setError(null); }}
-                style={{padding:'12px 14px', marginBottom:4, cursor:'pointer', borderRadius:6,
-                  border: sel ? '1px solid rgba(0,230,118,0.5)' : '1px solid rgba(255,255,255,0.08)',
-                  background: sel ? 'rgba(0,230,118,0.06)' : 'rgba(255,255,255,0.03)',
-                  backdropFilter:'blur(4px)'}}>
-                <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:4}}>
-                  {isLive && <span style={{width:6, height:6, borderRadius:'50%', background:'var(--green)', display:'inline-block', animation:'live-ping 1.2s ease-out infinite'}}/>}
-                  <span style={{fontSize:7, letterSpacing:3, color: isLive?'var(--green)':'#444', fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', fontWeight:700, textTransform:'uppercase'}}>
-                    {isLive ? 'LIVE' : label}
-                  </span>
+          {/* Back button */}
+          <button onClick={() => { setSelectedGame(null); setResult(null); setError(null); setHistory([]); }}
+            style={{display:'flex', alignItems:'center', gap:6, background:'transparent', border:'1px solid var(--border)', color:'var(--text-muted)', cursor:'pointer', padding:'7px 12px', borderRadius:4, marginBottom:16, fontFamily:'Inter, sans-serif', fontSize:10, letterSpacing:2, fontWeight:500, transition:'all 0.15s', width:'100%'}}
+            onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--border-strong)';e.currentTarget.style.color='var(--white)';}}
+            onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border)';e.currentTarget.style.color='var(--text-muted)';}}>
+            ← All Games
+          </button>
+
+          {/* Selected game summary */}
+          <div style={{padding:'12px 14px', borderRadius:6, border:'1px solid rgba(0,230,118,0.3)', background:'rgba(0,230,118,0.04)', marginBottom:16}}>
+            {(() => { const {label,type} = parseStatus(selectedGame.status); const isLive = type==='live'; return (
+              <>
+                <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:6}}>
+                  {isLive && <span style={{width:6,height:6,borderRadius:'50%',background:'var(--green)',display:'inline-block',animation:'live-ping 1.2s ease-out infinite'}}/>}
+                  <span style={{fontSize:7,letterSpacing:3,color:isLive?'var(--green)':'#555',fontFamily:'Helvetica Neue, sans-serif',fontWeight:700,textTransform:'uppercase'}}>{isLive?'LIVE':label}</span>
                 </div>
-                <div style={{fontSize:13, letterSpacing:1, fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', fontWeight:700,
-                  color: sel ? '#fff' : 'rgba(255,255,255,0.65)'}}>
-                  {g.visitor_team.abbreviation} <span style={{color:'rgba(255,255,255,0.25)'}}>@</span> {g.home_team.abbreviation}
+                <div style={{fontSize:15,letterSpacing:1,fontFamily:'Helvetica Neue, sans-serif',fontWeight:700,color:'#fff'}}>
+                  {selectedGame.visitor_team.abbreviation} <span style={{color:'rgba(255,255,255,0.25)'}}>@</span> {selectedGame.home_team.abbreviation}
                 </div>
-                {ha && <div style={{fontSize:13, color:'var(--green)', letterSpacing:2, marginTop:4, fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', fontWeight:800}}>
-                  {g.visitor_team_score} — {g.home_team_score}
-                </div>}
-              </div>
-            );
-          })}
+                {(selectedGame.home_team_score > 0 || selectedGame.visitor_team_score > 0) && (
+                  <div style={{fontSize:13,color:'var(--green)',letterSpacing:2,marginTop:4,fontFamily:'Helvetica Neue, sans-serif',fontWeight:800}}>
+                    {selectedGame.visitor_team_score} — {selectedGame.home_team_score}
+                  </div>
+                )}
+              </>
+            );})()}
+          </div>
+
+          <div style={{fontSize:8, letterSpacing:5, color:'rgba(0,230,118,0.4)', marginBottom:10, fontFamily:'Inter, sans-serif'}}>⬡ MY TEAM</div>
+          <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:4, marginBottom:20}}>
+            {[selectedGame.visitor_team, selectedGame.home_team].map(t => (
+              <button key={t.id} onClick={() => setMyTeam(t.name)}
+                style={{background: myTeam===t.name ? 'var(--green)' : 'rgba(0,0,0,0.5)',
+                  color: myTeam===t.name ? '#000' : '#444',
+                  border: `1px solid ${myTeam===t.name ? 'var(--green)' : 'rgba(255,255,255,0.08)'}`,
+                  padding:'10px 6px', cursor:'pointer', fontSize:10, letterSpacing:3,
+                  fontFamily:'Inter, sans-serif', fontWeight:700, textTransform:'uppercase', transition:'all 0.1s'}}>
+                {t.abbreviation}
+              </button>
+            ))}
+          </div>
+
+          <div style={{fontSize:8, letterSpacing:5, color:'rgba(0,230,118,0.4)', marginBottom:10, fontFamily:'Inter, sans-serif'}}>⬡ MODE</div>
+          <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:4, marginBottom:24}}>
+            {[['adjust','ADJUST'],['timeout','DRAW PLAY']].map(([id, lbl]) => (
+              <button key={id} onClick={() => setMode(id)}
+                style={{background: mode===id ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.5)',
+                  color: mode===id ? '#000' : '#333',
+                  border: `1px solid ${mode===id ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.06)'}`,
+                  padding:'8px 4px', cursor:'pointer', fontSize:8, letterSpacing:3,
+                  fontFamily:'Inter, sans-serif', fontWeight:700, transition:'all 0.1s'}}>
+                {lbl}
+              </button>
+            ))}
+          </div>
+
+          <button onClick={run} disabled={loading || !myTeam}
+            style={{width:'100%', padding:'13px', fontSize:9, letterSpacing:4,
+              fontFamily:'Inter, sans-serif', fontWeight:700, textTransform:'uppercase',
+              cursor: loading||!myTeam ? 'default' : 'pointer', border:'none', transition:'all 0.15s',
+              background: loading ? '#111' : !myTeam ? '#0a0a0a' : 'var(--green)',
+              color: loading||!myTeam ? '#2a2a2a' : '#000',
+              boxShadow: (!loading && myTeam) ? '0 0 20px rgba(0,230,118,0.2)' : 'none'}}>
+            {loading ? '◌ COMPUTING' : !myTeam ? 'SELECT TEAM' : mode==='adjust' ? 'GET ADJUSTMENTS' : 'DRAW THE PLAY'}
+          </button>
         </div>
-
-        {selectedGame && (
-          <div style={{padding:'16px', flex:1}}>
-            <div style={{fontSize:8, letterSpacing:5, color:'rgba(0,230,118,0.4)', marginBottom:10, fontFamily:'Inter, sans-serif'}}>⬡ MY TEAM</div>
-            <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:4, marginBottom:20}}>
-              {[selectedGame.visitor_team, selectedGame.home_team].map(t => (
-                <button key={t.id} onClick={() => setMyTeam(t.name)}
-                  style={{background: myTeam===t.name ? 'var(--green)' : 'rgba(0,0,0,0.5)',
-                    color: myTeam===t.name ? '#000' : '#444',
-                    border: `1px solid ${myTeam===t.name ? 'var(--green)' : 'rgba(255,255,255,0.08)'}`,
-                    padding:'10px 6px', cursor:'pointer', fontSize:10, letterSpacing:3,
-                    fontFamily:'Inter, sans-serif', fontWeight:700, textTransform:'uppercase', transition:'all 0.1s'}}>
-                  {t.abbreviation}
-                </button>
-              ))}
-            </div>
-
-            <div style={{fontSize:8, letterSpacing:5, color:'rgba(0,230,118,0.4)', marginBottom:10, fontFamily:'Inter, sans-serif'}}>⬡ MODE</div>
-            <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:4, marginBottom:24}}>
-              {[['adjust','ADJUST'],['timeout','DRAW PLAY']].map(([id, lbl]) => (
-                <button key={id} onClick={() => setMode(id)}
-                  style={{background: mode===id ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.5)',
-                    color: mode===id ? '#000' : '#333',
-                    border: `1px solid ${mode===id ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.06)'}`,
-                    padding:'8px 4px', cursor:'pointer', fontSize:8, letterSpacing:3,
-                    fontFamily:'Inter, sans-serif', fontWeight:700, transition:'all 0.1s'}}>
-                  {lbl}
-                </button>
-              ))}
-            </div>
-
-            <button onClick={run} disabled={loading || !myTeam}
-              style={{width:'100%', padding:'13px', fontSize:9, letterSpacing:4,
-                fontFamily:'Inter, sans-serif', fontWeight:700, textTransform:'uppercase',
-                cursor: loading||!myTeam ? 'default' : 'pointer', border:'none', transition:'all 0.15s',
-                background: loading ? '#111' : !myTeam ? '#0a0a0a' : 'var(--green)',
-                color: loading||!myTeam ? '#2a2a2a' : '#000',
-                boxShadow: (!loading && myTeam) ? '0 0 20px rgba(0,230,118,0.2)' : 'none'}}>
-              {loading ? '◌ COMPUTING' : !myTeam ? 'SELECT TEAM' : mode==='adjust' ? 'GET ADJUSTMENTS' : 'DRAW THE PLAY'}
-            </button>
-          </div>
-        )}
-
-        {!selectedGame && (
-          <div style={{padding:'24px 16px', fontSize:8, letterSpacing:2, color:'#2a2a2a', lineHeight:2.4,
-            fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', fontWeight:700, textTransform:'uppercase'}}>
-            Select a game<br/>to activate<br/>Coach Mode.
-          </div>
-        )}
       </div>
 
       {/* ── Center: Tactical Display ── */}
