@@ -1914,89 +1914,177 @@ function FrontOffice() {
       {/* ── Right Panel ── */}
       <div style={{position:'relative', zIndex:1, overflowY:'auto', background:'rgba(8,10,14,0.7)', backdropFilter:'blur(4px)'}}>
 
-        {/* Empty state — League Cap Dashboard */}
+        {/* League Dashboard */}
         {!result && !loading && !error && (
-          <div style={{padding:'32px 40px'}}>
-            <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:28}}>
-              <div>
-                <div style={{fontFamily:'Inter, sans-serif', fontSize:9, letterSpacing:5, color:'rgba(0,230,118,0.5)', fontWeight:700, textTransform:'uppercase', marginBottom:6}}>League Overview · 2025–26</div>
-                <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:26, letterSpacing:-0.5, fontWeight:700, color:'var(--white)'}}>Cap Landscape</div>
-              </div>
-              <div style={{fontFamily:'Inter, sans-serif', fontSize:10, letterSpacing:0, color:'rgba(255,255,255,0.25)', textTransform:'none'}}>
-                Select any team to run full analysis →
-              </div>
+          <div style={{padding:'28px 32px 60px'}}>
+
+            {/* Header */}
+            <div style={{display:'flex', alignItems:'baseline', gap:16, marginBottom:28}}>
+              <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:28, letterSpacing:-0.5, fontWeight:900, color:'var(--white)'}}>League Dashboard</div>
+              <div style={{fontFamily:'Inter, sans-serif', fontSize:9, letterSpacing:4, color:'rgba(0,230,118,0.5)', fontWeight:600, textTransform:'uppercase'}}>2025–26 Season</div>
+              <div style={{flex:1, height:1, background:'rgba(255,255,255,0.05)'}}/>
+              <div style={{fontFamily:'Inter, sans-serif', fontSize:10, color:'rgba(255,255,255,0.2)', textTransform:'none'}}>Select a team → for full analysis</div>
             </div>
 
-            {/* Cap bar chart */}
-            <div style={{background:'rgba(17,20,26,0.8)', border:'1px solid var(--border)', borderRadius:12, padding:'28px 32px', marginBottom:24}}>
-              <div style={{fontFamily:'Inter, sans-serif', fontSize:9, letterSpacing:4, color:'rgba(255,255,255,0.3)', textTransform:'uppercase', marginBottom:20, display:'flex', justifyContent:'space-between'}}>
-                <span>Team Payroll vs Salary Cap ($188M)</span>
-                <span style={{color:'rgba(0,230,118,0.4)'}}>Click any bar to analyze</span>
-              </div>
-              <div style={{display:'flex', flexDirection:'column', gap:10}}>
-                {CAP_DATA.map(t => {
-                  const pct = Math.min(100, (t.used / 210) * 100);
-                  const capLine = (188 / 210) * 100;
-                  const over = t.used > 188;
-                  return (
-                    <div key={t.abbr} onClick={() => runRoster(t.name)} style={{cursor:'pointer', display:'flex', alignItems:'center', gap:12}}
-                      onMouseEnter={e => e.currentTarget.querySelector('.cap-bar').style.opacity='1'}
-                      onMouseLeave={e => e.currentTarget.querySelector('.cap-bar').style.opacity='0.75'}>
-                      <div style={{width:28, flexShrink:0}}>
-                        <img src={`https://a.espn.com/combiner/i?img=/i/teamlogos/nba/500/${t.abbr.toLowerCase()}.png&h=28&w=28`}
-                          alt={t.abbr} width={24} height={24} style={{objectFit:'contain', verticalAlign:'middle'}}
-                          onError={e => e.target.style.display='none'}/>
-                      </div>
-                      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:10, letterSpacing:2, color:'rgba(255,255,255,0.55)', fontWeight:700, width:36, flexShrink:0}}>{t.abbr}</div>
-                      <div style={{flex:1, position:'relative', height:24, background:'rgba(255,255,255,0.04)', borderRadius:4, overflow:'visible'}}>
-                        <div className="cap-bar" style={{
-                          position:'absolute', top:0, left:0, height:'100%', width:`${pct}%`,
-                          background: over ? 'linear-gradient(90deg, rgba(239,68,68,0.6), rgba(239,68,68,0.85))' : 'linear-gradient(90deg, rgba(0,230,118,0.4), rgba(0,230,118,0.65))',
-                          borderRadius:4, transition:'width 0.8s ease, opacity 0.2s', opacity:0.75,
-                        }}/>
-                        {/* Cap line marker */}
-                        <div style={{position:'absolute', top:-4, bottom:-4, left:`${capLine}%`, width:1, background:'rgba(255,255,255,0.2)', zIndex:2}}/>
-                      </div>
-                      <div style={{fontFamily:'Inter, sans-serif', fontSize:11, fontWeight:700, color: over ? '#ef4444' : 'rgba(255,255,255,0.6)', width:52, textAlign:'right', flexShrink:0}}>
-                        ${t.used}M
-                      </div>
-                      <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color: over ? 'rgba(239,68,68,0.6)' : 'rgba(0,230,118,0.4)', width:44, textAlign:'right', flexShrink:0, letterSpacing:0}}>
-                        {over ? `+$${t.used-188}M` : `-$${188-t.used}M`}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              <div style={{marginTop:20, paddingTop:16, borderTop:'1px solid rgba(255,255,255,0.05)', display:'flex', gap:24}}>
-                <div style={{display:'flex', alignItems:'center', gap:8}}>
-                  <div style={{width:12, height:3, background:'rgba(0,230,118,0.6)', borderRadius:2}}/>
-                  <span style={{fontFamily:'Inter, sans-serif', fontSize:10, color:'rgba(255,255,255,0.3)', textTransform:'none'}}>Under cap</span>
-                </div>
-                <div style={{display:'flex', alignItems:'center', gap:8}}>
-                  <div style={{width:12, height:3, background:'rgba(239,68,68,0.6)', borderRadius:2}}/>
-                  <span style={{fontFamily:'Inter, sans-serif', fontSize:10, color:'rgba(255,255,255,0.3)', textTransform:'none'}}>Over cap</span>
-                </div>
-                <div style={{display:'flex', alignItems:'center', gap:8}}>
-                  <div style={{width:1, height:12, background:'rgba(255,255,255,0.3)'}}/>
-                  <span style={{fontFamily:'Inter, sans-serif', fontSize:10, color:'rgba(255,255,255,0.3)', textTransform:'none'}}>$188M cap line</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Quick stat cards */}
-            <div style={{display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:12, marginBottom:24}}>
+            {/* Top stat strip */}
+            <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10, marginBottom:20}}>
               {[
-                {label:'Salary Cap', val:'$188M', sub:'2025-26 Hard Cap'},
-                {label:'Luxury Tax', val:'$171.6M', sub:'Threshold Line'},
-                {label:'Teams Over Tax', val:'8', sub:'Paying Penalties'},
-              ].map(({label,val,sub}) => (
-                <div key={label} style={{background:'rgba(17,20,26,0.8)', border:'1px solid var(--border)', borderRadius:10, padding:'20px 20px', position:'relative', overflow:'hidden'}}>
-                  <div style={{position:'absolute', top:0, left:0, right:0, height:2, background:'rgba(0,230,118,0.25)'}}/>
-                  <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:28, letterSpacing:-1, fontWeight:700, color:'var(--green)', lineHeight:1}}>{val}</div>
-                  <div style={{fontFamily:'Inter, sans-serif', fontSize:10, letterSpacing:2, color:'rgba(255,255,255,0.5)', marginTop:8, textTransform:'uppercase'}}>{label}</div>
-                  <div style={{fontFamily:'Inter, sans-serif', fontSize:10, letterSpacing:0, color:'rgba(255,255,255,0.25)', marginTop:2, textTransform:'none'}}>{sub}</div>
+                {val:'$188M', label:'Salary Cap', sub:'2025–26'},
+                {val:'$171.6M', label:'Luxury Tax Line', sub:'Threshold'},
+                {val:'8', label:'Teams Over Tax', sub:'Paying penalties'},
+                {val:'$12.8M', label:'MLE Available', sub:'For tax teams'},
+              ].map(({val,label,sub}) => (
+                <div key={label} style={{background:'rgba(17,20,26,0.8)', border:'1px solid var(--border)', borderRadius:10, padding:'16px 18px', position:'relative', overflow:'hidden'}}>
+                  <div style={{position:'absolute', top:0, left:0, right:0, height:2, background:'rgba(0,230,118,0.2)'}}/>
+                  <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:22, letterSpacing:-0.5, fontWeight:700, color:'var(--green)', lineHeight:1}}>{val}</div>
+                  <div style={{fontFamily:'Inter, sans-serif', fontSize:9, letterSpacing:2, color:'rgba(255,255,255,0.45)', marginTop:6, textTransform:'uppercase'}}>{label}</div>
+                  <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.2)', marginTop:1, textTransform:'none'}}>{sub}</div>
                 </div>
               ))}
+            </div>
+
+            {/* Main grid: 2 columns */}
+            <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:16}}>
+
+              {/* ── Cap Table (compact) ── */}
+              <div style={{background:'rgba(17,20,26,0.8)', border:'1px solid var(--border)', borderRadius:12, padding:'20px 22px'}}>
+                <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16}}>
+                  <div style={{fontFamily:'Inter, sans-serif', fontSize:9, letterSpacing:4, color:'rgba(0,230,118,0.55)', fontWeight:700, textTransform:'uppercase'}}>Cap Table</div>
+                  <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.2)', textTransform:'none'}}>$188M cap line</div>
+                </div>
+                <div style={{display:'flex', flexDirection:'column', gap:7}}>
+                  {CAP_DATA.map(t => {
+                    const pct = Math.min(100, (t.used / 210) * 100);
+                    const capLine = (188 / 210) * 100;
+                    const over = t.used > 188;
+                    return (
+                      <div key={t.abbr} onClick={() => runRoster(t.name)} style={{cursor:'pointer', display:'flex', alignItems:'center', gap:8}}
+                        onMouseEnter={e => e.currentTarget.querySelector('.cap-bar').style.opacity='1'}
+                        onMouseLeave={e => e.currentTarget.querySelector('.cap-bar').style.opacity='0.7'}>
+                        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:1, color:'rgba(255,255,255,0.45)', fontWeight:700, width:30, flexShrink:0}}>{t.abbr}</div>
+                        <div style={{flex:1, position:'relative', height:16, background:'rgba(255,255,255,0.04)', borderRadius:3, overflow:'visible'}}>
+                          <div className="cap-bar" style={{position:'absolute', top:0, left:0, height:'100%', width:`${pct}%`, background: over ? 'rgba(239,68,68,0.7)' : 'rgba(0,230,118,0.55)', borderRadius:3, transition:'opacity 0.15s', opacity:0.7}}/>
+                          <div style={{position:'absolute', top:-2, bottom:-2, left:`${capLine}%`, width:1, background:'rgba(255,255,255,0.15)'}}/>
+                        </div>
+                        <div style={{fontFamily:'Inter, sans-serif', fontSize:10, fontWeight:700, color: over ? '#ef4444' : 'rgba(255,255,255,0.5)', width:40, textAlign:'right', flexShrink:0}}>${t.used}M</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* ── Top MVP Candidates ── */}
+              <div style={{background:'rgba(17,20,26,0.8)', border:'1px solid var(--border)', borderRadius:12, padding:'20px 22px'}}>
+                <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16}}>
+                  <div style={{fontFamily:'Inter, sans-serif', fontSize:9, letterSpacing:4, color:'rgba(0,230,118,0.55)', fontWeight:700, textTransform:'uppercase'}}>MVP Race</div>
+                  <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.2)', textTransform:'none'}}>2025–26 leaders</div>
+                </div>
+                {[
+                  {name:'Shai Gilgeous-Alexander', team:'OKC', pts:32.7, reb:5.1, ast:6.4, odds:'-180'},
+                  {name:'Anthony Edwards',          team:'MIN', pts:28.9, reb:5.0, ast:3.7, odds:'+220'},
+                  {name:'Nikola Jokic',             team:'DEN', pts:26.2, reb:12.8, ast:9.5, odds:'+300'},
+                  {name:'Victor Wembanyama',        team:'SAS', pts:24.8, reb:11.5, ast:3.1, odds:'+450'},
+                  {name:'Jayson Tatum',             team:'BOS', pts:27.4, reb:8.6, ast:5.2, odds:'+600'},
+                  {name:'LeBron James',             team:'LAL', pts:20.6, reb:6.0, ast:6.9, odds:'+1200'},
+                ].map((p, i) => (
+                  <div key={p.name}
+                    onClick={() => runRoster(ALL_TEAMS.find(t => t.abbr === p.team)?.name || '')}
+                    style={{cursor:'pointer', display:'flex', alignItems:'center', gap:10, padding:'8px 0', borderBottom: i < 5 ? '1px solid rgba(255,255,255,0.04)' : 'none'}}
+                    onMouseEnter={e => e.currentTarget.style.background='rgba(0,230,118,0.02)'}
+                    onMouseLeave={e => e.currentTarget.style.background=''}>
+                    <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, fontWeight:700, color:'rgba(0,230,118,0.35)', width:16, flexShrink:0}}>{i+1}</div>
+                    <div style={{flex:1, minWidth:0}}>
+                      <div style={{fontFamily:'Inter, sans-serif', fontSize:12, fontWeight:600, color:'rgba(255,255,255,0.85)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{p.name}</div>
+                      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, letterSpacing:2, color:'rgba(0,230,118,0.4)', marginTop:1}}>{p.team} · {p.pts} PPG</div>
+                    </div>
+                    <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, fontWeight:700, color: i===0 ? 'var(--green)' : 'rgba(255,255,255,0.3)', flexShrink:0}}>{p.odds}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Bottom grid: 3 columns */}
+            <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:16}}>
+
+              {/* ── 2025 Mock Draft ── */}
+              <div style={{background:'rgba(17,20,26,0.8)', border:'1px solid var(--border)', borderRadius:12, padding:'20px 22px'}}>
+                <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16}}>
+                  <div style={{fontFamily:'Inter, sans-serif', fontSize:9, letterSpacing:4, color:'rgba(0,230,118,0.55)', fontWeight:700, textTransform:'uppercase'}}>2025 Mock Draft</div>
+                  <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.2)', textTransform:'none'}}>Top 8 picks</div>
+                </div>
+                {[
+                  {pick:1, name:'Cooper Flagg',      team:'DAL', pos:'SF', school:'Duke'},
+                  {pick:2, name:'Dylan Harper',       team:'SAS', pos:'PG', school:'Rutgers'},
+                  {pick:3, name:'Ace Bailey',         team:'PHI', pos:'SF', school:'Rutgers'},
+                  {pick:4, name:'VJ Edgecombe',       team:'WAS', pos:'SG', school:'Baylor'},
+                  {pick:5, name:'Tre Johnson',        team:'DET', pos:'SG', school:'Texas'},
+                  {pick:6, name:'Noa Essengue',       team:'CHA', pos:'PF', school:'France'},
+                  {pick:7, name:'Egor Demin',         team:'UTA', pos:'PG', school:'BYU'},
+                  {pick:8, name:'Kon Knueppel',       team:'ORL', pos:'SF', school:'Duke'},
+                ].map((p, i) => (
+                  <div key={p.pick} style={{display:'flex', alignItems:'center', gap:8, padding:'7px 0', borderBottom: i < 7 ? '1px solid rgba(255,255,255,0.04)' : 'none'}}>
+                    <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:10, fontWeight:700, color:'rgba(255,255,255,0.2)', width:14, flexShrink:0}}>{p.pick}</div>
+                    <div style={{flex:1, minWidth:0}}>
+                      <div style={{fontFamily:'Inter, sans-serif', fontSize:11, fontWeight:600, color:'rgba(255,255,255,0.8)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{p.name}</div>
+                      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, letterSpacing:1, color:'rgba(255,255,255,0.3)', marginTop:1}}>{p.school}</div>
+                    </div>
+                    <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, letterSpacing:2, fontWeight:700, color:'rgba(0,230,118,0.5)', flexShrink:0}}>{p.team}</div>
+                    <div style={{fontFamily:'Inter, sans-serif', fontSize:8, color:'rgba(255,255,255,0.25)', flexShrink:0, width:20}}>{p.pos}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* ── Top Prospects ── */}
+              <div style={{background:'rgba(17,20,26,0.8)', border:'1px solid var(--border)', borderRadius:12, padding:'20px 22px'}}>
+                <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16}}>
+                  <div style={{fontFamily:'Inter, sans-serif', fontSize:9, letterSpacing:4, color:'rgba(0,230,118,0.55)', fontWeight:700, textTransform:'uppercase'}}>Top Prospects</div>
+                  <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.2)', textTransform:'none'}}>Scouting board</div>
+                </div>
+                {[
+                  {name:'Cooper Flagg',   pos:'SF', ht:'6\'9"', age:18, grade:'A+', note:'Generational two-way wing'},
+                  {name:'Dylan Harper',   pos:'PG', ht:'6\'5"', age:19, grade:'A',  note:'Elite creator off dribble'},
+                  {name:'Ace Bailey',     pos:'SF', ht:'6\'9"', age:19, grade:'A',  note:'Elite scoring upside'},
+                  {name:'VJ Edgecombe',   pos:'SG', ht:'6\'5"', age:19, grade:'A-', note:'Elite athleticism & shot'},
+                  {name:'Tre Johnson',    pos:'SG', ht:'6\'5"', age:19, grade:'B+', note:'Instant bucket getter'},
+                  {name:'Noa Essengue',   pos:'PF', ht:'6\'9"', age:18, grade:'B+', note:'Raw but enormous upside'},
+                  {name:'Egor Demin',     pos:'PG', ht:'6\'9"', age:18, grade:'B+', note:'Unique playmaking size'},
+                  {name:'Kon Knueppel',   pos:'SF', ht:'6\'6"', age:20, grade:'B+', note:'Elite 3&D readiness'},
+                ].map((p, i) => (
+                  <div key={p.name} style={{padding:'7px 0', borderBottom: i < 7 ? '1px solid rgba(255,255,255,0.04)' : 'none'}}>
+                    <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:2}}>
+                      <div style={{fontFamily:'Inter, sans-serif', fontSize:11, fontWeight:600, color:'rgba(255,255,255,0.82)'}}>{p.name}</div>
+                      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:10, fontWeight:700, color: p.grade.startsWith('A') ? 'var(--green)' : 'rgba(255,255,255,0.4)'}}>{p.grade}</div>
+                    </div>
+                    <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.28)', letterSpacing:0}}>{p.pos} · {p.ht} · {p.note}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* ── Trade Pulse ── */}
+              <div style={{background:'rgba(17,20,26,0.8)', border:'1px solid var(--border)', borderRadius:12, padding:'20px 22px'}}>
+                <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16}}>
+                  <div style={{fontFamily:'Inter, sans-serif', fontSize:9, letterSpacing:4, color:'rgba(0,230,118,0.55)', fontWeight:700, textTransform:'uppercase'}}>Trade Pulse</div>
+                  <div style={{display:'inline-flex', alignItems:'center', gap:4}}>
+                    <div style={{width:5, height:5, borderRadius:'50%', background:'var(--green)', animation:'live-ping 1.2s ease-out infinite'}}/>
+                    <div style={{fontFamily:'Inter, sans-serif', fontSize:8, color:'rgba(0,230,118,0.6)', letterSpacing:1}}>LIVE</div>
+                  </div>
+                </div>
+                {(headlines.length ? headlines.slice(0,8) : [
+                  'Kevin Durant extension talks heating up in PHX',
+                  'OKC exploring veteran additions before playoffs',
+                  'NYK eyeing stretch-four before deadline',
+                  'LAL front office evaluating wing options',
+                  'MIN working on Gobert extension framework',
+                  'BOS seeking backup center depth on market',
+                  'MIA in talks for guard off buyout market',
+                  'DAL monitoring trade chips for playoff push',
+                ]).map((h, i) => (
+                  <div key={i} style={{display:'flex', gap:8, alignItems:'flex-start', padding:'7px 0', borderBottom: i < 7 ? '1px solid rgba(255,255,255,0.04)' : 'none'}}>
+                    <div style={{width:3, height:3, borderRadius:'50%', background:'rgba(0,230,118,0.4)', marginTop:5, flexShrink:0}}/>
+                    <span style={{fontFamily:'Inter, sans-serif', fontSize:11, color:'rgba(255,255,255,0.5)', lineHeight:1.45, textTransform:'none', fontWeight:400}}>{h}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}
