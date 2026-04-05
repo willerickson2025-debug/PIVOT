@@ -276,7 +276,7 @@ def _parse_player(raw: dict[str, Any]) -> Player:
         last_name=last,
         position=raw.get("position") or None,
         team=_parse_team(team_raw) if team_raw else None,
-        nba_id=_NBA_ID_BY_NAME.get(full_name),
+        nba_id=raw.get("nba_player_id") or _NBA_ID_BY_NAME.get(full_name),
     )
 
 
@@ -853,3 +853,93 @@ async def get_season_averages(player_id: int, season: int = _DEFAULT_SEASON) -> 
             exc,
         )
         return {}
+
+
+async def get_trending_players(days: int = 5, top_n: int = 8) -> list[dict[str, Any]]:
+    """
+    Return top NBA performers from the last N days based on points scored.
+
+    Fetches raw per-game stats for the date range, strips DNPs, aggregates by
+    player, and returns the top_n highest-scoring players. Uses BallDontLie IDs
+    directly so results always have valid IDs for follow-up API calls.
+    """
+    from datetime import timedelta
+
+    tz = ZoneInfo(_CENTRAL_TZ)
+    today = datetime.now(tz).date()
+    start = today - timedelta(days=days)
+
+    logger.info("Fetching trending players | %s to %s", start, today)
+
+    try:
+        payload = await _fetch_data(
+            "/stats",
+            params={
+                "start_date": str(start),
+                "end_date": str(today),
+                "per_page": _DEFAULT_PER_PAGE,
+            },
+        )
+    except Exception as exc:
+        logger.warning("Trending players fetch failed: %s", exc)
+        return []
+
+    player_agg: dict[int, dict[str, Any]] = {}
+
+    for s in payload.get("data") or []:
+        player_raw = s.get("player") or {}
+        player_id = player_raw.get("id")
+        if not player_id:
+            continue
+
+        # Skip DNPs
+        min_raw = str(s.get("min") or "0")
+        try:
+            mins = int(min_raw.split(":")[0])
+        except (ValueError, AttributeError):
+            mins = 0
+        if mins < 5:
+            continue
+
+        if player_id not in player_agg:
+            team_raw = s.get("team") or {}
+            full_name = f"{player_raw.get('first_name', '')} {player_raw.get('last_name', '')}".strip()
+            player_agg[player_id] = {
+                "id": player_id,
+                "first_name": player_raw.get("first_name", ""),
+                "last_name": player_raw.get("last_name", ""),
+                "name": full_name,
+                "position": player_raw.get("position", ""),
+                "team": team_raw.get("abbreviation", ""),
+                "nba_id": player_raw.get("nba_player_id") or _NBA_ID_BY_NAME.get(full_name),
+                "games": 0,
+                "pts_sum": 0,
+                "reb_sum": 0,
+                "ast_sum": 0,
+            }
+
+        player_agg[player_id]["games"] += 1
+        player_agg[player_id]["pts_sum"] += int(s.get("pts") or 0)
+        player_agg[player_id]["reb_sum"] += int(s.get("reb") or 0)
+        player_agg[player_id]["ast_sum"] += int(s.get("ast") or 0)
+
+    qualified = []
+    for p in player_agg.values():
+        g = p["games"]
+        qualified.append({
+            "id": p["id"],
+            "first_name": p["first_name"],
+            "last_name": p["last_name"],
+            "name": p["name"],
+            "position": p["position"],
+            "team": p["team"],
+            "nba_id": p["nba_id"],
+            "games": g,
+            "pts": round(p["pts_sum"] / g, 1),
+            "reb": round(p["reb_sum"] / g, 1),
+            "ast": round(p["ast_sum"] / g, 1),
+        })
+
+    qualified.sort(key=lambda x: x["pts"], reverse=True)
+    logger.info("Trending players: found %d qualified | returning top %d", len(qualified), top_n)
+    return qualified[:top_n]
