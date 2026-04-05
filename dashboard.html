@@ -1141,9 +1141,16 @@ function GameCard({ g, onSelect, onAnalyze }) {
       {/* Footer */}
       <div className="g-card-footer" style={{marginTop:'auto'}}>
         <span className="g-conf-pill">{[g.home_team?.conference, g.home_team?.division].filter(Boolean).join(' · ')}</span>
-        <div style={{display:'flex', gap:14}}>
-          <span className="g-box-link" onClick={e => { e.stopPropagation(); onAnalyze(g); }}
-            style={{color:'var(--green)', opacity:0.75}}>Analysis →</span>
+        <div style={{display:'flex', gap:10, alignItems:'center'}}>
+          <button
+            onClick={e => { e.stopPropagation(); onAnalyze(g); }}
+            style={{background:'var(--green)', color:'var(--black-deep)', border:'none', padding:'7px 14px',
+              fontSize:9, letterSpacing:3, fontWeight:700,
+              fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif',
+              textTransform:'uppercase', cursor:'pointer', borderRadius:3, transition:'opacity 0.15s',
+              flexShrink:0}}>
+            ANALYZE
+          </button>
           <span className="g-box-link">Box Score →</span>
         </div>
       </div>

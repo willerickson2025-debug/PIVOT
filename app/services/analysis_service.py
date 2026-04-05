@@ -1120,6 +1120,14 @@ async def analyze_game(game_id: int) -> dict[str, Any]:
 
     has_box = box.get("total_players", 0) > 0
 
+    # Cache: 3 min live, 20 min final, 10 min upcoming
+    cache_ttl = 180 if is_live else (1200 if is_final else 600)
+    cache_key = f"game_analysis:{game_id}:{period}:{home_score}:{away_score}"
+    cached = analysis_cache.get(cache_key)
+    if cached:
+        logger.info("Game analysis cache hit | game_id=%d", game_id)
+        return cached
+
     if is_final:
         prompt = (
             f"POST-GAME RECAP — {score_line} FINAL\n"
@@ -1129,8 +1137,13 @@ async def analyze_game(game_id: int) -> dict[str, Any]:
             prompt += _fmt(box.get("away_players", []), away_name)
             prompt += _fmt(box.get("home_players", []), home_name)
         prompt += (
-            "\n\nBreak down what decided this game: the key performers, the turning point, "
-            "what the winning team did right, and what this result means for both franchises going forward."
+            "\n\nWrite a complete game breakdown. Cover:\n"
+            "1. KEY PERFORMERS — name every player who impacted this game, stats and why they mattered\n"
+            "2. TURNING POINT — the specific moment(s) that decided the outcome\n"
+            "3. WHAT WON IT — the tactical or individual factor the winning team executed\n"
+            "4. WHAT LOST IT — where the losing team broke down\n"
+            "5. IMPLICATIONS — what this result means for both franchises going forward\n"
+            "Be specific. Name players, name plays, name quarters. No filler."
         )
     elif is_live:
         prompt = (
@@ -1141,29 +1154,30 @@ async def analyze_game(game_id: int) -> dict[str, Any]:
             prompt += _fmt(box.get("away_players", []), away_name)
             prompt += _fmt(box.get("home_players", []), home_name)
         prompt += (
-            "\n\nAnalyze the current game state: who is winning and why, the key individual performances, "
-            "what is driving the score differential, and who closes this game out."
+            "\n\nWrite a live breakdown. Cover:\n"
+            "1. CURRENT STATE — who is winning and why, what the score differential reflects\n"
+            "2. KEY PERFORMERS — who is dominating this game right now and how\n"
+            "3. TROUBLE SPOTS — who is struggling, who is in foul trouble, shooting cold\n"
+            "4. THE CLOSE — who has the edge to close this out and why\n"
+            "Be specific. Use the actual numbers. No hedging."
         )
     else:
         prompt = (
             f"PRE-GAME MATCHUP PREVIEW — {score_line}\n"
             f"{away_name} at {home_name}\n\n"
-            "Break down this matchup: the stylistic clash, the key individual battles, "
-            "home/away advantages, and which team has the edge. Close with a confident prediction."
+            "Write a complete preview. Cover:\n"
+            "1. STYLISTIC CLASH — how these teams play and where the styles conflict\n"
+            "2. KEY BATTLES — the individual matchups that will decide this game\n"
+            "3. EDGES — where each team has a clear advantage tonight\n"
+            "4. X-FACTOR — the player or trend that could swing it\n"
+            "5. PREDICTION — a confident call with a reason\n"
+            "Be specific. Name players, name schemes. No generic takes."
         )
-
-    # Cache: 3 min live, 20 min final, 10 min upcoming
-    cache_ttl = 180 if is_live else (1200 if is_final else 600)
-    cache_key = f"game_analysis:{game_id}:{period}:{home_score}:{away_score}"
-    cached = analysis_cache.get(cache_key)
-    if cached:
-        logger.info("Game analysis cache hit | game_id=%d", game_id)
-        return cached
 
     result = await claude_service.analyze(
         prompt=prompt,
         system_prompt=NBA_ANALYST_SYSTEM_PROMPT,
-        override_max_tokens=950,
+        override_max_tokens=1400,
     )
 
     logger.info("Game analysis complete | game_id=%d type=%s tokens=%d", game_id, game_type, result.tokens_used)
