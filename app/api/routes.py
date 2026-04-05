@@ -17,6 +17,23 @@ from app.utils.helpers import validate_date_string
 router = APIRouter()
 
 
+# ── Headshot proxy ───────────────────────────────────────────────────────────
+
+@router.get("/headshot/{nba_id}")
+async def headshot_proxy(nba_id: int, response: Response):
+    """Proxy NBA.com headshot images to avoid browser cross-origin blocks."""
+    url = f"https://cdn.nba.com/headshots/nba/latest/1040x760/{nba_id}.png"
+    try:
+        async with httpx.AsyncClient(timeout=8) as client:
+            r = await client.get(url, headers={"User-Agent": "Mozilla/5.0"})
+        if r.status_code != 200:
+            raise HTTPException(status_code=404, detail="Headshot not found")
+        response.headers["Cache-Control"] = "public, max-age=86400"
+        return Response(content=r.content, media_type="image/png")
+    except httpx.RequestError:
+        raise HTTPException(status_code=502, detail="Headshot fetch failed")
+
+
 # ── Health ────────────────────────────────────────────────────────────────────
 
 @router.get("/health")
