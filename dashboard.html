@@ -2006,84 +2006,127 @@ function FrontOffice() {
             {/* Bottom grid: 3 columns */}
             <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:16}}>
 
-              {/* ── 2025 Mock Draft ── */}
+              {/* ── Power Rankings ── */}
               <div style={{background:'rgba(17,20,26,0.8)', border:'1px solid var(--border)', borderRadius:12, padding:'20px 22px'}}>
                 <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16}}>
-                  <div style={{fontFamily:'Inter, sans-serif', fontSize:9, letterSpacing:4, color:'rgba(0,230,118,0.55)', fontWeight:700, textTransform:'uppercase'}}>2025 Mock Draft</div>
-                  <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.2)', textTransform:'none'}}>Top 8 picks</div>
+                  <div style={{fontFamily:'Inter, sans-serif', fontSize:9, letterSpacing:4, color:'rgba(0,230,118,0.55)', fontWeight:700, textTransform:'uppercase'}}>Power Rankings</div>
+                  <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.2)', textTransform:'none'}}>Week 22</div>
                 </div>
                 {[
-                  {pick:1, name:'Cooper Flagg',      team:'DAL', pos:'SF', school:'Duke'},
-                  {pick:2, name:'Dylan Harper',       team:'SAS', pos:'PG', school:'Rutgers'},
-                  {pick:3, name:'Ace Bailey',         team:'PHI', pos:'SF', school:'Rutgers'},
-                  {pick:4, name:'VJ Edgecombe',       team:'WAS', pos:'SG', school:'Baylor'},
-                  {pick:5, name:'Tre Johnson',        team:'DET', pos:'SG', school:'Texas'},
-                  {pick:6, name:'Noa Essengue',       team:'CHA', pos:'PF', school:'France'},
-                  {pick:7, name:'Egor Demin',         team:'UTA', pos:'PG', school:'BYU'},
-                  {pick:8, name:'Kon Knueppel',       team:'ORL', pos:'SF', school:'Duke'},
+                  {rank:1,  prev:1,  team:'OKC', name:'Thunder',       rec:'62-14', note:'Best record in NBA'},
+                  {rank:2,  prev:3,  team:'CLE', name:'Cavaliers',     rec:'58-18', note:'Surging in the East'},
+                  {rank:3,  prev:2,  team:'BOS', name:'Celtics',       rec:'55-21', note:'Title defense rolling'},
+                  {rank:4,  prev:4,  team:'NYK', name:'Knicks',        rec:'51-25', note:'Brunson carrying the load'},
+                  {rank:5,  prev:6,  team:'DEN', name:'Nuggets',       rec:'49-27', note:'Jokic doing Jokic things'},
+                  {rank:6,  prev:5,  team:'MIN', name:'Timberwolves',  rec:'48-28', note:'Edwards ascending'},
+                  {rank:7,  prev:8,  team:'MIA', name:'Heat',          rec:'42-34', note:'Playoff-tested unit'},
+                  {rank:8,  prev:7,  team:'LAL', name:'Lakers',        rec:'41-35', note:'LeBron keeping them alive'},
+                  {rank:9,  prev:9,  team:'PHX', name:'Suns',          rec:'40-36', note:'KD still elite'},
+                  {rank:10, prev:11, team:'IND', name:'Pacers',        rec:'39-37', note:'Haliburton back healthy'},
+                ].map((t, i) => {
+                  const moved = t.prev - t.rank;
+                  return (
+                    <div key={t.team} onClick={() => runRoster(t.name)} style={{cursor:'pointer', display:'flex', alignItems:'center', gap:8, padding:'6px 0', borderBottom: i < 9 ? '1px solid rgba(255,255,255,0.04)' : 'none'}}
+                      onMouseEnter={e => e.currentTarget.style.background='rgba(0,230,118,0.02)'}
+                      onMouseLeave={e => e.currentTarget.style.background=''}>
+                      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, fontWeight:700, color: i < 3 ? 'var(--green)' : 'rgba(255,255,255,0.25)', width:16, flexShrink:0, textAlign:'right'}}>{t.rank}</div>
+                      <img src={`https://a.espn.com/combiner/i?img=/i/teamlogos/nba/500/${t.team.toLowerCase()}.png&h=24&w=24`} alt={t.team} width={18} height={18} style={{objectFit:'contain', flexShrink:0}} onError={e=>e.target.style.display='none'}/>
+                      <div style={{flex:1, minWidth:0}}>
+                        <div style={{fontFamily:'Inter, sans-serif', fontSize:11, fontWeight:600, color:'rgba(255,255,255,0.82)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{t.name}</div>
+                        <div style={{fontFamily:'Inter, sans-serif', fontSize:8, color:'rgba(255,255,255,0.25)', marginTop:1}}>{t.rec}</div>
+                      </div>
+                      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, fontWeight:700, color: moved > 0 ? 'var(--green)' : moved < 0 ? '#ef4444' : 'rgba(255,255,255,0.2)', flexShrink:0}}>
+                        {moved > 0 ? `▲${moved}` : moved < 0 ? `▼${Math.abs(moved)}` : '—'}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* ── Young Stars ── */}
+              <div style={{background:'rgba(17,20,26,0.8)', border:'1px solid var(--border)', borderRadius:12, padding:'20px 22px'}}>
+                <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16}}>
+                  <div style={{fontFamily:'Inter, sans-serif', fontSize:9, letterSpacing:4, color:'rgba(0,230,118,0.55)', fontWeight:700, textTransform:'uppercase'}}>Young Stars</div>
+                  <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.2)', textTransform:'none'}}>Under 25 · 2025–26</div>
+                </div>
+                {[
+                  {name:'Shai Gilgeous-Alexander', team:'OKC', age:26, pts:32.7, note:'MVP frontrunner'},
+                  {name:'Anthony Edwards',          team:'MIN', age:23, pts:28.9, note:'Face of the next era'},
+                  {name:'Victor Wembanyama',         team:'SAS', age:21, pts:24.8, note:'Generational talent'},
+                  {name:'Cooper Flagg',              team:'DAL', age:18, pts:20.8, note:'Rookie of the Year lock'},
+                  {name:'Cade Cunningham',           team:'DET', age:23, pts:26.1, note:'Franchise cornerstone'},
+                  {name:'Tyrese Maxey',              team:'PHI', age:24, pts:26.1, note:'Elite two-way guard'},
+                  {name:'Evan Mobley',               team:'CLE', age:23, pts:18.5, note:'DPOY candidate'},
+                  {name:'Paolo Banchero',            team:'ORL', age:22, pts:22.6, note:'Big man scorer'},
                 ].map((p, i) => (
-                  <div key={p.pick} style={{display:'flex', alignItems:'center', gap:8, padding:'7px 0', borderBottom: i < 7 ? '1px solid rgba(255,255,255,0.04)' : 'none'}}>
-                    <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:10, fontWeight:700, color:'rgba(255,255,255,0.2)', width:14, flexShrink:0}}>{p.pick}</div>
+                  <div key={p.name} style={{display:'flex', alignItems:'center', gap:8, padding:'7px 0', borderBottom: i < 7 ? '1px solid rgba(255,255,255,0.04)' : 'none'}}>
                     <div style={{flex:1, minWidth:0}}>
-                      <div style={{fontFamily:'Inter, sans-serif', fontSize:11, fontWeight:600, color:'rgba(255,255,255,0.8)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{p.name}</div>
-                      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, letterSpacing:1, color:'rgba(255,255,255,0.3)', marginTop:1}}>{p.school}</div>
+                      <div style={{display:'flex', alignItems:'baseline', gap:6}}>
+                        <div style={{fontFamily:'Inter, sans-serif', fontSize:11, fontWeight:600, color:'rgba(255,255,255,0.85)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{p.name}</div>
+                        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, letterSpacing:2, color:'rgba(0,230,118,0.45)', fontWeight:700, flexShrink:0}}>{p.team}</div>
+                      </div>
+                      <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.28)', marginTop:1}}>{p.note}</div>
                     </div>
-                    <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, letterSpacing:2, fontWeight:700, color:'rgba(0,230,118,0.5)', flexShrink:0}}>{p.team}</div>
-                    <div style={{fontFamily:'Inter, sans-serif', fontSize:8, color:'rgba(255,255,255,0.25)', flexShrink:0, width:20}}>{p.pos}</div>
+                    <div style={{textAlign:'right', flexShrink:0}}>
+                      <div style={{fontFamily:'Inter, sans-serif', fontSize:13, fontWeight:700, color:'var(--white)', letterSpacing:-0.5}}>{p.pts}</div>
+                      <div style={{fontFamily:'Inter, sans-serif', fontSize:7, letterSpacing:2, color:'rgba(255,255,255,0.25)', textTransform:'uppercase'}}>PPG</div>
+                    </div>
                   </div>
                 ))}
               </div>
 
-              {/* ── Top Prospects ── */}
+              {/* ── Playoff Picture ── */}
               <div style={{background:'rgba(17,20,26,0.8)', border:'1px solid var(--border)', borderRadius:12, padding:'20px 22px'}}>
-                <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16}}>
-                  <div style={{fontFamily:'Inter, sans-serif', fontSize:9, letterSpacing:4, color:'rgba(0,230,118,0.55)', fontWeight:700, textTransform:'uppercase'}}>Top Prospects</div>
-                  <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.2)', textTransform:'none'}}>Scouting board</div>
+                <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14}}>
+                  <div style={{fontFamily:'Inter, sans-serif', fontSize:9, letterSpacing:4, color:'rgba(0,230,118,0.55)', fontWeight:700, textTransform:'uppercase'}}>Playoff Picture</div>
+                  <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.2)', textTransform:'none'}}>2025–26</div>
                 </div>
                 {[
-                  {name:'Cooper Flagg',   pos:'SF', ht:'6\'9"', age:18, grade:'A+', note:'Generational two-way wing'},
-                  {name:'Dylan Harper',   pos:'PG', ht:'6\'5"', age:19, grade:'A',  note:'Elite creator off dribble'},
-                  {name:'Ace Bailey',     pos:'SF', ht:'6\'9"', age:19, grade:'A',  note:'Elite scoring upside'},
-                  {name:'VJ Edgecombe',   pos:'SG', ht:'6\'5"', age:19, grade:'A-', note:'Elite athleticism & shot'},
-                  {name:'Tre Johnson',    pos:'SG', ht:'6\'5"', age:19, grade:'B+', note:'Instant bucket getter'},
-                  {name:'Noa Essengue',   pos:'PF', ht:'6\'9"', age:18, grade:'B+', note:'Raw but enormous upside'},
-                  {name:'Egor Demin',     pos:'PG', ht:'6\'9"', age:18, grade:'B+', note:'Unique playmaking size'},
-                  {name:'Kon Knueppel',   pos:'SF', ht:'6\'6"', age:20, grade:'B+', note:'Elite 3&D readiness'},
-                ].map((p, i) => (
-                  <div key={p.name} style={{padding:'7px 0', borderBottom: i < 7 ? '1px solid rgba(255,255,255,0.04)' : 'none'}}>
-                    <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:2}}>
-                      <div style={{fontFamily:'Inter, sans-serif', fontSize:11, fontWeight:600, color:'rgba(255,255,255,0.82)'}}>{p.name}</div>
-                      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:10, fontWeight:700, color: p.grade.startsWith('A') ? 'var(--green)' : 'rgba(255,255,255,0.4)'}}>{p.grade}</div>
-                    </div>
-                    <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.28)', letterSpacing:0}}>{p.pos} · {p.ht} · {p.note}</div>
+                  {conf:'EAST', seeds:[
+                    {seed:1, team:'CLE', name:'Cavaliers', gb:'—',   in:true},
+                    {seed:2, team:'BOS', name:'Celtics',   gb:'4',   in:true},
+                    {seed:3, team:'NYK', name:'Knicks',    gb:'7',   in:true},
+                    {seed:4, team:'MIA', name:'Heat',      gb:'16',  in:true},
+                    {seed:7, team:'ATL', name:'Hawks',     gb:'19',  in:false},
+                    {seed:8, team:'CHI', name:'Bulls',     gb:'20',  in:false},
+                  ]},
+                  {conf:'WEST', seeds:[
+                    {seed:1, team:'OKC', name:'Thunder',      gb:'—',  in:true},
+                    {seed:2, team:'DEN', name:'Nuggets',      gb:'13', in:true},
+                    {seed:3, team:'MIN', name:'T-Wolves',     gb:'14', in:true},
+                    {seed:4, team:'LAL', name:'Lakers',       gb:'21', in:true},
+                    {seed:7, team:'PHX', name:'Suns',         gb:'22', in:false},
+                    {seed:8, team:'DAL', name:'Mavericks',    gb:'23', in:false},
+                  ]},
+                ].map(({conf, seeds}) => (
+                  <div key={conf} style={{marginBottom:14}}>
+                    <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, letterSpacing:3, fontWeight:700, color:'rgba(255,255,255,0.2)', marginBottom:6}}>{conf}</div>
+                    {seeds.map((s, i) => (
+                      <div key={s.team} onClick={() => runRoster(s.name)} style={{cursor:'pointer', display:'flex', alignItems:'center', gap:8, padding:'5px 6px', borderRadius:4, marginBottom:2,
+                        background: s.in ? 'rgba(0,230,118,0.04)' : 'transparent',
+                        border: `1px solid ${s.in ? 'rgba(0,230,118,0.12)' : 'rgba(255,255,255,0.04)'}`,
+                        opacity: s.in ? 1 : 0.55}}
+                        onMouseEnter={e => e.currentTarget.style.borderColor='rgba(0,230,118,0.3)'}
+                        onMouseLeave={e => e.currentTarget.style.borderColor=s.in?'rgba(0,230,118,0.12)':'rgba(255,255,255,0.04)'}>
+                        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, fontWeight:700, color: s.seed <= 4 ? 'var(--green)' : 'rgba(255,255,255,0.3)', width:12, flexShrink:0}}>{s.seed}</div>
+                        <img src={`https://a.espn.com/combiner/i?img=/i/teamlogos/nba/500/${s.team.toLowerCase()}.png&h=20&w=20`} alt={s.team} width={16} height={16} style={{objectFit:'contain', flexShrink:0}} onError={e=>e.target.style.display='none'}/>
+                        <div style={{flex:1, fontFamily:'Inter, sans-serif', fontSize:11, fontWeight:500, color:'rgba(255,255,255,0.75)'}}>{s.name}</div>
+                        <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.3)', flexShrink:0}}>{s.gb === '—' ? '—' : `${s.gb} GB`}</div>
+                        {s.in && <div style={{width:4, height:4, borderRadius:'50%', background:'var(--green)', opacity:0.7, flexShrink:0}}/>}
+                      </div>
+                    ))}
                   </div>
                 ))}
-              </div>
-
-              {/* ── Trade Pulse ── */}
-              <div style={{background:'rgba(17,20,26,0.8)', border:'1px solid var(--border)', borderRadius:12, padding:'20px 22px'}}>
-                <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16}}>
-                  <div style={{fontFamily:'Inter, sans-serif', fontSize:9, letterSpacing:4, color:'rgba(0,230,118,0.55)', fontWeight:700, textTransform:'uppercase'}}>Trade Pulse</div>
-                  <div style={{display:'inline-flex', alignItems:'center', gap:4}}>
-                    <div style={{width:5, height:5, borderRadius:'50%', background:'var(--green)', animation:'live-ping 1.2s ease-out infinite'}}/>
-                    <div style={{fontFamily:'Inter, sans-serif', fontSize:8, color:'rgba(0,230,118,0.6)', letterSpacing:1}}>LIVE</div>
+                <div style={{display:'flex', gap:12, marginTop:6}}>
+                  <div style={{display:'flex', alignItems:'center', gap:5}}>
+                    <div style={{width:4,height:4,borderRadius:'50%',background:'var(--green)',opacity:0.7}}/>
+                    <span style={{fontFamily:'Inter, sans-serif', fontSize:8, color:'rgba(255,255,255,0.25)'}}>In playoffs</span>
+                  </div>
+                  <div style={{display:'flex', alignItems:'center', gap:5}}>
+                    <div style={{width:8,height:1,background:'rgba(255,255,255,0.2)'}}/>
+                    <span style={{fontFamily:'Inter, sans-serif', fontSize:8, color:'rgba(255,255,255,0.25)'}}>Play-in zone</span>
                   </div>
                 </div>
-                {(headlines.length ? headlines.slice(0,8) : [
-                  'Kevin Durant extension talks heating up in PHX',
-                  'OKC exploring veteran additions before playoffs',
-                  'NYK eyeing stretch-four before deadline',
-                  'LAL front office evaluating wing options',
-                  'MIN working on Gobert extension framework',
-                  'BOS seeking backup center depth on market',
-                  'MIA in talks for guard off buyout market',
-                  'DAL monitoring trade chips for playoff push',
-                ]).map((h, i) => (
-                  <div key={i} style={{display:'flex', gap:8, alignItems:'flex-start', padding:'7px 0', borderBottom: i < 7 ? '1px solid rgba(255,255,255,0.04)' : 'none'}}>
-                    <div style={{width:3, height:3, borderRadius:'50%', background:'rgba(0,230,118,0.4)', marginTop:5, flexShrink:0}}/>
-                    <span style={{fontFamily:'Inter, sans-serif', fontSize:11, color:'rgba(255,255,255,0.5)', lineHeight:1.45, textTransform:'none', fontWeight:400}}>{h}</span>
-                  </div>
-                ))}
               </div>
             </div>
           </div>
