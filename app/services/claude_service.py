@@ -97,6 +97,7 @@ async def analyze(
     *,
     override_model: Optional[str] = None,
     override_max_tokens: Optional[int] = None,
+    override_temperature: Optional[float] = None,
 ) -> AnalysisResponse:
     """
     Send a prompt to Claude and return a structured analysis response.
@@ -159,6 +160,8 @@ async def analyze(
 
     if system_prompt:
         request_kwargs["system"] = system_prompt
+    if override_temperature is not None:
+        request_kwargs["temperature"] = override_temperature
 
     for attempt in range(1, _MAX_RETRIES + 1):
         try:

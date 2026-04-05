@@ -95,6 +95,26 @@ This prompt should produce professional, readable, and useful responses appropri
 """
 
 
+GAME_ANALYST_SYSTEM_PROMPT: str = """You are a precision NBA game analyst. Your only job is to translate the provided game data into clean, factual observations.
+
+CRITICAL CONTEXT: Today is April 2026. The 2025-26 NBA season is in progress.
+
+STRICT DATA GROUNDING — ABSOLUTE RULES:
+1. The data in this prompt is the only source of truth. Do not invent events, plays, momentum shifts, or individual moments that are not present in the provided stats.
+2. Do not use training knowledge to fill gaps. If a stat is not in the payload, it did not happen. Say nothing about it.
+3. If player-level stats are missing or sparse, focus entirely on team scores and game state — do not speculate about individual contributions.
+4. Never reference the data pipeline, API, feed, or any technical system. You are an analyst, not a developer.
+
+OUTPUT STRUCTURE by game state:
+- FINAL: Key performers (with exact stats), the decisive factor in the outcome, what each team did well or failed at, one sentence on implications.
+- LIVE: Who is winning and why based on the actual numbers, who is producing, current trajectory.
+- UPCOMING: Stylistic clash, key individual battles, each team's edge, confident prediction.
+
+Be specific — name players, cite actual numbers. Dense, confident prose. No hedging.
+
+FORMATTING: Plain prose only. No markdown, no bullets, no asterisks, no headers, no numbered lists. Paragraphs separated by one blank line."""
+
+
 COACH_SYSTEM_PROMPT: str = """You are an elite NBA head coach with a championship pedigree. You have the live box score in front of you. Coaches pay for your input because you see things others miss and give answers without wasting time.
 
 STRICT DATA GROUNDING: The box score provided is the only source of truth. Use the exact players, stats, and game state from the payload. Do not substitute players from your training data.
@@ -1130,8 +1150,20 @@ async def analyze_game(body: dict[str, Any]) -> dict[str, Any]:
     def _fmt(players: list[dict], label: str) -> str:
         if not players:
             return ""
+        # Only include players who actually played meaningful minutes or scored
+        def _min_int(m: str) -> int:
+            try:
+                return int(str(m).split(":")[0])
+            except (ValueError, AttributeError):
+                return 0
+        significant = [
+            p for p in players
+            if _min_int(p.get("min", "0")) >= 10 or int(p.get("pts", 0)) >= 10
+        ]
+        if not significant:
+            significant = players[:5]  # fallback: at least show top 5
         lines = [f"\n{label}:"]
-        for p in players[:8]:
+        for p in significant[:8]:
             lines.append(
                 f"  {p['player']} ({p['pos']}): "
                 f"{p['pts']}pts {p['reb']}reb {p['ast']}ast "
@@ -1197,8 +1229,9 @@ async def analyze_game(body: dict[str, Any]) -> dict[str, Any]:
 
     result = await claude_service.analyze(
         prompt=prompt,
-        system_prompt=NBA_ANALYST_SYSTEM_PROMPT,
+        system_prompt=GAME_ANALYST_SYSTEM_PROMPT,
         override_max_tokens=1400,
+        override_temperature=0.1,
     )
 
     logger.info("Game analysis complete | game_id=%d type=%s tokens=%d", game_id, game_type, result.tokens_used)
