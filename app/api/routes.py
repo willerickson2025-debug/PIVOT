@@ -2,7 +2,7 @@ import json
 import xml.etree.ElementTree as ET
 
 import httpx
-from fastapi import APIRouter, HTTPException, Query, Body, Response
+from fastapi import APIRouter, HTTPException, Query, Body, Response, Request
 from fastapi.responses import StreamingResponse
 from typing import Optional, List
 
@@ -172,8 +172,9 @@ async def claude_analyze(body: AnalysisRequest):
 # ── Analysis (Combined) ───────────────────────────────────────────────────────
 
 @router.post("/analysis/game")
-async def game_analysis(body: dict = Body(...)):
+async def game_analysis(request: Request):
     try:
+        body = await request.json()
         return await analysis_service.analyze_game(body)
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e))
