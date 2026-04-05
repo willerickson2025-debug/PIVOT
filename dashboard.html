@@ -2010,19 +2010,19 @@ function FrontOffice() {
               <div style={{background:'rgba(17,20,26,0.8)', border:'1px solid var(--border)', borderRadius:12, padding:'20px 22px'}}>
                 <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16}}>
                   <div style={{fontFamily:'Inter, sans-serif', fontSize:9, letterSpacing:4, color:'rgba(0,230,118,0.55)', fontWeight:700, textTransform:'uppercase'}}>Power Rankings</div>
-                  <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.2)', textTransform:'none'}}>Week 22</div>
+                  <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.2)', textTransform:'none'}}>April 2026</div>
                 </div>
                 {[
-                  {rank:1,  prev:1,  team:'OKC', name:'Thunder',       rec:'62-14', note:'Best record in NBA'},
-                  {rank:2,  prev:3,  team:'CLE', name:'Cavaliers',     rec:'58-18', note:'Surging in the East'},
-                  {rank:3,  prev:2,  team:'BOS', name:'Celtics',       rec:'55-21', note:'Title defense rolling'},
-                  {rank:4,  prev:4,  team:'NYK', name:'Knicks',        rec:'51-25', note:'Brunson carrying the load'},
-                  {rank:5,  prev:6,  team:'DEN', name:'Nuggets',       rec:'49-27', note:'Jokic doing Jokic things'},
-                  {rank:6,  prev:5,  team:'MIN', name:'Timberwolves',  rec:'48-28', note:'Edwards ascending'},
-                  {rank:7,  prev:8,  team:'MIA', name:'Heat',          rec:'42-34', note:'Playoff-tested unit'},
-                  {rank:8,  prev:7,  team:'LAL', name:'Lakers',        rec:'41-35', note:'LeBron keeping them alive'},
-                  {rank:9,  prev:9,  team:'PHX', name:'Suns',          rec:'40-36', note:'KD still elite'},
-                  {rank:10, prev:11, team:'IND', name:'Pacers',        rec:'39-37', note:'Haliburton back healthy'},
+                  {rank:1,  prev:2,  team:'DET', name:'Pistons',       rec:'56-21', note:'Clinched East #1 seed'},
+                  {rank:2,  prev:1,  team:'OKC', name:'Thunder',       rec:'59-18', note:'West #1, historically elite D'},
+                  {rank:3,  prev:3,  team:'SAS', name:'Spurs',         rec:'55-22', note:'Wemby era in full force'},
+                  {rank:4,  prev:4,  team:'BOS', name:'Celtics',       rec:'52-25', note:'Title defense still alive'},
+                  {rank:5,  prev:5,  team:'NYK', name:'Knicks',        rec:'50-28', note:'Brunson running the East'},
+                  {rank:6,  prev:7,  team:'LAL', name:'Lakers',        rec:'47-30', note:'West #3, LeBron in his bag'},
+                  {rank:7,  prev:6,  team:'CLE', name:'Cavaliers',     rec:'48-29', note:'Mobley anchoring the D'},
+                  {rank:8,  prev:9,  team:'DEN', name:'Nuggets',       rec:'45-32', note:'Jokic makes everyone better'},
+                  {rank:9,  prev:8,  team:'HOU', name:'Rockets',       rec:'44-33', note:'Surprising West contender'},
+                  {rank:10, prev:11, team:'ATL', name:'Hawks',         rec:'45-33', note:'East 5 seed, Trae hunting'},
                 ].map((t, i) => {
                   const moved = t.prev - t.rank;
                   return (
@@ -2088,29 +2088,29 @@ function FrontOffice() {
                     <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, fontWeight:700, color: s.seed <= 4 ? 'var(--green)' : 'rgba(255,255,255,0.25)', width:10, flexShrink:0, textAlign:'right'}}>{s.seed}</div>
                     <img src={`https://a.espn.com/combiner/i?img=/i/teamlogos/nba/500/${s.team.toLowerCase()}.png&h=20&w=20`} alt={s.team} width={14} height={14} style={{objectFit:'contain', flexShrink:0}} onError={e=>e.target.style.display='none'}/>
                     <div style={{flex:1, fontFamily:'Inter, sans-serif', fontSize:10, fontWeight:500, color:'rgba(255,255,255,0.8)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{s.name}</div>
-                    <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.25)', flexShrink:0}}>{s.gb}</div>
+                    <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.25)', flexShrink:0}}>{s.rec}</div>
                     {s.seed === 5 && <div style={{width:'100%', position:'absolute', left:0, bottom:-1, height:1, background:'rgba(255,255,255,0.08)'}}/>}
                   </div>
                 );
                 const EAST = [
-                  {seed:1, team:'CLE', name:'Cavaliers',   gb:'—'},
-                  {seed:2, team:'BOS', name:'Celtics',     gb:'+4'},
-                  {seed:3, team:'NYK', name:'Knicks',      gb:'+7'},
-                  {seed:4, team:'MIL', name:'Bucks',       gb:'+13'},
-                  {seed:5, team:'MIA', name:'Heat',        gb:'+16'},
-                  {seed:6, team:'IND', name:'Pacers',      gb:'+17'},
-                  {seed:7, team:'ATL', name:'Hawks',       gb:'+19'},
-                  {seed:8, team:'CHI', name:'Bulls',       gb:'+20'},
+                  {seed:1, team:'DET', name:'Pistons',      rec:'56-21', gb:'—'},
+                  {seed:2, team:'BOS', name:'Celtics',      rec:'52-25', gb:'+4'},
+                  {seed:3, team:'NYK', name:'Knicks',       rec:'50-28', gb:'+6'},
+                  {seed:4, team:'CLE', name:'Cavaliers',    rec:'48-29', gb:'+8'},
+                  {seed:5, team:'ATL', name:'Hawks',        rec:'45-33', gb:'+11.5'},
+                  {seed:6, team:'TOR', name:'Raptors',      rec:'43-34', gb:'+13'},
+                  {seed:7, team:'PHI', name:'76ers',        rec:'43-35', gb:'+13.5'},
+                  {seed:8, team:'CHA', name:'Hornets',      rec:'42-36', gb:'+14.5'},
                 ];
                 const WEST = [
-                  {seed:1, team:'OKC', name:'Thunder',     gb:'—'},
-                  {seed:2, team:'DEN', name:'Nuggets',     gb:'+13'},
-                  {seed:3, team:'MIN', name:'T-Wolves',    gb:'+14'},
-                  {seed:4, team:'LAL', name:'Lakers',      gb:'+21'},
-                  {seed:5, team:'GSW', name:'Warriors',    gb:'+22'},
-                  {seed:6, team:'SAC', name:'Kings',       gb:'+23'},
-                  {seed:7, team:'PHX', name:'Suns',        gb:'+24'},
-                  {seed:8, team:'DAL', name:'Mavericks',   gb:'+25'},
+                  {seed:1, team:'OKC', name:'Thunder',      rec:'59-18', gb:'—'},
+                  {seed:2, team:'SAS', name:'Spurs',        rec:'55-22', gb:'+4'},
+                  {seed:3, team:'LAL', name:'Lakers',       rec:'47-30', gb:'+12'},
+                  {seed:4, team:'DEN', name:'Nuggets',      rec:'45-32', gb:'+14'},
+                  {seed:5, team:'HOU', name:'Rockets',      rec:'44-33', gb:'+15'},
+                  {seed:6, team:'MIN', name:'T-Wolves',     rec:'43-34', gb:'+16'},
+                  {seed:7, team:'GSW', name:'Warriors',     rec:'40-37', gb:'+19'},
+                  {seed:8, team:'DAL', name:'Mavericks',    rec:'38-39', gb:'+21'},
                 ];
                 return (
                   <div style={{background:'rgba(17,20,26,0.8)', border:'1px solid var(--border)', borderRadius:12, padding:'20px 22px'}}>
