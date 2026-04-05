@@ -1820,45 +1820,54 @@ function FrontOffice() {
   const now = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
 
   const TABS = [
-    {id:'cap',      label:'Cap Table'},
-    {id:'mvp',      label:'MVP Race'},
-    {id:'power',    label:'Power Rankings'},
-    {id:'young',    label:'Young Stars'},
-    {id:'playoff',  label:'Playoff Picture'},
-    {id:'trades',   label:'Trade Tracker'},
-    {id:'contracts',label:'Contract Watch'},
-    {id:'draft',    label:'Draft Board'},
+    {id:'cap',     label:'Cap Table'},
+    {id:'mvp',     label:'MVP Race'},
+    {id:'power',   label:'Power Rankings'},
+    {id:'young',   label:'Young Stars'},
+    {id:'playoff', label:'Playoff Picture'},
   ];
 
   const panelStyle = {background:'rgba(17,20,26,0.85)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:12, padding:'24px 28px'};
   const colLabel = {fontFamily:'Inter, sans-serif', fontSize:9, letterSpacing:4, color:'rgba(0,230,118,0.55)', fontWeight:700, textTransform:'uppercase', marginBottom:18};
 
-  const SeedRow = ({s}) => (
-    <div onClick={() => runRoster(s.name)}
-      style={{cursor:'pointer', display:'flex', alignItems:'center', gap:8, padding:'5px 8px', borderRadius:5, marginBottom:3,
-        background: s.seed <= 6 ? 'rgba(0,230,118,0.04)' : 'transparent',
-        border:`1px solid ${s.seed <= 6 ? 'rgba(0,230,118,0.12)' : 'rgba(255,255,255,0.05)'}`}}
-      onMouseEnter={e=>e.currentTarget.style.borderColor='rgba(0,230,118,0.4)'}
-      onMouseLeave={e=>e.currentTarget.style.borderColor=s.seed<=6?'rgba(0,230,118,0.12)':'rgba(255,255,255,0.05)'}>
-      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:10, fontWeight:700, color:s.seed<=3?'var(--green)':'rgba(255,255,255,0.25)', width:12, textAlign:'right', flexShrink:0}}>{s.seed}</div>
-      <img src={`https://a.espn.com/combiner/i?img=/i/teamlogos/nba/500/${s.team.toLowerCase()}.png&h=20&w=20`} alt={s.team} width={16} height={16} style={{objectFit:'contain',flexShrink:0}} onError={e=>e.target.style.display='none'}/>
-      <div style={{flex:1, fontFamily:'Inter, sans-serif', fontSize:11, fontWeight:500, color:'rgba(255,255,255,0.82)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{s.name}</div>
-      <div style={{fontFamily:'Inter, sans-serif', fontSize:10, color:'rgba(255,255,255,0.3)', flexShrink:0}}>{s.rec}</div>
-      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, letterSpacing:1, color: s.seed<=6?'rgba(0,230,118,0.5)':'rgba(255,255,255,0.18)', flexShrink:0, width:26, textAlign:'right'}}>{s.seed<=6?'IN':'P-IN'}</div>
-    </div>
-  );
+  const SeedRow = ({s}) => {
+    const isIn = s.seed <= 6, isPlayin = s.seed === 7 || s.seed === 8, isOut = s.seed >= 9;
+    return (
+      <div onClick={() => runRoster(s.name)}
+        style={{cursor:'pointer', display:'flex', alignItems:'center', gap:8, padding:'5px 8px', borderRadius:4, marginBottom:2,
+          background: isIn ? 'rgba(0,230,118,0.04)' : isPlayin ? 'rgba(251,191,36,0.03)' : 'transparent',
+          border:`1px solid ${isIn ? 'rgba(0,230,118,0.12)' : isPlayin ? 'rgba(251,191,36,0.12)' : 'rgba(255,255,255,0.04)'}`,
+          opacity: isOut ? 0.45 : 1}}
+        onMouseEnter={e=>e.currentTarget.style.opacity='1'}
+        onMouseLeave={e=>e.currentTarget.style.opacity=isOut?'0.45':'1'}>
+        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:10, fontWeight:700, color:isIn?'var(--green)':isPlayin?'#fbbf24':'rgba(255,255,255,0.2)', width:14, textAlign:'right', flexShrink:0}}>{s.seed}</div>
+        <img src={`https://a.espn.com/combiner/i?img=/i/teamlogos/nba/500/${s.team.toLowerCase()}.png&h=20&w=20`} alt={s.team} width={15} height={15} style={{objectFit:'contain',flexShrink:0}} onError={e=>e.target.style.display='none'}/>
+        <div style={{flex:1, fontFamily:'Inter, sans-serif', fontSize:11, fontWeight:500, color: isOut ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.82)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{s.name}</div>
+        <div style={{fontFamily:'Inter, sans-serif', fontSize:10, color:'rgba(255,255,255,0.28)', flexShrink:0}}>{s.rec}</div>
+        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:7, letterSpacing:1, color:isIn?'rgba(0,230,118,0.5)':isPlayin?'#fbbf24':'rgba(255,255,255,0.15)', flexShrink:0, width:28, textAlign:'right'}}>{isIn?'AUTO':isPlayin?'P-IN':'OUT'}</div>
+      </div>
+    );
+  };
 
   const EAST = [
-    {seed:1,team:'DET',name:'Pistons',   rec:'56-21'},{seed:2,team:'BOS',name:'Celtics',   rec:'52-25'},
-    {seed:3,team:'NYK',name:'Knicks',    rec:'50-28'},{seed:4,team:'CLE',name:'Cavaliers', rec:'48-29'},
-    {seed:5,team:'ATL',name:'Hawks',     rec:'45-33'},{seed:6,team:'TOR',name:'Raptors',   rec:'43-34'},
-    {seed:7,team:'PHI',name:'76ers',     rec:'43-35'},{seed:8,team:'CHA',name:'Hornets',   rec:'42-36'},
+    {seed:1, team:'DET',name:'Pistons',   rec:'56-21'},{seed:2, team:'BOS',name:'Celtics',   rec:'52-25'},
+    {seed:3, team:'NYK',name:'Knicks',    rec:'50-28'},{seed:4, team:'CLE',name:'Cavaliers', rec:'48-29'},
+    {seed:5, team:'ATL',name:'Hawks',     rec:'45-33'},{seed:6, team:'TOR',name:'Raptors',   rec:'43-34'},
+    {seed:7, team:'PHI',name:'76ers',     rec:'43-35'},{seed:8, team:'CHA',name:'Hornets',   rec:'42-36'},
+    {seed:9, team:'MIA',name:'Heat',      rec:'41-36'},{seed:10,team:'IND',name:'Pacers',    rec:'40-37'},
+    {seed:11,team:'MIL',name:'Bucks',     rec:'39-38'},{seed:12,team:'ORL',name:'Magic',     rec:'37-40'},
+    {seed:13,team:'CHI',name:'Bulls',     rec:'35-42'},{seed:14,team:'BKN',name:'Nets',      rec:'22-55'},
+    {seed:15,team:'WAS',name:'Wizards',   rec:'18-59'},
   ];
   const WEST = [
-    {seed:1,team:'OKC',name:'Thunder',   rec:'59-18'},{seed:2,team:'SAS',name:'Spurs',     rec:'55-22'},
-    {seed:3,team:'LAL',name:'Lakers',    rec:'47-30'},{seed:4,team:'DEN',name:'Nuggets',   rec:'45-32'},
-    {seed:5,team:'HOU',name:'Rockets',   rec:'44-33'},{seed:6,team:'MIN',name:'T-Wolves',  rec:'43-34'},
-    {seed:7,team:'GSW',name:'Warriors',  rec:'40-37'},{seed:8,team:'DAL',name:'Mavericks', rec:'38-39'},
+    {seed:1, team:'OKC',name:'Thunder',   rec:'59-18'},{seed:2, team:'SAS',name:'Spurs',     rec:'55-22'},
+    {seed:3, team:'LAL',name:'Lakers',    rec:'47-30'},{seed:4, team:'DEN',name:'Nuggets',   rec:'45-32'},
+    {seed:5, team:'HOU',name:'Rockets',   rec:'44-33'},{seed:6, team:'MIN',name:'T-Wolves',  rec:'43-34'},
+    {seed:7, team:'GSW',name:'Warriors',  rec:'40-37'},{seed:8, team:'DAL',name:'Mavericks', rec:'38-39'},
+    {seed:9, team:'PHX',name:'Suns',      rec:'38-39'},{seed:10,team:'SAC',name:'Kings',     rec:'36-41'},
+    {seed:11,team:'MEM',name:'Grizzlies', rec:'33-44'},{seed:12,team:'LAC',name:'Clippers',  rec:'32-45'},
+    {seed:13,team:'NOP',name:'Pelicans',  rec:'30-47'},{seed:14,team:'POR',name:'Blazers',   rec:'28-49'},
+    {seed:15,team:'UTA',name:'Jazz',      rec:'25-52'},
   ];
 
   return (
@@ -1937,8 +1946,8 @@ function FrontOffice() {
         {/* Scrollable content */}
         <div style={{flex:1, overflowY:'auto', padding: result||loading||error ? '0' : '28px 28px 60px'}}>
 
-          {/* Stat strip (always visible on dashboard) */}
-          {!result && !loading && !error && (
+          {/* Stat strip — cap tab only */}
+          {!result && !loading && !error && dashTab === 'cap' && (
             <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10, marginBottom:24}}>
               {[
                 {val:'$188M', label:'Salary Cap', sub:'2025-26'},
@@ -2029,35 +2038,53 @@ function FrontOffice() {
           {!result && !loading && !error && dashTab === 'power' && (
             <div style={panelStyle}>
               <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:20}}>
-                <div style={colLabel}>Power Rankings</div>
+                <div style={colLabel}>Power Rankings — All 30 Teams</div>
                 <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.2)', textTransform:'none'}}>April 2026</div>
               </div>
               {[
-                {rank:1, prev:2, team:'DET',name:'Pistons',    rec:'56-21',note:'Clinched East #1 seed. Cade era is here.'},
-                {rank:2, prev:1, team:'OKC',name:'Thunder',    rec:'59-18',note:'Best record in the league. SGA unstoppable.'},
-                {rank:3, prev:3, team:'SAS',name:'Spurs',      rec:'55-22',note:'Wemby carrying San Antonio back to elite status.'},
-                {rank:4, prev:4, team:'BOS',name:'Celtics',    rec:'52-25',note:'Title defense still very much alive.'},
-                {rank:5, prev:5, team:'NYK',name:'Knicks',     rec:'50-28',note:'Brunson commanding the East. Garden is electric.'},
-                {rank:6, prev:7, team:'LAL',name:'Lakers',     rec:'47-30',note:'LeBron in his bag. West 3 seed locked.'},
-                {rank:7, prev:6, team:'CLE',name:'Cavaliers',  rec:'48-29',note:'Mobley anchoring elite defense.'},
-                {rank:8, prev:9, team:'DEN',name:'Nuggets',    rec:'45-32',note:'Jokic makes every lineup work.'},
-                {rank:9, prev:8, team:'HOU',name:'Rockets',    rec:'44-33',note:'Surprising West contender. Youth and depth.'},
-                {rank:10,prev:10,team:'ATL',name:'Hawks',      rec:'45-33',note:'Trae hunting. East 5 seed.'},
-                {rank:11,prev:12,team:'MIN',name:'T-Wolves',   rec:'43-34',note:'Edwards carrying in April.'},
-                {rank:12,prev:11,team:'MIA',name:'Heat',       rec:'41-36',note:'Heat culture keeps them relevant.'},
+                {rank:1,  prev:2,  team:'DET',name:'Pistons',      rec:'56-21',note:'Clinched East #1 seed. Cade era is here.'},
+                {rank:2,  prev:1,  team:'OKC',name:'Thunder',      rec:'59-18',note:'Best record in the league. SGA unstoppable.'},
+                {rank:3,  prev:3,  team:'SAS',name:'Spurs',        rec:'55-22',note:'Wemby carrying San Antonio back to elite.'},
+                {rank:4,  prev:4,  team:'BOS',name:'Celtics',      rec:'52-25',note:'Title defense still very much alive.'},
+                {rank:5,  prev:5,  team:'NYK',name:'Knicks',       rec:'50-28',note:'Brunson commanding the East. Garden electric.'},
+                {rank:6,  prev:7,  team:'CLE',name:'Cavaliers',    rec:'48-29',note:'Mobley anchoring elite defense.'},
+                {rank:7,  prev:6,  team:'LAL',name:'Lakers',       rec:'47-30',note:'LeBron in his bag. West 3 seed locked.'},
+                {rank:8,  prev:9,  team:'DEN',name:'Nuggets',      rec:'45-32',note:'Jokic makes every lineup work.'},
+                {rank:9,  prev:10, team:'ATL',name:'Hawks',        rec:'45-33',note:'Trae hunting. East 5 seed.'},
+                {rank:10, prev:8,  team:'HOU',name:'Rockets',      rec:'44-33',note:'Surprising West contender. Youth and depth.'},
+                {rank:11, prev:12, team:'MIN',name:'T-Wolves',     rec:'43-34',note:'Edwards carrying in April.'},
+                {rank:12, prev:11, team:'TOR',name:'Raptors',      rec:'43-34',note:'Quietly surging into East 6 seed.'},
+                {rank:13, prev:13, team:'PHI',name:'76ers',        rec:'43-35',note:'Maxey carrying the load. Play-in bound.'},
+                {rank:14, prev:15, team:'CHA',name:'Hornets',      rec:'42-36',note:'LaMelo back healthy. Play-in contender.'},
+                {rank:15, prev:14, team:'MIA',name:'Heat',         rec:'41-36',note:'Heat culture keeps them relevant.'},
+                {rank:16, prev:16, team:'IND',name:'Pacers',       rec:'40-37',note:'Haliburton running an elite offense.'},
+                {rank:17, prev:18, team:'GSW',name:'Warriors',     rec:'40-37',note:'Curry still cooking. West play-in.'},
+                {rank:18, prev:17, team:'DAL',name:'Mavericks',    rec:'38-39',note:'Flagg impact real. Barely in West play-in.'},
+                {rank:19, prev:19, team:'MIL',name:'Bucks',        rec:'39-38',note:'Giannis health concerns linger.'},
+                {rank:20, prev:21, team:'PHX',name:'Suns',         rec:'38-39',note:'Devin Booker carrying a thin roster.'},
+                {rank:21, prev:20, team:'ORL',name:'Magic',        rec:'37-40',note:'Young core not yet ready. Building.'},
+                {rank:22, prev:22, team:'SAC',name:'Kings',        rec:'36-41',note:'Fox dealt. Rebuild mode engaged.'},
+                {rank:23, prev:23, team:'CHI',name:'Bulls',        rec:'35-42',note:'No clear direction. Roster in flux.'},
+                {rank:24, prev:24, team:'LAC',name:'Clippers',     rec:'32-45',note:'Kawhi minutes managed all year.'},
+                {rank:25, prev:25, team:'MEM',name:'Grizzlies',    rec:'33-44',note:'Morant availability keeps floor higher.'},
+                {rank:26, prev:26, team:'NOP',name:'Pelicans',     rec:'30-47',note:'Zion availability remains the story.'},
+                {rank:27, prev:27, team:'POR',name:'Blazers',      rec:'28-49',note:'Scoot departed. Full rebuild.'},
+                {rank:28, prev:28, team:'UTA',name:'Jazz',         rec:'25-52',note:'Asset accumulation going according to plan.'},
+                {rank:29, prev:29, team:'BKN',name:'Nets',         rec:'22-55',note:'Full tear-down. Lottery positioning.'},
+                {rank:30, prev:30, team:'WAS',name:'Wizards',      rec:'18-59',note:'Worst record in the East. Draft focus.'},
               ].map((t,i) => {
                 const moved = t.prev - t.rank;
                 return (
-                  <div key={t.team} onClick={()=>runRoster(t.name)} style={{display:'flex', alignItems:'center', gap:14, padding:'12px 0', borderBottom:'1px solid rgba(255,255,255,0.05)', cursor:'pointer'}}
-                    onMouseEnter={e=>e.currentTarget.style.paddingLeft='6px'}
-                    onMouseLeave={e=>e.currentTarget.style.paddingLeft='0'}>
-                    <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:16, fontWeight:700, color:i<3?'var(--green)':'rgba(255,255,255,0.2)', width:24, textAlign:'right', flexShrink:0}}>{t.rank}</div>
-                    <img src={`https://a.espn.com/combiner/i?img=/i/teamlogos/nba/500/${t.team.toLowerCase()}.png&h=32&w=32`} alt={t.team} width={28} height={28} style={{objectFit:'contain',flexShrink:0}} onError={e=>e.target.style.display='none'}/>
+                  <div key={t.team} onClick={()=>runRoster(t.name)} style={{display:'flex', alignItems:'center', gap:12, padding:'9px 0', borderBottom:'1px solid rgba(255,255,255,0.04)', cursor:'pointer'}}
+                    onMouseEnter={e=>e.currentTarget.style.background='rgba(0,230,118,0.02)'}
+                    onMouseLeave={e=>e.currentTarget.style.background=''}>
+                    <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:14, fontWeight:700, color:i<3?'var(--green)':i<8?'rgba(255,255,255,0.4)':'rgba(255,255,255,0.18)', width:24, textAlign:'right', flexShrink:0}}>{t.rank}</div>
+                    <img src={`https://a.espn.com/combiner/i?img=/i/teamlogos/nba/500/${t.team.toLowerCase()}.png&h=28&w=28`} alt={t.team} width={22} height={22} style={{objectFit:'contain',flexShrink:0}} onError={e=>e.target.style.display='none'}/>
                     <div style={{flex:1, minWidth:0}}>
-                      <div style={{fontFamily:'Inter, sans-serif', fontSize:13, fontWeight:600, color:'rgba(255,255,255,0.88)'}}>{t.name} <span style={{fontFamily:'Inter, sans-serif', fontSize:10, color:'rgba(255,255,255,0.3)', fontWeight:400}}>{t.rec}</span></div>
-                      <div style={{fontFamily:'Inter, sans-serif', fontSize:11, color:'rgba(255,255,255,0.3)', textTransform:'none', letterSpacing:0, marginTop:1}}>{t.note}</div>
+                      <div style={{fontFamily:'Inter, sans-serif', fontSize:12, fontWeight:600, color: i < 16 ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.45)'}}>{t.name} <span style={{fontFamily:'Inter, sans-serif', fontSize:10, color:'rgba(255,255,255,0.25)', fontWeight:400}}>{t.rec}</span></div>
+                      <div style={{fontFamily:'Inter, sans-serif', fontSize:10, color:'rgba(255,255,255,0.25)', textTransform:'none', letterSpacing:0}}>{t.note}</div>
                     </div>
-                    <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, fontWeight:700, color:moved>0?'var(--green)':moved<0?'#ef4444':'rgba(255,255,255,0.2)', flexShrink:0, width:32, textAlign:'right'}}>
+                    <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:10, fontWeight:700, color:moved>0?'var(--green)':moved<0?'#ef4444':'rgba(255,255,255,0.15)', flexShrink:0, width:28, textAlign:'right'}}>
                       {moved>0?`+${moved}`:moved<0?`${moved}`:'-'}
                     </div>
                   </div>
@@ -2113,8 +2140,9 @@ function FrontOffice() {
               <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:20}}>
                 <div style={colLabel}>Playoff Picture</div>
                 <div style={{display:'flex', gap:16}}>
-                  <div style={{display:'flex', alignItems:'center', gap:6}}><div style={{width:8,height:8,borderRadius:2,background:'rgba(0,230,118,0.15)',border:'1px solid rgba(0,230,118,0.3)'}}/><span style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.3)'}}>Auto in (1-6)</span></div>
-                  <div style={{display:'flex', alignItems:'center', gap:6}}><div style={{width:8,height:8,borderRadius:2,background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.1)'}}/><span style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.3)'}}>Play-in (7-8)</span></div>
+                  <div style={{display:'flex', alignItems:'center', gap:5}}><div style={{width:8,height:8,borderRadius:2,background:'rgba(0,230,118,0.15)',border:'1px solid rgba(0,230,118,0.3)'}}/><span style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.3)'}}>Auto In (1-6)</span></div>
+                  <div style={{display:'flex', alignItems:'center', gap:5}}><div style={{width:8,height:8,borderRadius:2,background:'rgba(251,191,36,0.1)',border:'1px solid rgba(251,191,36,0.3)'}}/><span style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.3)'}}>Play-In (7-8)</span></div>
+                  <div style={{display:'flex', alignItems:'center', gap:5}}><div style={{width:8,height:8,borderRadius:2,background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.08)'}}/><span style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.3)'}}>Eliminated (9-15)</span></div>
                 </div>
               </div>
               <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:20}}>
@@ -2127,122 +2155,6 @@ function FrontOffice() {
                   {WEST.map(s=><SeedRow key={s.team} s={s}/>)}
                 </div>
               </div>
-            </div>
-          )}
-
-          {/* ── Trade Tracker tab ── */}
-          {!result && !loading && !error && dashTab === 'trades' && (
-            <div style={panelStyle}>
-              <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:20}}>
-                <div style={colLabel}>Trade Tracker</div>
-                <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.2)', textTransform:'none'}}>2025-26 season moves</div>
-              </div>
-              {[
-                {date:'Mar 2026', teams:['DET','BOS'], summary:'DET acquires Jaylen Brown and 2027 first-round pick. BOS receives Cade Cunningham, Tobias Harris, and two future seconds.', impact:'Blockbuster. Pistons go all-in on Cade era. Celtics pivot to rebuild.', tag:'BLOCKBUSTER'},
-                {date:'Feb 2026', teams:['OKC','MIA'], summary:'OKC sends Lu Dort and two firsts to Miami. Heat return Tyler Herro and Jimmy Butler salary relief.', impact:'OKC adds shooting. Heat execute salary dump heading toward 2027 cap space.', tag:'SALARY MOVE'},
-                {date:'Feb 2026', teams:['LAL','SAC'], summary:'Lakers acquire De Aaron Fox for D Angelo Russell, Max Christie, and 2026 first.', impact:'LeBron gets a true playmaker partner. Kings move toward youth.', tag:'STAR TRADE'},
-                {date:'Jan 2026', teams:['NYK','POR'], summary:'Knicks land Scoot Henderson in three-team deal. Portland receives four future picks across two teams.', impact:'New York locks up backcourt for next decade. High price paid.', tag:'DRAFT CAPITAL'},
-                {date:'Dec 2025', teams:['SAS','NOP'], summary:'Spurs send Tre Jones and a 2028 second for Brandon Ingram expiring contract.', impact:'Clean cap move for San Antonio. Wemby gets another wing alongside him.', tag:'EXPIRING'},
-              ].map((t,i) => (
-                <div key={i} style={{padding:'18px 0', borderBottom:'1px solid rgba(255,255,255,0.05)'}}>
-                  <div style={{display:'flex', alignItems:'center', gap:12, marginBottom:10}}>
-                    <div style={{display:'flex', gap:6, alignItems:'center'}}>
-                      {t.teams.map(abbr => (
-                        <img key={abbr} src={`https://a.espn.com/combiner/i?img=/i/teamlogos/nba/500/${abbr.toLowerCase()}.png&h=28&w=28`} alt={abbr} width={24} height={24} style={{objectFit:'contain'}} onError={e=>e.target.style.display='none'}/>
-                      ))}
-                    </div>
-                    <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:2, color:t.tag==='BLOCKBUSTER'?'#f59e0b':t.tag==='STAR TRADE'?'var(--green)':'rgba(255,255,255,0.3)', fontWeight:700}}>{t.tag}</div>
-                    <div style={{marginLeft:'auto', fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.2)'}}>{t.date}</div>
-                  </div>
-                  <div style={{fontFamily:'Inter, sans-serif', fontSize:13, color:'rgba(255,255,255,0.75)', lineHeight:1.6, marginBottom:8, textTransform:'none', letterSpacing:0}}>{t.summary}</div>
-                  <div style={{fontFamily:'Inter, sans-serif', fontSize:11, color:'rgba(0,230,118,0.5)', textTransform:'none', letterSpacing:0}}>{t.impact}</div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* ── Contract Watch tab ── */}
-          {!result && !loading && !error && dashTab === 'contracts' && (
-            <div style={panelStyle}>
-              <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:20}}>
-                <div style={colLabel}>Contract Watch</div>
-                <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.2)', textTransform:'none'}}>Key extensions and expirings</div>
-              </div>
-              <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:16}}>
-                <div>
-                  <div style={{fontFamily:'Inter, sans-serif', fontSize:9, letterSpacing:3, color:'rgba(255,255,255,0.2)', textTransform:'uppercase', marginBottom:12}}>Expiring This Summer</div>
-                  {[
-                    {name:'LeBron James',       team:'LAL', sal:'$51.4M', note:'Player option — expected to re-sign'},
-                    {name:'Jimmy Butler',        team:'MIA', sal:'$48.8M', note:'Unrestricted FA. Multiple suitors.'},
-                    {name:'Khris Middleton',     team:'MIL', sal:'$40.4M', note:'Mutual option. Declining usage.'},
-                    {name:'Kyle Kuzma',          team:'WAS', sal:'$18.0M', note:'Expiring. Trade asset or FA.'},
-                    {name:'Nicolas Batum',       team:'PHI', sal:'$4.3M',  note:'Veteran min. Likely re-signs.'},
-                  ].map((p,i) => (
-                    <div key={p.name} style={{display:'flex', alignItems:'flex-start', gap:10, padding:'10px 0', borderBottom:'1px solid rgba(255,255,255,0.05)'}}>
-                      <div style={{flex:1, minWidth:0}}>
-                        <div style={{fontFamily:'Inter, sans-serif', fontSize:12, fontWeight:600, color:'rgba(255,255,255,0.85)'}}>{p.name}</div>
-                        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, letterSpacing:2, color:'rgba(0,230,118,0.45)', fontWeight:700, marginTop:2}}>{p.team}</div>
-                        <div style={{fontFamily:'Inter, sans-serif', fontSize:10, color:'rgba(255,255,255,0.3)', textTransform:'none', letterSpacing:0, marginTop:3}}>{p.note}</div>
-                      </div>
-                      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:12, fontWeight:700, color:'#ef4444', flexShrink:0}}>{p.sal}</div>
-                    </div>
-                  ))}
-                </div>
-                <div>
-                  <div style={{fontFamily:'Inter, sans-serif', fontSize:9, letterSpacing:3, color:'rgba(255,255,255,0.2)', textTransform:'uppercase', marginBottom:12}}>Extension Eligible</div>
-                  {[
-                    {name:'Shai Gilgeous-Alexander',team:'OKC',sal:'$45.6M',note:'Supermax window opens. Expected to sign.'},
-                    {name:'Evan Mobley',             team:'CLE',sal:'$24.0M',note:'Rookie extension. Cavaliers priority.'},
-                    {name:'Cade Cunningham',         team:'DET',sal:'$43.8M',note:'Max extension talks ongoing.'},
-                    {name:'Paolo Banchero',          team:'ORL',sal:'$30.2M',note:'Eligible this summer. Magic committed.'},
-                    {name:'Anthony Edwards',         team:'MIN',sal:'$54.0M',note:'Already signed supermax. Locked up.'},
-                  ].map((p,i) => (
-                    <div key={p.name} style={{display:'flex', alignItems:'flex-start', gap:10, padding:'10px 0', borderBottom:'1px solid rgba(255,255,255,0.05)'}}>
-                      <div style={{flex:1, minWidth:0}}>
-                        <div style={{fontFamily:'Inter, sans-serif', fontSize:12, fontWeight:600, color:'rgba(255,255,255,0.85)'}}>{p.name}</div>
-                        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, letterSpacing:2, color:'rgba(0,230,118,0.45)', fontWeight:700, marginTop:2}}>{p.team}</div>
-                        <div style={{fontFamily:'Inter, sans-serif', fontSize:10, color:'rgba(255,255,255,0.3)', textTransform:'none', letterSpacing:0, marginTop:3}}>{p.note}</div>
-                      </div>
-                      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:12, fontWeight:700, color:'var(--green)', flexShrink:0}}>{p.sal}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ── Draft Board tab ── */}
-          {!result && !loading && !error && dashTab === 'draft' && (
-            <div style={panelStyle}>
-              <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:20}}>
-                <div style={colLabel}>2026 NBA Draft Board</div>
-                <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.2)', textTransform:'none'}}>Projected top picks</div>
-              </div>
-              {[
-                {rank:1, name:'Ace Bailey',       school:'Rutgers',      pos:'SF', ht:"6'10", note:'Explosive wing scorer. NBA-ready frame and shot creation.'},
-                {rank:2, name:'Dylan Harper',      school:'Rutgers',      pos:'PG', ht:"6'6",  note:'Elite playmaker. High IQ guard with pro-level handle.'},
-                {rank:3, name:'VJ Edgecombe',      school:'Baylor',       pos:'SG', ht:"6'5",  note:'Elite athleticism and defensive upside. Lottery ceiling.'},
-                {rank:4, name:'Tre Johnson',       school:'Texas',        pos:'SG', ht:"6'6",  note:'Pure scorer. Reminiscent of early SGA. Shot volume is elite.'},
-                {rank:5, name:'Kasparas Jakucionis',school:'Illinois',    pos:'PG', ht:"6'6",  note:'European feel with American athleticism. Versatile creator.'},
-                {rank:6, name:'Nolan Traore',      school:'France',       pos:'PG', ht:"6'5",  note:'French phenom. Explosive with the ball. High lottery upside.'},
-                {rank:7, name:'Derik Queen',       school:'Maryland',     pos:'C',  ht:"6'10", note:'Modern stretch big. Can face up or post. Motor is elite.'},
-                {rank:8, name:'Collin Murray-Boyles',school:'South Carolina',pos:'PF',ht:"6'7",note:'Versatile forward. Good defender, improving shot profile.'},
-                {rank:9, name:'Carter Bryant',     school:'Arizona',      pos:'SF', ht:"6'9",  note:'Three-and-D archetype. Ready-made role player for any system.'},
-                {rank:10,name:'Bam Bandyopadhyay', school:'Indiana',      pos:'PG', ht:"6'3",  note:'Cerebral point guard. Elite passer and two-way defender.'},
-              ].map((p,i) => (
-                <div key={p.name} style={{display:'flex', alignItems:'center', gap:14, padding:'13px 0', borderBottom:'1px solid rgba(255,255,255,0.05)'}}>
-                  <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:18, fontWeight:700, color:i<3?'var(--green)':'rgba(255,255,255,0.18)', width:24, textAlign:'right', flexShrink:0}}>{p.rank}</div>
-                  <div style={{flex:1, minWidth:0}}>
-                    <div style={{display:'flex', alignItems:'baseline', gap:10, marginBottom:3}}>
-                      <div style={{fontFamily:'Inter, sans-serif', fontSize:14, fontWeight:600, color:'rgba(255,255,255,0.9)'}}>{p.name}</div>
-                      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:2, color:'rgba(0,230,118,0.5)', fontWeight:700}}>{p.pos}</div>
-                      <div style={{fontFamily:'Inter, sans-serif', fontSize:10, color:'rgba(255,255,255,0.25)'}}>{p.school}</div>
-                    </div>
-                    <div style={{fontFamily:'Inter, sans-serif', fontSize:11, color:'rgba(255,255,255,0.3)', textTransform:'none', letterSpacing:0}}>{p.note}</div>
-                  </div>
-                  <div style={{fontFamily:'Inter, sans-serif', fontSize:11, color:'rgba(255,255,255,0.2)', flexShrink:0}}>{p.ht}</div>
-                </div>
-              ))}
             </div>
           )}
 
