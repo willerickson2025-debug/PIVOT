@@ -36,17 +36,23 @@ logger = logging.getLogger(__name__)
 # Constants
 # ---------------------------------------------------------------------------
 
-# Sentinel used when the API returns no text blocks at all (should not
-# happen in practice, but we guard against it to avoid returning empty strings
-# without explanation).
 _EMPTY_RESPONSE_SENTINEL = "[No text content returned by model]"
-
-# Status codes that indicate a transient server-side condition worth retrying.
-# 429 = rate limited, 529 = Anthropic overloaded.
 _RETRYABLE_STATUS_CODES: frozenset[int] = frozenset({429, 529})
-
 _MAX_RETRIES: int = 3
-_RETRY_BACKOFF_BASE: float = 1.0   # seconds; doubled each attempt
+_RETRY_BACKOFF_BASE: float = 1.0
+
+# ---------------------------------------------------------------------------
+# Persistent client — reused across requests to avoid TCP/TLS reconnect cost
+# ---------------------------------------------------------------------------
+
+_client: Optional[anthropic.AsyncAnthropic] = None
+
+
+def _get_client(api_key: str) -> anthropic.AsyncAnthropic:
+    global _client
+    if _client is None:
+        _client = anthropic.AsyncAnthropic(api_key=api_key)
+    return _client
 
 
 # ---------------------------------------------------------------------------
@@ -163,10 +169,11 @@ async def analyze(
     if override_temperature is not None:
         request_kwargs["temperature"] = override_temperature
 
+    client = _get_client(api_key)
+
     for attempt in range(1, _MAX_RETRIES + 1):
         try:
-            async with anthropic.AsyncAnthropic(api_key=api_key) as client:
-                message = await client.messages.create(**request_kwargs)
+            message = await client.messages.create(**request_kwargs)
             break  # success — exit retry loop
 
         except anthropic.APIStatusError as exc:
@@ -245,7 +252,7 @@ async def analyze_stream(
     if system_prompt:
         request_kwargs["system"] = system_prompt
 
-    async with anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key) as client:
-        async with client.messages.stream(**request_kwargs) as stream:
-            async for text in stream.text_stream:
-                yield text
+    client = _get_client(settings.anthropic_api_key)
+    async with client.messages.stream(**request_kwargs) as stream:
+        async for text in stream.text_stream:
+            yield text

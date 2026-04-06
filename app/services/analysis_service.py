@@ -40,6 +40,10 @@ _DEFAULT_SEASON: int = 2025
 _RECENT_FORM_WINDOW: int = 10   # number of most-recent games used for trend data
 _MAX_TRADE_PLAYERS: int = 4     # max players to fetch live stats for in a trade
 
+# Fast model for latency-sensitive paths (player/game analysis).
+# Haiku is ~5-8x faster than Sonnet; plenty of reasoning for structured stat analysis.
+_FAST_MODEL: str = "claude-haiku-4-5-20251001"
+
 
 # ---------------------------------------------------------------------------
 # System Prompts
@@ -633,6 +637,8 @@ async def analyze_today_games(target_date: Optional[str] = None) -> GameAnalysis
     result = await claude_service.analyze(
         prompt=prompt,
         system_prompt=NBA_ANALYST_SYSTEM_PROMPT,
+        override_model=_FAST_MODEL,
+        override_max_tokens=900,
     )
 
     logger.info(
@@ -702,6 +708,8 @@ async def analyze_player(
     result = await claude_service.analyze(
         prompt=f"Analyze this player's {season} NBA season:\n\n{stat_block}",
         system_prompt=NBA_ANALYST_SYSTEM_PROMPT,
+        override_model=_FAST_MODEL,
+        override_max_tokens=700,
     )
 
     logger.info(
@@ -804,6 +812,8 @@ async def analyze_player_section(
     result = await claude_service.analyze(
         prompt=prompt,
         system_prompt=NBA_ANALYST_SYSTEM_PROMPT,
+        override_model=_FAST_MODEL,
+        override_max_tokens=500,
     )
 
     logger.info(
@@ -886,7 +896,7 @@ async def analyze_player_stream(
         prompt = f"Analyze this player's {season} NBA season:\n\n{stat_block}"
 
     full_text = []
-    async for chunk in claude_service.analyze_stream(prompt, system_prompt=NBA_ANALYST_SYSTEM_PROMPT):
+    async for chunk in claude_service.analyze_stream(prompt, system_prompt=NBA_ANALYST_SYSTEM_PROMPT, override_model=_FAST_MODEL, override_max_tokens=700):
         full_text.append(chunk)
         yield {"type": "chunk", "text": chunk}
 
@@ -1230,7 +1240,8 @@ async def analyze_game(body: dict[str, Any]) -> dict[str, Any]:
     result = await claude_service.analyze(
         prompt=prompt,
         system_prompt=GAME_ANALYST_SYSTEM_PROMPT,
-        override_max_tokens=1400,
+        override_model=_FAST_MODEL,
+        override_max_tokens=900,
         override_temperature=0.1,
     )
 
