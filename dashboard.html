@@ -1428,9 +1428,9 @@ function Players() {
   ];
 
   const FEATURED_PLAYERS = [
-    { id: 237,        nbaId: 2544,    name: 'LeBron James',      position: 'F',   team: 'LAL', pts: 20.6, reb: 6.0, ast: 6.9 },
+    { id: 237,        nbaId: 2544,    name: 'LeBron James',      position: 'F',   team: 'LAL', pts: 20.8, reb: 6.1, ast: 7.1 },
     { id: 56677822,   nbaId: 1641705, name: 'Victor Wembanyama', position: 'F-C', team: 'SAS', pts: 24.8, reb: 11.5, ast: 3.1 },
-    { id: 1057262088, nbaId: 1642843, name: 'Cooper Flagg',       position: 'F',   team: 'DAL', pts: 20.8, reb: 6.6, ast: 4.5 },
+    { id: 1057262088, nbaId: 1642843, name: 'Cooper Flagg',       position: 'F',   team: 'DAL', pts: 21.1, reb: 6.6, ast: 4.6 },
     { id: 3547238,    nbaId: 1630162, name: 'Anthony Edwards',    position: 'G',   team: 'MIN', pts: 28.9, reb: 5.0, ast: 3.7 },
   ];
 
@@ -2008,13 +2008,12 @@ function FrontOffice() {
             <div style={panelStyle}>
               <div style={colLabel}>MVP Race — 2025-26 Leaders</div>
               {[
-                {name:'Shai Gilgeous-Alexander', team:'OKC', pts:32.7, reb:5.1, ast:6.4, odds:'-180',  note:'Led OKC to 59 wins, unanimous front-runner'},
+                {name:'Shai Gilgeous-Alexander', team:'OKC', pts:31.4, reb:4.4, ast:6.5, odds:'-180',  note:'OKC dominant scorer, unanimous MVP front-runner'},
                 {name:'Anthony Edwards',          team:'MIN', pts:28.9, reb:5.0, ast:3.7, odds:'+220',  note:'Face of Timberwolves playoff run'},
-                {name:'Nikola Jokic',             team:'DEN', pts:26.2, reb:12.8,ast:9.5, odds:'+300',  note:'Fourth MVP campaign, historic efficiency'},
+                {name:'Nikola Jokic',             team:'DEN', pts:27.9, reb:12.9,ast:10.9,odds:'+300',  note:'Historic triple-double efficiency, fourth campaign'},
                 {name:'Victor Wembanyama',         team:'SAS', pts:24.8, reb:11.5,ast:3.1, odds:'+450',  note:'Defensive Player of the Year lock'},
-                {name:'Jayson Tatum',              team:'BOS', pts:27.4, reb:8.6, ast:5.2, odds:'+600',  note:'Carrying title defense on his back'},
-                {name:'Cade Cunningham',           team:'DET', pts:26.1, reb:6.4, ast:8.9, odds:'+900',  note:'Engine behind Pistons East #1 seed'},
-                {name:'LeBron James',              team:'LAL', pts:20.6, reb:6.0, ast:6.9, odds:'+1200', note:'Still elite at 41 — longevity story'},
+                {name:'Cade Cunningham',           team:'DET', pts:24.5, reb:5.6, ast:9.9, odds:'+700',  note:'Near triple-double threat driving Pistons resurgence'},
+                {name:'LeBron James',              team:'LAL', pts:20.8, reb:6.1, ast:7.1, odds:'+1500', note:'Still elite at 41. Longevity defines the conversation'},
               ].map((p,i) => (
                 <div key={p.name} style={{display:'flex', alignItems:'center', gap:14, padding:'14px 0', borderBottom:'1px solid rgba(255,255,255,0.05)'}}>
                   <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:20, fontWeight:700, color:i===0?'var(--green)':'rgba(255,255,255,0.15)', width:24, flexShrink:0, textAlign:'right'}}>{i+1}</div>
@@ -2087,15 +2086,15 @@ function FrontOffice() {
               </div>
               {[
                 {name:'Victor Wembanyama',  team:'SAS', age:21, pos:'C',   pts:24.8, reb:11.5, ast:3.1,  note:'Defensive Player of Year. Future GOAT candidate.'},
-                {name:'Cooper Flagg',       team:'DAL', age:18, pos:'F',   pts:20.8, reb:6.6,  ast:4.5,  note:'Rookie of the Year lock. Generational two-way player.'},
-                {name:'Scoot Henderson',    team:'POR', age:21, pos:'G',   pts:19.4, reb:4.1,  ast:7.2,  note:'Explosive playmaker. Blazers franchise cornerstone.'},
-                {name:'Alexandre Sarr',     team:'WAS', age:20, pos:'C',   pts:16.2, reb:8.8,  ast:2.4,  note:'Elite rim protection. Contract value skyrocketing.'},
-                {name:'Zaccharie Risacher', team:'ATL', age:19, pos:'F',   pts:14.6, reb:5.2,  ast:2.1,  note:'Smooth scorer. Silky shooting mechanics.'},
-                {name:'Stephon Castle',     team:'SAS', age:21, pos:'G',   pts:15.9, reb:4.0,  ast:4.8,  note:'Wembanyama running mate. Two-way freak.'},
-                {name:'Ron Holland',        team:'DET', age:19, pos:'F',   pts:13.4, reb:5.6,  ast:3.2,  note:'High-ceiling wing on East #1 seed team.'},
-                {name:'Keyonte George',     team:'UTA', age:21, pos:'G',   pts:18.7, reb:3.5,  ast:5.4,  note:'Silky scorer carrying Utah rebuild.'},
-                {name:'Ja Kobe Walter',     team:'TOR', age:20, pos:'G',   pts:12.8, reb:3.2,  ast:2.6,  note:'Canadian home product. Raptors bright spot.'},
-                {name:'Gradey Dick',        team:'TOR', age:21, pos:'G',   pts:14.1, reb:3.8,  ast:2.2,  note:'Elite three-point shooting. High floor player.'},
+                {name:'Keyonte George',     team:'UTA', age:21, pos:'G',   pts:23.6, reb:3.7,  ast:6.1,  note:'Breakout season. Utah\'s most dangerous scorer.'},
+                {name:'Cooper Flagg',       team:'DAL', age:18, pos:'F',   pts:21.1, reb:6.6,  ast:4.6,  note:'Rookie of the Year lock. Generational two-way player.'},
+                {name:'Stephon Castle',     team:'SAS', age:21, pos:'G',   pts:16.7, reb:5.2,  ast:7.3,  note:'Wemby\'s wingman. Playmaking already elite.'},
+                {name:'Alexandre Sarr',     team:'WAS', age:20, pos:'C',   pts:16.3, reb:7.4,  ast:2.7,  note:'Elite rim protection and length. WAS building around him.'},
+                {name:'Scoot Henderson',    team:'POR', age:21, pos:'G',   pts:14.0, reb:2.7,  ast:3.8,  note:'Still developing. Blazers betting on upside.'},
+                {name:'Zaccharie Risacher', team:'ATL', age:19, pos:'F',   pts:9.7,  reb:3.8,  ast:1.1,  note:'Year 2 growing pains. ATL patient with potential.'},
+                {name:'Ja\'Kobe Walter',    team:'TOR', age:20, pos:'G',   pts:7.3,  reb:2.5,  ast:1.2,  note:'Steady contributor on rebuilding Raptors.'},
+                {name:'Ron Holland',        team:'DET', age:19, pos:'F',   pts:8.1,  reb:4.1,  ast:1.2,  note:'Raw but flashes brilliance. DET high-ceiling project.'},
+                {name:'Gradey Dick',        team:'TOR', age:21, pos:'G',   pts:6.1,  reb:2.0,  ast:0.7,  note:'Sharpshooting role player. Embracing bench role.'},
               ].map((p,i) => (
                 <div key={p.name} style={{display:'flex', alignItems:'center', gap:14, padding:'12px 0', borderBottom:'1px solid rgba(255,255,255,0.05)'}}>
                   <div style={{flex:1, minWidth:0}}>
