@@ -754,12 +754,12 @@ function Home({ onNavigate }) {
   };
 
   const FEATURES = [
-    { num:'01', name:'Live Game Engine', desc:'Real-time scoring and comprehensive box scores from every NBA game. Auto-refreshes to keep you synced with the floor.', stat:'Live', statLabel:'Auto-Refresh' },
-    { num:'02', name:'AI Analysis', desc:'PIVOT-powered breakdowns of matchups, individual performance, and daily slates. No fluff. Just pure, analytical insight.', stat:'Live', statLabel:'AI Powered' },
-    { num:'03', name:'Coach Mode', desc:'Dynamic, in-game adjustments backed by live box score feeds. Designed specifically for coaches who need answers on the sideline.', stat:'Live', statLabel:'Box Score Feed' },
-    { num:'04', name:'Player Intelligence', desc:'Deep-dive evaluations spanning offense, defense, financials, and off-court factors. Visualize performance with 8-stat grids and last-10 trends.', stat:'8', statLabel:'Stat Dimensions' },
-    { num:'05', name:'Front Office AI', desc:'Navigate the trade market and manage the cap with ease. Roster analysis powered by live 2026 data and machine-learning logic.', stat:'2026', statLabel:'Live Season Data' },
-    { num:'06', name:'Export Ready', desc:'Export any analysis to PDF. Seamlessly share professional-grade reports with your staff, front office, or investors.', stat:'PDF', statLabel:'Export Format' },
+    { num:'01', name:'Live Game Engine',    desc:'Real-time scoring and comprehensive box scores from every NBA game. Auto-refreshes every 30 seconds to keep you synced with the floor.',               stat:'30s',   statLabel:'Refresh Rate' },
+    { num:'02', name:'AI Analysis',         desc:'PIVOT-powered breakdowns of matchups, individual performance, and daily slates. No fluff — just pure, actionable analytical insight.',                stat:'Claude',statLabel:'Model' },
+    { num:'03', name:'Coach Mode',          desc:'Dynamic, in-game adjustments derived from the live box score. Built for coaches who need decisive answers before the huddle breaks.',                 stat:'0s',    statLabel:'Data Lag' },
+    { num:'04', name:'Player Intelligence', desc:'Deep-dive evaluations spanning offense, defense, financials, and off-court factors. Visualize performance with 8-stat grids and last-10 trends.',    stat:'8',     statLabel:'Stat Dimensions' },
+    { num:'05', name:'Front Office AI',     desc:'Full roster breakdowns, cap table analysis, and trade evaluation powered by live 2025-26 season data. Built for GMs who need answers before the deadline.', stat:'30',    statLabel:'NBA Teams' },
+    { num:'06', name:'Export Ready',        desc:'Export any analysis to PDF. Share professional-grade intelligence reports with your coaching staff, front office, or investors instantly.',             stat:'PDF',   statLabel:'Export Format' },
   ];
   const MARQUEE_ITEMS = [
     'Powered by PIVOT', 'Live Box Scores', 'Real-Time Data',
