@@ -306,6 +306,49 @@ async def get_standings():
         raise HTTPException(status_code=502, detail=str(e))
 
 
+@router.get("/nba/injuries")
+async def nba_injuries():
+    """Live NBA injury report from ESPN public API, cached 30 minutes."""
+    import time
+
+    _cache = nba_injuries.__dict__
+    now = time.time()
+    if _cache.get("data") and now < _cache.get("expires_at", 0):
+        return _cache["data"]
+
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            r = await client.get(
+                "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/injuries",
+                headers={"User-Agent": "Mozilla/5.0"},
+            )
+        raw = r.json()
+
+        teams = []
+        for team_block in raw.get("injuries", []):
+            team_name = team_block.get("displayName", "")
+            players = []
+            for inj in team_block.get("injuries", []):
+                athlete = inj.get("athlete", {})
+                status = inj.get("status", "")
+                players.append({
+                    "name": athlete.get("displayName", ""),
+                    "short_name": athlete.get("shortName", ""),
+                    "status": status,
+                    "comment": inj.get("shortComment", ""),
+                    "date": inj.get("date", ""),
+                })
+            if players:
+                teams.append({"team": team_name, "players": players})
+
+        result = {"teams": teams, "count": sum(len(t["players"]) for t in teams)}
+        _cache["data"] = result
+        _cache["expires_at"] = now + 1800  # 30 min
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+
 # ── Agents (background, no UI) ────────────────────────────────────────────────
 
 @router.post("/agents/nightly")

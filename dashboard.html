@@ -1780,6 +1780,19 @@ function FrontOffice() {
       .catch(() => { setStandingsError(true); setStandingsLoading(false); });
   }, []);
 
+  const [injuries, setInjuries] = React.useState(null);
+  const [injuriesLoading, setInjuriesLoading] = React.useState(false);
+  const [injuriesError, setInjuriesError] = React.useState(false);
+
+  React.useEffect(() => {
+    if (dashTab !== 'injuries' || injuries || injuriesLoading) return;
+    setInjuriesLoading(true);
+    fetch(`${API}/nba/injuries`)
+      .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(d => { setInjuries(d); setInjuriesLoading(false); })
+      .catch(() => { setInjuriesError(true); setInjuriesLoading(false); });
+  }, [dashTab]);
+
   const runRoster = async (teamName) => {
     const t = teamName || rosterTeam;
     if (!t) return;
@@ -1830,10 +1843,11 @@ function FrontOffice() {
   const now = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
 
   const TABS = [
-    {id:'cap',     label:'Cap Table'},
-    {id:'mvp',     label:'MVP Race'},
-    {id:'power',   label:'Power Rankings'},
-    {id:'young',   label:'Young Stars'},
+    {id:'cap',      label:'Cap Table'},
+    {id:'mvp',      label:'MVP Race'},
+    {id:'power',    label:'Power Rankings'},
+    {id:'young',    label:'Young Stars'},
+    {id:'injuries', label:'Injury Report'},
   ];
 
   const panelStyle = {background:'rgba(17,20,26,0.85)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:12, padding:'24px 28px'};
@@ -2103,6 +2117,73 @@ function FrontOffice() {
                 </div>
               ))}
             </div>
+          )}
+
+          {/* ── Injury Report tab ── */}
+          {!result && !loading && !error && dashTab === 'injuries' && (
+            injuriesLoading ? (
+              <div style={{...panelStyle, display:'flex', alignItems:'center', justifyContent:'center', minHeight:200}}>
+                <div style={{fontFamily:'Helvetica Neue, sans-serif', fontWeight:700, fontSize:11, letterSpacing:6, color:'var(--green)', textTransform:'uppercase', animation:'blink 1.2s ease-in-out infinite'}}>SYNCING INJURY REPORT...</div>
+              </div>
+            ) : injuriesError ? (
+              <div style={{...panelStyle, display:'flex', alignItems:'center', justifyContent:'center', minHeight:120}}>
+                <div style={{fontFamily:'Helvetica Neue, sans-serif', fontWeight:700, fontSize:11, letterSpacing:4, color:'rgba(239,68,68,0.6)', textTransform:'uppercase'}}>INJURY FEED OFFLINE</div>
+              </div>
+            ) : injuries && (
+              <div style={panelStyle}>
+                <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:24}}>
+                  <div style={colLabel}>NBA Injury Report</div>
+                  <div style={{display:'flex', gap:16, alignItems:'center'}}>
+                    {[['Out','#ef4444'],['Questionable','#f59e0b'],['Day-To-Day','#fbbf24'],['Probable','rgba(0,230,118,0.7)']].map(([label, color]) => (
+                      <div key={label} style={{display:'flex', alignItems:'center', gap:5}}>
+                        <div style={{width:7, height:7, borderRadius:'50%', background:color, flexShrink:0}}/>
+                        <span style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.3)', textTransform:'none', letterSpacing:0}}>{label}</span>
+                      </div>
+                    ))}
+                    <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.2)', marginLeft:8}}>{injuries.count} players</div>
+                  </div>
+                </div>
+                {injuries.teams.map(team => (
+                  <div key={team.team} style={{marginBottom:20}}>
+                    <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:8, paddingBottom:6, borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
+                      {(() => {
+                        const abbr = ({
+                          'Atlanta Hawks':'ATL','Boston Celtics':'BOS','Brooklyn Nets':'BKN',
+                          'Charlotte Hornets':'CHA','Chicago Bulls':'CHI','Cleveland Cavaliers':'CLE',
+                          'Dallas Mavericks':'DAL','Denver Nuggets':'DEN','Detroit Pistons':'DET',
+                          'Golden State Warriors':'GSW','Houston Rockets':'HOU','Indiana Pacers':'IND',
+                          'LA Clippers':'LAC','Los Angeles Lakers':'LAL','Memphis Grizzlies':'MEM',
+                          'Miami Heat':'MIA','Milwaukee Bucks':'MIL','Minnesota Timberwolves':'MIN',
+                          'New Orleans Pelicans':'NOP','New York Knicks':'NYK','Oklahoma City Thunder':'OKC',
+                          'Orlando Magic':'ORL','Philadelphia 76ers':'PHI','Phoenix Suns':'PHX',
+                          'Portland Trail Blazers':'POR','Sacramento Kings':'SAC','San Antonio Spurs':'SAS',
+                          'Toronto Raptors':'TOR','Utah Jazz':'UTA','Washington Wizards':'WAS',
+                        })[team.team] || '';
+                        return abbr ? <img src={`https://a.espn.com/combiner/i?img=/i/teamlogos/nba/500/${abbr.toLowerCase()}.png&h=28&w=28`} alt={abbr} width={18} height={18} style={{objectFit:'contain'}} onError={e=>e.target.style.display='none'}/> : null;
+                      })()}
+                      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontWeight:700, fontSize:11, letterSpacing:2, color:'rgba(255,255,255,0.55)', textTransform:'uppercase'}}>{team.team}</div>
+                      <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.2)'}}>{team.players.length} player{team.players.length !== 1 ? 's' : ''}</div>
+                    </div>
+                    {team.players.map(p => {
+                      const s = p.status.toLowerCase();
+                      const dot = s.includes('out') ? '#ef4444' : s.includes('questionable') ? '#f59e0b' : s.includes('day') ? '#fbbf24' : s.includes('probable') ? 'rgba(0,230,118,0.7)' : 'rgba(255,255,255,0.25)';
+                      return (
+                        <div key={p.name} style={{display:'flex', alignItems:'flex-start', gap:12, padding:'8px 0', borderBottom:'1px solid rgba(255,255,255,0.03)'}}>
+                          <div style={{width:7, height:7, borderRadius:'50%', background:dot, flexShrink:0, marginTop:4}}/>
+                          <div style={{flex:1, minWidth:0}}>
+                            <div style={{display:'flex', alignItems:'baseline', gap:10, marginBottom:2}}>
+                              <div style={{fontFamily:'Inter, sans-serif', fontSize:13, fontWeight:600, color:'rgba(255,255,255,0.85)'}}>{p.name}</div>
+                              <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:2, fontWeight:700, color:dot, textTransform:'uppercase'}}>{p.status}</div>
+                            </div>
+                            {p.comment && <div style={{fontFamily:'Inter, sans-serif', fontSize:11, color:'rgba(255,255,255,0.35)', lineHeight:1.55, textTransform:'none', letterSpacing:0}}>{p.comment}</div>}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+            )
           )}
 
           {/* Loading */}
