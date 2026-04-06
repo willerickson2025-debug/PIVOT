@@ -1876,10 +1876,10 @@ function FrontOffice() {
   const WEST = standings ? standings.west : [];
 
   return (
-    <div style={{display:'grid', gridTemplateColumns:'320px 1fr', height:'calc(100vh - 70px)', overflow:'hidden', position:'relative'}}>
+    <div style={{display:'grid', gridTemplateColumns:'300px 1fr', alignItems:'start'}}>
 
       {/* ── Left Sidebar ── */}
-      <div style={{borderRight:'1px solid rgba(255,255,255,0.07)', display:'flex', flexDirection:'column', overflowY:'auto', background:'rgba(9,12,16,0.97)'}}>
+      <div style={{position:'sticky', top:70, height:'calc(100vh - 70px)', overflowY:'auto', borderRight:'1px solid rgba(255,255,255,0.07)', display:'flex', flexDirection:'column', background:'rgba(9,12,16,0.97)'}}>
 
         <div style={{padding:'24px 20px 16px', borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
           <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:18, fontWeight:700, letterSpacing:-0.5, color:'var(--white)', marginBottom:4}}>Front Office</div>
@@ -1934,22 +1934,22 @@ function FrontOffice() {
       </div>
 
       {/* ── Right Panel ── */}
-      <div style={{display:'flex', flexDirection:'column', overflow:'hidden', background:'rgba(8,10,14,0.95)'}}>
+      <div style={{minWidth:0, background:'rgba(8,10,14,0.95)', minHeight:'calc(100vh - 70px)'}}>
 
-        {/* Tab bar */}
+        {/* Tab bar — sticky */}
         {!result && !loading && !error && (
-          <div style={{borderBottom:'1px solid rgba(255,255,255,0.07)', background:'rgba(9,12,16,0.9)', flexShrink:0, display:'flex', alignItems:'stretch', overflowX:'auto', padding:'0 24px'}}>
+          <div style={{position:'sticky', top:70, zIndex:20, borderBottom:'1px solid rgba(255,255,255,0.07)', background:'rgba(9,12,16,0.96)', display:'flex', alignItems:'stretch', overflowX:'auto', padding:'0 24px'}}>
             {TABS.map(tab => (
               <button key={tab.id} onClick={()=>setDashTab(tab.id)}
-                style={{background:'none', border:'none', padding:'0 18px', height:50, cursor:'pointer', fontFamily:'Inter, sans-serif', fontSize:10, fontWeight:600, letterSpacing:2, textTransform:'uppercase', color:dashTab===tab.id?'var(--white)':'rgba(255,255,255,0.3)', borderBottom:dashTab===tab.id?'2px solid var(--green)':'2px solid transparent', transition:'color 0.15s', whiteSpace:'nowrap', flexShrink:0}}>
+                style={{background:'none', border:'none', padding:'0 18px', height:48, cursor:'pointer', fontFamily:'Inter, sans-serif', fontSize:10, fontWeight:600, letterSpacing:2, textTransform:'uppercase', color:dashTab===tab.id?'var(--white)':'rgba(255,255,255,0.3)', borderBottom:dashTab===tab.id?'2px solid var(--green)':'2px solid transparent', transition:'color 0.15s', whiteSpace:'nowrap', flexShrink:0}}>
                 {tab.label}
               </button>
             ))}
           </div>
         )}
 
-        {/* Scrollable content */}
-        <div style={{flex:1, overflowY:'auto', padding: result||loading||error ? '0' : '28px 28px 60px'}}>
+        {/* Content — scrolls with page */}
+        <div style={{padding: result||loading||error ? '0' : '28px 28px 80px'}}>
 
           {/* Stat strip — cap tab only */}
           {!result && !loading && !error && dashTab === 'cap' && (
