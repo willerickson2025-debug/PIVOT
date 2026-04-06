@@ -7,6 +7,7 @@ from fastapi.responses import StreamingResponse
 from typing import Optional, List
 
 from app.services import nba_service, claude_service, analysis_service, agent_service
+from app.services import standings_service
 from app.models.schemas import (
     AnalysisRequest,
     AnalysisResponse,
@@ -290,6 +291,17 @@ async def timeout_play(body: dict = Body(...)):
     """
     try:
         return await analysis_service.timeout_play(body)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+
+# ── Standings ────────────────────────────────────────────────────────────────
+
+@router.get("/standings")
+async def get_standings():
+    """Live W-L standings for all 30 teams, cached 6 hours."""
+    try:
+        return await standings_service.get_standings()
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e))
 

@@ -1762,12 +1762,22 @@ function FrontOffice() {
   const [search, setSearch] = React.useState('');
   const [headlines, setHeadlines] = React.useState([]);
   const [dashTab, setDashTab] = React.useState('cap');
+  const [standings, setStandings] = React.useState(null);
+  const [standingsLoading, setStandingsLoading] = React.useState(true);
+  const [standingsError, setStandingsError] = React.useState(false);
 
   React.useEffect(() => {
     fetch(`${API}/nba/news`)
       .then(r => r.ok ? r.json() : null)
       .then(d => { if (d?.headlines) setHeadlines(d.headlines.slice(0, 10)); })
       .catch(() => {});
+  }, []);
+
+  React.useEffect(() => {
+    fetch(`${API}/standings`)
+      .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(d => { setStandings(d); setStandingsLoading(false); })
+      .catch(() => { setStandingsError(true); setStandingsLoading(false); });
   }, []);
 
   const runRoster = async (teamName) => {
@@ -1849,26 +1859,8 @@ function FrontOffice() {
     );
   };
 
-  const EAST = [
-    {seed:1, team:'DET',name:'Pistons',   rec:'56-21'},{seed:2, team:'BOS',name:'Celtics',   rec:'52-25'},
-    {seed:3, team:'NYK',name:'Knicks',    rec:'50-28'},{seed:4, team:'CLE',name:'Cavaliers', rec:'48-29'},
-    {seed:5, team:'ATL',name:'Hawks',     rec:'45-33'},{seed:6, team:'TOR',name:'Raptors',   rec:'43-34'},
-    {seed:7, team:'PHI',name:'76ers',     rec:'43-35'},{seed:8, team:'CHA',name:'Hornets',   rec:'42-36'},
-    {seed:9, team:'MIA',name:'Heat',      rec:'41-36'},{seed:10,team:'IND',name:'Pacers',    rec:'40-37'},
-    {seed:11,team:'MIL',name:'Bucks',     rec:'39-38'},{seed:12,team:'ORL',name:'Magic',     rec:'37-40'},
-    {seed:13,team:'CHI',name:'Bulls',     rec:'35-42'},{seed:14,team:'BKN',name:'Nets',      rec:'22-55'},
-    {seed:15,team:'WAS',name:'Wizards',   rec:'18-59'},
-  ];
-  const WEST = [
-    {seed:1, team:'OKC',name:'Thunder',   rec:'59-18'},{seed:2, team:'SAS',name:'Spurs',     rec:'55-22'},
-    {seed:3, team:'LAL',name:'Lakers',    rec:'47-30'},{seed:4, team:'DEN',name:'Nuggets',   rec:'45-32'},
-    {seed:5, team:'HOU',name:'Rockets',   rec:'44-33'},{seed:6, team:'MIN',name:'T-Wolves',  rec:'43-34'},
-    {seed:7, team:'GSW',name:'Warriors',  rec:'40-37'},{seed:8, team:'DAL',name:'Mavericks', rec:'38-39'},
-    {seed:9, team:'PHX',name:'Suns',      rec:'38-39'},{seed:10,team:'SAC',name:'Kings',     rec:'36-41'},
-    {seed:11,team:'MEM',name:'Grizzlies', rec:'33-44'},{seed:12,team:'LAC',name:'Clippers',  rec:'32-45'},
-    {seed:13,team:'NOP',name:'Pelicans',  rec:'30-47'},{seed:14,team:'POR',name:'Blazers',   rec:'28-49'},
-    {seed:15,team:'UTA',name:'Jazz',      rec:'25-52'},
-  ];
+  const EAST = standings ? standings.east : [];
+  const WEST = standings ? standings.west : [];
 
   return (
     <div style={{display:'grid', gridTemplateColumns:'320px 1fr', height:'calc(100vh - 70px)', overflow:'hidden', position:'relative'}}>
@@ -2036,61 +2028,41 @@ function FrontOffice() {
 
           {/* ── Power Rankings tab ── */}
           {!result && !loading && !error && dashTab === 'power' && (
+            standingsLoading ? (
+              <div style={{...panelStyle, display:'flex', alignItems:'center', justifyContent:'center', minHeight:200}}>
+                <div style={{fontFamily:'Helvetica Neue, sans-serif', fontWeight:700, fontSize:11, letterSpacing:6, color:'var(--green)', textTransform:'uppercase', animation:'blink 1.2s ease-in-out infinite'}}>SYNCING LIVE LEAGUE DATA...</div>
+              </div>
+            ) : standingsError ? (
+              <div style={{...panelStyle, display:'flex', alignItems:'center', justifyContent:'center', minHeight:120}}>
+                <div style={{fontFamily:'Helvetica Neue, sans-serif', fontWeight:700, fontSize:11, letterSpacing:4, color:'rgba(239,68,68,0.6)', textTransform:'uppercase'}}>STANDINGS FEED OFFLINE</div>
+              </div>
+            ) : (
             <div style={panelStyle}>
               <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:20}}>
                 <div style={colLabel}>Power Rankings — All 30 Teams</div>
-                <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.2)', textTransform:'none'}}>April 2026</div>
+                <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.2)', textTransform:'none'}}>
+                  {standings ? `${standings.games_counted} games · live` : ''}
+                </div>
               </div>
-              {[
-                {rank:1,  prev:2,  team:'DET',name:'Pistons',      rec:'56-21',note:'Clinched East #1 seed. Cade era is here.'},
-                {rank:2,  prev:1,  team:'OKC',name:'Thunder',      rec:'59-18',note:'Best record in the league. SGA unstoppable.'},
-                {rank:3,  prev:3,  team:'SAS',name:'Spurs',        rec:'55-22',note:'Wemby carrying San Antonio back to elite.'},
-                {rank:4,  prev:4,  team:'BOS',name:'Celtics',      rec:'52-25',note:'Title defense still very much alive.'},
-                {rank:5,  prev:5,  team:'NYK',name:'Knicks',       rec:'50-28',note:'Brunson commanding the East. Garden electric.'},
-                {rank:6,  prev:7,  team:'CLE',name:'Cavaliers',    rec:'48-29',note:'Mobley anchoring elite defense.'},
-                {rank:7,  prev:6,  team:'LAL',name:'Lakers',       rec:'47-30',note:'LeBron in his bag. West 3 seed locked.'},
-                {rank:8,  prev:9,  team:'DEN',name:'Nuggets',      rec:'45-32',note:'Jokic makes every lineup work.'},
-                {rank:9,  prev:10, team:'ATL',name:'Hawks',        rec:'45-33',note:'Trae hunting. East 5 seed.'},
-                {rank:10, prev:8,  team:'HOU',name:'Rockets',      rec:'44-33',note:'Surprising West contender. Youth and depth.'},
-                {rank:11, prev:12, team:'MIN',name:'T-Wolves',     rec:'43-34',note:'Edwards carrying in April.'},
-                {rank:12, prev:11, team:'TOR',name:'Raptors',      rec:'43-34',note:'Quietly surging into East 6 seed.'},
-                {rank:13, prev:13, team:'PHI',name:'76ers',        rec:'43-35',note:'Maxey carrying the load. Play-in bound.'},
-                {rank:14, prev:15, team:'CHA',name:'Hornets',      rec:'42-36',note:'LaMelo back healthy. Play-in contender.'},
-                {rank:15, prev:14, team:'MIA',name:'Heat',         rec:'41-36',note:'Heat culture keeps them relevant.'},
-                {rank:16, prev:16, team:'IND',name:'Pacers',       rec:'40-37',note:'Haliburton running an elite offense.'},
-                {rank:17, prev:18, team:'GSW',name:'Warriors',     rec:'40-37',note:'Curry still cooking. West play-in.'},
-                {rank:18, prev:17, team:'DAL',name:'Mavericks',    rec:'38-39',note:'Flagg impact real. Barely in West play-in.'},
-                {rank:19, prev:19, team:'MIL',name:'Bucks',        rec:'39-38',note:'Giannis health concerns linger.'},
-                {rank:20, prev:21, team:'PHX',name:'Suns',         rec:'38-39',note:'Devin Booker carrying a thin roster.'},
-                {rank:21, prev:20, team:'ORL',name:'Magic',        rec:'37-40',note:'Young core not yet ready. Building.'},
-                {rank:22, prev:22, team:'SAC',name:'Kings',        rec:'36-41',note:'Fox dealt. Rebuild mode engaged.'},
-                {rank:23, prev:23, team:'CHI',name:'Bulls',        rec:'35-42',note:'No clear direction. Roster in flux.'},
-                {rank:24, prev:24, team:'LAC',name:'Clippers',     rec:'32-45',note:'Kawhi minutes managed all year.'},
-                {rank:25, prev:25, team:'MEM',name:'Grizzlies',    rec:'33-44',note:'Morant availability keeps floor higher.'},
-                {rank:26, prev:26, team:'NOP',name:'Pelicans',     rec:'30-47',note:'Zion availability remains the story.'},
-                {rank:27, prev:27, team:'POR',name:'Blazers',      rec:'28-49',note:'Scoot departed. Full rebuild.'},
-                {rank:28, prev:28, team:'UTA',name:'Jazz',         rec:'25-52',note:'Asset accumulation going according to plan.'},
-                {rank:29, prev:29, team:'BKN',name:'Nets',         rec:'22-55',note:'Full tear-down. Lottery positioning.'},
-                {rank:30, prev:30, team:'WAS',name:'Wizards',      rec:'18-59',note:'Worst record in the East. Draft focus.'},
-              ].map((t,i) => {
-                const moved = t.prev - t.rank;
-                return (
-                  <div key={t.team} onClick={()=>runRoster(t.name)} style={{display:'flex', alignItems:'center', gap:12, padding:'9px 0', borderBottom:'1px solid rgba(255,255,255,0.04)', cursor:'pointer'}}
-                    onMouseEnter={e=>e.currentTarget.style.background='rgba(0,230,118,0.02)'}
-                    onMouseLeave={e=>e.currentTarget.style.background=''}>
-                    <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:14, fontWeight:700, color:i<3?'var(--green)':i<8?'rgba(255,255,255,0.4)':'rgba(255,255,255,0.18)', width:24, textAlign:'right', flexShrink:0}}>{t.rank}</div>
-                    <img src={`https://a.espn.com/combiner/i?img=/i/teamlogos/nba/500/${t.team.toLowerCase()}.png&h=28&w=28`} alt={t.team} width={22} height={22} style={{objectFit:'contain',flexShrink:0}} onError={e=>e.target.style.display='none'}/>
-                    <div style={{flex:1, minWidth:0}}>
-                      <div style={{fontFamily:'Inter, sans-serif', fontSize:12, fontWeight:600, color: i < 16 ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.45)'}}>{t.name} <span style={{fontFamily:'Inter, sans-serif', fontSize:10, color:'rgba(255,255,255,0.25)', fontWeight:400}}>{t.rec}</span></div>
-                      <div style={{fontFamily:'Inter, sans-serif', fontSize:10, color:'rgba(255,255,255,0.25)', textTransform:'none', letterSpacing:0}}>{t.note}</div>
+              {(standings ? standings.league : []).map((t, i) => (
+                <div key={t.abbr} onClick={()=>runRoster(t.name)} style={{display:'flex', alignItems:'center', gap:12, padding:'9px 0', borderBottom:'1px solid rgba(255,255,255,0.04)', cursor:'pointer'}}
+                  onMouseEnter={e=>e.currentTarget.style.background='rgba(0,230,118,0.02)'}
+                  onMouseLeave={e=>e.currentTarget.style.background=''}>
+                  <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:14, fontWeight:700, color:i<3?'var(--green)':i<8?'rgba(255,255,255,0.4)':'rgba(255,255,255,0.18)', width:24, textAlign:'right', flexShrink:0}}>{t.rank}</div>
+                  <img src={`https://a.espn.com/combiner/i?img=/i/teamlogos/nba/500/${t.abbr.toLowerCase()}.png&h=28&w=28`} alt={t.abbr} width={22} height={22} style={{objectFit:'contain',flexShrink:0}} onError={e=>e.target.style.display='none'}/>
+                  <div style={{flex:1, minWidth:0}}>
+                    <div style={{fontFamily:'Inter, sans-serif', fontSize:12, fontWeight:600, color: i < 16 ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.45)'}}>
+                      {t.name} <span style={{fontFamily:'Inter, sans-serif', fontSize:10, color:'rgba(255,255,255,0.25)', fontWeight:400}}>{t.rec}</span>
                     </div>
-                    <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:10, fontWeight:700, color:moved>0?'var(--green)':moved<0?'#ef4444':'rgba(255,255,255,0.15)', flexShrink:0, width:28, textAlign:'right'}}>
-                      {moved>0?`+${moved}`:moved<0?`${moved}`:'-'}
-                    </div>
+                    <div style={{fontFamily:'Inter, sans-serif', fontSize:10, color:'rgba(255,255,255,0.25)'}}>{t.conference} · {t.division}</div>
                   </div>
-                );
-              })}
+                  <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, fontWeight:700, color:'rgba(255,255,255,0.35)', flexShrink:0, width:36, textAlign:'right'}}>
+                    {(t.pct * 1000 | 0) / 1000}
+                  </div>
+                </div>
+              ))}
             </div>
+            )
           )}
 
           {/* ── Young Stars tab ── */}
@@ -2136,6 +2108,15 @@ function FrontOffice() {
 
           {/* ── Playoff Picture tab ── */}
           {!result && !loading && !error && dashTab === 'playoff' && (
+            standingsLoading ? (
+              <div style={{...panelStyle, display:'flex', alignItems:'center', justifyContent:'center', minHeight:200}}>
+                <div style={{fontFamily:'Helvetica Neue, sans-serif', fontWeight:700, fontSize:11, letterSpacing:6, color:'var(--green)', textTransform:'uppercase', animation:'blink 1.2s ease-in-out infinite'}}>SYNCING LIVE LEAGUE DATA...</div>
+              </div>
+            ) : standingsError ? (
+              <div style={{...panelStyle, display:'flex', alignItems:'center', justifyContent:'center', minHeight:120}}>
+                <div style={{fontFamily:'Helvetica Neue, sans-serif', fontWeight:700, fontSize:11, letterSpacing:4, color:'rgba(239,68,68,0.6)', textTransform:'uppercase'}}>STANDINGS FEED OFFLINE</div>
+              </div>
+            ) : (
             <div style={panelStyle}>
               <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:20}}>
                 <div style={colLabel}>Playoff Picture</div>
@@ -2156,6 +2137,7 @@ function FrontOffice() {
                 </div>
               </div>
             </div>
+            )
           )}
 
           {/* Loading */}
