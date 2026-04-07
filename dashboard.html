@@ -626,7 +626,73 @@ nav.solid {
 @keyframes scan-pulse { 0%,100%{opacity:0.25} 50%{opacity:0.7} }
 @keyframes live-ping  { 0%{box-shadow:0 0 0 0 rgba(0,230,118,0.7)} 100%{box-shadow:0 0 0 6px rgba(0,230,118,0)} }
 .game-card { transition: border-color 0.15s, background 0.15s; }
-.game-card:hover { border-color: rgba(0,230,118,0.3) !important; background: rgba(0,230,118,0.04) !important; }
+.game-card:hover { border-color: rgba(0,255,128,0.45) !important; background: rgba(0,255,128,0.05) !important; }
+
+/* ── PIVOT GLOW SYSTEM ──────────────────────────────────────────────────────── */
+:root { --green: #00FF80; }
+
+/* Force Helvetica Bold everywhere Inter was used */
+.home-badge,.home-tagline,.home-scroll-hint,.features-label,.features-subtitle,
+.feature-desc,.cta-sub,.home-footer,.tb-info,.home-marquee-item,
+.box-team-label,.modal-team-city,.modal-team-abbr,.modal-score-vs,.modal-status,
+.g-conf-pill,.g-box-link,.g-status-badge,.loader,.empty,.err {
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif !important;
+  font-weight: 700 !important;
+}
+
+/* Boost muted text brightness globally for CSS-class elements */
+.home-tagline { color: rgba(255,255,255,0.72) !important; }
+.features-subtitle { color: rgba(255,255,255,0.62) !important; }
+.feature-desc { color: rgba(255,255,255,0.6) !important; }
+.cta-sub { color: rgba(255,255,255,0.65) !important; }
+.home-marquee-item { color: rgba(255,255,255,0.42) !important; }
+.home-scroll-hint { color: rgba(255,255,255,0.38) !important; }
+.home-footer { color: rgba(255,255,255,0.4) !important; }
+.tb-info { color: rgba(255,255,255,0.6) !important; }
+.empty { color: rgba(255,255,255,0.35) !important; }
+
+/* Glowing green elements */
+.feature-stat { color: var(--green) !important; text-shadow: 0 0 28px rgba(0,255,128,0.7), 0 0 60px rgba(0,255,128,0.35) !important; }
+.feature-stat-label { color: rgba(255,255,255,0.35) !important; }
+.ticker-item { text-shadow: 0 0 16px rgba(0,255,128,0.8), 0 0 44px rgba(0,255,128,0.4) !important; }
+.ticker { box-shadow: 0 -4px 28px rgba(0,255,128,0.12); }
+.box-pts { text-shadow: 0 0 12px rgba(0,255,128,0.55) !important; }
+.nav-tab.active::after { box-shadow: 0 0 20px var(--green), 0 0 44px rgba(0,255,128,0.45) !important; }
+.live-badge { box-shadow: 0 0 14px rgba(0,255,128,0.4); }
+.modal-score-big { text-shadow: 0 0 28px rgba(0,255,128,0.45), 0 0 60px rgba(0,255,128,0.2) !important; }
+
+/* Shiny home page */
+.home-pivot-text { text-shadow: 0 0 80px rgba(0,255,128,0.2), 0 0 160px rgba(0,255,128,0.1) !important; }
+.home-badge { box-shadow: 0 0 24px rgba(0,255,128,0.14); border-color: rgba(0,255,128,0.5) !important; }
+.home-cta-primary {
+  box-shadow: 0 0 30px rgba(0,255,128,0.22), inset 0 0 24px rgba(0,255,128,0.06) !important;
+  border-color: rgba(0,255,128,0.55) !important;
+}
+.home-cta-primary:hover {
+  box-shadow: 0 0 48px rgba(0,255,128,0.4), inset 0 0 28px rgba(0,255,128,0.1) !important;
+}
+.features-label { text-shadow: 0 0 16px rgba(0,255,128,0.5); }
+.feature-card:hover .feature-card-glow { opacity: 1; }
+.feature-card::before { box-shadow: 0 0 16px rgba(0,255,128,0.6) !important; background: var(--green) !important; }
+
+/* Shiny cards */
+.g-card2 {
+  border-color: rgba(255,255,255,0.14) !important;
+  box-shadow: 0 2px 24px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,255,128,0.05) !important;
+}
+.g-card2:hover {
+  border-color: rgba(0,255,128,0.65) !important;
+  box-shadow: 0 0 0 1px rgba(0,255,128,0.25), 0 14px 52px rgba(0,255,128,0.18), 0 0 80px rgba(0,255,128,0.09) !important;
+}
+.g-glow-overlay {
+  background: radial-gradient(circle at var(--cx, 50%) var(--cy, 50%), rgba(0,255,128,0.11) 0%, transparent 62%) !important;
+}
+.g-status-badge.live { box-shadow: 0 0 14px rgba(0,255,128,0.35); border-color: rgba(0,255,128,0.5) !important; }
+.g-live-dot { box-shadow: 0 0 6px rgba(0,255,128,0.8); }
+.nav-cta { box-shadow: 0 0 20px rgba(0,255,128,0.3); }
+.box-score { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+.box-table td { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: 700; letter-spacing: 0.5px; }
+.box-table th { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
 </style>
 </head>
 <body>
@@ -723,7 +789,7 @@ function Ticker() {
         <div className="ticker-track">
           {doubled.map((item, i) => (
             <React.Fragment key={i}>
-              <span className="ticker-item" style={item.type === 'score' ? {color:'var(--green)', textShadow:'0 0 8px rgba(0,255,65,0.5)'} : {color:'rgba(255,255,255,0.75)', textShadow:'none', fontWeight:400, letterSpacing:'1.5px'}}>
+              <span className="ticker-item" style={item.type === 'score' ? {color:'var(--green)', textShadow:'0 0 8px rgba(0,255,65,0.5)'} : {color:'rgba(255,255,255,0.75)', textShadow:'none', fontWeight:700, letterSpacing:'1.5px'}}>
                 {item.text}
               </span>
               <span className="ticker-sep">{item.type === 'score' ? '◆' : '·'}</span>
@@ -1039,14 +1105,14 @@ function GameAnalysisModal({ game, onClose }) {
           <div>
             <div style={{fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', fontWeight:700, fontSize:22,
               letterSpacing:2, color:'var(--white)', marginBottom:6}}>
-              {game.visitor_team.abbreviation} <span style={{color:'rgba(255,255,255,0.2)'}}>@</span> {game.home_team.abbreviation}
+              {game.visitor_team.abbreviation} <span style={{color:'rgba(255,255,255,0.52)'}}>@</span> {game.home_team.abbreviation}
             </div>
             {result && (
               <div style={{display:'flex', alignItems:'center', gap:12}}>
-                <span style={{fontFamily:'Inter, sans-serif', fontSize:11, letterSpacing:2, color:'var(--green)',
-                  fontWeight:600, textTransform:'uppercase'}}>{typeLabel}</span>
-                <span style={{fontFamily:'Inter, sans-serif', fontSize:12, letterSpacing:0, color:'rgba(255,255,255,0.45)',
-                  fontWeight:400, textTransform:'none'}}>{result.score_line}</span>
+                <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, letterSpacing:2, color:'var(--green)',
+                  fontWeight:700, textTransform:'uppercase'}}>{typeLabel}</span>
+                <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:12, letterSpacing:0, color:'rgba(255,255,255,0.75)',
+                  fontWeight:700, textTransform:'none'}}>{result.score_line}</span>
               </div>
             )}
           </div>
@@ -1057,8 +1123,8 @@ function GameAnalysisModal({ game, onClose }) {
           {loading && <Loader label="PIVOT COMPUTING"/>}
           {error && <div className="err">{error}</div>}
           {!loading && result && (
-            <div style={{fontFamily:'Inter, sans-serif', fontSize:14, lineHeight:2.1, letterSpacing:0,
-              color:'var(--white)', whiteSpace:'pre-wrap', fontWeight:400, textTransform:'none'}}>
+            <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:14, lineHeight:2.1, letterSpacing:0,
+              color:'var(--white)', whiteSpace:'pre-wrap', fontWeight:700, textTransform:'none'}}>
               {result.analysis}
             </div>
           )}
@@ -1122,19 +1188,19 @@ function GameCard({ g, onSelect, onAnalyze }) {
       {/* Top Performers */}
       {performers.length > 0 && (
         <div style={{borderTop:'1px solid rgba(255,255,255,0.05)', paddingTop:14}}>
-          <div style={{fontFamily:'Inter, sans-serif', fontSize:8, letterSpacing:3, color:'rgba(0,230,118,0.45)', textTransform:'uppercase', fontWeight:600, marginBottom:10}}>Top Performers</div>
+          <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, letterSpacing:3, color:'rgba(0,255,128,0.86)', textTransform:'uppercase', fontWeight:700, marginBottom:10}}>Top Performers</div>
           <div style={{display:'flex', flexDirection:'column', gap:8}}>
             {performers.map((p, i) => (
               <div key={i} style={{display:'flex', alignItems:'center', justifyContent:'space-between'}}>
                 <div style={{display:'flex', alignItems:'center', gap:8, minWidth:0}}>
-                  <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:2, fontWeight:700, color:'rgba(255,255,255,0.25)', width:14}}>{i+1}</div>
-                  <div style={{fontFamily:'Inter, sans-serif', fontSize:13, fontWeight:600, color:'rgba(255,255,255,0.88)', letterSpacing:0, textTransform:'none', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{p.full}</div>
-                  <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, letterSpacing:2, color:'rgba(0,230,118,0.4)', fontWeight:700, flexShrink:0}}>{p.team}</div>
+                  <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:2, fontWeight:700, color:'rgba(255,255,255,0.82)', width:14}}>{i+1}</div>
+                  <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:13, fontWeight:700, color:'rgba(255,255,255,0.88)', letterSpacing:0, textTransform:'none', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{p.full}</div>
+                  <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, letterSpacing:2, color:'rgba(0,255,128,0.82)', fontWeight:700, flexShrink:0}}>{p.team}</div>
                 </div>
                 <div style={{display:'flex', gap:10, flexShrink:0, marginLeft:8}}>
-                  <span style={{fontFamily:'Inter, sans-serif', fontSize:12, fontWeight:700, color:'var(--green)'}}>{p.pts}<span style={{fontSize:8, letterSpacing:1, color:'rgba(0,230,118,0.45)', fontWeight:500, marginLeft:2}}>PTS</span></span>
-                  <span style={{fontFamily:'Inter, sans-serif', fontSize:12, fontWeight:500, color:'rgba(255,255,255,0.35)'}}>{p.reb}<span style={{fontSize:8, letterSpacing:1, color:'rgba(255,255,255,0.2)', marginLeft:2}}>REB</span></span>
-                  <span style={{fontFamily:'Inter, sans-serif', fontSize:12, fontWeight:500, color:'rgba(255,255,255,0.35)'}}>{p.ast}<span style={{fontSize:8, letterSpacing:1, color:'rgba(255,255,255,0.2)', marginLeft:2}}>AST</span></span>
+                  <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:12, fontWeight:700, color:'var(--green)'}}>{p.pts}<span style={{fontSize:8, letterSpacing:1, color:'rgba(0,255,128,0.86)', fontWeight:700, marginLeft:2}}>PTS</span></span>
+                  <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:12, fontWeight:700, color:'rgba(255,255,255,0.68)'}}>{p.reb}<span style={{fontSize:8, letterSpacing:1, color:'rgba(255,255,255,0.52)', marginLeft:2}}>REB</span></span>
+                  <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:12, fontWeight:700, color:'rgba(255,255,255,0.68)'}}>{p.ast}<span style={{fontSize:8, letterSpacing:1, color:'rgba(255,255,255,0.52)', marginLeft:2}}>AST</span></span>
                 </div>
               </div>
             ))}
@@ -1257,8 +1323,8 @@ function Analysis() {
       {!loading && result && (
         <div style={{maxWidth:900, padding:'40px 56px'}}>
           <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:24}}>
-            <div style={{fontFamily:'Inter, sans-serif', fontSize:12, letterSpacing:0, color:'var(--text-muted)', fontWeight:400, textTransform:'none'}}>
-              <span style={{color:'var(--green)', fontWeight:500}}>{result.game_count} Games</span> · {new Date().toLocaleDateString([],{month:'short',day:'numeric',year:'numeric'})}
+            <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:12, letterSpacing:0, color:'var(--text-muted)', fontWeight:700, textTransform:'none'}}>
+              <span style={{color:'var(--green)', fontWeight:700}}>{result.game_count} Games</span> · {new Date().toLocaleDateString([],{month:'short',day:'numeric',year:'numeric'})}
             </div>
             <button onClick={() => window.print()} style={{background:'none', border:'1px solid var(--border)', color:'var(--text-muted)', fontFamily:'Helvetica Neue, sans-serif', fontWeight:700, fontSize:9, letterSpacing:3, textTransform:'uppercase', padding:'8px 16px', cursor:'pointer', borderRadius:4, transition:'all 0.15s'}}
               onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--green)';e.currentTarget.style.color='var(--green)';}}
@@ -1266,7 +1332,7 @@ function Analysis() {
               Export PDF →
             </button>
           </div>
-          <div style={{fontFamily:'Inter, sans-serif', fontSize:14, lineHeight:2, letterSpacing:0, color:'var(--white)', whiteSpace:'pre-wrap', fontWeight:400, textTransform:'none'}}>
+          <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:14, lineHeight:2, letterSpacing:0, color:'var(--white)', whiteSpace:'pre-wrap', fontWeight:700, textTransform:'none'}}>
             {result.analysis}
           </div>
         </div>
@@ -1349,10 +1415,10 @@ function TrendBar({ val, avg, maxVal, label, isPct }) {
         <div style={{width:24, background:color, opacity:0.75, height:`${barH}%`, minHeight:2, borderRadius:'3px 3px 0 0', transition:'height 0.8s ease', position:'relative', zIndex:1}}/>
         <div style={{position:'absolute', bottom:`${avgH}%`, left:'10%', right:'10%', borderTop:'1px dashed rgba(255,255,255,0.25)', zIndex:2}}/>
       </div>
-      <div style={{fontFamily:'Inter, sans-serif', fontSize:15, fontWeight:700, color, letterSpacing:-0.5}}>{display != null ? display : '-'}</div>
-      <div style={{fontFamily:'Inter, sans-serif', fontSize:8, letterSpacing:2, color:'var(--text-muted)', marginTop:4, textTransform:'uppercase'}}>{label}</div>
+      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:15, fontWeight:700, color, letterSpacing:-0.5}}>{display != null ? display : '-'}</div>
+      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, letterSpacing:2, color:'var(--text-muted)', marginTop:4, textTransform:'uppercase'}}>{label}</div>
       {val!=null && avg!=null && (
-        <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color, marginTop:2, fontWeight:500}}>
+        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, color, marginTop:2, fontWeight:700}}>
           {up ? '+' : ''}{isPct ? `${((val-avg)*100).toFixed(1)}%` : `${(val-avg).toFixed(1)}`}
         </div>
       )}
@@ -1466,10 +1532,10 @@ function Players() {
       {/* ── Search Bar ── */}
       <div style={{position:'sticky', top:70, zIndex:100, background:'rgba(8,10,14,0.82)', backdropFilter:'blur(20px)', borderBottom:'1px solid var(--border)'}}>
         <div style={{display:'flex', alignItems:'stretch', height:60}}>
-          <div style={{display:'flex', alignItems:'center', padding:'0 20px', color:'rgba(0,230,118,0.5)', fontSize:18, flexShrink:0}}>⌕</div>
+          <div style={{display:'flex', alignItems:'center', padding:'0 20px', color:'rgba(0,255,128,0.9)', fontSize:18, flexShrink:0}}>⌕</div>
           <div style={{flex:1, position:'relative'}}>
             <input
-              style={{width:'100%', height:'100%', background:'transparent', border:'none', outline:'none', color:'var(--white)', fontFamily:'Inter, sans-serif', fontWeight:400, fontSize:15, letterSpacing:0, padding:'0 16px', textTransform:'none'}}
+              style={{width:'100%', height:'100%', background:'transparent', border:'none', outline:'none', color:'var(--white)', fontFamily:'Helvetica Neue, sans-serif', fontWeight:700, fontSize:15, letterSpacing:0, padding:'0 16px', textTransform:'none'}}
               placeholder="Search any NBA player…"
               value={query}
               onChange={e => { setQuery(e.target.value); setSelectedId(null); fetchSuggestions(e.target.value); setShowSugg(true); }}
@@ -1484,9 +1550,9 @@ function Players() {
                     style={{padding:'13px 20px', cursor:'pointer', borderBottom: i < suggestions.length-1 ? '1px solid var(--border)' : 'none', display:'flex', justifyContent:'space-between', alignItems:'center', transition:'background 0.1s'}}
                     onMouseEnter={e => { e.currentTarget.style.background='rgba(0,230,118,0.05)'; }}
                     onMouseLeave={e => { e.currentTarget.style.background=''; }}>
-                    <span style={{fontFamily:'Inter, sans-serif', fontWeight:500, fontSize:14, letterSpacing:0, textTransform:'none'}}>{p.first_name} {p.last_name}</span>
+                    <span style={{fontFamily:'Helvetica Neue, sans-serif', fontWeight:700, fontSize:14, letterSpacing:0, textTransform:'none'}}>{p.first_name} {p.last_name}</span>
                     <div style={{display:'flex', alignItems:'center', gap:12}}>
-                      <span style={{fontFamily:'Inter, sans-serif', fontSize:11, color:'var(--text-muted)', fontWeight:400}}>{p.position||'?'}</span>
+                      <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, color:'var(--text-muted)', fontWeight:700}}>{p.position||'?'}</span>
                       <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:10, letterSpacing:2, color:'var(--green)', fontWeight:700, background:'rgba(0,230,118,0.08)', border:'1px solid rgba(0,230,118,0.2)', padding:'2px 8px', borderRadius:3}}>{p.team?.abbreviation||'—'}</span>
                     </div>
                   </div>
@@ -1518,7 +1584,7 @@ function Players() {
               WebkitMaskImage:'radial-gradient(ellipse at center, black 30%, transparent 75%)',
               maskImage:'radial-gradient(ellipse at center, black 30%, transparent 75%)'}}/>
             <div style={{position:'relative', zIndex:1}}>
-              <div style={{fontFamily:'Inter, sans-serif', fontSize:10, letterSpacing:5, color:'rgba(0,230,118,0.5)', textTransform:'uppercase', fontWeight:600, marginBottom:20}}>
+              <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:10, letterSpacing:5, color:'rgba(0,255,128,0.9)', textTransform:'uppercase', fontWeight:700, marginBottom:20}}>
                 PIVOT Player Intel Engine · Most Advanced Scouting Platform Available
               </div>
               <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:'clamp(64px,11vw,140px)', fontWeight:700, letterSpacing:-4, lineHeight:0.88,
@@ -1527,7 +1593,7 @@ function Players() {
                 filter:'drop-shadow(0 0 40px rgba(0,230,118,0.12))', userSelect:'none'}}>
                 PLAYER<br/>INTEL
               </div>
-              <div style={{fontFamily:'Inter, sans-serif', fontSize:14, letterSpacing:1, color:'rgba(255,255,255,0.3)', fontWeight:300, marginTop:20, textTransform:'none'}}>
+              <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:14, letterSpacing:1, color:'rgba(255,255,255,0.62)', fontWeight:700, marginTop:20, textTransform:'none'}}>
                 Select any player below or search above
               </div>
             </div>
@@ -1536,9 +1602,9 @@ function Players() {
           {/* Trending Grid */}
           <div style={{padding:'0 32px 80px', maxWidth:1200, margin:'0 auto'}}>
             <div style={{display:'flex', alignItems:'center', gap:16, marginBottom:24}}>
-              <div style={{fontFamily:'Inter, sans-serif', fontSize:9, letterSpacing:5, color:'rgba(0,230,118,0.55)', textTransform:'uppercase', fontWeight:700}}>Featured Players</div>
+              <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:5, color:'rgba(0,255,128,0.92)', textTransform:'uppercase', fontWeight:700}}>Featured Players</div>
               <div style={{flex:1, height:1, background:'rgba(255,255,255,0.05)'}}/>
-              <div style={{fontFamily:'Inter, sans-serif', fontSize:9, letterSpacing:2, color:'rgba(255,255,255,0.18)', textTransform:'none'}}>2025–26 Season</div>
+              <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:2, color:'rgba(255,255,255,0.18)', textTransform:'none'}}>2025–26 Season</div>
             </div>
             <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:16}}>
               {FEATURED_PLAYERS.map(p => (
@@ -1558,7 +1624,7 @@ function Players() {
                       onError={e => { e.target.style.display='none'; }}
                     />
                     <div style={{position:'absolute', top:10, left:12, fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:3, fontWeight:700, color:'var(--green)', opacity:0.8}}>{p.team}</div>
-                    <div style={{position:'absolute', bottom:10, left:12, fontFamily:'Helvetica Neue, sans-serif', fontSize:8, letterSpacing:2, fontWeight:700, color:'rgba(255,255,255,0.25)'}}>{p.position}</div>
+                    <div style={{position:'absolute', bottom:10, left:12, fontFamily:'Helvetica Neue, sans-serif', fontSize:8, letterSpacing:2, fontWeight:700, color:'rgba(255,255,255,0.82)'}}>{p.position}</div>
                   </div>
 
                   {/* Card body */}
@@ -1569,15 +1635,15 @@ function Players() {
                     <div style={{display:'flex', justifyContent:'space-around', marginBottom:14, paddingBottom:14, borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
                       {[{v:p.pts,l:'PTS'},{v:p.reb,l:'REB'},{v:p.ast,l:'AST'}].map(({v,l}) => (
                         <div key={l} style={{textAlign:'center'}}>
-                          <div style={{fontFamily:'Inter, sans-serif', fontSize:18, fontWeight:700, color:'var(--white)', letterSpacing:-0.5}}>{v}</div>
-                          <div style={{fontFamily:'Inter, sans-serif', fontSize:8, letterSpacing:2, color:'var(--text-muted)', textTransform:'uppercase', marginTop:2}}>{l}</div>
+                          <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:18, fontWeight:700, color:'var(--white)', letterSpacing:-0.5}}>{v}</div>
+                          <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, letterSpacing:2, color:'var(--text-muted)', textTransform:'uppercase', marginTop:2}}>{l}</div>
                         </div>
                       ))}
                     </div>
 
                     <div style={{display:'inline-flex', alignItems:'center', gap:6, background:'rgba(0,230,118,0.06)', border:'1px solid rgba(0,230,118,0.15)', borderRadius:99, padding:'4px 10px'}}>
                       <div style={{width:4, height:4, borderRadius:'50%', background:'var(--green)', opacity:0.7}}/>
-                      <span style={{fontFamily:'Inter, sans-serif', fontSize:10, letterSpacing:0.5, color:'rgba(0,230,118,0.7)', fontWeight:500}}>View Analysis →</span>
+                      <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:10, letterSpacing:0.5, color:'rgba(0,230,118,0.7)', fontWeight:700}}>View Analysis →</span>
                     </div>
                   </div>
                 </div>
@@ -1595,13 +1661,13 @@ function Players() {
               <div key={i} style={{width:6, height:6, borderRadius:'50%', background:'var(--green)', animation:`pulse-dot 1.2s ease-in-out ${i*0.2}s infinite`}}/>
             ))}
           </div>
-          <div style={{fontFamily:'Inter, sans-serif', fontSize:11, letterSpacing:4, color:'rgba(0,230,118,0.6)', textTransform:'uppercase', fontWeight:500}}>Analyzing</div>
+          <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, letterSpacing:4, color:'var(--green)', textTransform:'uppercase', fontWeight:700}}>Analyzing</div>
         </div>
       )}
 
       {error && (
         <div style={{position:'relative', zIndex:1, margin:'32px 48px'}}>
-          <div style={{background:'rgba(239,68,68,0.06)', border:'1px solid rgba(239,68,68,0.2)', borderRadius:8, padding:'16px 20px', fontFamily:'Inter, sans-serif', fontSize:13, color:'#ef4444', letterSpacing:0, textTransform:'none'}}>{error}</div>
+          <div style={{background:'rgba(239,68,68,0.06)', border:'1px solid rgba(239,68,68,0.2)', borderRadius:8, padding:'16px 20px', fontFamily:'Helvetica Neue, sans-serif', fontSize:13, color:'#ef4444', letterSpacing:0, textTransform:'none'}}>{error}</div>
         </div>
       )}
 
@@ -1622,15 +1688,15 @@ function Players() {
                 </div>
                 <div style={{display:'flex', alignItems:'center', gap:12, marginTop:12, flexWrap:'wrap'}}>
                   <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:10, letterSpacing:3, fontWeight:700, color:'var(--green)', background:'rgba(0,230,118,0.08)', border:'1px solid rgba(0,230,118,0.25)', padding:'4px 12px', borderRadius:3}}>{teamAbbr||'—'}</span>
-                  <span style={{fontFamily:'Inter, sans-serif', fontSize:13, color:'rgba(255,255,255,0.5)', fontWeight:400, textTransform:'none', letterSpacing:0}}>{result.player?.team?.full_name||result.player?.team?.name||'—'}</span>
+                  <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:13, color:'rgba(255,255,255,0.5)', fontWeight:700, textTransform:'none', letterSpacing:0}}>{result.player?.team?.full_name||result.player?.team?.name||'—'}</span>
                   <span style={{color:'var(--border-strong)'}}>·</span>
-                  <span style={{fontFamily:'Inter, sans-serif', fontSize:13, color:'rgba(255,255,255,0.5)', fontWeight:400, textTransform:'none', letterSpacing:0}}>{result.player?.position||'—'}</span>
+                  <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:13, color:'rgba(255,255,255,0.5)', fontWeight:700, textTransform:'none', letterSpacing:0}}>{result.player?.position||'—'}</span>
                   <span style={{color:'var(--border-strong)'}}>·</span>
-                  <span style={{fontFamily:'Inter, sans-serif', fontSize:13, color:'rgba(255,255,255,0.4)', fontWeight:400, textTransform:'none', letterSpacing:0}}>2025–26 Season</span>
+                  <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:13, color:'rgba(255,255,255,0.72)', fontWeight:700, textTransform:'none', letterSpacing:0}}>2025–26 Season</span>
                 </div>
                 <div style={{display:'flex', gap:8, alignItems:'center', marginTop:20}}>
                   <button onClick={() => { setResult(null); setQuery(''); setSelectedId(null); setError(null); }}
-                    style={{fontFamily:'Inter, sans-serif', fontWeight:500, fontSize:12, letterSpacing:0, padding:'8px 16px', background:'transparent', border:'1px solid var(--border)', color:'var(--text-muted)', cursor:'pointer', borderRadius:6, transition:'all 0.15s', textTransform:'none'}}
+                    style={{fontFamily:'Helvetica Neue, sans-serif', fontWeight:700, fontSize:12, letterSpacing:0, padding:'8px 16px', background:'transparent', border:'1px solid var(--border)', color:'var(--text-muted)', cursor:'pointer', borderRadius:6, transition:'all 0.15s', textTransform:'none'}}
                     onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--border-strong)';e.currentTarget.style.color='var(--white)';}}
                     onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border)';e.currentTarget.style.color='var(--text-muted)';}}>
                     ← New Search
@@ -1650,7 +1716,7 @@ function Players() {
           {/* Stat cards */}
           {result.averages && (
             <div style={{padding:'32px 52px 0'}}>
-              <div style={{fontFamily:'Inter, sans-serif', fontSize:9, letterSpacing:4, color:'rgba(0,230,118,0.5)', fontWeight:600, textTransform:'uppercase', marginBottom:14}}>Season Averages · {result.games_played} GP</div>
+              <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:4, color:'rgba(0,255,128,0.9)', fontWeight:700, textTransform:'uppercase', marginBottom:14}}>Season Averages · {result.games_played} GP</div>
               <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12, marginBottom:12}}>
                 {[
                   {val:result.averages.points, lbl:'PTS', primary:true},
@@ -1661,7 +1727,7 @@ function Players() {
                   <div key={lbl} style={{background:'rgba(22,27,34,0.7)', border:'1px solid var(--border)', borderRadius:10, padding:'20px 24px', backdropFilter:'blur(8px)', position:'relative', overflow:'hidden'}}>
                     <div style={{position:'absolute', top:0, left:0, right:0, height:2, background: primary ? 'var(--green)' : 'rgba(0,230,118,0.3)', boxShadow: primary ? '0 0 12px rgba(0,230,118,0.4)' : 'none'}}/>
                     <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:42, letterSpacing:-2, color: primary ? 'var(--green)' : 'var(--white)', fontWeight:700, lineHeight:1, textShadow: primary ? '0 0 30px rgba(0,230,118,0.2)' : 'none'}}>{val}</div>
-                    <div style={{fontFamily:'Inter, sans-serif', fontSize:10, letterSpacing:3, color:'var(--text-muted)', marginTop:8, textTransform:'uppercase', fontWeight:500}}>{lbl}</div>
+                    <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:10, letterSpacing:3, color:'var(--text-muted)', marginTop:8, textTransform:'uppercase', fontWeight:700}}>{lbl}</div>
                   </div>
                 ))}
               </div>
@@ -1674,7 +1740,7 @@ function Players() {
                 ].map(({val,lbl}) => (
                   <div key={lbl} style={{background:'rgba(15,17,21,0.6)', border:'1px solid var(--border)', borderRadius:8, padding:'14px 20px', backdropFilter:'blur(4px)', display:'flex', justifyContent:'space-between', alignItems:'center'}}>
                     <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:22, letterSpacing:-0.5, color:'var(--white)', fontWeight:700}}>{val}</div>
-                    <div style={{fontFamily:'Inter, sans-serif', fontSize:9, letterSpacing:3, color:'var(--text-muted)', textTransform:'uppercase', fontWeight:500}}>{lbl}</div>
+                    <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:3, color:'var(--text-muted)', textTransform:'uppercase', fontWeight:700}}>{lbl}</div>
                   </div>
                 ))}
               </div>
@@ -1685,16 +1751,16 @@ function Players() {
           <div style={{padding:'0 52px', display:'grid', gridTemplateColumns:'1fr 340px', gap:24, marginBottom:36, alignItems:'start'}}>
             {result.analysis && (
               <div style={{background:'rgba(22,27,34,0.65)', border:'1px solid var(--border)', borderRadius:10, padding:'28px 32px', backdropFilter:'blur(8px)'}}>
-                <div style={{fontFamily:'Inter, sans-serif', fontSize:9, letterSpacing:4, color:'rgba(0,230,118,0.5)', fontWeight:600, textTransform:'uppercase', marginBottom:16}}>Overview</div>
-                <div style={{fontFamily:'Inter, sans-serif', fontSize:14, lineHeight:1.95, letterSpacing:0, color:'rgba(255,255,255,0.85)', whiteSpace:'pre-wrap', fontWeight:400, textTransform:'none'}}>
+                <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:4, color:'rgba(0,255,128,0.9)', fontWeight:700, textTransform:'uppercase', marginBottom:16}}>Overview</div>
+                <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:14, lineHeight:1.95, letterSpacing:0, color:'rgba(255,255,255,0.85)', whiteSpace:'pre-wrap', fontWeight:700, textTransform:'none'}}>
                   {result.analysis}
                 </div>
               </div>
             )}
             {result.last_10 && result.averages && (
               <div style={{background:'rgba(22,27,34,0.65)', border:'1px solid var(--border)', borderRadius:10, padding:'24px 20px', backdropFilter:'blur(8px)'}}>
-                <div style={{fontFamily:'Inter, sans-serif', fontSize:9, letterSpacing:4, color:'rgba(0,230,118,0.5)', fontWeight:600, textTransform:'uppercase', marginBottom:6}}>Last 10 Games</div>
-                <div style={{fontFamily:'Inter, sans-serif', fontSize:9, letterSpacing:0, color:'var(--text-muted)', marginBottom:20, textTransform:'none'}}>vs season avg (dashed line)</div>
+                <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:4, color:'rgba(0,255,128,0.9)', fontWeight:700, textTransform:'uppercase', marginBottom:6}}>Last 10 Games</div>
+                <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:0, color:'var(--text-muted)', marginBottom:20, textTransform:'none'}}>vs season avg (dashed line)</div>
                 <div style={{display:'flex', gap:4}}>
                   {[
                     {k:'points', avg:result.averages.points, max:Math.max(result.averages.points*1.4, 35), lbl:'PTS', isPct:false},
@@ -1714,7 +1780,7 @@ function Players() {
 
           {/* Deep Dive */}
           <div style={{padding:'0 52px'}}>
-            <div style={{fontFamily:'Inter, sans-serif', fontSize:9, letterSpacing:4, color:'rgba(0,230,118,0.5)', fontWeight:600, textTransform:'uppercase', marginBottom:14}}>Deep Dive</div>
+            <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:4, color:'rgba(0,255,128,0.9)', fontWeight:700, textTransform:'uppercase', marginBottom:14}}>Deep Dive</div>
             <div style={{borderRadius:10, overflow:'hidden', border:'1px solid var(--border)'}}>
               {SECTIONS.map((s,i) => (
                 <div key={s.id} style={{borderBottom:i<SECTIONS.length-1?'1px solid var(--border)':'none'}}>
@@ -1722,10 +1788,10 @@ function Players() {
                     style={{display:'flex', justifyContent:'space-between', alignItems:'center', padding:'18px 24px', cursor:'pointer', background: expandedSection===s.id ? 'rgba(0,230,118,0.04)' : 'rgba(22,27,34,0.5)', transition:'background 0.15s', backdropFilter:'blur(8px)'}}>
                     <div style={{display:'flex', alignItems:'center', gap:14}}>
                       <span style={{fontSize:14, opacity:0.6}}>{s.icon}</span>
-                      <span style={{fontFamily:'Inter, sans-serif', fontSize:13, letterSpacing:0, fontWeight:500, color: expandedSection===s.id ? 'var(--white)' : 'rgba(255,255,255,0.7)', textTransform:'none'}}>{s.label}</span>
+                      <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:13, letterSpacing:0, fontWeight:700, color: expandedSection===s.id ? 'var(--white)' : 'rgba(255,255,255,0.7)', textTransform:'none'}}>{s.label}</span>
                     </div>
                     <div style={{display:'flex', alignItems:'center', gap:12}}>
-                      {sectionLoading[s.id] && <div style={{fontFamily:'Inter, sans-serif', fontSize:10, letterSpacing:2, color:'var(--green)', fontWeight:500}}>Analyzing…</div>}
+                      {sectionLoading[s.id] && <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:10, letterSpacing:2, color:'var(--green)', fontWeight:700}}>Analyzing…</div>}
                       {sectionData[s.id] && !sectionLoading[s.id] && <div style={{width:6, height:6, borderRadius:'50%', background:'var(--green)', opacity:0.6}}/>}
                       <div style={{fontSize:10, color:'var(--text-muted)', transform:expandedSection===s.id?'rotate(180deg)':'none', transition:'transform 0.2s'}}>▼</div>
                     </div>
@@ -1738,7 +1804,7 @@ function Players() {
                         </div>
                       )}
                       {!sectionLoading[s.id] && sectionData[s.id] && (
-                        <div style={{fontFamily:'Inter, sans-serif', fontSize:14, lineHeight:1.95, letterSpacing:0, color:'rgba(255,255,255,0.82)', whiteSpace:'pre-wrap', fontWeight:400, textTransform:'none', maxWidth:900}}>
+                        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:14, lineHeight:1.95, letterSpacing:0, color:'rgba(255,255,255,0.82)', whiteSpace:'pre-wrap', fontWeight:700, textTransform:'none', maxWidth:900}}>
                           {sectionData[s.id]}
                         </div>
                       )}
@@ -1762,12 +1828,12 @@ function Players() {
               </div>
               <div style={{display:'flex', alignItems:'center', gap:10}}>
                 <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:10, letterSpacing:3, fontWeight:700, color:'var(--green)', background:'rgba(0,230,118,0.08)', border:'1px solid rgba(0,230,118,0.2)', padding:'3px 10px', borderRadius:3}}>{result.player.team?.abbreviation||'—'}</span>
-                <span style={{fontFamily:'Inter, sans-serif', fontSize:13, color:'var(--text-muted)', textTransform:'none', letterSpacing:0}}>{result.player.position||'—'}</span>
+                <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:13, color:'var(--text-muted)', textTransform:'none', letterSpacing:0}}>{result.player.position||'—'}</span>
               </div>
             </div>
           )}
           <div style={{background:'rgba(22,27,34,0.6)', border:'1px solid var(--border)', borderRadius:8, padding:'20px 24px', maxWidth:500, backdropFilter:'blur(8px)'}}>
-            <div style={{fontFamily:'Inter, sans-serif', fontSize:13, color:'var(--text-muted)', textTransform:'none', lineHeight:1.7, letterSpacing:0}}>{result.error}</div>
+            <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:13, color:'var(--text-muted)', textTransform:'none', lineHeight:1.7, letterSpacing:0}}>{result.error}</div>
           </div>
         </div>
       )}
@@ -1920,7 +1986,7 @@ function FrontOffice() {
   };
 
   const panelStyle = {background:'rgba(17,20,26,0.85)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:12, padding:'24px 28px'};
-  const colLabel = {fontFamily:'Inter, sans-serif', fontSize:9, letterSpacing:4, color:'rgba(0,230,118,0.55)', fontWeight:700, textTransform:'uppercase', marginBottom:18};
+  const colLabel = {fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:4, color:'rgba(0,255,128,0.92)', fontWeight:700, textTransform:'uppercase', marginBottom:18};
 
   const SeedRow = ({s}) => {
     const isIn = s.seed <= 6, isPlayin = s.seed === 7 || s.seed === 8, isOut = s.seed >= 9;
@@ -1934,8 +2000,8 @@ function FrontOffice() {
         onMouseLeave={e=>e.currentTarget.style.opacity=isOut?'0.45':'1'}>
         <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:10, fontWeight:700, color:isIn?'var(--green)':isPlayin?'#fbbf24':'rgba(255,255,255,0.2)', width:14, textAlign:'right', flexShrink:0}}>{s.seed}</div>
         <img src={`https://a.espn.com/combiner/i?img=/i/teamlogos/nba/500/${s.team.toLowerCase()}.png&h=20&w=20`} alt={s.team} width={15} height={15} style={{objectFit:'contain',flexShrink:0}} onError={e=>e.target.style.display='none'}/>
-        <div style={{flex:1, fontFamily:'Inter, sans-serif', fontSize:11, fontWeight:500, color: isOut ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.82)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{s.name}</div>
-        <div style={{fontFamily:'Inter, sans-serif', fontSize:10, color:'rgba(255,255,255,0.28)', flexShrink:0}}>{s.rec}</div>
+        <div style={{flex:1, fontFamily:'Helvetica Neue, sans-serif', fontSize:11, fontWeight:700, color: isOut ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.82)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{s.name}</div>
+        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:10, color:'rgba(255,255,255,0.82)', flexShrink:0}}>{s.rec}</div>
         <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:7, letterSpacing:1, color:isIn?'rgba(0,230,118,0.5)':isPlayin?'#fbbf24':'rgba(255,255,255,0.15)', flexShrink:0, width:28, textAlign:'right'}}>{isIn?'AUTO':isPlayin?'P-IN':'OUT'}</div>
       </div>
     );
@@ -1953,16 +2019,16 @@ function FrontOffice() {
         <div style={{padding:'20px 20px 14px', borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
           <div style={{display:'flex', alignItems:'baseline', gap:8, marginBottom:3}}>
             <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:17, fontWeight:700, letterSpacing:-0.5, color:'var(--white)'}}>War Room</div>
-            <div style={{fontFamily:'Inter, sans-serif', fontSize:8, letterSpacing:3, color:'rgba(0,230,118,0.5)', fontWeight:700, textTransform:'uppercase'}}>Front Office</div>
+            <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, letterSpacing:3, color:'rgba(0,255,128,0.9)', fontWeight:700, textTransform:'uppercase'}}>Front Office</div>
           </div>
-          <div style={{fontFamily:'Inter, sans-serif', fontSize:10, color:'rgba(255,255,255,0.28)', fontWeight:300, letterSpacing:0, textTransform:'none', lineHeight:1.5}}>Select a franchise to open its war room.</div>
+          <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:10, color:'rgba(255,255,255,0.82)', fontWeight:700, letterSpacing:0, textTransform:'none', lineHeight:1.5}}>Select a franchise to open its war room.</div>
         </div>
 
         <div style={{padding:'12px 16px 10px', borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
           <div style={{position:'relative', marginBottom:10}}>
-            <span style={{position:'absolute', left:10, top:'50%', transform:'translateY(-50%)', color:'rgba(0,230,118,0.4)', fontSize:13, pointerEvents:'none'}}>⌕</span>
+            <span style={{position:'absolute', left:10, top:'50%', transform:'translateY(-50%)', color:'rgba(0,255,128,0.82)', fontSize:13, pointerEvents:'none'}}>⌕</span>
             <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search teams..."
-              style={{width:'100%', background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:6, padding:'7px 10px 7px 32px', color:'var(--white)', fontFamily:'Inter, sans-serif', fontSize:12, outline:'none', textTransform:'none', letterSpacing:0, boxSizing:'border-box'}}
+              style={{width:'100%', background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:6, padding:'7px 10px 7px 32px', color:'var(--white)', fontFamily:'Helvetica Neue, sans-serif', fontSize:12, outline:'none', textTransform:'none', letterSpacing:0, boxSizing:'border-box'}}
               onFocus={e=>e.target.style.borderColor='rgba(0,230,118,0.4)'}
               onBlur={e=>e.target.style.borderColor='rgba(255,255,255,0.08)'}/>
           </div>
@@ -1977,7 +2043,7 @@ function FrontOffice() {
                   onMouseLeave={e=>{e.currentTarget.style.background=rosterTeam===t.name?'rgba(0,230,118,0.1)':'rgba(255,255,255,0.02)';e.currentTarget.style.borderColor=rosterTeam===t.name?'rgba(0,230,118,0.4)':'rgba(255,255,255,0.06)';}}>
                   {tier && <div style={{position:'absolute', top:3, right:3, width:4, height:4, borderRadius:'50%', background:tier.color, opacity:0.7}}/>}
                   <img src={`https://a.espn.com/combiner/i?img=/i/teamlogos/nba/500/${t.abbr.toLowerCase()}.png&h=32&w=32`} alt={t.abbr} width={20} height={20} style={{objectFit:'contain'}} onError={e=>e.target.style.display='none'}/>
-                  <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:7, letterSpacing:0.5, color:'rgba(255,255,255,0.35)', fontWeight:700}}>{t.abbr}</span>
+                  <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:7, letterSpacing:0.5, color:'rgba(255,255,255,0.68)', fontWeight:700}}>{t.abbr}</span>
                 </button>
               );
             })}
@@ -1986,7 +2052,7 @@ function FrontOffice() {
             {[{label:'APRON',color:'#ef4444'},{label:'OVER',color:'#f97316'},{label:'COMMITTED',color:'#fbbf24'},{label:'FLEXIBLE',color:'#22c55e'}].map(({label,color})=>(
               <div key={label} style={{display:'flex', alignItems:'center', gap:4}}>
                 <div style={{width:5,height:5,borderRadius:'50%',background:color}}/>
-                <span style={{fontFamily:'Inter, sans-serif', fontSize:8, color:'rgba(255,255,255,0.25)', letterSpacing:0.5}}>{label}</span>
+                <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, color:'rgba(255,255,255,0.82)', letterSpacing:0.5}}>{label}</span>
               </div>
             ))}
           </div>
@@ -1994,9 +2060,9 @@ function FrontOffice() {
 
         <div style={{flex:1, padding:'14px 16px', overflowY:'auto'}}>
           <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:10}}>
-            <div style={{fontFamily:'Inter, sans-serif', fontSize:8, letterSpacing:3, color:'rgba(0,230,118,0.45)', fontWeight:700, textTransform:'uppercase'}}>Intel Feed</div>
+            <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, letterSpacing:3, color:'rgba(0,255,128,0.86)', fontWeight:700, textTransform:'uppercase'}}>Intel Feed</div>
             <div style={{flex:1, height:1, background:'rgba(255,255,255,0.05)'}}/>
-            <div style={{fontFamily:'Inter, sans-serif', fontSize:8, color:'rgba(255,255,255,0.18)'}}>{now}</div>
+            <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, color:'rgba(255,255,255,0.18)'}}>{now}</div>
           </div>
           {(headlines.length ? headlines : [
             'Cap set at $188M for 2025-26 season',
@@ -2012,7 +2078,7 @@ function FrontOffice() {
           ]).map((h,i) => (
             <div key={i} style={{display:'flex', gap:8, alignItems:'flex-start', padding:'8px 0', borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
               <div style={{width:3, height:3, borderRadius:'50%', background:'rgba(0,230,118,0.4)', marginTop:6, flexShrink:0}}/>
-              <span style={{fontFamily:'Inter, sans-serif', fontSize:11, color:'rgba(255,255,255,0.45)', lineHeight:1.55, textTransform:'none', letterSpacing:0, fontWeight:400}}>{h}</span>
+              <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, color:'rgba(255,255,255,0.75)', lineHeight:1.55, textTransform:'none', letterSpacing:0, fontWeight:700}}>{h}</span>
             </div>
           ))}
         </div>
@@ -2026,7 +2092,7 @@ function FrontOffice() {
           <div style={{position:'sticky', top:70, zIndex:20, borderBottom:'1px solid rgba(255,255,255,0.07)', background:'rgba(9,12,16,0.96)', display:'flex', alignItems:'stretch', overflowX:'auto', padding:'0 24px'}}>
             {!result && TABS.map(tab => (
               <button key={tab.id} onClick={()=>setDashTab(tab.id)}
-                style={{background:'none', border:'none', padding:'0 18px', height:46, cursor:'pointer', fontFamily:'Inter, sans-serif', fontSize:10, fontWeight:600, letterSpacing:2, textTransform:'uppercase', color:dashTab===tab.id?'var(--white)':'rgba(255,255,255,0.3)', borderBottom:dashTab===tab.id?'2px solid var(--green)':'2px solid transparent', transition:'color 0.15s', whiteSpace:'nowrap', flexShrink:0}}>
+                style={{background:'none', border:'none', padding:'0 18px', height:46, cursor:'pointer', fontFamily:'Helvetica Neue, sans-serif', fontSize:10, fontWeight:700, letterSpacing:2, textTransform:'uppercase', color:dashTab===tab.id?'var(--white)':'rgba(255,255,255,0.3)', borderBottom:dashTab===tab.id?'2px solid var(--green)':'2px solid transparent', transition:'color 0.15s', whiteSpace:'nowrap', flexShrink:0}}>
                 {tab.label}
               </button>
             ))}
@@ -2034,10 +2100,10 @@ function FrontOffice() {
               <div style={{display:'flex', alignItems:'center', gap:12, padding:'0 4px', flex:1}}>
                 <img src={`https://a.espn.com/combiner/i?img=/i/teamlogos/nba/500/${ALL_TEAMS.find(t=>t.name===rosterTeam)?.abbr?.toLowerCase()||''}.png&h=32&w=32`} alt={rosterTeam} width={24} height={24} style={{objectFit:'contain'}} onError={e=>e.target.style.display='none'}/>
                 <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:13, fontWeight:700, color:'var(--white)', letterSpacing:-0.3}}>{rosterTeam}</div>
-                <div style={{fontFamily:'Inter, sans-serif', fontSize:8, letterSpacing:2, color:'rgba(0,230,118,0.5)', fontWeight:700, textTransform:'uppercase'}}>War Room</div>
+                <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, letterSpacing:2, color:'rgba(0,255,128,0.9)', fontWeight:700, textTransform:'uppercase'}}>War Room</div>
                 <div style={{flex:1}}/>
                 <button onClick={()=>{setResult(null);setRosterTeam('');}}
-                  style={{fontFamily:'Inter, sans-serif', fontWeight:500, fontSize:11, padding:'7px 14px', background:'transparent', border:'1px solid rgba(255,255,255,0.1)', color:'rgba(255,255,255,0.4)', cursor:'pointer', borderRadius:5, transition:'all 0.15s', textTransform:'none', letterSpacing:0}}
+                  style={{fontFamily:'Helvetica Neue, sans-serif', fontWeight:700, fontSize:11, padding:'7px 14px', background:'transparent', border:'1px solid rgba(255,255,255,0.1)', color:'rgba(255,255,255,0.72)', cursor:'pointer', borderRadius:5, transition:'all 0.15s', textTransform:'none', letterSpacing:0}}
                   onMouseEnter={e=>{e.currentTarget.style.borderColor='rgba(255,255,255,0.3)';e.currentTarget.style.color='var(--white)';}}
                   onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(255,255,255,0.1)';e.currentTarget.style.color='rgba(255,255,255,0.4)';}}>
                   ← All Teams
@@ -2062,8 +2128,8 @@ function FrontOffice() {
                 <div key={label} style={{background:'rgba(17,20,26,0.9)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:10, padding:'14px 16px', position:'relative', overflow:'hidden'}}>
                   <div style={{position:'absolute', top:0, left:0, right:0, height:2, background:'linear-gradient(90deg,rgba(0,230,118,0.4),transparent)'}}/>
                   <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:20, letterSpacing:-0.5, fontWeight:700, color:'var(--green)', lineHeight:1}}>{val}</div>
-                  <div style={{fontFamily:'Inter, sans-serif', fontSize:9, letterSpacing:2, color:'rgba(255,255,255,0.4)', marginTop:5, textTransform:'uppercase'}}>{label}</div>
-                  <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.2)', marginTop:2, textTransform:'none'}}>{sub}</div>
+                  <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:2, color:'rgba(255,255,255,0.72)', marginTop:5, textTransform:'uppercase'}}>{label}</div>
+                  <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, color:'rgba(255,255,255,0.52)', marginTop:2, textTransform:'none'}}>{sub}</div>
                 </div>
               ))}
             </div>
@@ -2097,14 +2163,14 @@ function FrontOffice() {
                         {/* Header */}
                         <div style={{display:'flex', alignItems:'center', justifyContent:'space-between'}}>
                           <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, fontWeight:700, color:i<3?'var(--green)':i<8?'rgba(255,255,255,0.35)':'rgba(255,255,255,0.18)'}}>#{t.rank}</div>
-                          <div style={{fontFamily:'Inter, sans-serif', fontSize:7, letterSpacing:0.8, fontWeight:700, color:timeline.color, border:`1px solid ${timeline.color}44`, borderRadius:3, padding:'2px 5px', textTransform:'uppercase'}}>{timeline.label}</div>
+                          <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:7, letterSpacing:0.8, fontWeight:700, color:timeline.color, border:`1px solid ${timeline.color}44`, borderRadius:3, padding:'2px 5px', textTransform:'uppercase'}}>{timeline.label}</div>
                         </div>
                         {/* Team identity */}
                         <div style={{display:'flex', alignItems:'center', gap:10}}>
                           <img src={`https://a.espn.com/combiner/i?img=/i/teamlogos/nba/500/${t.abbr.toLowerCase()}.png&h=40&w=40`} alt={t.abbr} width={32} height={32} style={{objectFit:'contain',flexShrink:0}} onError={e=>e.target.style.display='none'}/>
                           <div>
-                            <div style={{fontFamily:'Inter, sans-serif', fontSize:13, fontWeight:600, color:'rgba(255,255,255,0.88)'}}>{t.name}</div>
-                            <div style={{fontFamily:'Inter, sans-serif', fontSize:10, color:'rgba(255,255,255,0.3)'}}>{t.rec} · {t.conference}</div>
+                            <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:13, fontWeight:700, color:'rgba(255,255,255,0.88)'}}>{t.name}</div>
+                            <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:10, color:'rgba(255,255,255,0.62)'}}>{t.rec} · {t.conference}</div>
                           </div>
                         </div>
                         {/* Cap bar */}
@@ -2115,13 +2181,13 @@ function FrontOffice() {
                           </div>
                           <div style={{display:'flex', alignItems:'center', justifyContent:'space-between'}}>
                             <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:15, fontWeight:700, color:'rgba(255,255,255,0.7)', letterSpacing:-0.3}}>${t.capUsed}M</div>
-                            <div style={{fontFamily:'Inter, sans-serif', fontSize:7, letterSpacing:0.8, fontWeight:700, color:tier.color, background:tier.bg, border:`1px solid ${tier.border}`, borderRadius:3, padding:'2px 5px', textTransform:'uppercase'}}>{tier.label}</div>
+                            <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:7, letterSpacing:0.8, fontWeight:700, color:tier.color, background:tier.bg, border:`1px solid ${tier.border}`, borderRadius:3, padding:'2px 5px', textTransform:'uppercase'}}>{tier.label}</div>
                           </div>
                         </div>
                         {/* Leverage */}
                         <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', borderTop:'1px solid rgba(255,255,255,0.05)', paddingTop:10, marginTop:'auto'}}>
-                          <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.25)', letterSpacing:1, textTransform:'uppercase'}}>Leverage</div>
-                          <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:16, fontWeight:700, color:lev>=60?'#22c55e':lev>=35?'#fbbf24':'#ef4444'}}>{lev}<span style={{fontFamily:'Inter, sans-serif', fontSize:8, color:'rgba(255,255,255,0.2)', marginLeft:2}}>/95</span></div>
+                          <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, color:'rgba(255,255,255,0.82)', letterSpacing:1, textTransform:'uppercase'}}>Leverage</div>
+                          <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:16, fontWeight:700, color:lev>=60?'#22c55e':lev>=35?'#fbbf24':'#ef4444'}}>{lev}<span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, color:'rgba(255,255,255,0.52)', marginLeft:2}}>/95</span></div>
                         </div>
                       </div>
                     );
@@ -2144,15 +2210,15 @@ function FrontOffice() {
                     <div className="g-glow-overlay"/>
                     {/* Rank + tier */}
                     <div style={{display:'flex', alignItems:'center', justifyContent:'space-between'}}>
-                      <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.2)'}}># {i+1} by payroll</div>
-                      <div style={{fontFamily:'Inter, sans-serif', fontSize:7, letterSpacing:0.8, fontWeight:700, color:tier.color, background:tier.bg, border:`1px solid ${tier.border}`, borderRadius:3, padding:'2px 5px', textTransform:'uppercase'}}>{tier.label}</div>
+                      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, color:'rgba(255,255,255,0.52)'}}># {i+1} by payroll</div>
+                      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:7, letterSpacing:0.8, fontWeight:700, color:tier.color, background:tier.bg, border:`1px solid ${tier.border}`, borderRadius:3, padding:'2px 5px', textTransform:'uppercase'}}>{tier.label}</div>
                     </div>
                     {/* Team */}
                     <div style={{display:'flex', alignItems:'center', gap:10}}>
                       <img src={`https://a.espn.com/combiner/i?img=/i/teamlogos/nba/500/${t.abbr.toLowerCase()}.png&h=40&w=40`} alt={t.abbr} width={32} height={32} style={{objectFit:'contain',flexShrink:0}} onError={e=>e.target.style.display='none'}/>
                       <div>
                         <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:13, fontWeight:700, letterSpacing:-0.3, color:'rgba(255,255,255,0.88)'}}>{t.name}</div>
-                        <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.28)'}}>{t.abbr}</div>
+                        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, color:'rgba(255,255,255,0.82)'}}>{t.abbr}</div>
                       </div>
                     </div>
                     {/* Big number */}
@@ -2164,8 +2230,8 @@ function FrontOffice() {
                     </div>
                     {/* Leverage + footer */}
                     <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', borderTop:'1px solid rgba(255,255,255,0.05)', paddingTop:10, marginTop:'auto'}}>
-                      <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.25)', letterSpacing:1, textTransform:'uppercase'}}>Leverage</div>
-                      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:16, fontWeight:700, color:lev>=60?'#22c55e':lev>=35?'#fbbf24':'#ef4444'}}>{lev}<span style={{fontFamily:'Inter, sans-serif', fontSize:8, color:'rgba(255,255,255,0.2)', marginLeft:2}}>/95</span></div>
+                      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, color:'rgba(255,255,255,0.82)', letterSpacing:1, textTransform:'uppercase'}}>Leverage</div>
+                      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:16, fontWeight:700, color:lev>=60?'#22c55e':lev>=35?'#fbbf24':'#ef4444'}}>{lev}<span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, color:'rgba(255,255,255,0.52)', marginLeft:2}}>/95</span></div>
                     </div>
                   </div>
                 );
@@ -2195,8 +2261,8 @@ function FrontOffice() {
                   <div style={{display:'flex', alignItems:'center', gap:12}}>
                     <img src={`${API}/headshot/${p.nbaId}`} alt={p.name} width={44} height={44} style={{objectFit:'cover', borderRadius:22, flexShrink:0, background:'rgba(255,255,255,0.05)'}} onError={e=>e.target.style.display='none'}/>
                     <div>
-                      <div style={{fontFamily:'Inter, sans-serif', fontSize:14, fontWeight:600, color:'rgba(255,255,255,0.9)', lineHeight:1.2}}>{p.name}</div>
-                      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:2, color:'rgba(0,230,118,0.6)', fontWeight:700, marginTop:3}}>{p.team}</div>
+                      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:14, fontWeight:700, color:'rgba(255,255,255,0.9)', lineHeight:1.2}}>{p.name}</div>
+                      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:2, color:'var(--green)', fontWeight:700, marginTop:3}}>{p.team}</div>
                     </div>
                   </div>
                   {/* Stats */}
@@ -2204,12 +2270,12 @@ function FrontOffice() {
                     {[['PTS',p.pts],['REB',p.reb],['AST',p.ast]].map(([l,v], si) => (
                       <div key={l} style={{flex:1, textAlign:'center', borderRight: si < 2 ? '1px solid rgba(255,255,255,0.06)' : 'none'}}>
                         <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:18, fontWeight:700, color:'var(--white)', letterSpacing:-0.5}}>{v}</div>
-                        <div style={{fontFamily:'Inter, sans-serif', fontSize:7, letterSpacing:2, color:'rgba(255,255,255,0.25)', textTransform:'uppercase', marginTop:2}}>{l}</div>
+                        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:7, letterSpacing:2, color:'rgba(255,255,255,0.82)', textTransform:'uppercase', marginTop:2}}>{l}</div>
                       </div>
                     ))}
                   </div>
                   {/* Note */}
-                  <div style={{fontFamily:'Inter, sans-serif', fontSize:11, color:'rgba(255,255,255,0.35)', lineHeight:1.55, textTransform:'none', letterSpacing:0}}>{p.note}</div>
+                  <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, color:'rgba(255,255,255,0.68)', lineHeight:1.55, textTransform:'none', letterSpacing:0}}>{p.note}</div>
                 </div>
               ))}
             </div>
@@ -2237,10 +2303,10 @@ function FrontOffice() {
                   <div style={{display:'flex', alignItems:'center', gap:12}}>
                     <img src={`${API}/headshot/${p.nbaId}`} alt={p.name} width={44} height={44} style={{objectFit:'cover', borderRadius:22, flexShrink:0, background:'rgba(255,255,255,0.05)'}} onError={e=>e.target.style.display='none'}/>
                     <div style={{flex:1, minWidth:0}}>
-                      <div style={{fontFamily:'Inter, sans-serif', fontSize:13, fontWeight:600, color:'rgba(255,255,255,0.9)', lineHeight:1.2}}>{p.name}</div>
+                      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:13, fontWeight:700, color:'rgba(255,255,255,0.9)', lineHeight:1.2}}>{p.name}</div>
                       <div style={{display:'flex', gap:6, marginTop:3, alignItems:'center'}}>
-                        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, letterSpacing:2, color:'rgba(0,230,118,0.6)', fontWeight:700}}>{p.team}</div>
-                        <div style={{fontFamily:'Inter, sans-serif', fontSize:8, color:'rgba(255,255,255,0.2)'}}>Age {p.age} · {p.pos}</div>
+                        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, letterSpacing:2, color:'var(--green)', fontWeight:700}}>{p.team}</div>
+                        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, color:'rgba(255,255,255,0.52)'}}>Age {p.age} · {p.pos}</div>
                       </div>
                     </div>
                   </div>
@@ -2249,12 +2315,12 @@ function FrontOffice() {
                     {[['PTS',p.pts],['REB',p.reb],['AST',p.ast]].map(([l,v], si) => (
                       <div key={l} style={{flex:1, textAlign:'center', borderRight: si < 2 ? '1px solid rgba(255,255,255,0.06)' : 'none'}}>
                         <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:17, fontWeight:700, color:'var(--white)', letterSpacing:-0.5}}>{v}</div>
-                        <div style={{fontFamily:'Inter, sans-serif', fontSize:7, letterSpacing:2, color:'rgba(255,255,255,0.25)', textTransform:'uppercase', marginTop:2}}>{l}</div>
+                        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:7, letterSpacing:2, color:'rgba(255,255,255,0.82)', textTransform:'uppercase', marginTop:2}}>{l}</div>
                       </div>
                     ))}
                   </div>
                   {/* Note */}
-                  <div style={{fontFamily:'Inter, sans-serif', fontSize:11, color:'rgba(255,255,255,0.35)', lineHeight:1.55, textTransform:'none', letterSpacing:0}}>{p.note}</div>
+                  <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, color:'rgba(255,255,255,0.68)', lineHeight:1.55, textTransform:'none', letterSpacing:0}}>{p.note}</div>
                 </div>
               ))}
             </div>
@@ -2284,7 +2350,7 @@ function FrontOffice() {
                         <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:14}}>
                           {abbr && <img src={`https://a.espn.com/combiner/i?img=/i/teamlogos/nba/500/${abbr.toLowerCase()}.png&h=28&w=28`} alt={abbr} width={22} height={22} style={{objectFit:'contain',flexShrink:0}} onError={e=>e.target.style.display='none'}/>}
                           <div style={{fontFamily:'Helvetica Neue, sans-serif', fontWeight:700, fontSize:12, letterSpacing:1, color:'rgba(255,255,255,0.7)', textTransform:'uppercase', flex:1}}>{team.team}</div>
-                          <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.2)'}}>{team.players.length}</div>
+                          <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, color:'rgba(255,255,255,0.52)'}}>{team.players.length}</div>
                         </div>
                         {/* Player list */}
                         <div style={{display:'flex', flexDirection:'column', gap:0}}>
@@ -2294,10 +2360,10 @@ function FrontOffice() {
                               <div key={p.name} style={{display:'flex', alignItems:'flex-start', gap:10, padding:'9px 0', borderTop: pi > 0 ? '1px solid rgba(255,255,255,0.04)' : 'none'}}>
                                 <div style={{width:6, height:6, borderRadius:'50%', background:dot, flexShrink:0, marginTop:5}}/>
                                 <div style={{flex:1, minWidth:0}}>
-                                  <div style={{fontFamily:'Inter, sans-serif', fontSize:12, fontWeight:600, color:'rgba(255,255,255,0.82)'}}>{p.name}</div>
+                                  <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:12, fontWeight:700, color:'rgba(255,255,255,0.82)'}}>{p.name}</div>
                                   <div style={{display:'flex', alignItems:'center', gap:6, marginTop:2}}>
                                     <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, letterSpacing:1, fontWeight:700, color:dot, textTransform:'uppercase'}}>{p.status}</div>
-                                    {p.comment && <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.3)', textTransform:'none', letterSpacing:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{p.comment}</div>}
+                                    {p.comment && <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, color:'rgba(255,255,255,0.62)', textTransform:'none', letterSpacing:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{p.comment}</div>}
                                   </div>
                                 </div>
                               </div>
@@ -2318,11 +2384,11 @@ function FrontOffice() {
               <div style={{display:'flex', gap:8}}>
                 {[0,1,2].map(i=><div key={i} style={{width:6,height:6,borderRadius:'50%',background:'var(--green)',animation:`pulse-dot 1.2s ease-in-out ${i*0.2}s infinite`}}/>)}
               </div>
-              <div style={{fontFamily:'Inter, sans-serif', fontSize:11, letterSpacing:4, color:'rgba(0,230,118,0.6)', textTransform:'uppercase'}}>Opening War Room · {rosterTeam}</div>
+              <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, letterSpacing:4, color:'var(--green)', textTransform:'uppercase'}}>Opening War Room · {rosterTeam}</div>
             </div>
           )}
 
-          {error && <div style={{margin:'32px 40px', background:'rgba(239,68,68,0.06)', border:'1px solid rgba(239,68,68,0.2)', borderRadius:8, padding:'16px 20px', fontFamily:'Inter, sans-serif', fontSize:13, color:'#ef4444'}}>{error}</div>}
+          {error && <div style={{margin:'32px 40px', background:'rgba(239,68,68,0.06)', border:'1px solid rgba(239,68,68,0.2)', borderRadius:8, padding:'16px 20px', fontFamily:'Helvetica Neue, sans-serif', fontSize:13, color:'#ef4444'}}>{error}</div>}
 
           {/* ── Team War Room ── */}
           {!loading && result && (() => {
@@ -2351,8 +2417,8 @@ function FrontOffice() {
                     <div key={label} style={{background:'rgba(17,20,26,0.9)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:10, padding:'14px 16px', position:'relative', overflow:'hidden'}}>
                       <div style={{position:'absolute', top:0, left:0, right:0, height:2, background:`linear-gradient(90deg,${color}66,transparent)`}}/>
                       <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:20, letterSpacing:-0.5, fontWeight:700, color:color, lineHeight:1}}>{val}</div>
-                      <div style={{fontFamily:'Inter, sans-serif', fontSize:9, letterSpacing:2, color:'rgba(255,255,255,0.4)', marginTop:5, textTransform:'uppercase'}}>{label}</div>
-                      <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.22)', marginTop:2, textTransform:'none'}}>{sub}</div>
+                      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:2, color:'rgba(255,255,255,0.72)', marginTop:5, textTransform:'uppercase'}}>{label}</div>
+                      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, color:'rgba(255,255,255,0.52)', marginTop:2, textTransform:'none'}}>{sub}</div>
                     </div>
                   ))}
                 </div>
@@ -2360,17 +2426,17 @@ function FrontOffice() {
                 {/* Action Center */}
                 <div style={{marginBottom:24}}>
                   <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:14}}>
-                    <div style={{fontFamily:'Inter, sans-serif', fontSize:9, letterSpacing:4, color:'rgba(0,230,118,0.55)', fontWeight:700, textTransform:'uppercase'}}>Action Center</div>
+                    <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:4, color:'rgba(0,255,128,0.92)', fontWeight:700, textTransform:'uppercase'}}>Action Center</div>
                     <div style={{flex:1, height:1, background:'rgba(255,255,255,0.06)'}}/>
-                    <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.2)'}}>Top recommended moves</div>
+                    <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, color:'rgba(255,255,255,0.52)'}}>Top recommended moves</div>
                   </div>
                   <div style={{display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:12}}>
                     {selActions.map((a,i) => (
                       <div key={i} style={{background:'rgba(17,20,26,0.9)', border:`1px solid ${a.color}33`, borderRadius:10, padding:'16px 18px', position:'relative', overflow:'hidden'}}>
                         <div style={{position:'absolute', top:0, left:0, bottom:0, width:3, background:a.color, opacity:0.7}}/>
-                        <div style={{fontFamily:'Inter, sans-serif', fontSize:7, letterSpacing:2, fontWeight:700, color:a.color, textTransform:'uppercase', marginBottom:8}}>{a.priority}</div>
+                        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:7, letterSpacing:2, fontWeight:700, color:a.color, textTransform:'uppercase', marginBottom:8}}>{a.priority}</div>
                         <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:13, fontWeight:700, color:'var(--white)', letterSpacing:-0.2, marginBottom:8, lineHeight:1.3}}>{a.title}</div>
-                        <div style={{fontFamily:'Inter, sans-serif', fontSize:11, color:'rgba(255,255,255,0.45)', lineHeight:1.6, textTransform:'none', letterSpacing:0}}>{a.desc}</div>
+                        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, color:'rgba(255,255,255,0.75)', lineHeight:1.6, textTransform:'none', letterSpacing:0}}>{a.desc}</div>
                       </div>
                     ))}
                   </div>
@@ -2380,14 +2446,14 @@ function FrontOffice() {
                 <div style={{background:'rgba(17,20,26,0.9)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:12, overflow:'hidden'}}>
                   <div style={{display:'flex', alignItems:'center', gap:10, padding:'14px 24px', borderBottom:'1px solid rgba(255,255,255,0.07)', background:'rgba(0,230,118,0.03)'}}>
                     <div style={{width:3, height:16, background:'var(--green)', borderRadius:2, flexShrink:0}}/>
-                    <div style={{fontFamily:'Inter, sans-serif', fontSize:10, letterSpacing:2, fontWeight:700, color:'var(--white)', textTransform:'uppercase'}}>PIVOT Intelligence Report</div>
+                    <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:10, letterSpacing:2, fontWeight:700, color:'var(--white)', textTransform:'uppercase'}}>PIVOT Intelligence Report</div>
                     <div style={{marginLeft:'auto', display:'flex', alignItems:'center', gap:10}}>
-                      <div style={{fontFamily:'Inter, sans-serif', fontSize:8, letterSpacing:1, color:selTier.color, fontWeight:700, textTransform:'uppercase', border:`1px solid ${selTier.border}`, background:selTier.bg, borderRadius:3, padding:'2px 6px'}}>{selTier.label}</div>
-                      <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.2)', letterSpacing:0, textTransform:'none'}}>Generated {new Date().toLocaleDateString()}</div>
+                      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, letterSpacing:1, color:selTier.color, fontWeight:700, textTransform:'uppercase', border:`1px solid ${selTier.border}`, background:selTier.bg, borderRadius:3, padding:'2px 6px'}}>{selTier.label}</div>
+                      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, color:'rgba(255,255,255,0.52)', letterSpacing:0, textTransform:'none'}}>Generated {new Date().toLocaleDateString()}</div>
                     </div>
                   </div>
                   <div style={{padding:'24px 28px'}}>
-                    <div style={{fontFamily:'Inter, sans-serif', fontSize:14, lineHeight:1.95, letterSpacing:0, color:'rgba(255,255,255,0.85)', whiteSpace:'pre-wrap', fontWeight:400, textTransform:'none'}}>{result.analysis}</div>
+                    <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:14, lineHeight:1.95, letterSpacing:0, color:'rgba(255,255,255,0.85)', whiteSpace:'pre-wrap', fontWeight:700, textTransform:'none'}}>{result.analysis}</div>
                   </div>
                 </div>
               </div>
@@ -2640,11 +2706,11 @@ function CoachMode() {
         <div style={{display:'flex', alignItems:'center', gap:16, marginBottom:32}}>
           <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:'clamp(28px,4vw,48px)', fontWeight:900, letterSpacing:-1, color:'var(--white)', lineHeight:1}}>COACH MODE</div>
           <div style={{flex:1, height:1, background:'rgba(255,255,255,0.05)'}}/>
-          <div style={{fontFamily:'Inter, sans-serif', fontSize:9, letterSpacing:4, color:'rgba(0,230,118,0.5)', textTransform:'uppercase', fontWeight:600}}>Select a game to begin</div>
+          <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:4, color:'rgba(0,255,128,0.9)', textTransform:'uppercase', fontWeight:700}}>Select a game to begin</div>
         </div>
 
         {games.length === 0 ? (
-          <div style={{textAlign:'center', padding:'80px 0', fontFamily:'Inter, sans-serif', fontSize:11, letterSpacing:4, color:'rgba(255,255,255,0.15)', textTransform:'uppercase'}}>No games scheduled today</div>
+          <div style={{textAlign:'center', padding:'80px 0', fontFamily:'Helvetica Neue, sans-serif', fontSize:11, letterSpacing:4, color:'rgba(255,255,255,0.15)', textTransform:'uppercase'}}>No games scheduled today</div>
         ) : (
           <div className="g-grid">
             {games.map(g => (
@@ -2664,7 +2730,7 @@ function CoachMode() {
         <div style={{padding:'16px', borderBottom:'1px solid var(--border)'}}>
           {/* Back button */}
           <button onClick={() => { setSelectedGame(null); setResult(null); setError(null); setHistory([]); }}
-            style={{display:'flex', alignItems:'center', gap:6, background:'transparent', border:'1px solid var(--border)', color:'var(--text-muted)', cursor:'pointer', padding:'7px 12px', borderRadius:4, marginBottom:16, fontFamily:'Inter, sans-serif', fontSize:10, letterSpacing:2, fontWeight:500, transition:'all 0.15s', width:'100%'}}
+            style={{display:'flex', alignItems:'center', gap:6, background:'transparent', border:'1px solid var(--border)', color:'var(--text-muted)', cursor:'pointer', padding:'7px 12px', borderRadius:4, marginBottom:16, fontFamily:'Helvetica Neue, sans-serif', fontSize:10, letterSpacing:2, fontWeight:700, transition:'all 0.15s', width:'100%'}}
             onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--border-strong)';e.currentTarget.style.color='var(--white)';}}
             onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border)';e.currentTarget.style.color='var(--text-muted)';}}>
             ← All Games
@@ -2679,7 +2745,7 @@ function CoachMode() {
                   <span style={{fontSize:7,letterSpacing:3,color:isLive?'var(--green)':'#555',fontFamily:'Helvetica Neue, sans-serif',fontWeight:700,textTransform:'uppercase'}}>{isLive?'LIVE':label}</span>
                 </div>
                 <div style={{fontSize:15,letterSpacing:1,fontFamily:'Helvetica Neue, sans-serif',fontWeight:700,color:'#fff'}}>
-                  {selectedGame.visitor_team.abbreviation} <span style={{color:'rgba(255,255,255,0.25)'}}>@</span> {selectedGame.home_team.abbreviation}
+                  {selectedGame.visitor_team.abbreviation} <span style={{color:'rgba(255,255,255,0.82)'}}>@</span> {selectedGame.home_team.abbreviation}
                 </div>
                 {(selectedGame.home_team_score > 0 || selectedGame.visitor_team_score > 0) && (
                   <div style={{fontSize:13,color:'var(--green)',letterSpacing:2,marginTop:4,fontFamily:'Helvetica Neue, sans-serif',fontWeight:800}}>
@@ -2690,7 +2756,7 @@ function CoachMode() {
             );})()}
           </div>
 
-          <div style={{fontSize:8, letterSpacing:5, color:'rgba(0,230,118,0.4)', marginBottom:10, fontFamily:'Inter, sans-serif'}}>⬡ MY TEAM</div>
+          <div style={{fontSize:8, letterSpacing:5, color:'rgba(0,255,128,0.82)', marginBottom:10, fontFamily:'Helvetica Neue, sans-serif'}}>⬡ MY TEAM</div>
           <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:4, marginBottom:20}}>
             {[selectedGame.visitor_team, selectedGame.home_team].map(t => (
               <button key={t.id} onClick={() => setMyTeam(t.name)}
@@ -2698,13 +2764,13 @@ function CoachMode() {
                   color: myTeam===t.name ? '#000' : '#444',
                   border: `1px solid ${myTeam===t.name ? 'var(--green)' : 'rgba(255,255,255,0.08)'}`,
                   padding:'10px 6px', cursor:'pointer', fontSize:10, letterSpacing:3,
-                  fontFamily:'Inter, sans-serif', fontWeight:700, textTransform:'uppercase', transition:'all 0.1s'}}>
+                  fontFamily:'Helvetica Neue, sans-serif', fontWeight:700, textTransform:'uppercase', transition:'all 0.1s'}}>
                 {t.abbreviation}
               </button>
             ))}
           </div>
 
-          <div style={{fontSize:8, letterSpacing:5, color:'rgba(0,230,118,0.4)', marginBottom:10, fontFamily:'Inter, sans-serif'}}>⬡ MODE</div>
+          <div style={{fontSize:8, letterSpacing:5, color:'rgba(0,255,128,0.82)', marginBottom:10, fontFamily:'Helvetica Neue, sans-serif'}}>⬡ MODE</div>
           <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:4, marginBottom:24}}>
             {[['adjust','ADJUST'],['timeout','DRAW PLAY']].map(([id, lbl]) => (
               <button key={id} onClick={() => setMode(id)}
@@ -2712,7 +2778,7 @@ function CoachMode() {
                   color: mode===id ? '#000' : '#333',
                   border: `1px solid ${mode===id ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.06)'}`,
                   padding:'8px 4px', cursor:'pointer', fontSize:8, letterSpacing:3,
-                  fontFamily:'Inter, sans-serif', fontWeight:700, transition:'all 0.1s'}}>
+                  fontFamily:'Helvetica Neue, sans-serif', fontWeight:700, transition:'all 0.1s'}}>
                 {lbl}
               </button>
             ))}
@@ -2720,7 +2786,7 @@ function CoachMode() {
 
           <button onClick={run} disabled={loading || !myTeam}
             style={{width:'100%', padding:'13px', fontSize:9, letterSpacing:4,
-              fontFamily:'Inter, sans-serif', fontWeight:700, textTransform:'uppercase',
+              fontFamily:'Helvetica Neue, sans-serif', fontWeight:700, textTransform:'uppercase',
               cursor: loading||!myTeam ? 'default' : 'pointer', border:'none', transition:'all 0.15s',
               background: loading ? '#111' : !myTeam ? '#0a0a0a' : 'var(--green)',
               color: loading||!myTeam ? '#2a2a2a' : '#000',
@@ -2737,13 +2803,13 @@ function CoachMode() {
         {selectedGame && gameStatus && (
           <div style={{padding:'10px 24px', borderBottom:'1px solid var(--border)',
             display:'flex', alignItems:'center', gap:24, background:'rgba(0,0,0,0.5)', position:'sticky', top:0, zIndex:10}}>
-            <div style={{fontSize:8, letterSpacing:3, color: gameStatus.isLive ? 'var(--green)' : '#444', fontFamily:'Inter, sans-serif'}}>
+            <div style={{fontSize:8, letterSpacing:3, color: gameStatus.isLive ? 'var(--green)' : '#444', fontFamily:'Helvetica Neue, sans-serif'}}>
               {gameStatus.statusLabel}
             </div>
-            <div style={{fontSize:13, letterSpacing:2, color:'var(--white)', fontFamily:'Inter, sans-serif'}}>
+            <div style={{fontSize:13, letterSpacing:2, color:'var(--white)', fontFamily:'Helvetica Neue, sans-serif'}}>
               {gameStatus.scoreStr}
             </div>
-            {myTeam && <div style={{fontSize:8, letterSpacing:2, color:'rgba(0,230,118,0.5)', marginLeft:'auto', fontFamily:'Inter, sans-serif'}}>
+            {myTeam && <div style={{fontSize:8, letterSpacing:2, color:'rgba(0,255,128,0.9)', marginLeft:'auto', fontFamily:'Helvetica Neue, sans-serif'}}>
               ◎ {myTeam.toUpperCase()}
             </div>}
           </div>
@@ -2781,7 +2847,7 @@ function CoachMode() {
               <div style={{
                 marginTop:14, fontSize:9, letterSpacing:6,
                 fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', fontWeight:700,
-                color:'rgba(0,230,118,0.45)', textTransform:'uppercase',
+                color:'rgba(0,255,128,0.86)', textTransform:'uppercase',
               }}>
                 {selectedGame && myTeam
                   ? 'READY — SELECT MODE AND EXECUTE'
@@ -2813,7 +2879,7 @@ function CoachMode() {
                   animation:`pulse-dot 1.2s ease-in-out ${i*0.2}s infinite`}}/>
               ))}
             </div>
-            <div style={{fontSize:8, letterSpacing:6, color:'rgba(0,230,118,0.5)', fontFamily:'Inter, sans-serif'}}>
+            <div style={{fontSize:8, letterSpacing:6, color:'rgba(0,255,128,0.9)', fontFamily:'Helvetica Neue, sans-serif'}}>
               {mode === 'timeout' ? 'DRAWING PLAY' : 'COMPUTING ADJUSTMENTS'}
             </div>
           </div>
@@ -2825,11 +2891,11 @@ function CoachMode() {
         {!loading && result && (
           <div style={{padding:'32px 40px'}}>
             <div style={{display:'flex', gap:16, alignItems:'center', marginBottom:24}}>
-              <div style={{fontSize:8, letterSpacing:4, color:'var(--green)', fontFamily:'Inter, sans-serif'}}>
+              <div style={{fontSize:8, letterSpacing:4, color:'var(--green)', fontFamily:'Helvetica Neue, sans-serif'}}>
                 {result.mode === 'timeout' ? '⊙ PLAY DRAWN' : '⊙ ADJUSTMENTS READY'}
               </div>
-              <div style={{fontSize:8, letterSpacing:2, color:'#333', fontFamily:'Inter, sans-serif'}}>{result.my_team?.toUpperCase()}</div>
-              {result.time_remaining && <div style={{fontSize:8, letterSpacing:2, color:'#333', fontFamily:'Inter, sans-serif'}}>
+              <div style={{fontSize:8, letterSpacing:2, color:'#333', fontFamily:'Helvetica Neue, sans-serif'}}>{result.my_team?.toUpperCase()}</div>
+              {result.time_remaining && <div style={{fontSize:8, letterSpacing:2, color:'#333', fontFamily:'Helvetica Neue, sans-serif'}}>
                 Q{result.quarter} · {result.time_remaining}
               </div>}
             </div>
@@ -2838,7 +2904,7 @@ function CoachMode() {
             {result.mode === 'timeout' && result.diagram && (
               <div style={{marginBottom:28, borderRadius:4, overflow:'hidden', border:'1px solid rgba(0,230,118,0.1)'}}>
                 <div style={{padding:'8px 12px', background:'rgba(0,0,0,0.6)', borderBottom:'1px solid rgba(0,230,118,0.1)',
-                  fontSize:7, letterSpacing:4, color:'rgba(0,230,118,0.4)', fontFamily:'Inter, sans-serif'}}>
+                  fontSize:7, letterSpacing:4, color:'rgba(0,255,128,0.82)', fontFamily:'Helvetica Neue, sans-serif'}}>
                   PLAY DIAGRAM  ·  ● OFFENSE  ─ ─ BALL  → CUT
                 </div>
                 <CourtDiagram diagram={result.diagram}/>
@@ -2846,7 +2912,7 @@ function CoachMode() {
             )}
 
             <div style={{fontSize:14, lineHeight:2.1, letterSpacing:.3, color:'var(--white)',
-              whiteSpace:'pre-wrap', fontWeight:400, textTransform:'none', fontFamily:'Inter, sans-serif'}}>
+              whiteSpace:'pre-wrap', fontWeight:700, textTransform:'none', fontFamily:'Helvetica Neue, sans-serif'}}>
               {result.play || result.analysis}
             </div>
           </div>
@@ -2858,7 +2924,7 @@ function CoachMode() {
         {selectedGame && boxScore && (boxScore.total_players || 0) > 0 && (
           <div style={{borderBottom:'1px solid var(--border)'}}>
             <div style={{padding:'12px 16px', fontSize:7, letterSpacing:5, color:'rgba(0,230,118,0.35)',
-              borderBottom:'1px solid var(--border)', fontFamily:'Inter, sans-serif'}}>
+              borderBottom:'1px solid var(--border)', fontFamily:'Helvetica Neue, sans-serif'}}>
               ⬡ LIVE INTEL
             </div>
             {['away_players','home_players'].map(key => {
@@ -2870,21 +2936,21 @@ function CoachMode() {
                   <div style={{padding:'8px 16px 4px', fontSize:7, letterSpacing:4,
                     color: isMyTeam ? 'var(--green)' : '#444',
                     background: isMyTeam ? 'rgba(0,230,118,0.03)' : 'transparent',
-                    fontFamily:'Inter, sans-serif', borderBottom:'1px solid rgba(255,255,255,0.03)'}}>
+                    fontFamily:'Helvetica Neue, sans-serif', borderBottom:'1px solid rgba(255,255,255,0.03)'}}>
                     {team?.abbreviation} {isMyTeam ? '◎' : ''}
                   </div>
                   <div style={{padding:'4px 0 8px'}}>
                     {players.map((p, i) => (
                       <div key={i} style={{display:'flex', justifyContent:'space-between', alignItems:'center',
                         padding:'5px 16px', borderBottom:'1px solid rgba(255,255,255,0.02)'}}>
-                        <span style={{fontSize:10, letterSpacing:.5, fontWeight:600, color:'#888',
-                          fontFamily:'Inter, sans-serif', flex:1}}>{formatName(p.player)}</span>
+                        <span style={{fontSize:10, letterSpacing:.5, fontWeight:700, color:'#888',
+                          fontFamily:'Helvetica Neue, sans-serif', flex:1}}>{formatName(p.player)}</span>
                         <span className={heatClass(p.pts, p.min)}
-                          style={{fontSize:10, letterSpacing:1, fontFamily:'Inter, sans-serif', fontWeight:700}}>
+                          style={{fontSize:10, letterSpacing:1, fontFamily:'Helvetica Neue, sans-serif', fontWeight:700}}>
                           {p.pts}
                         </span>
                         <span style={{fontSize:9, color:'#333', letterSpacing:1, marginLeft:6,
-                          fontFamily:'Inter, sans-serif'}}>{p.reb}r {p.ast}a</span>
+                          fontFamily:'Helvetica Neue, sans-serif'}}>{p.reb}r {p.ast}a</span>
                       </div>
                     ))}
                   </div>
@@ -2896,7 +2962,7 @@ function CoachMode() {
 
         <div style={{padding:'16px'}}>
           <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12}}>
-            <div style={{fontSize:7, letterSpacing:4, color:'rgba(255,255,255,0.3)', fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', fontWeight:700, textTransform:'uppercase'}}>Call History & Intel</div>
+            <div style={{fontSize:7, letterSpacing:4, color:'rgba(255,255,255,0.62)', fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', fontWeight:700, textTransform:'uppercase'}}>Call History & Intel</div>
           </div>
           <div style={{fontSize:7, letterSpacing:3, color:'var(--green)', fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', fontWeight:700, marginBottom:14, opacity:0.6}}>[ SYSTEM READY ]</div>
           {history.length === 0 && (
@@ -2919,10 +2985,10 @@ function CoachMode() {
               onMouseLeave={e => e.currentTarget.style.borderColor='rgba(255,255,255,0.04)'}>
               <div style={{display:'flex', justifyContent:'space-between', marginBottom:3}}>
                 <span style={{fontSize:7, letterSpacing:3, color: h.mode==='timeout'?'#FFB800':'var(--green)',
-                  fontFamily:'Inter, sans-serif'}}>{h.mode?.toUpperCase()}</span>
-                <span style={{fontSize:7, letterSpacing:1, color:'#222', fontFamily:'Inter, sans-serif'}}>{h.timestamp}</span>
+                  fontFamily:'Helvetica Neue, sans-serif'}}>{h.mode?.toUpperCase()}</span>
+                <span style={{fontSize:7, letterSpacing:1, color:'#222', fontFamily:'Helvetica Neue, sans-serif'}}>{h.timestamp}</span>
               </div>
-              <div style={{fontSize:9, letterSpacing:1, color:'#555', fontFamily:'Inter, sans-serif'}}>
+              <div style={{fontSize:9, letterSpacing:1, color:'#555', fontFamily:'Helvetica Neue, sans-serif'}}>
                 {h.my_team}{h.quarter ? ` · Q${h.quarter}` : ''}
               </div>
             </div>
@@ -2955,7 +3021,7 @@ function About() {
 
         {/* ── What is PIVOT ── */}
         <div style={{marginBottom:56}}>
-          <div style={{fontFamily:hv, fontWeight:700, fontSize:10, letterSpacing:5, color:'rgba(255,255,255,0.2)', textTransform:'uppercase', marginBottom:32}}>I. THE PLATFORM</div>
+          <div style={{fontFamily:hv, fontWeight:700, fontSize:10, letterSpacing:5, color:'rgba(255,255,255,0.52)', textTransform:'uppercase', marginBottom:32}}>I. THE PLATFORM</div>
           <p style={{...body, marginBottom:28}}>
             PIVOT is not a dashboard. It is a decision infrastructure. An AI-powered intelligence engine built to eliminate noise from professional basketball and surface only what matters: pure, actionable advantage at the exact moment a decision is required.
           </p>
@@ -2971,7 +3037,7 @@ function About() {
 
         {/* ── Deployment Strategy ── */}
         <div style={{marginBottom:56}}>
-          <div style={{fontFamily:hv, fontWeight:700, fontSize:10, letterSpacing:5, color:'rgba(255,255,255,0.2)', textTransform:'uppercase', marginBottom:32}}>II. DEPLOYMENT STRATEGY</div>
+          <div style={{fontFamily:hv, fontWeight:700, fontSize:10, letterSpacing:5, color:'rgba(255,255,255,0.52)', textTransform:'uppercase', marginBottom:32}}>II. DEPLOYMENT STRATEGY</div>
           <p style={{...body, marginBottom:28}}>
             Traditional scouting operates on a 48-hour delay. PIVOT operates in the present. Our deployment strategy is built around three critical pressure points: the sideline, the war room, and the front office. Each layer is designed to compress decision time and eliminate guesswork at the moment it costs most.
           </p>
@@ -2987,7 +3053,7 @@ function About() {
 
         {/* ── The Architects ── */}
         <div>
-          <div style={{fontFamily:hv, fontWeight:700, fontSize:10, letterSpacing:5, color:'rgba(255,255,255,0.2)', textTransform:'uppercase', marginBottom:56}}>III. THE ARCHITECTS</div>
+          <div style={{fontFamily:hv, fontWeight:700, fontSize:10, letterSpacing:5, color:'rgba(255,255,255,0.52)', textTransform:'uppercase', marginBottom:56}}>III. THE ARCHITECTS</div>
 
           {/* Will */}
           <div style={{marginBottom:64}}>
