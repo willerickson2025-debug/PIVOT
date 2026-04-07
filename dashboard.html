@@ -1783,7 +1783,7 @@ function FrontOffice() {
   const [rosterTeam, setRosterTeam] = React.useState('');
   const [search, setSearch] = React.useState('');
   const [headlines, setHeadlines] = React.useState([]);
-  const [dashTab, setDashTab] = React.useState('cap');
+  const [dashTab, setDashTab] = React.useState('warboard');
   const [standings, setStandings] = React.useState(null);
   const [standingsLoading, setStandingsLoading] = React.useState(true);
   const [standingsError, setStandingsError] = React.useState(false);
@@ -1844,7 +1844,7 @@ function FrontOffice() {
     {abbr:'GSW',name:'Warriors',   used:203},{abbr:'BOS',name:'Celtics',    used:197},
     {abbr:'PHX',name:'Suns',       used:194},{abbr:'MIL',name:'Bucks',      used:185},
     {abbr:'LAL',name:'Lakers',     used:182},{abbr:'NYK',name:'Knicks',     used:177},
-    {abbr:'DET',name:'Pistons',    used:174},{abbr:'MIN',name:'T-Wolves',   used:172},
+    {abbr:'DET',name:'Pistons',    used:174},{abbr:'MIN',name:'Timberwolves',used:172},
     {abbr:'PHI',name:'76ers',      used:167},{abbr:'MIA',name:'Heat',       used:164},
     {abbr:'DEN',name:'Nuggets',    used:162},{abbr:'DAL',name:'Mavericks',  used:159},
     {abbr:'CLE',name:'Cavaliers',  used:157},{abbr:'LAC',name:'Clippers',   used:154},
@@ -1865,12 +1865,59 @@ function FrontOffice() {
   const now = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
 
   const TABS = [
-    {id:'cap',      label:'Cap Table'},
-    {id:'mvp',      label:'MVP Race'},
-    {id:'power',    label:'Power Rankings'},
-    {id:'young',    label:'Young Stars'},
-    {id:'injuries', label:'Injury Report'},
+    {id:'warboard',  label:'War Board'},
+    {id:'cap',       label:'Cap Intel'},
+    {id:'mvp',       label:'MVP Race'},
+    {id:'young',     label:'Young Stars'},
+    {id:'injuries',  label:'Injury Report'},
   ];
+
+  const getCapTier = (used) => {
+    if (used >= 195) return {label:'APRON RISK',  color:'#ef4444', bg:'rgba(239,68,68,0.08)',   border:'rgba(239,68,68,0.25)'};
+    if (used >= 183) return {label:'OVER CAP',    color:'#f97316', bg:'rgba(249,115,22,0.08)',  border:'rgba(249,115,22,0.25)'};
+    if (used >= 160) return {label:'COMMITTED',   color:'#fbbf24', bg:'rgba(251,191,36,0.08)',  border:'rgba(251,191,36,0.25)'};
+    return              {label:'FLEXIBLE',     color:'#22c55e', bg:'rgba(34,197,94,0.08)',   border:'rgba(34,197,94,0.25)'};
+  };
+
+  const getLeverage = (used) => Math.max(5, Math.min(95, Math.round(((228 - used) / (228 - 110)) * 90 + 5)));
+
+  const getTimeline = (pct) => {
+    if (pct >= 0.60) return {label:'WIN-NOW',  color:'#22c55e'};
+    if (pct >= 0.48) return {label:'BRIDGE',   color:'#fbbf24'};
+    if (pct >= 0.38) return {label:'FRINGE',   color:'#f97316'};
+    return               {label:'REBUILD',  color:'#ef4444'};
+  };
+
+  const getActions = (capUsed, winPct) => {
+    const tier = getCapTier(capUsed);
+    const timeline = getTimeline(winPct);
+    const actions = [];
+    if (capUsed >= 195) {
+      actions.push({priority:'CRITICAL', title:'Second Apron Exposure', desc:'At risk of hard-cap restrictions. Identify expiring contracts to shed before deadline.', color:'#ef4444'});
+      actions.push({priority:'HIGH',     title:'Trade Aggregation Blocked', desc:'Second apron prevents combining salaries in trades. Target 1-for-1 swaps with teams seeking cap relief.', color:'#f97316'});
+    } else if (capUsed >= 183) {
+      actions.push({priority:'HIGH',     title:'Tax Optimization Window', desc:'Identify 2–3 non-rotation players to trade for picks or cheaper alternatives to reduce tax bill.', color:'#f97316'});
+    } else if (capUsed >= 160) {
+      actions.push({priority:'MEDIUM',   title:'Mid-Level Exception Available', desc:'Use taxpayer MLE ($5.1M) to target a high-upside role player before deadline.', color:'#fbbf24'});
+    } else {
+      actions.push({priority:'MOVE',     title:'Cap Space Opportunity', desc:`$${Math.round(188 - capUsed)}M in available space. Prioritize a max or near-max free agent target in the offseason.`, color:'#22c55e'});
+    }
+    if (winPct >= 0.60 && capUsed < 195) {
+      actions.push({priority:'HIGH',     title:'Rental Addition at Deadline', desc:'Win-now window is open. Absorb a short-term deal for an impact player on an expiring contract.', color:'#f97316'});
+    } else if (winPct < 0.38) {
+      actions.push({priority:'MOVE',     title:'Maximize Draft Capital', desc:'Prioritize lottery positioning. Explore veteran trades that return first-round picks.', color:'#22c55e'});
+    } else {
+      actions.push({priority:'MEDIUM',   title:'Develop Depth & Extensions', desc:'Identify core pieces approaching extension eligibility. Lock in talent before the market resets.', color:'#fbbf24'});
+    }
+    if (capUsed < 160 && winPct >= 0.50) {
+      actions.push({priority:'MOVE',     title:'Aggressive Extension Play', desc:'Flexibility + winning record = leverage. Use cap room to absorb salary in exchange for future picks.', color:'#22c55e'});
+    } else if (capUsed >= 183 && winPct < 0.50) {
+      actions.push({priority:'HIGH',     title:'Tear Down or Restructure', desc:'High payroll, low performance. Trade veterans for youth and picks to reset the timeline.', color:'#f97316'});
+    } else {
+      actions.push({priority:'MEDIUM',   title:'Two-Way Contract Investment', desc:'Identify G-League standouts for two-way deals. Low-cost developmental bets with upside.', color:'#fbbf24'});
+    }
+    return actions.slice(0, 3);
+  };
 
   const panelStyle = {background:'rgba(17,20,26,0.85)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:12, padding:'24px 28px'};
   const colLabel = {fontFamily:'Inter, sans-serif', fontSize:9, letterSpacing:4, color:'rgba(0,230,118,0.55)', fontWeight:700, textTransform:'uppercase', marginBottom:18};
@@ -1903,28 +1950,44 @@ function FrontOffice() {
       {/* ── Left Sidebar ── */}
       <div style={{position:'sticky', top:70, height:'calc(100vh - 70px)', overflowY:'auto', borderRight:'1px solid rgba(255,255,255,0.07)', display:'flex', flexDirection:'column', background:'rgba(9,12,16,0.97)'}}>
 
-        <div style={{padding:'24px 20px 16px', borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
-          <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:18, fontWeight:700, letterSpacing:-0.5, color:'var(--white)', marginBottom:4}}>Front Office</div>
-          <div style={{fontFamily:'Inter, sans-serif', fontSize:11, color:'rgba(255,255,255,0.3)', fontWeight:300, letterSpacing:0, textTransform:'none', lineHeight:1.5}}>Select a franchise for a full cap and roster intelligence report.</div>
+        <div style={{padding:'20px 20px 14px', borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
+          <div style={{display:'flex', alignItems:'baseline', gap:8, marginBottom:3}}>
+            <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:17, fontWeight:700, letterSpacing:-0.5, color:'var(--white)'}}>War Room</div>
+            <div style={{fontFamily:'Inter, sans-serif', fontSize:8, letterSpacing:3, color:'rgba(0,230,118,0.5)', fontWeight:700, textTransform:'uppercase'}}>Front Office</div>
+          </div>
+          <div style={{fontFamily:'Inter, sans-serif', fontSize:10, color:'rgba(255,255,255,0.28)', fontWeight:300, letterSpacing:0, textTransform:'none', lineHeight:1.5}}>Select a franchise to open its war room.</div>
         </div>
 
-        <div style={{padding:'14px 16px', borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
-          <div style={{position:'relative', marginBottom:12}}>
+        <div style={{padding:'12px 16px 10px', borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
+          <div style={{position:'relative', marginBottom:10}}>
             <span style={{position:'absolute', left:10, top:'50%', transform:'translateY(-50%)', color:'rgba(0,230,118,0.4)', fontSize:13, pointerEvents:'none'}}>⌕</span>
             <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search teams..."
-              style={{width:'100%', background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:6, padding:'8px 10px 8px 32px', color:'var(--white)', fontFamily:'Inter, sans-serif', fontSize:12, outline:'none', textTransform:'none', letterSpacing:0, boxSizing:'border-box'}}
+              style={{width:'100%', background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:6, padding:'7px 10px 7px 32px', color:'var(--white)', fontFamily:'Inter, sans-serif', fontSize:12, outline:'none', textTransform:'none', letterSpacing:0, boxSizing:'border-box'}}
               onFocus={e=>e.target.style.borderColor='rgba(0,230,118,0.4)'}
               onBlur={e=>e.target.style.borderColor='rgba(255,255,255,0.08)'}/>
           </div>
-          <div style={{display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:5}}>
-            {filtered.map(t => (
-              <button key={t.abbr} onClick={()=>runRoster(t.name)} title={t.name}
-                style={{background:rosterTeam===t.name?'rgba(0,230,118,0.1)':'rgba(255,255,255,0.02)', border:`1px solid ${rosterTeam===t.name?'rgba(0,230,118,0.4)':'rgba(255,255,255,0.06)'}`, borderRadius:6, padding:'7px 3px', cursor:'pointer', display:'flex', flexDirection:'column', alignItems:'center', gap:3, transition:'all 0.12s'}}
-                onMouseEnter={e=>{e.currentTarget.style.background='rgba(0,230,118,0.06)';e.currentTarget.style.borderColor='rgba(0,230,118,0.3)';}}
-                onMouseLeave={e=>{e.currentTarget.style.background=rosterTeam===t.name?'rgba(0,230,118,0.1)':'rgba(255,255,255,0.02)';e.currentTarget.style.borderColor=rosterTeam===t.name?'rgba(0,230,118,0.4)':'rgba(255,255,255,0.06)';}}>
-                <img src={`https://a.espn.com/combiner/i?img=/i/teamlogos/nba/500/${t.abbr.toLowerCase()}.png&h=32&w=32`} alt={t.abbr} width={22} height={22} style={{objectFit:'contain'}} onError={e=>e.target.style.display='none'}/>
-                <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:7, letterSpacing:0.5, color:'rgba(255,255,255,0.35)', fontWeight:700}}>{t.abbr}</span>
-              </button>
+          <div style={{display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:4}}>
+            {filtered.map(t => {
+              const capEntry = CAP_DATA.find(c => c.abbr === t.abbr);
+              const tier = capEntry ? getCapTier(capEntry.used) : null;
+              return (
+                <button key={t.abbr} onClick={()=>runRoster(t.name)} title={t.name}
+                  style={{background:rosterTeam===t.name?'rgba(0,230,118,0.1)':'rgba(255,255,255,0.02)', border:`1px solid ${rosterTeam===t.name?'rgba(0,230,118,0.4)':'rgba(255,255,255,0.06)'}`, borderRadius:6, padding:'6px 3px', cursor:'pointer', display:'flex', flexDirection:'column', alignItems:'center', gap:2, transition:'all 0.12s', position:'relative'}}
+                  onMouseEnter={e=>{e.currentTarget.style.background='rgba(0,230,118,0.06)';e.currentTarget.style.borderColor='rgba(0,230,118,0.3)';}}
+                  onMouseLeave={e=>{e.currentTarget.style.background=rosterTeam===t.name?'rgba(0,230,118,0.1)':'rgba(255,255,255,0.02)';e.currentTarget.style.borderColor=rosterTeam===t.name?'rgba(0,230,118,0.4)':'rgba(255,255,255,0.06)';}}>
+                  {tier && <div style={{position:'absolute', top:3, right:3, width:4, height:4, borderRadius:'50%', background:tier.color, opacity:0.7}}/>}
+                  <img src={`https://a.espn.com/combiner/i?img=/i/teamlogos/nba/500/${t.abbr.toLowerCase()}.png&h=32&w=32`} alt={t.abbr} width={20} height={20} style={{objectFit:'contain'}} onError={e=>e.target.style.display='none'}/>
+                  <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:7, letterSpacing:0.5, color:'rgba(255,255,255,0.35)', fontWeight:700}}>{t.abbr}</span>
+                </button>
+              );
+            })}
+          </div>
+          <div style={{display:'flex', gap:10, marginTop:10, flexWrap:'wrap'}}>
+            {[{label:'APRON',color:'#ef4444'},{label:'OVER',color:'#f97316'},{label:'COMMITTED',color:'#fbbf24'},{label:'FLEXIBLE',color:'#22c55e'}].map(({label,color})=>(
+              <div key={label} style={{display:'flex', alignItems:'center', gap:4}}>
+                <div style={{width:5,height:5,borderRadius:'50%',background:color}}/>
+                <span style={{fontFamily:'Inter, sans-serif', fontSize:8, color:'rgba(255,255,255,0.25)', letterSpacing:0.5}}>{label}</span>
+              </div>
             ))}
           </div>
         </div>
@@ -1958,69 +2021,176 @@ function FrontOffice() {
       {/* ── Right Panel ── */}
       <div style={{minWidth:0, background:'rgba(8,10,14,0.95)', minHeight:'calc(100vh - 70px)'}}>
 
-        {/* Tab bar — sticky */}
-        {!result && !loading && !error && (
+        {/* Tab bar — sticky, always visible */}
+        {!loading && (
           <div style={{position:'sticky', top:70, zIndex:20, borderBottom:'1px solid rgba(255,255,255,0.07)', background:'rgba(9,12,16,0.96)', display:'flex', alignItems:'stretch', overflowX:'auto', padding:'0 24px'}}>
-            {TABS.map(tab => (
+            {!result && TABS.map(tab => (
               <button key={tab.id} onClick={()=>setDashTab(tab.id)}
-                style={{background:'none', border:'none', padding:'0 18px', height:48, cursor:'pointer', fontFamily:'Inter, sans-serif', fontSize:10, fontWeight:600, letterSpacing:2, textTransform:'uppercase', color:dashTab===tab.id?'var(--white)':'rgba(255,255,255,0.3)', borderBottom:dashTab===tab.id?'2px solid var(--green)':'2px solid transparent', transition:'color 0.15s', whiteSpace:'nowrap', flexShrink:0}}>
+                style={{background:'none', border:'none', padding:'0 18px', height:46, cursor:'pointer', fontFamily:'Inter, sans-serif', fontSize:10, fontWeight:600, letterSpacing:2, textTransform:'uppercase', color:dashTab===tab.id?'var(--white)':'rgba(255,255,255,0.3)', borderBottom:dashTab===tab.id?'2px solid var(--green)':'2px solid transparent', transition:'color 0.15s', whiteSpace:'nowrap', flexShrink:0}}>
                 {tab.label}
               </button>
             ))}
+            {result && (
+              <div style={{display:'flex', alignItems:'center', gap:12, padding:'0 4px', flex:1}}>
+                <img src={`https://a.espn.com/combiner/i?img=/i/teamlogos/nba/500/${ALL_TEAMS.find(t=>t.name===rosterTeam)?.abbr?.toLowerCase()||''}.png&h=32&w=32`} alt={rosterTeam} width={24} height={24} style={{objectFit:'contain'}} onError={e=>e.target.style.display='none'}/>
+                <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:13, fontWeight:700, color:'var(--white)', letterSpacing:-0.3}}>{rosterTeam}</div>
+                <div style={{fontFamily:'Inter, sans-serif', fontSize:8, letterSpacing:2, color:'rgba(0,230,118,0.5)', fontWeight:700, textTransform:'uppercase'}}>War Room</div>
+                <div style={{flex:1}}/>
+                <button onClick={()=>{setResult(null);setRosterTeam('');}}
+                  style={{fontFamily:'Inter, sans-serif', fontWeight:500, fontSize:11, padding:'7px 14px', background:'transparent', border:'1px solid rgba(255,255,255,0.1)', color:'rgba(255,255,255,0.4)', cursor:'pointer', borderRadius:5, transition:'all 0.15s', textTransform:'none', letterSpacing:0}}
+                  onMouseEnter={e=>{e.currentTarget.style.borderColor='rgba(255,255,255,0.3)';e.currentTarget.style.color='var(--white)';}}
+                  onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(255,255,255,0.1)';e.currentTarget.style.color='rgba(255,255,255,0.4)';}}>
+                  ← All Teams
+                </button>
+              </div>
+            )}
           </div>
         )}
 
         {/* Content — scrolls with page */}
-        <div style={{padding: result||loading||error ? '0' : '28px 28px 80px'}}>
+        <div style={{padding: result||loading||error ? '0' : '24px 28px 80px'}}>
 
-          {/* Stat strip — cap tab only */}
-          {!result && !loading && !error && dashTab === 'cap' && (
-            <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10, marginBottom:24}}>
+          {/* Stat strip — cap + warboard tab */}
+          {!result && !loading && !error && (dashTab === 'cap' || dashTab === 'warboard') && (
+            <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10, marginBottom:20}}>
               {[
                 {val:'$188M', label:'Salary Cap', sub:'2025-26'},
                 {val:'$228M', label:'Second Apron', sub:'Hard line'},
-                {val:'8', label:'Teams Over Tax', sub:'Paying penalties'},
-                {val:'$12.8M', label:'Mid-Level Exception', sub:'Tax team MLE'},
+                {val:'8',     label:'Teams Over Tax', sub:'Paying penalties'},
+                {val:'$12.8M',label:'Mid-Level Exc.', sub:'Taxpayer MLE'},
               ].map(({val,label,sub}) => (
-                <div key={label} style={{background:'rgba(17,20,26,0.9)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:10, padding:'16px 18px', position:'relative', overflow:'hidden'}}>
+                <div key={label} style={{background:'rgba(17,20,26,0.9)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:10, padding:'14px 16px', position:'relative', overflow:'hidden'}}>
                   <div style={{position:'absolute', top:0, left:0, right:0, height:2, background:'linear-gradient(90deg,rgba(0,230,118,0.4),transparent)'}}/>
-                  <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:22, letterSpacing:-0.5, fontWeight:700, color:'var(--green)', lineHeight:1}}>{val}</div>
-                  <div style={{fontFamily:'Inter, sans-serif', fontSize:9, letterSpacing:2, color:'rgba(255,255,255,0.4)', marginTop:6, textTransform:'uppercase'}}>{label}</div>
+                  <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:20, letterSpacing:-0.5, fontWeight:700, color:'var(--green)', lineHeight:1}}>{val}</div>
+                  <div style={{fontFamily:'Inter, sans-serif', fontSize:9, letterSpacing:2, color:'rgba(255,255,255,0.4)', marginTop:5, textTransform:'uppercase'}}>{label}</div>
                   <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.2)', marginTop:2, textTransform:'none'}}>{sub}</div>
                 </div>
               ))}
             </div>
           )}
 
-          {/* ── Cap Table tab ── */}
+          {/* ── War Board tab ── */}
+          {!result && !loading && !error && dashTab === 'warboard' && (
+            standingsLoading ? (
+              <div style={{...panelStyle, display:'flex', alignItems:'center', justifyContent:'center', minHeight:200}}>
+                <div style={{fontFamily:'Helvetica Neue, sans-serif', fontWeight:700, fontSize:11, letterSpacing:6, color:'var(--green)', textTransform:'uppercase', animation:'blink 1.2s ease-in-out infinite'}}>SYNCING LEAGUE DATA...</div>
+              </div>
+            ) : standingsError ? (
+              <div style={{...panelStyle, display:'flex', alignItems:'center', justifyContent:'center', minHeight:120}}>
+                <div style={{fontFamily:'Helvetica Neue, sans-serif', fontWeight:700, fontSize:11, letterSpacing:4, color:'rgba(239,68,68,0.6)', textTransform:'uppercase'}}>STANDINGS FEED OFFLINE</div>
+              </div>
+            ) : (
+              <div style={panelStyle}>
+                <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16}}>
+                  <div style={colLabel}>League War Board — All 30 Teams</div>
+                  <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.2)', textTransform:'none'}}>{standings ? `${standings.games_counted} games · live` : ''}</div>
+                </div>
+                {/* Column headers */}
+                <div style={{display:'grid', gridTemplateColumns:'28px 22px 90px 1fr 52px 72px 56px 62px', gap:8, alignItems:'center', padding:'0 0 8px', borderBottom:'1px solid rgba(255,255,255,0.06)', marginBottom:4}}>
+                  {['#','','TEAM','CAP USAGE','$USED','TIER','LEVERAGE','TIMELINE'].map((h,i)=>(
+                    <div key={i} style={{fontFamily:'Inter, sans-serif', fontSize:7, letterSpacing:1.5, color:'rgba(255,255,255,0.2)', fontWeight:700, textTransform:'uppercase', textAlign: i===0||i===6||i===7 ? 'center' : i===4 ? 'right' : 'left'}}>{h}</div>
+                  ))}
+                </div>
+                {(() => {
+                  const capMap = {};
+                  CAP_DATA.forEach(c => { capMap[c.abbr] = c.used; });
+                  const rows = (standings.league || []).map(t => ({
+                    ...t,
+                    capUsed: capMap[t.abbr] || 150,
+                  }));
+                  return rows.map((t, i) => {
+                    const tier = getCapTier(t.capUsed);
+                    const lev = getLeverage(t.capUsed);
+                    const timeline = getTimeline(t.pct);
+                    const max = 215;
+                    const barPct = Math.min(100,(t.capUsed/max)*100);
+                    const capLinePct = (188/max)*100;
+                    return (
+                      <div key={t.abbr} onClick={()=>runRoster(t.name)}
+                        style={{display:'grid', gridTemplateColumns:'28px 22px 90px 1fr 52px 72px 56px 62px', gap:8, alignItems:'center', padding:'7px 0', borderBottom:'1px solid rgba(255,255,255,0.04)', cursor:'pointer'}}
+                        onMouseEnter={e=>e.currentTarget.style.background='rgba(0,230,118,0.02)'}
+                        onMouseLeave={e=>e.currentTarget.style.background=''}>
+                        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:12, fontWeight:700, color:i<3?'var(--green)':i<8?'rgba(255,255,255,0.35)':'rgba(255,255,255,0.18)', textAlign:'center'}}>{t.rank}</div>
+                        <img src={`https://a.espn.com/combiner/i?img=/i/teamlogos/nba/500/${t.abbr.toLowerCase()}.png&h=22&w=22`} alt={t.abbr} width={18} height={18} style={{objectFit:'contain'}} onError={e=>e.target.style.display='none'}/>
+                        <div>
+                          <div style={{fontFamily:'Inter, sans-serif', fontSize:11, fontWeight:600, color:i<16?'rgba(255,255,255,0.82)':'rgba(255,255,255,0.4)'}}>{t.name}</div>
+                          <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.22)'}}>{t.rec}</div>
+                        </div>
+                        <div style={{position:'relative', height:10, background:'rgba(255,255,255,0.04)', borderRadius:2, overflow:'visible'}}>
+                          <div style={{position:'absolute', top:0, left:0, height:'100%', width:`${barPct}%`, background:tier.color==='#ef4444'?'rgba(239,68,68,0.55)':tier.color==='#f97316'?'rgba(249,115,22,0.55)':tier.color==='#fbbf24'?'rgba(251,191,36,0.45)':'rgba(34,197,94,0.45)', borderRadius:2}}/>
+                          <div style={{position:'absolute', top:-2, bottom:-2, left:`${capLinePct}%`, width:1, background:'rgba(255,255,255,0.18)'}}/>
+                        </div>
+                        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, fontWeight:700, color:'rgba(255,255,255,0.5)', textAlign:'right'}}>${t.capUsed}M</div>
+                        <div style={{display:'flex', alignItems:'center', justifyContent:'center'}}>
+                          <div style={{fontFamily:'Inter, sans-serif', fontSize:7, letterSpacing:0.8, fontWeight:700, color:tier.color, background:tier.bg, border:`1px solid ${tier.border}`, borderRadius:3, padding:'2px 5px', textTransform:'uppercase', whiteSpace:'nowrap'}}>{tier.label}</div>
+                        </div>
+                        <div style={{textAlign:'center'}}>
+                          <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:12, fontWeight:700, color:lev >= 60 ? '#22c55e' : lev >= 35 ? '#fbbf24' : '#ef4444'}}>{lev}</div>
+                          <div style={{fontFamily:'Inter, sans-serif', fontSize:7, color:'rgba(255,255,255,0.2)', letterSpacing:1}}>LEV</div>
+                        </div>
+                        <div style={{display:'flex', justifyContent:'center'}}>
+                          <div style={{fontFamily:'Inter, sans-serif', fontSize:7, letterSpacing:0.8, fontWeight:700, color:timeline.color, background:'transparent', border:`1px solid ${timeline.color}44`, borderRadius:3, padding:'2px 4px', textTransform:'uppercase', whiteSpace:'nowrap'}}>{timeline.label}</div>
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
+            )
+          )}
+
+          {/* ── Cap Intel tab ── */}
           {!result && !loading && !error && dashTab === 'cap' && (
             <div style={panelStyle}>
-              <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:20}}>
-                <div style={colLabel}>Salary Cap Table — All 30 Teams</div>
-                <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.2)', textTransform:'none'}}>Cap: $188M &nbsp;|&nbsp; Tax: $228M</div>
+              <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16}}>
+                <div style={colLabel}>Cap Intelligence — All 30 Teams</div>
+                <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.2)', textTransform:'none'}}>Cap: $188M &nbsp;|&nbsp; Apron: $228M</div>
               </div>
-              <div style={{display:'flex', flexDirection:'column', gap:6}}>
+              {/* Column headers */}
+              <div style={{display:'grid', gridTemplateColumns:'24px 22px 1fr 180px 52px 72px 56px', gap:8, alignItems:'center', padding:'0 0 8px', borderBottom:'1px solid rgba(255,255,255,0.06)', marginBottom:4}}>
+                {['#','','TEAM','CAP BAR','$USED','TIER','LEVERAGE'].map((h,i)=>(
+                  <div key={i} style={{fontFamily:'Inter, sans-serif', fontSize:7, letterSpacing:1.5, color:'rgba(255,255,255,0.2)', fontWeight:700, textTransform:'uppercase', textAlign:i===4?'right':i===5||i===6?'center':'left'}}>{h}</div>
+                ))}
+              </div>
+              <div style={{display:'flex', flexDirection:'column', gap:2}}>
                 {CAP_DATA.map((t,i) => {
                   const max = 215;
-                  const pct = Math.min(100,(t.used/max)*100);
-                  const capPct = (188/max)*100;
-                  const over = t.used > 188;
+                  const barPct = Math.min(100,(t.used/max)*100);
+                  const capLinePct = (188/max)*100;
+                  const tier = getCapTier(t.used);
+                  const lev = getLeverage(t.used);
                   return (
-                    <div key={t.abbr} onClick={()=>runRoster(t.name)} style={{cursor:'pointer', display:'flex', alignItems:'center', gap:10, padding:'5px 0'}}
-                      onMouseEnter={e=>e.currentTarget.style.opacity='0.85'}
-                      onMouseLeave={e=>e.currentTarget.style.opacity='1'}>
-                      <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.2)', width:18, textAlign:'right', flexShrink:0}}>{i+1}</div>
+                    <div key={t.abbr} onClick={()=>runRoster(t.name)}
+                      style={{display:'grid', gridTemplateColumns:'24px 22px 1fr 180px 52px 72px 56px', gap:8, alignItems:'center', padding:'6px 0', borderBottom:'1px solid rgba(255,255,255,0.03)', cursor:'pointer'}}
+                      onMouseEnter={e=>e.currentTarget.style.background='rgba(0,230,118,0.02)'}
+                      onMouseLeave={e=>e.currentTarget.style.background=''}>
+                      <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.2)', textAlign:'right'}}>{i+1}</div>
                       <img src={`https://a.espn.com/combiner/i?img=/i/teamlogos/nba/500/${t.abbr.toLowerCase()}.png&h=20&w=20`} alt={t.abbr} width={18} height={18} style={{objectFit:'contain',flexShrink:0}} onError={e=>e.target.style.display='none'}/>
-                      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:10, letterSpacing:1, color:'rgba(255,255,255,0.55)', fontWeight:700, width:28, flexShrink:0}}>{t.abbr}</div>
-                      <div style={{flex:1, position:'relative', height:14, background:'rgba(255,255,255,0.04)', borderRadius:3, overflow:'visible'}}>
-                        <div style={{position:'absolute', top:0, left:0, height:'100%', width:`${pct}%`, background:over?'rgba(239,68,68,0.65)':'rgba(0,230,118,0.5)', borderRadius:3, transition:'width 0.3s'}}/>
-                        <div style={{position:'absolute', top:-3, bottom:-3, left:`${capPct}%`, width:1, background:'rgba(255,255,255,0.2)'}}/>
+                      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:10, letterSpacing:1, color:'rgba(255,255,255,0.55)', fontWeight:700}}>{t.abbr}</div>
+                      <div style={{position:'relative', height:12, background:'rgba(255,255,255,0.04)', borderRadius:2, overflow:'visible'}}>
+                        <div style={{position:'absolute', top:0, left:0, height:'100%', width:`${barPct}%`, background:tier.color==='#ef4444'?'rgba(239,68,68,0.6)':tier.color==='#f97316'?'rgba(249,115,22,0.55)':tier.color==='#fbbf24'?'rgba(251,191,36,0.45)':'rgba(34,197,94,0.5)', borderRadius:2}}/>
+                        <div style={{position:'absolute', top:-2, bottom:-2, left:`${capLinePct}%`, width:1, background:'rgba(255,255,255,0.2)'}}/>
                       </div>
-                      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, fontWeight:700, color:over?'#ef4444':'rgba(255,255,255,0.55)', width:42, textAlign:'right', flexShrink:0}}>${t.used}M</div>
-                      {over && <div style={{fontFamily:'Inter, sans-serif', fontSize:8, letterSpacing:1, color:'#ef4444', flexShrink:0}}>OVER</div>}
+                      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, fontWeight:700, color:'rgba(255,255,255,0.55)', textAlign:'right'}}>${t.used}M</div>
+                      <div style={{display:'flex', justifyContent:'center'}}>
+                        <div style={{fontFamily:'Inter, sans-serif', fontSize:7, letterSpacing:0.8, fontWeight:700, color:tier.color, background:tier.bg, border:`1px solid ${tier.border}`, borderRadius:3, padding:'2px 5px', textTransform:'uppercase'}}>{tier.label}</div>
+                      </div>
+                      <div style={{textAlign:'center'}}>
+                        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:12, fontWeight:700, color:lev>=60?'#22c55e':lev>=35?'#fbbf24':'#ef4444'}}>{lev}</div>
+                      </div>
                     </div>
                   );
                 })}
+              </div>
+              {/* Legend */}
+              <div style={{display:'flex', gap:20, marginTop:16, paddingTop:14, borderTop:'1px solid rgba(255,255,255,0.06)', flexWrap:'wrap'}}>
+                {[{label:'APRON RISK ≥$195M',color:'#ef4444'},{label:'OVER CAP ≥$183M',color:'#f97316'},{label:'COMMITTED ≥$160M',color:'#fbbf24'},{label:'FLEXIBLE <$160M',color:'#22c55e'}].map(({label,color})=>(
+                  <div key={label} style={{display:'flex', alignItems:'center', gap:6}}>
+                    <div style={{width:8, height:8, borderRadius:2, background:color}}/>
+                    <span style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.3)', textTransform:'none'}}>{label}</span>
+                  </div>
+                ))}
+                <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.2)'}}>Leverage = trade flexibility 5–95</div>
               </div>
             </div>
           )}
@@ -2060,44 +2230,6 @@ function FrontOffice() {
             </div>
           )}
 
-          {/* ── Power Rankings tab ── */}
-          {!result && !loading && !error && dashTab === 'power' && (
-            standingsLoading ? (
-              <div style={{...panelStyle, display:'flex', alignItems:'center', justifyContent:'center', minHeight:200}}>
-                <div style={{fontFamily:'Helvetica Neue, sans-serif', fontWeight:700, fontSize:11, letterSpacing:6, color:'var(--green)', textTransform:'uppercase', animation:'blink 1.2s ease-in-out infinite'}}>SYNCING LIVE LEAGUE DATA...</div>
-              </div>
-            ) : standingsError ? (
-              <div style={{...panelStyle, display:'flex', alignItems:'center', justifyContent:'center', minHeight:120}}>
-                <div style={{fontFamily:'Helvetica Neue, sans-serif', fontWeight:700, fontSize:11, letterSpacing:4, color:'rgba(239,68,68,0.6)', textTransform:'uppercase'}}>STANDINGS FEED OFFLINE</div>
-              </div>
-            ) : (
-            <div style={panelStyle}>
-              <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:20}}>
-                <div style={colLabel}>Power Rankings — All 30 Teams</div>
-                <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.2)', textTransform:'none'}}>
-                  {standings ? `${standings.games_counted} games · live` : ''}
-                </div>
-              </div>
-              {(standings ? standings.league : []).map((t, i) => (
-                <div key={t.abbr} onClick={()=>runRoster(t.name)} style={{display:'flex', alignItems:'center', gap:12, padding:'9px 0', borderBottom:'1px solid rgba(255,255,255,0.04)', cursor:'pointer'}}
-                  onMouseEnter={e=>e.currentTarget.style.background='rgba(0,230,118,0.02)'}
-                  onMouseLeave={e=>e.currentTarget.style.background=''}>
-                  <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:14, fontWeight:700, color:i<3?'var(--green)':i<8?'rgba(255,255,255,0.4)':'rgba(255,255,255,0.18)', width:24, textAlign:'right', flexShrink:0}}>{t.rank}</div>
-                  <img src={`https://a.espn.com/combiner/i?img=/i/teamlogos/nba/500/${t.abbr.toLowerCase()}.png&h=28&w=28`} alt={t.abbr} width={22} height={22} style={{objectFit:'contain',flexShrink:0}} onError={e=>e.target.style.display='none'}/>
-                  <div style={{flex:1, minWidth:0}}>
-                    <div style={{fontFamily:'Inter, sans-serif', fontSize:12, fontWeight:600, color: i < 16 ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.45)'}}>
-                      {t.name} <span style={{fontFamily:'Inter, sans-serif', fontSize:10, color:'rgba(255,255,255,0.25)', fontWeight:400}}>{t.rec}</span>
-                    </div>
-                    <div style={{fontFamily:'Inter, sans-serif', fontSize:10, color:'rgba(255,255,255,0.25)'}}>{t.conference} · {t.division}</div>
-                  </div>
-                  <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, fontWeight:700, color:'rgba(255,255,255,0.35)', flexShrink:0, width:36, textAlign:'right'}}>
-                    {(t.pct * 1000 | 0) / 1000}
-                  </div>
-                </div>
-              ))}
-            </div>
-            )
-          )}
 
           {/* ── Young Stars tab ── */}
           {!result && !loading && !error && dashTab === 'young' && (
@@ -2213,43 +2345,81 @@ function FrontOffice() {
               <div style={{display:'flex', gap:8}}>
                 {[0,1,2].map(i=><div key={i} style={{width:6,height:6,borderRadius:'50%',background:'var(--green)',animation:`pulse-dot 1.2s ease-in-out ${i*0.2}s infinite`}}/>)}
               </div>
-              <div style={{fontFamily:'Inter, sans-serif', fontSize:11, letterSpacing:4, color:'rgba(0,230,118,0.6)', textTransform:'uppercase'}}>Analyzing {rosterTeam}</div>
+              <div style={{fontFamily:'Inter, sans-serif', fontSize:11, letterSpacing:4, color:'rgba(0,230,118,0.6)', textTransform:'uppercase'}}>Opening War Room · {rosterTeam}</div>
             </div>
           )}
 
           {error && <div style={{margin:'32px 40px', background:'rgba(239,68,68,0.06)', border:'1px solid rgba(239,68,68,0.2)', borderRadius:8, padding:'16px 20px', fontFamily:'Inter, sans-serif', fontSize:13, color:'#ef4444'}}>{error}</div>}
 
-          {/* Team analysis result */}
-          {!loading && result && (
-            <div style={{padding:'32px 36px'}}>
-              <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:28, paddingBottom:24, borderBottom:'1px solid rgba(255,255,255,0.07)'}}>
-                <div style={{display:'flex', alignItems:'center', gap:16}}>
-                  <img src={`https://a.espn.com/combiner/i?img=/i/teamlogos/nba/500/${ALL_TEAMS.find(t=>t.name===rosterTeam)?.abbr?.toLowerCase()||''}.png&h=64&w=64`}
-                    alt={rosterTeam} width={48} height={48} style={{objectFit:'contain'}} onError={e=>e.target.style.display='none'}/>
-                  <div>
-                    <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:30, letterSpacing:-0.5, fontWeight:700, lineHeight:1}}>{rosterTeam}</div>
-                    <div style={{fontFamily:'Inter, sans-serif', fontSize:11, color:'rgba(0,230,118,0.6)', marginTop:4, textTransform:'none', letterSpacing:0, fontWeight:400}}>2025-26 Front Office Intelligence Report</div>
+          {/* ── Team War Room ── */}
+          {!loading && result && (() => {
+            const selAbbr = ALL_TEAMS.find(t => t.name === rosterTeam)?.abbr;
+            const capEntry = selAbbr ? CAP_DATA.find(c => c.abbr === selAbbr) : null;
+            const selCap = capEntry ? capEntry.used : 150;
+            const selStandings = standings?.league?.find(t => t.abbr === selAbbr);
+            const selPct = selStandings?.pct ?? 0.5;
+            const selRec = selStandings?.rec || '—';
+            const selRank = selStandings?.rank || '—';
+            const selTier = getCapTier(selCap);
+            const selLev = getLeverage(selCap);
+            const selTime = getTimeline(selPct);
+            const selActions = getActions(selCap, selPct);
+            return (
+              <div style={{padding:'28px 32px 60px'}}>
+
+                {/* Command Strip — 4 metric cards */}
+                <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10, marginBottom:24}}>
+                  {[
+                    {val:`$${selCap}M`, label:'Payroll Used', sub:selTier.label, color:selTier.color},
+                    {val:selRec,        label:'Record',        sub:`#${selRank} League`, color:selRank<=8?'var(--green)':selRank<=16?'#fbbf24':'rgba(255,255,255,0.4)'},
+                    {val:`${selLev}`,   label:'Leverage Score',sub:'Trade flexibility', color:selLev>=60?'#22c55e':selLev>=35?'#fbbf24':'#ef4444'},
+                    {val:selTime.label, label:'Timeline',       sub:`${Math.round(selPct*100)}% win rate`, color:selTime.color},
+                  ].map(({val,label,sub,color}) => (
+                    <div key={label} style={{background:'rgba(17,20,26,0.9)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:10, padding:'14px 16px', position:'relative', overflow:'hidden'}}>
+                      <div style={{position:'absolute', top:0, left:0, right:0, height:2, background:`linear-gradient(90deg,${color}66,transparent)`}}/>
+                      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:20, letterSpacing:-0.5, fontWeight:700, color:color, lineHeight:1}}>{val}</div>
+                      <div style={{fontFamily:'Inter, sans-serif', fontSize:9, letterSpacing:2, color:'rgba(255,255,255,0.4)', marginTop:5, textTransform:'uppercase'}}>{label}</div>
+                      <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.22)', marginTop:2, textTransform:'none'}}>{sub}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Action Center */}
+                <div style={{marginBottom:24}}>
+                  <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:14}}>
+                    <div style={{fontFamily:'Inter, sans-serif', fontSize:9, letterSpacing:4, color:'rgba(0,230,118,0.55)', fontWeight:700, textTransform:'uppercase'}}>Action Center</div>
+                    <div style={{flex:1, height:1, background:'rgba(255,255,255,0.06)'}}/>
+                    <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.2)'}}>Top recommended moves</div>
+                  </div>
+                  <div style={{display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:12}}>
+                    {selActions.map((a,i) => (
+                      <div key={i} style={{background:'rgba(17,20,26,0.9)', border:`1px solid ${a.color}33`, borderRadius:10, padding:'16px 18px', position:'relative', overflow:'hidden'}}>
+                        <div style={{position:'absolute', top:0, left:0, bottom:0, width:3, background:a.color, opacity:0.7}}/>
+                        <div style={{fontFamily:'Inter, sans-serif', fontSize:7, letterSpacing:2, fontWeight:700, color:a.color, textTransform:'uppercase', marginBottom:8}}>{a.priority}</div>
+                        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:13, fontWeight:700, color:'var(--white)', letterSpacing:-0.2, marginBottom:8, lineHeight:1.3}}>{a.title}</div>
+                        <div style={{fontFamily:'Inter, sans-serif', fontSize:11, color:'rgba(255,255,255,0.45)', lineHeight:1.6, textTransform:'none', letterSpacing:0}}>{a.desc}</div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-                <button onClick={()=>{setResult(null);setRosterTeam('');}}
-                  style={{fontFamily:'Inter, sans-serif', fontWeight:500, fontSize:12, padding:'9px 18px', background:'transparent', border:'1px solid rgba(255,255,255,0.1)', color:'rgba(255,255,255,0.4)', cursor:'pointer', borderRadius:6, transition:'all 0.15s', textTransform:'none', letterSpacing:0}}
-                  onMouseEnter={e=>{e.currentTarget.style.borderColor='rgba(255,255,255,0.3)';e.currentTarget.style.color='var(--white)';}}
-                  onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(255,255,255,0.1)';e.currentTarget.style.color='rgba(255,255,255,0.4)';}}>
-                  Back to Dashboard
-                </button>
-              </div>
-              <div style={{background:'rgba(17,20,26,0.9)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:12, overflow:'hidden'}}>
-                <div style={{display:'flex', alignItems:'center', gap:10, padding:'16px 24px', borderBottom:'1px solid rgba(255,255,255,0.07)', background:'rgba(0,230,118,0.03)'}}>
-                  <div style={{width:3, height:16, background:'var(--green)', borderRadius:2, flexShrink:0}}/>
-                  <div style={{fontFamily:'Inter, sans-serif', fontSize:11, letterSpacing:2, fontWeight:600, color:'var(--white)', textTransform:'uppercase'}}>AI Scouting Report</div>
-                  <div style={{marginLeft:'auto', fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.2)', letterSpacing:0, textTransform:'none'}}>Generated {new Date().toLocaleDateString()}</div>
+
+                {/* PIVOT Intelligence Report */}
+                <div style={{background:'rgba(17,20,26,0.9)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:12, overflow:'hidden'}}>
+                  <div style={{display:'flex', alignItems:'center', gap:10, padding:'14px 24px', borderBottom:'1px solid rgba(255,255,255,0.07)', background:'rgba(0,230,118,0.03)'}}>
+                    <div style={{width:3, height:16, background:'var(--green)', borderRadius:2, flexShrink:0}}/>
+                    <div style={{fontFamily:'Inter, sans-serif', fontSize:10, letterSpacing:2, fontWeight:700, color:'var(--white)', textTransform:'uppercase'}}>PIVOT Intelligence Report</div>
+                    <div style={{marginLeft:'auto', display:'flex', alignItems:'center', gap:10}}>
+                      <div style={{fontFamily:'Inter, sans-serif', fontSize:8, letterSpacing:1, color:selTier.color, fontWeight:700, textTransform:'uppercase', border:`1px solid ${selTier.border}`, background:selTier.bg, borderRadius:3, padding:'2px 6px'}}>{selTier.label}</div>
+                      <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.2)', letterSpacing:0, textTransform:'none'}}>Generated {new Date().toLocaleDateString()}</div>
+                    </div>
+                  </div>
+                  <div style={{padding:'24px 28px'}}>
+                    <div style={{fontFamily:'Inter, sans-serif', fontSize:14, lineHeight:1.95, letterSpacing:0, color:'rgba(255,255,255,0.85)', whiteSpace:'pre-wrap', fontWeight:400, textTransform:'none'}}>{result.analysis}</div>
+                  </div>
                 </div>
-                <div style={{padding:'28px 32px'}}>
-                  <div style={{fontFamily:'Inter, sans-serif', fontSize:14, lineHeight:1.95, letterSpacing:0, color:'rgba(255,255,255,0.85)', whiteSpace:'pre-wrap', fontWeight:400, textTransform:'none'}}>{result.analysis}</div>
-                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
         </div>
       </div>
     </div>
