@@ -2048,11 +2048,11 @@ function FrontOffice() {
         )}
 
         {/* Content — scrolls with page */}
-        <div style={{padding: result||loading||error ? '0' : '24px 28px 80px'}}>
+        <div>
 
           {/* Stat strip — cap + warboard tab */}
           {!result && !loading && !error && (dashTab === 'cap' || dashTab === 'warboard') && (
-            <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10, marginBottom:20}}>
+            <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10, padding:'20px 24px 0'}}>
               {[
                 {val:'$188M', label:'Salary Cap', sub:'2025-26'},
                 {val:'$228M', label:'Second Apron', sub:'Hard line'},
@@ -2072,159 +2072,144 @@ function FrontOffice() {
           {/* ── War Board tab ── */}
           {!result && !loading && !error && dashTab === 'warboard' && (
             standingsLoading ? (
-              <div style={{...panelStyle, display:'flex', alignItems:'center', justifyContent:'center', minHeight:200}}>
+              <div style={{display:'flex', alignItems:'center', justifyContent:'center', height:200}}>
                 <div style={{fontFamily:'Helvetica Neue, sans-serif', fontWeight:700, fontSize:11, letterSpacing:6, color:'var(--green)', textTransform:'uppercase', animation:'blink 1.2s ease-in-out infinite'}}>SYNCING LEAGUE DATA...</div>
               </div>
             ) : standingsError ? (
-              <div style={{...panelStyle, display:'flex', alignItems:'center', justifyContent:'center', minHeight:120}}>
+              <div style={{display:'flex', alignItems:'center', justifyContent:'center', height:120}}>
                 <div style={{fontFamily:'Helvetica Neue, sans-serif', fontWeight:700, fontSize:11, letterSpacing:4, color:'rgba(239,68,68,0.6)', textTransform:'uppercase'}}>STANDINGS FEED OFFLINE</div>
               </div>
-            ) : (
-              <div style={panelStyle}>
-                <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16}}>
-                  <div style={colLabel}>League War Board — All 30 Teams</div>
-                  <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.2)', textTransform:'none'}}>{standings ? `${standings.games_counted} games · live` : ''}</div>
-                </div>
-                {/* Column headers */}
-                <div style={{display:'grid', gridTemplateColumns:'28px 22px 90px 1fr 52px 72px 56px 62px', gap:8, alignItems:'center', padding:'0 0 8px', borderBottom:'1px solid rgba(255,255,255,0.06)', marginBottom:4}}>
-                  {['#','','TEAM','CAP USAGE','$USED','TIER','LEVERAGE','TIMELINE'].map((h,i)=>(
-                    <div key={i} style={{fontFamily:'Inter, sans-serif', fontSize:7, letterSpacing:1.5, color:'rgba(255,255,255,0.2)', fontWeight:700, textTransform:'uppercase', textAlign: i===0||i===6||i===7 ? 'center' : i===4 ? 'right' : 'left'}}>{h}</div>
-                  ))}
-                </div>
-                {(() => {
-                  const capMap = {};
-                  CAP_DATA.forEach(c => { capMap[c.abbr] = c.used; });
-                  const rows = (standings.league || []).map(t => ({
-                    ...t,
-                    capUsed: capMap[t.abbr] || 150,
-                  }));
-                  return rows.map((t, i) => {
+            ) : (() => {
+              const capMap = {};
+              CAP_DATA.forEach(c => { capMap[c.abbr] = c.used; });
+              const rows = (standings.league || []).map(t => ({...t, capUsed: capMap[t.abbr] || 150}));
+              return (
+                <div style={{display:'flex', flexWrap:'wrap', gap:16, padding:'20px 24px 60px'}}>
+                  {rows.map((t, i) => {
                     const tier = getCapTier(t.capUsed);
                     const lev = getLeverage(t.capUsed);
                     const timeline = getTimeline(t.pct);
-                    const max = 215;
-                    const barPct = Math.min(100,(t.capUsed/max)*100);
-                    const capLinePct = (188/max)*100;
+                    const barPct = Math.min(100,(t.capUsed/215)*100);
+                    const capLinePct = (188/215)*100;
                     return (
-                      <div key={t.abbr} onClick={()=>runRoster(t.name)}
-                        style={{display:'grid', gridTemplateColumns:'28px 22px 90px 1fr 52px 72px 56px 62px', gap:8, alignItems:'center', padding:'7px 0', borderBottom:'1px solid rgba(255,255,255,0.04)', cursor:'pointer'}}
-                        onMouseEnter={e=>e.currentTarget.style.background='rgba(0,230,118,0.02)'}
-                        onMouseLeave={e=>e.currentTarget.style.background=''}>
-                        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:12, fontWeight:700, color:i<3?'var(--green)':i<8?'rgba(255,255,255,0.35)':'rgba(255,255,255,0.18)', textAlign:'center'}}>{t.rank}</div>
-                        <img src={`https://a.espn.com/combiner/i?img=/i/teamlogos/nba/500/${t.abbr.toLowerCase()}.png&h=22&w=22`} alt={t.abbr} width={18} height={18} style={{objectFit:'contain'}} onError={e=>e.target.style.display='none'}/>
+                      <div key={t.abbr} className="g-card2" onClick={()=>runRoster(t.name)} style={{width:240, padding:20, gap:12}}>
+                        <div className="g-glow-overlay"/>
+                        {/* Header */}
+                        <div style={{display:'flex', alignItems:'center', justifyContent:'space-between'}}>
+                          <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, fontWeight:700, color:i<3?'var(--green)':i<8?'rgba(255,255,255,0.35)':'rgba(255,255,255,0.18)'}}>#{t.rank}</div>
+                          <div style={{fontFamily:'Inter, sans-serif', fontSize:7, letterSpacing:0.8, fontWeight:700, color:timeline.color, border:`1px solid ${timeline.color}44`, borderRadius:3, padding:'2px 5px', textTransform:'uppercase'}}>{timeline.label}</div>
+                        </div>
+                        {/* Team identity */}
+                        <div style={{display:'flex', alignItems:'center', gap:10}}>
+                          <img src={`https://a.espn.com/combiner/i?img=/i/teamlogos/nba/500/${t.abbr.toLowerCase()}.png&h=40&w=40`} alt={t.abbr} width={32} height={32} style={{objectFit:'contain',flexShrink:0}} onError={e=>e.target.style.display='none'}/>
+                          <div>
+                            <div style={{fontFamily:'Inter, sans-serif', fontSize:13, fontWeight:600, color:'rgba(255,255,255,0.88)'}}>{t.name}</div>
+                            <div style={{fontFamily:'Inter, sans-serif', fontSize:10, color:'rgba(255,255,255,0.3)'}}>{t.rec} · {t.conference}</div>
+                          </div>
+                        </div>
+                        {/* Cap bar */}
                         <div>
-                          <div style={{fontFamily:'Inter, sans-serif', fontSize:11, fontWeight:600, color:i<16?'rgba(255,255,255,0.82)':'rgba(255,255,255,0.4)'}}>{t.name}</div>
-                          <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.22)'}}>{t.rec}</div>
+                          <div style={{position:'relative', height:8, background:'rgba(255,255,255,0.05)', borderRadius:2, marginBottom:6}}>
+                            <div style={{position:'absolute', top:0, left:0, height:'100%', width:`${barPct}%`, background:tier.color==='#ef4444'?'rgba(239,68,68,0.6)':tier.color==='#f97316'?'rgba(249,115,22,0.55)':tier.color==='#fbbf24'?'rgba(251,191,36,0.5)':'rgba(34,197,94,0.5)', borderRadius:2}}/>
+                            <div style={{position:'absolute', top:-2, bottom:-2, left:`${capLinePct}%`, width:1, background:'rgba(255,255,255,0.2)'}}/>
+                          </div>
+                          <div style={{display:'flex', alignItems:'center', justifyContent:'space-between'}}>
+                            <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:15, fontWeight:700, color:'rgba(255,255,255,0.7)', letterSpacing:-0.3}}>${t.capUsed}M</div>
+                            <div style={{fontFamily:'Inter, sans-serif', fontSize:7, letterSpacing:0.8, fontWeight:700, color:tier.color, background:tier.bg, border:`1px solid ${tier.border}`, borderRadius:3, padding:'2px 5px', textTransform:'uppercase'}}>{tier.label}</div>
+                          </div>
                         </div>
-                        <div style={{position:'relative', height:10, background:'rgba(255,255,255,0.04)', borderRadius:2, overflow:'visible'}}>
-                          <div style={{position:'absolute', top:0, left:0, height:'100%', width:`${barPct}%`, background:tier.color==='#ef4444'?'rgba(239,68,68,0.55)':tier.color==='#f97316'?'rgba(249,115,22,0.55)':tier.color==='#fbbf24'?'rgba(251,191,36,0.45)':'rgba(34,197,94,0.45)', borderRadius:2}}/>
-                          <div style={{position:'absolute', top:-2, bottom:-2, left:`${capLinePct}%`, width:1, background:'rgba(255,255,255,0.18)'}}/>
-                        </div>
-                        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, fontWeight:700, color:'rgba(255,255,255,0.5)', textAlign:'right'}}>${t.capUsed}M</div>
-                        <div style={{display:'flex', alignItems:'center', justifyContent:'center'}}>
-                          <div style={{fontFamily:'Inter, sans-serif', fontSize:7, letterSpacing:0.8, fontWeight:700, color:tier.color, background:tier.bg, border:`1px solid ${tier.border}`, borderRadius:3, padding:'2px 5px', textTransform:'uppercase', whiteSpace:'nowrap'}}>{tier.label}</div>
-                        </div>
-                        <div style={{textAlign:'center'}}>
-                          <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:12, fontWeight:700, color:lev >= 60 ? '#22c55e' : lev >= 35 ? '#fbbf24' : '#ef4444'}}>{lev}</div>
-                          <div style={{fontFamily:'Inter, sans-serif', fontSize:7, color:'rgba(255,255,255,0.2)', letterSpacing:1}}>LEV</div>
-                        </div>
-                        <div style={{display:'flex', justifyContent:'center'}}>
-                          <div style={{fontFamily:'Inter, sans-serif', fontSize:7, letterSpacing:0.8, fontWeight:700, color:timeline.color, background:'transparent', border:`1px solid ${timeline.color}44`, borderRadius:3, padding:'2px 4px', textTransform:'uppercase', whiteSpace:'nowrap'}}>{timeline.label}</div>
+                        {/* Leverage */}
+                        <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', borderTop:'1px solid rgba(255,255,255,0.05)', paddingTop:10, marginTop:'auto'}}>
+                          <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.25)', letterSpacing:1, textTransform:'uppercase'}}>Leverage</div>
+                          <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:16, fontWeight:700, color:lev>=60?'#22c55e':lev>=35?'#fbbf24':'#ef4444'}}>{lev}<span style={{fontFamily:'Inter, sans-serif', fontSize:8, color:'rgba(255,255,255,0.2)', marginLeft:2}}>/95</span></div>
                         </div>
                       </div>
                     );
-                  });
-                })()}
-              </div>
-            )
+                  })}
+                </div>
+              );
+            })()
           )}
 
           {/* ── Cap Intel tab ── */}
           {!result && !loading && !error && dashTab === 'cap' && (
-            <div style={panelStyle}>
-              <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16}}>
-                <div style={colLabel}>Cap Intelligence — All 30 Teams</div>
-                <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.2)', textTransform:'none'}}>Cap: $188M &nbsp;|&nbsp; Apron: $228M</div>
-              </div>
-              {/* Column headers */}
-              <div style={{display:'grid', gridTemplateColumns:'24px 22px 1fr 180px 52px 72px 56px', gap:8, alignItems:'center', padding:'0 0 8px', borderBottom:'1px solid rgba(255,255,255,0.06)', marginBottom:4}}>
-                {['#','','TEAM','CAP BAR','$USED','TIER','LEVERAGE'].map((h,i)=>(
-                  <div key={i} style={{fontFamily:'Inter, sans-serif', fontSize:7, letterSpacing:1.5, color:'rgba(255,255,255,0.2)', fontWeight:700, textTransform:'uppercase', textAlign:i===4?'right':i===5||i===6?'center':'left'}}>{h}</div>
-                ))}
-              </div>
-              <div style={{display:'flex', flexDirection:'column', gap:2}}>
-                {CAP_DATA.map((t,i) => {
-                  const max = 215;
-                  const barPct = Math.min(100,(t.used/max)*100);
-                  const capLinePct = (188/max)*100;
-                  const tier = getCapTier(t.used);
-                  const lev = getLeverage(t.used);
-                  return (
-                    <div key={t.abbr} onClick={()=>runRoster(t.name)}
-                      style={{display:'grid', gridTemplateColumns:'24px 22px 1fr 180px 52px 72px 56px', gap:8, alignItems:'center', padding:'6px 0', borderBottom:'1px solid rgba(255,255,255,0.03)', cursor:'pointer'}}
-                      onMouseEnter={e=>e.currentTarget.style.background='rgba(0,230,118,0.02)'}
-                      onMouseLeave={e=>e.currentTarget.style.background=''}>
-                      <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.2)', textAlign:'right'}}>{i+1}</div>
-                      <img src={`https://a.espn.com/combiner/i?img=/i/teamlogos/nba/500/${t.abbr.toLowerCase()}.png&h=20&w=20`} alt={t.abbr} width={18} height={18} style={{objectFit:'contain',flexShrink:0}} onError={e=>e.target.style.display='none'}/>
-                      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:10, letterSpacing:1, color:'rgba(255,255,255,0.55)', fontWeight:700}}>{t.abbr}</div>
-                      <div style={{position:'relative', height:12, background:'rgba(255,255,255,0.04)', borderRadius:2, overflow:'visible'}}>
-                        <div style={{position:'absolute', top:0, left:0, height:'100%', width:`${barPct}%`, background:tier.color==='#ef4444'?'rgba(239,68,68,0.6)':tier.color==='#f97316'?'rgba(249,115,22,0.55)':tier.color==='#fbbf24'?'rgba(251,191,36,0.45)':'rgba(34,197,94,0.5)', borderRadius:2}}/>
-                        <div style={{position:'absolute', top:-2, bottom:-2, left:`${capLinePct}%`, width:1, background:'rgba(255,255,255,0.2)'}}/>
-                      </div>
-                      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, fontWeight:700, color:'rgba(255,255,255,0.55)', textAlign:'right'}}>${t.used}M</div>
-                      <div style={{display:'flex', justifyContent:'center'}}>
-                        <div style={{fontFamily:'Inter, sans-serif', fontSize:7, letterSpacing:0.8, fontWeight:700, color:tier.color, background:tier.bg, border:`1px solid ${tier.border}`, borderRadius:3, padding:'2px 5px', textTransform:'uppercase'}}>{tier.label}</div>
-                      </div>
-                      <div style={{textAlign:'center'}}>
-                        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:12, fontWeight:700, color:lev>=60?'#22c55e':lev>=35?'#fbbf24':'#ef4444'}}>{lev}</div>
+            <div style={{display:'flex', flexWrap:'wrap', gap:16, padding:'20px 24px 60px'}}>
+              {CAP_DATA.map((t, i) => {
+                const barPct = Math.min(100,(t.used/215)*100);
+                const capLinePct = (188/215)*100;
+                const tier = getCapTier(t.used);
+                const lev = getLeverage(t.used);
+                return (
+                  <div key={t.abbr} className="g-card2" onClick={()=>runRoster(t.name)} style={{width:240, padding:20, gap:12}}>
+                    <div className="g-glow-overlay"/>
+                    {/* Rank + tier */}
+                    <div style={{display:'flex', alignItems:'center', justifyContent:'space-between'}}>
+                      <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.2)'}}># {i+1} by payroll</div>
+                      <div style={{fontFamily:'Inter, sans-serif', fontSize:7, letterSpacing:0.8, fontWeight:700, color:tier.color, background:tier.bg, border:`1px solid ${tier.border}`, borderRadius:3, padding:'2px 5px', textTransform:'uppercase'}}>{tier.label}</div>
+                    </div>
+                    {/* Team */}
+                    <div style={{display:'flex', alignItems:'center', gap:10}}>
+                      <img src={`https://a.espn.com/combiner/i?img=/i/teamlogos/nba/500/${t.abbr.toLowerCase()}.png&h=40&w=40`} alt={t.abbr} width={32} height={32} style={{objectFit:'contain',flexShrink:0}} onError={e=>e.target.style.display='none'}/>
+                      <div>
+                        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:13, fontWeight:700, letterSpacing:-0.3, color:'rgba(255,255,255,0.88)'}}>{t.name}</div>
+                        <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.28)'}}>{t.abbr}</div>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-              {/* Legend */}
-              <div style={{display:'flex', gap:20, marginTop:16, paddingTop:14, borderTop:'1px solid rgba(255,255,255,0.06)', flexWrap:'wrap'}}>
-                {[{label:'APRON RISK ≥$195M',color:'#ef4444'},{label:'OVER CAP ≥$183M',color:'#f97316'},{label:'COMMITTED ≥$160M',color:'#fbbf24'},{label:'FLEXIBLE <$160M',color:'#22c55e'}].map(({label,color})=>(
-                  <div key={label} style={{display:'flex', alignItems:'center', gap:6}}>
-                    <div style={{width:8, height:8, borderRadius:2, background:color}}/>
-                    <span style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.3)', textTransform:'none'}}>{label}</span>
+                    {/* Big number */}
+                    <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:26, fontWeight:700, letterSpacing:-0.5, color:tier.color, lineHeight:1}}>${t.used}M</div>
+                    {/* Cap bar */}
+                    <div style={{position:'relative', height:8, background:'rgba(255,255,255,0.05)', borderRadius:2}}>
+                      <div style={{position:'absolute', top:0, left:0, height:'100%', width:`${barPct}%`, background:tier.color==='#ef4444'?'rgba(239,68,68,0.6)':tier.color==='#f97316'?'rgba(249,115,22,0.55)':tier.color==='#fbbf24'?'rgba(251,191,36,0.5)':'rgba(34,197,94,0.5)', borderRadius:2}}/>
+                      <div style={{position:'absolute', top:-2, bottom:-2, left:`${capLinePct}%`, width:1, background:'rgba(255,255,255,0.2)'}}/>
+                    </div>
+                    {/* Leverage + footer */}
+                    <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', borderTop:'1px solid rgba(255,255,255,0.05)', paddingTop:10, marginTop:'auto'}}>
+                      <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.25)', letterSpacing:1, textTransform:'uppercase'}}>Leverage</div>
+                      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:16, fontWeight:700, color:lev>=60?'#22c55e':lev>=35?'#fbbf24':'#ef4444'}}>{lev}<span style={{fontFamily:'Inter, sans-serif', fontSize:8, color:'rgba(255,255,255,0.2)', marginLeft:2}}>/95</span></div>
+                    </div>
                   </div>
-                ))}
-                <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.2)'}}>Leverage = trade flexibility 5–95</div>
-              </div>
+                );
+              })}
             </div>
           )}
 
           {/* ── MVP Race tab ── */}
           {!result && !loading && !error && dashTab === 'mvp' && (
-            <div style={panelStyle}>
-              <div style={colLabel}>MVP Race — 2025-26 Leaders</div>
+            <div style={{display:'flex', flexWrap:'wrap', gap:16, padding:'24px 24px 60px'}}>
               {[
-                {name:'Shai Gilgeous-Alexander', team:'OKC', pts:31.4, reb:4.4, ast:6.5, odds:'-180',  note:'OKC dominant scorer, unanimous MVP front-runner'},
-                {name:'Anthony Edwards',          team:'MIN', pts:28.9, reb:5.0, ast:3.7, odds:'+220',  note:'Face of Timberwolves playoff run'},
-                {name:'Nikola Jokic',             team:'DEN', pts:27.9, reb:12.9,ast:10.9,odds:'+300',  note:'Historic triple-double efficiency, fourth campaign'},
-                {name:'Victor Wembanyama',         team:'SAS', pts:24.8, reb:11.5,ast:3.1, odds:'+450',  note:'Defensive Player of the Year lock'},
-                {name:'Cade Cunningham',           team:'DET', pts:24.5, reb:5.6, ast:9.9, odds:'+700',  note:'Near triple-double threat driving Pistons resurgence'},
-                {name:'LeBron James',              team:'LAL', pts:20.8, reb:6.1, ast:7.1, odds:'+1500', note:'Still elite at 41. Longevity defines the conversation'},
-              ].map((p,i) => (
-                <div key={p.name} style={{display:'flex', alignItems:'center', gap:14, padding:'14px 0', borderBottom:'1px solid rgba(255,255,255,0.05)'}}>
-                  <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:20, fontWeight:700, color:i===0?'var(--green)':'rgba(255,255,255,0.15)', width:24, flexShrink:0, textAlign:'right'}}>{i+1}</div>
-                  <div style={{flex:1, minWidth:0}}>
-                    <div style={{display:'flex', alignItems:'baseline', gap:10, marginBottom:3}}>
-                      <div style={{fontFamily:'Inter, sans-serif', fontSize:14, fontWeight:600, color:'rgba(255,255,255,0.9)'}}>{p.name}</div>
-                      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:2, color:'rgba(0,230,118,0.5)', fontWeight:700}}>{p.team}</div>
-                    </div>
-                    <div style={{fontFamily:'Inter, sans-serif', fontSize:11, color:'rgba(255,255,255,0.3)', textTransform:'none', letterSpacing:0}}>{p.note}</div>
+                {name:'Shai Gilgeous-Alexander', team:'OKC', nbaId:1629029, pts:31.4, reb:4.4, ast:6.5, odds:'-180',  note:'OKC dominant scorer, unanimous MVP front-runner'},
+                {name:'Anthony Edwards',          team:'MIN', nbaId:1630162, pts:28.9, reb:5.0, ast:3.7, odds:'+220',  note:'Face of Timberwolves playoff run'},
+                {name:'Nikola Jokic',             team:'DEN', nbaId:203999,  pts:27.9, reb:12.9,ast:10.9,odds:'+300',  note:'Historic triple-double efficiency, fourth campaign'},
+                {name:'Victor Wembanyama',         team:'SAS', nbaId:1641705, pts:24.8, reb:11.5,ast:3.1, odds:'+450',  note:'Defensive Player of the Year lock'},
+                {name:'Cade Cunningham',           team:'DET', nbaId:1630595, pts:24.5, reb:5.6, ast:9.9, odds:'+700',  note:'Near triple-double threat driving Pistons resurgence'},
+                {name:'LeBron James',              team:'LAL', nbaId:2544,    pts:20.8, reb:6.1, ast:7.1, odds:'+1500', note:'Still elite at 41. Longevity defines the conversation'},
+              ].map((p, i) => (
+                <div key={p.name} className="g-card2" style={{width:280, padding:22, gap:14}}>
+                  <div className="g-glow-overlay"/>
+                  {/* Rank + odds */}
+                  <div style={{display:'flex', alignItems:'center', justifyContent:'space-between'}}>
+                    <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:28, fontWeight:700, color:i===0?'var(--green)':'rgba(255,255,255,0.12)', lineHeight:1}}>{i+1}</div>
+                    <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:14, fontWeight:700, color:i===0?'var(--green)':'rgba(255,255,255,0.35)'}}>{p.odds}</div>
                   </div>
-                  <div style={{display:'flex', gap:16, flexShrink:0}}>
-                    {[['PTS',p.pts],['REB',p.reb],['AST',p.ast]].map(([l,v]) => (
-                      <div key={l} style={{textAlign:'center'}}>
-                        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:15, fontWeight:700, color:'var(--white)', letterSpacing:-0.5}}>{v}</div>
-                        <div style={{fontFamily:'Inter, sans-serif', fontSize:7, letterSpacing:2, color:'rgba(255,255,255,0.25)', textTransform:'uppercase'}}>{l}</div>
+                  {/* Player */}
+                  <div style={{display:'flex', alignItems:'center', gap:12}}>
+                    <img src={`${API}/headshot/${p.nbaId}`} alt={p.name} width={44} height={44} style={{objectFit:'cover', borderRadius:22, flexShrink:0, background:'rgba(255,255,255,0.05)'}} onError={e=>e.target.style.display='none'}/>
+                    <div>
+                      <div style={{fontFamily:'Inter, sans-serif', fontSize:14, fontWeight:600, color:'rgba(255,255,255,0.9)', lineHeight:1.2}}>{p.name}</div>
+                      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:2, color:'rgba(0,230,118,0.6)', fontWeight:700, marginTop:3}}>{p.team}</div>
+                    </div>
+                  </div>
+                  {/* Stats */}
+                  <div style={{display:'flex', gap:0, borderTop:'1px solid rgba(255,255,255,0.06)', paddingTop:14}}>
+                    {[['PTS',p.pts],['REB',p.reb],['AST',p.ast]].map(([l,v], si) => (
+                      <div key={l} style={{flex:1, textAlign:'center', borderRight: si < 2 ? '1px solid rgba(255,255,255,0.06)' : 'none'}}>
+                        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:18, fontWeight:700, color:'var(--white)', letterSpacing:-0.5}}>{v}</div>
+                        <div style={{fontFamily:'Inter, sans-serif', fontSize:7, letterSpacing:2, color:'rgba(255,255,255,0.25)', textTransform:'uppercase', marginTop:2}}>{l}</div>
                       </div>
                     ))}
                   </div>
-                  <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:13, fontWeight:700, color:i===0?'var(--green)':'rgba(255,255,255,0.35)', width:52, textAlign:'right', flexShrink:0}}>{p.odds}</div>
+                  {/* Note */}
+                  <div style={{fontFamily:'Inter, sans-serif', fontSize:11, color:'rgba(255,255,255,0.35)', lineHeight:1.55, textTransform:'none', letterSpacing:0}}>{p.note}</div>
                 </div>
               ))}
             </div>
@@ -2233,40 +2218,43 @@ function FrontOffice() {
 
           {/* ── Young Stars tab ── */}
           {!result && !loading && !error && dashTab === 'young' && (
-            <div style={panelStyle}>
-              <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:20}}>
-                <div style={colLabel}>Young Stars</div>
-                <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.2)', textTransform:'none'}}>Age 21 and under · 2025-26</div>
-              </div>
+            <div style={{display:'flex', flexWrap:'wrap', gap:16, padding:'24px 24px 60px'}}>
               {[
-                {name:'Victor Wembanyama',  team:'SAS', age:21, pos:'C',   pts:24.8, reb:11.5, ast:3.1,  note:'Defensive Player of Year. Future GOAT candidate.'},
-                {name:'Keyonte George',     team:'UTA', age:21, pos:'G',   pts:23.6, reb:3.7,  ast:6.1,  note:'Breakout season. Utah\'s most dangerous scorer.'},
-                {name:'Cooper Flagg',       team:'DAL', age:18, pos:'F',   pts:21.1, reb:6.6,  ast:4.6,  note:'Rookie of the Year lock. Generational two-way player.'},
-                {name:'Stephon Castle',     team:'SAS', age:21, pos:'G',   pts:16.7, reb:5.2,  ast:7.3,  note:'Wemby\'s wingman. Playmaking already elite.'},
-                {name:'Alexandre Sarr',     team:'WAS', age:20, pos:'C',   pts:16.3, reb:7.4,  ast:2.7,  note:'Elite rim protection and length. WAS building around him.'},
-                {name:'Scoot Henderson',    team:'POR', age:21, pos:'G',   pts:14.0, reb:2.7,  ast:3.8,  note:'Still developing. Blazers betting on upside.'},
-                {name:'Zaccharie Risacher', team:'ATL', age:19, pos:'F',   pts:9.7,  reb:3.8,  ast:1.1,  note:'Year 2 growing pains. ATL patient with potential.'},
-                {name:'Ja\'Kobe Walter',    team:'TOR', age:20, pos:'G',   pts:7.3,  reb:2.5,  ast:1.2,  note:'Steady contributor on rebuilding Raptors.'},
-                {name:'Ron Holland',        team:'DET', age:19, pos:'F',   pts:8.1,  reb:4.1,  ast:1.2,  note:'Raw but flashes brilliance. DET high-ceiling project.'},
-                {name:'Gradey Dick',        team:'TOR', age:21, pos:'G',   pts:6.1,  reb:2.0,  ast:0.7,  note:'Sharpshooting role player. Embracing bench role.'},
-              ].map((p,i) => (
-                <div key={p.name} style={{display:'flex', alignItems:'center', gap:14, padding:'12px 0', borderBottom:'1px solid rgba(255,255,255,0.05)'}}>
-                  <div style={{flex:1, minWidth:0}}>
-                    <div style={{display:'flex', alignItems:'baseline', gap:10, marginBottom:3}}>
-                      <div style={{fontFamily:'Inter, sans-serif', fontSize:14, fontWeight:600, color:'rgba(255,255,255,0.9)'}}>{p.name}</div>
-                      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:2, color:'rgba(0,230,118,0.5)', fontWeight:700}}>{p.team}</div>
-                      <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.2)', textTransform:'none', letterSpacing:0}}>Age {p.age}</div>
+                {name:'Victor Wembanyama',  team:'SAS', nbaId:1641705, age:21, pos:'C', pts:24.8, reb:11.5, ast:3.1, note:'Defensive Player of Year. Future GOAT candidate.'},
+                {name:'Keyonte George',     team:'UTA', nbaId:1641724, age:21, pos:'G', pts:23.6, reb:3.7,  ast:6.1, note:'Breakout season. Utah\'s most dangerous scorer.'},
+                {name:'Cooper Flagg',       team:'DAL', nbaId:1642365, age:18, pos:'F', pts:21.1, reb:6.6,  ast:4.6, note:'Rookie of the Year lock. Generational two-way player.'},
+                {name:'Stephon Castle',     team:'SAS', nbaId:1642355, age:21, pos:'G', pts:16.7, reb:5.2,  ast:7.3, note:'Wemby\'s wingman. Playmaking already elite.'},
+                {name:'Alexandre Sarr',     team:'WAS', nbaId:1642356, age:20, pos:'C', pts:16.3, reb:7.4,  ast:2.7, note:'Elite rim protection and length. WAS building around him.'},
+                {name:'Scoot Henderson',    team:'POR', nbaId:1641706, age:21, pos:'G', pts:14.0, reb:2.7,  ast:3.8, note:'Still developing. Blazers betting on upside.'},
+                {name:'Zaccharie Risacher', team:'ATL', nbaId:1642364, age:19, pos:'F', pts:9.7,  reb:3.8,  ast:1.1, note:'Year 2 growing pains. ATL patient with potential.'},
+                {name:'Ja\'Kobe Walter',    team:'TOR', nbaId:1642361, age:20, pos:'G', pts:7.3,  reb:2.5,  ast:1.2, note:'Steady contributor on rebuilding Raptors.'},
+                {name:'Ron Holland',        team:'DET', nbaId:1642363, age:19, pos:'F', pts:8.1,  reb:4.1,  ast:1.2, note:'Raw but flashes brilliance. DET high-ceiling project.'},
+                {name:'Gradey Dick',        team:'TOR', nbaId:1641730, age:21, pos:'G', pts:6.1,  reb:2.0,  ast:0.7, note:'Sharpshooting role player. Embracing bench role.'},
+              ].map((p, i) => (
+                <div key={p.name} className="g-card2" style={{width:260, padding:20, gap:14}}>
+                  <div className="g-glow-overlay"/>
+                  {/* Player identity */}
+                  <div style={{display:'flex', alignItems:'center', gap:12}}>
+                    <img src={`${API}/headshot/${p.nbaId}`} alt={p.name} width={44} height={44} style={{objectFit:'cover', borderRadius:22, flexShrink:0, background:'rgba(255,255,255,0.05)'}} onError={e=>e.target.style.display='none'}/>
+                    <div style={{flex:1, minWidth:0}}>
+                      <div style={{fontFamily:'Inter, sans-serif', fontSize:13, fontWeight:600, color:'rgba(255,255,255,0.9)', lineHeight:1.2}}>{p.name}</div>
+                      <div style={{display:'flex', gap:6, marginTop:3, alignItems:'center'}}>
+                        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, letterSpacing:2, color:'rgba(0,230,118,0.6)', fontWeight:700}}>{p.team}</div>
+                        <div style={{fontFamily:'Inter, sans-serif', fontSize:8, color:'rgba(255,255,255,0.2)'}}>Age {p.age} · {p.pos}</div>
+                      </div>
                     </div>
-                    <div style={{fontFamily:'Inter, sans-serif', fontSize:11, color:'rgba(255,255,255,0.3)', textTransform:'none', letterSpacing:0}}>{p.note}</div>
                   </div>
-                  <div style={{display:'flex', gap:16, flexShrink:0}}>
-                    {[['PTS',p.pts],['REB',p.reb],['AST',p.ast]].map(([l,v]) => (
-                      <div key={l} style={{textAlign:'center'}}>
-                        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:15, fontWeight:700, color:'var(--white)', letterSpacing:-0.5}}>{v}</div>
-                        <div style={{fontFamily:'Inter, sans-serif', fontSize:7, letterSpacing:2, color:'rgba(255,255,255,0.25)', textTransform:'uppercase'}}>{l}</div>
+                  {/* Stats */}
+                  <div style={{display:'flex', gap:0, borderTop:'1px solid rgba(255,255,255,0.06)', paddingTop:12}}>
+                    {[['PTS',p.pts],['REB',p.reb],['AST',p.ast]].map(([l,v], si) => (
+                      <div key={l} style={{flex:1, textAlign:'center', borderRight: si < 2 ? '1px solid rgba(255,255,255,0.06)' : 'none'}}>
+                        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:17, fontWeight:700, color:'var(--white)', letterSpacing:-0.5}}>{v}</div>
+                        <div style={{fontFamily:'Inter, sans-serif', fontSize:7, letterSpacing:2, color:'rgba(255,255,255,0.25)', textTransform:'uppercase', marginTop:2}}>{l}</div>
                       </div>
                     ))}
                   </div>
+                  {/* Note */}
+                  <div style={{fontFamily:'Inter, sans-serif', fontSize:11, color:'rgba(255,255,255,0.35)', lineHeight:1.55, textTransform:'none', letterSpacing:0}}>{p.note}</div>
                 </div>
               ))}
             </div>
@@ -2275,68 +2263,53 @@ function FrontOffice() {
           {/* ── Injury Report tab ── */}
           {!result && !loading && !error && dashTab === 'injuries' && (
             injuriesLoading ? (
-              <div style={{...panelStyle, display:'flex', alignItems:'center', justifyContent:'center', minHeight:200}}>
+              <div style={{display:'flex', alignItems:'center', justifyContent:'center', height:200}}>
                 <div style={{fontFamily:'Helvetica Neue, sans-serif', fontWeight:700, fontSize:11, letterSpacing:6, color:'var(--green)', textTransform:'uppercase', animation:'blink 1.2s ease-in-out infinite'}}>SYNCING INJURY REPORT...</div>
               </div>
             ) : injuriesError ? (
-              <div style={{...panelStyle, display:'flex', alignItems:'center', justifyContent:'center', minHeight:120}}>
+              <div style={{display:'flex', alignItems:'center', justifyContent:'center', height:120}}>
                 <div style={{fontFamily:'Helvetica Neue, sans-serif', fontWeight:700, fontSize:11, letterSpacing:4, color:'rgba(239,68,68,0.6)', textTransform:'uppercase'}}>INJURY FEED OFFLINE</div>
               </div>
-            ) : injuries && (
-              <div style={panelStyle}>
-                <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:24}}>
-                  <div style={colLabel}>NBA Injury Report</div>
-                  <div style={{display:'flex', gap:16, alignItems:'center'}}>
-                    {[['Out','#ef4444'],['Questionable','#f59e0b'],['Day-To-Day','#fbbf24'],['Probable','rgba(0,230,118,0.7)']].map(([label, color]) => (
-                      <div key={label} style={{display:'flex', alignItems:'center', gap:5}}>
-                        <div style={{width:7, height:7, borderRadius:'50%', background:color, flexShrink:0}}/>
-                        <span style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.3)', textTransform:'none', letterSpacing:0}}>{label}</span>
-                      </div>
-                    ))}
-                    <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.2)', marginLeft:8}}>{injuries.count} players</div>
-                  </div>
-                </div>
-                {injuries.teams.map(team => (
-                  <div key={team.team} style={{marginBottom:20}}>
-                    <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:8, paddingBottom:6, borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
-                      {(() => {
-                        const abbr = ({
-                          'Atlanta Hawks':'ATL','Boston Celtics':'BOS','Brooklyn Nets':'BKN',
-                          'Charlotte Hornets':'CHA','Chicago Bulls':'CHI','Cleveland Cavaliers':'CLE',
-                          'Dallas Mavericks':'DAL','Denver Nuggets':'DEN','Detroit Pistons':'DET',
-                          'Golden State Warriors':'GSW','Houston Rockets':'HOU','Indiana Pacers':'IND',
-                          'LA Clippers':'LAC','Los Angeles Lakers':'LAL','Memphis Grizzlies':'MEM',
-                          'Miami Heat':'MIA','Milwaukee Bucks':'MIL','Minnesota Timberwolves':'MIN',
-                          'New Orleans Pelicans':'NOP','New York Knicks':'NYK','Oklahoma City Thunder':'OKC',
-                          'Orlando Magic':'ORL','Philadelphia 76ers':'PHI','Phoenix Suns':'PHX',
-                          'Portland Trail Blazers':'POR','Sacramento Kings':'SAC','San Antonio Spurs':'SAS',
-                          'Toronto Raptors':'TOR','Utah Jazz':'UTA','Washington Wizards':'WAS',
-                        })[team.team] || '';
-                        return abbr ? <img src={`https://a.espn.com/combiner/i?img=/i/teamlogos/nba/500/${abbr.toLowerCase()}.png&h=28&w=28`} alt={abbr} width={18} height={18} style={{objectFit:'contain'}} onError={e=>e.target.style.display='none'}/> : null;
-                      })()}
-                      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontWeight:700, fontSize:11, letterSpacing:2, color:'rgba(255,255,255,0.55)', textTransform:'uppercase'}}>{team.team}</div>
-                      <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.2)'}}>{team.players.length} player{team.players.length !== 1 ? 's' : ''}</div>
-                    </div>
-                    {team.players.map(p => {
-                      const s = p.status.toLowerCase();
-                      const dot = s.includes('out') ? '#ef4444' : s.includes('questionable') ? '#f59e0b' : s.includes('day') ? '#fbbf24' : s.includes('probable') ? 'rgba(0,230,118,0.7)' : 'rgba(255,255,255,0.25)';
-                      return (
-                        <div key={p.name} style={{display:'flex', alignItems:'flex-start', gap:12, padding:'8px 0', borderBottom:'1px solid rgba(255,255,255,0.03)'}}>
-                          <div style={{width:7, height:7, borderRadius:'50%', background:dot, flexShrink:0, marginTop:4}}/>
-                          <div style={{flex:1, minWidth:0}}>
-                            <div style={{display:'flex', alignItems:'baseline', gap:10, marginBottom:2}}>
-                              <div style={{fontFamily:'Inter, sans-serif', fontSize:13, fontWeight:600, color:'rgba(255,255,255,0.85)'}}>{p.name}</div>
-                              <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:2, fontWeight:700, color:dot, textTransform:'uppercase'}}>{p.status}</div>
-                            </div>
-                            {p.comment && <div style={{fontFamily:'Inter, sans-serif', fontSize:11, color:'rgba(255,255,255,0.35)', lineHeight:1.55, textTransform:'none', letterSpacing:0}}>{p.comment}</div>}
-                          </div>
+            ) : injuries && (() => {
+              const INJTM = {'Atlanta Hawks':'ATL','Boston Celtics':'BOS','Brooklyn Nets':'BKN','Charlotte Hornets':'CHA','Chicago Bulls':'CHI','Cleveland Cavaliers':'CLE','Dallas Mavericks':'DAL','Denver Nuggets':'DEN','Detroit Pistons':'DET','Golden State Warriors':'GSW','Houston Rockets':'HOU','Indiana Pacers':'IND','LA Clippers':'LAC','Los Angeles Lakers':'LAL','Memphis Grizzlies':'MEM','Miami Heat':'MIA','Milwaukee Bucks':'MIL','Minnesota Timberwolves':'MIN','New Orleans Pelicans':'NOP','New York Knicks':'NYK','Oklahoma City Thunder':'OKC','Orlando Magic':'ORL','Philadelphia 76ers':'PHI','Phoenix Suns':'PHX','Portland Trail Blazers':'POR','Sacramento Kings':'SAC','San Antonio Spurs':'SAS','Toronto Raptors':'TOR','Utah Jazz':'UTA','Washington Wizards':'WAS'};
+              const statusDot = s => { const l = s.toLowerCase(); return l.includes('out') ? '#ef4444' : l.includes('questionable') ? '#f59e0b' : l.includes('day') ? '#fbbf24' : l.includes('probable') ? 'rgba(0,230,118,0.7)' : 'rgba(255,255,255,0.25)'; };
+              return (
+                <div style={{display:'flex', flexWrap:'wrap', gap:16, padding:'24px 24px 60px', alignItems:'flex-start'}}>
+                  {injuries.teams.map(team => {
+                    const abbr = INJTM[team.team] || '';
+                    return (
+                      <div key={team.team} className="g-card2" style={{width:280, padding:20, gap:0, cursor:'default'}}>
+                        <div className="g-glow-overlay"/>
+                        {/* Team header */}
+                        <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:14}}>
+                          {abbr && <img src={`https://a.espn.com/combiner/i?img=/i/teamlogos/nba/500/${abbr.toLowerCase()}.png&h=28&w=28`} alt={abbr} width={22} height={22} style={{objectFit:'contain',flexShrink:0}} onError={e=>e.target.style.display='none'}/>}
+                          <div style={{fontFamily:'Helvetica Neue, sans-serif', fontWeight:700, fontSize:12, letterSpacing:1, color:'rgba(255,255,255,0.7)', textTransform:'uppercase', flex:1}}>{team.team}</div>
+                          <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.2)'}}>{team.players.length}</div>
                         </div>
-                      );
-                    })}
-                  </div>
-                ))}
-              </div>
-            )
+                        {/* Player list */}
+                        <div style={{display:'flex', flexDirection:'column', gap:0}}>
+                          {team.players.map((p, pi) => {
+                            const dot = statusDot(p.status);
+                            return (
+                              <div key={p.name} style={{display:'flex', alignItems:'flex-start', gap:10, padding:'9px 0', borderTop: pi > 0 ? '1px solid rgba(255,255,255,0.04)' : 'none'}}>
+                                <div style={{width:6, height:6, borderRadius:'50%', background:dot, flexShrink:0, marginTop:5}}/>
+                                <div style={{flex:1, minWidth:0}}>
+                                  <div style={{fontFamily:'Inter, sans-serif', fontSize:12, fontWeight:600, color:'rgba(255,255,255,0.82)'}}>{p.name}</div>
+                                  <div style={{display:'flex', alignItems:'center', gap:6, marginTop:2}}>
+                                    <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, letterSpacing:1, fontWeight:700, color:dot, textTransform:'uppercase'}}>{p.status}</div>
+                                    {p.comment && <div style={{fontFamily:'Inter, sans-serif', fontSize:9, color:'rgba(255,255,255,0.3)', textTransform:'none', letterSpacing:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{p.comment}</div>}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()
           )}
 
           {/* Loading */}
