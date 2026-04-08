@@ -3424,7 +3424,7 @@ function Compare() {
           <div>
 
             {/* Hero header: side-by-side player identity */}
-            <div className="g-card2" style={{padding:'28px 32px', marginBottom:20}}>
+            <div className="g-card2" style={{width:'100%', boxSizing:'border-box', padding:'28px 32px', marginBottom:20}}>
               <div style={{display:'grid', gridTemplateColumns:'1fr auto 1fr', alignItems:'center', gap:24}}>
                 {/* Player A */}
                 <div style={{display:'flex', alignItems:'center', gap:16}}>
@@ -3456,7 +3456,7 @@ function Compare() {
             </div>
 
             {/* Stat bars — full unified comparison */}
-            <div className="g-card2" style={{padding:'28px 32px', marginBottom:20}}>
+            <div className="g-card2" style={{width:'100%', boxSizing:'border-box', padding:'28px 32px', marginBottom:20}}>
               <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:5, color:'rgba(0,255,128,0.7)', fontWeight:700, textTransform:'uppercase', marginBottom:24}}>2025-26 Season Averages</div>
               <StatBar label="PTS"  aVal={a.avg_pts} bVal={b.avg_pts} aName={a.name} bName={b.name}/>
               <StatBar label="REB"  aVal={a.avg_reb} bVal={b.avg_reb} aName={a.name} bName={b.name}/>
@@ -3476,7 +3476,7 @@ function Compare() {
             </div>
 
             {/* Claude verdict */}
-            <div className="g-card2" style={{padding:'28px 32px'}}>
+            <div className="g-card2" style={{width:'100%', boxSizing:'border-box', padding:'28px 32px'}}>
               <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:5, color:'rgba(0,255,128,0.82)', fontWeight:700, textTransform:'uppercase', marginBottom:22}}>PIVOT Matchup Analysis</div>
               <div style={{display:'flex', flexDirection:'column', gap:16}}>
                 {paras.map((p, i) => (
