@@ -1909,82 +1909,178 @@ async def compare_players(
     season: int = _DEFAULT_SEASON,
 ) -> dict[str, Any]:
     """
-    Fetch stats for two players in parallel and return a Claude-generated matchup read.
+    Compare two players using official BDL season averages + true L10 game logs.
 
-    Returns structured data for both players plus a prose comparison analysis.
+    Step 1: Fetch player objects
+    Step 2: Fetch official season averages (player_ids[] param — correct v1 format)
+    Step 3: Fetch 10 most-recent game logs separately for accurate L10
+    Step 4: Build prompt from real data only — no computed/derived stats if source is absent
     """
     logger.info("compare_players | a=%d b=%d season=%d", player_a_id, player_b_id, season)
 
-    cache_key = f"compare:{min(player_a_id, player_b_id)}:{max(player_a_id, player_b_id)}:{season}"
+    cache_key = f"compare2:{min(player_a_id, player_b_id)}:{max(player_a_id, player_b_id)}:{season}"
     cached = analysis_cache.get(cache_key)
     if cached:
         logger.info("compare_players cache hit | %s", cache_key)
         return cached
 
+    # ── Step 1: fetch both player objects ──────────────────────────────────
     try:
-        (player_a, agg_a), (player_b, agg_b) = await asyncio.gather(
-            _build_player_stat_block(player_a_id, season),
-            _build_player_stat_block(player_b_id, season),
+        player_a, player_b = await asyncio.gather(
+            nba_service.get_player_by_id(player_a_id),
+            nba_service.get_player_by_id(player_b_id),
         )
     except Exception as exc:
-        logger.warning("compare_players lookup failed | %s", exc)
+        logger.warning("compare_players player fetch failed | %s", exc)
         return {"error": str(exc)}
-
-    block_a = _render_stat_block(player_a, season, agg_a)
-    block_b = _render_stat_block(player_b, season, agg_b)
 
     name_a = f"{player_a.first_name} {player_a.last_name}"
     name_b = f"{player_b.first_name} {player_b.last_name}"
 
-    prompt = (
-        f"HEAD-TO-HEAD PLAYER COMPARISON — {season} Season\n\n"
-        f"PLAYER A:\n{block_a}\n\n"
-        f"PLAYER B:\n{block_b}\n\n"
-        f"Write a sharp head-to-head breakdown. Cover:\n"
-        f"1. Who has the better season by the numbers and what the gap actually means\n"
-        f"2. The specific areas where each player has a clear edge\n"
-        f"3. Recent form — who is peaking and who is declining\n"
-        f"4. A direct verdict: who is the better player right now and why\n\n"
-        f"Be concrete. Cite the actual stats. No hedging, no both-sides equivocation. "
-        f"End with one sentence that is your definitive verdict."
+    # ── Step 2 & 3: official averages + L10 in parallel ───────────────────
+    avg_a, avg_b, recent_a_raw, recent_b_raw = await asyncio.gather(
+        nba_service.get_season_averages(player_a_id, season),
+        nba_service.get_season_averages(player_b_id, season),
+        nba_service.get_recent_stats(player_a_id, season, n=10),
+        nba_service.get_recent_stats(player_b_id, season, n=10),
     )
 
-    result = await claude_service.analyze(
-        prompt=prompt,
-        system_prompt=NBA_ANALYST_SYSTEM_PROMPT,
-        override_model=_FAST_MODEL,
-        override_max_tokens=700,
-        override_temperature=0.1,
-    )
+    def _safe(d: dict, key: str, decimals: int = 1) -> Optional[float]:
+        v = d.get(key)
+        return round(float(v), decimals) if v is not None else None
 
-    def _player_payload(player: Any, agg: dict[str, Any]) -> dict[str, Any]:
-        return {
+    def _pct(d: dict, key: str) -> Optional[str]:
+        v = d.get(key)
+        return f"{float(v)*100:.1f}%" if v is not None else None
+
+    def _l10_avg(games: list, attr: str) -> Optional[float]:
+        vals = [getattr(g, attr) for g in games if getattr(g, attr, None) is not None and getattr(g, attr) > 0]
+        return round(sum(vals) / len(vals), 1) if vals else None
+
+    def _l10_min_avg(games: list) -> Optional[float]:
+        """Parse 'MM:SS' or 'MM' minute strings and average them."""
+        def parse(m: Any) -> Optional[float]:
+            if not m or m in ("0", "0:00"):
+                return None
+            try:
+                parts = str(m).split(":")
+                return float(parts[0]) + (float(parts[1]) / 60 if len(parts) == 2 else 0.0)
+            except Exception:
+                return None
+        vals = [v for g in games for v in [parse(g.minutes)] if v is not None]
+        return round(sum(vals) / len(vals), 1) if vals else None
+
+    def _build_block(name: str, player: Any, avg: dict, recent: list) -> tuple[str, dict]:
+        gp        = avg.get("games_played")
+        mpg       = _safe(avg, "min")
+        pts       = _safe(avg, "pts")
+        reb       = _safe(avg, "reb")
+        ast       = _safe(avg, "ast")
+        stl       = _safe(avg, "stl")
+        blk       = _safe(avg, "blk")
+        fg_pct    = _pct(avg, "fg_pct")
+        fg3_pct   = _pct(avg, "fg3_pct")
+        ft_pct    = _pct(avg, "ft_pct")
+        fga       = _safe(avg, "fga")
+        fg3a      = _safe(avg, "fg3a")
+        fta       = _safe(avg, "fta")
+        fgm       = _safe(avg, "fgm")
+        fg3m      = _safe(avg, "fg3m")
+
+        # TS% and eFG% only if we have all required fields
+        ts_pct = None
+        efg_pct = None
+        if pts and fga and fta:
+            denom = 2.0 * (fga + 0.44 * fta)
+            ts_pct = f"{pts / denom * 100:.1f}%" if denom > 0 else None
+        if fgm is not None and fg3m is not None and fga:
+            efg_pct = f"{(fgm + 0.5 * fg3m) / fga * 100:.1f}%" if fga > 0 else None
+
+        l10_pts = _l10_avg(recent, "points")
+        l10_reb = _l10_avg(recent, "rebounds")
+        l10_ast = _l10_avg(recent, "assists")
+        l10_min = _l10_min_avg(recent)
+        has_season = pts is not None
+
+        lines = [f"{name} | {player.position or '?'} | {player.team.name if player.team else '?'}"]
+        if has_season:
+            lines.append(f"Season ({gp or '?'} GP, {mpg or '?'} MPG):")
+            lines.append(f"  {pts} PTS | {reb} REB | {ast} AST | {stl} STL | {blk} BLK")
+            if fga:
+                lines.append(f"  FGA: {fga} | 3PA: {fg3a} ({fg3_pct}) | FTA: {fta} ({ft_pct})")
+            if ts_pct:
+                lines.append(f"  TS%: {ts_pct}" + (f" | eFG%: {efg_pct}" if efg_pct else ""))
+            elif fg_pct:
+                lines.append(f"  FG%: {fg_pct}")
+        else:
+            lines.append("Season averages: not yet available for this season.")
+
+        if recent:
+            lines.append(f"Last {len(recent)} games ({l10_min or '?'} MPG this stretch):")
+            lines.append(f"  {l10_pts or '?'} PTS | {l10_reb or '?'} REB | {l10_ast or '?'} AST")
+            if l10_min is None or (mpg and l10_min < mpg * 0.6):
+                lines.append("  NOTE: MPG significantly lower recently — raw per-game dip may be a minutes story.")
+        else:
+            lines.append("Last 10 games: no data available.")
+
+        payload = {
             "id": player.id,
-            "name": f"{player.first_name} {player.last_name}",
+            "name": name,
             "first_name": player.first_name,
             "last_name": player.last_name,
             "position": player.position or "",
             "team": player.team.abbreviation if player.team else "",
             "team_name": player.team.name if player.team else "",
-            "games_played": agg["total_games"],
-            "avg_pts": agg["avg_pts"],
-            "avg_reb": agg["avg_reb"],
-            "avg_ast": agg["avg_ast"],
-            "avg_stl": agg["avg_stl"],
-            "avg_blk": agg["avg_blk"],
-            "avg_fg": agg["avg_fg"],
-            "avg_fg3": agg["avg_fg3"],
-            "avg_ft": agg["avg_ft"],
-            "recent_pts": agg["recent_pts"],
-            "recent_reb": agg["recent_reb"],
-            "recent_ast": agg["recent_ast"],
-            "recent_fg": agg["recent_fg"],
-            "recent_fg3": agg["recent_fg3"],
+            "nba_id": player.nba_id,
+            "games_played": gp,
+            "avg_pts": pts, "avg_reb": reb, "avg_ast": ast,
+            "avg_stl": stl, "avg_blk": blk,
+            "avg_fg": float(avg.get("fg_pct") or 0),
+            "avg_fg3": float(avg.get("fg3_pct") or 0),
+            "avg_ft": float(avg.get("ft_pct") or 0),
+            "avg_fga": fga, "avg_fg3a": fg3a, "avg_fta": fta,
+            "ts_pct": float(ts_pct.rstrip('%')) / 100 if ts_pct else None,
+            "efg_pct": float(efg_pct.rstrip('%')) / 100 if efg_pct else None,
+            "recent_pts": l10_pts, "recent_reb": l10_reb, "recent_ast": l10_ast,
         }
 
+        return "\n".join(lines), payload
+
+    block_a, payload_a = _build_block(name_a, player_a, avg_a, recent_a_raw)
+    block_b, payload_b = _build_block(name_b, player_b, avg_b, recent_b_raw)
+
+    # ── Step 4: prompt using only real data ───────────────────────────────
+    COMPARE_SYSTEM = """You are an NBA analyst. You will be given real API data for two players. Your job is to compare them directly.
+
+RULES:
+- Only reference stats that appear in the data block. Never invent or estimate missing numbers.
+- If a stat is marked "not yet available", skip that category entirely.
+- If a player's recent MPG is flagged as significantly lower, note it as a minutes story, not a decline.
+- Use short section headers: SCORING, REBOUNDING, PLAYMAKING, DEFENSE, RECENT FORM.
+- End each section with one line declaring who has the edge and why.
+- Close with a 2-3 sentence verdict. No bullet points, no hedging, no both-sides equivocation.
+- Plain prose only. No markdown, no asterisks, no numbered lists."""
+
+    prompt = (
+        f"HEAD-TO-HEAD: {name_a} vs {name_b} — {season} Season\n\n"
+        f"PLAYER A — {block_a}\n\n"
+        f"PLAYER B — {block_b}\n\n"
+        f"Compare these two players using only the stats above. "
+        f"Cover SCORING, REBOUNDING, PLAYMAKING, DEFENSE, and RECENT FORM. "
+        f"After each section, declare the edge. Close with a 2-3 sentence verdict."
+    )
+
+    result = await claude_service.analyze(
+        prompt=prompt,
+        system_prompt=COMPARE_SYSTEM,
+        override_model=_FAST_MODEL,
+        override_max_tokens=900,
+        override_temperature=0.1,
+    )
+
     response = {
-        "player_a": _player_payload(player_a, agg_a),
-        "player_b": _player_payload(player_b, agg_b),
+        "player_a": payload_a,
+        "player_b": payload_b,
         "analysis": result.analysis,
         "model": result.model,
         "tokens_used": result.tokens_used,

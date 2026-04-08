@@ -827,6 +827,53 @@ async def get_player_stats(player_id: int, season: int = _DEFAULT_SEASON) -> lis
     return results
 
 
+async def get_recent_stats(player_id: int, season: int = _DEFAULT_SEASON, n: int = 10) -> list[PlayerStats]:
+    """
+    Fetch the N most-recent game logs for a player this season.
+
+    Uses per_page=N sorted by most recent so we get true last-N games,
+    not a slice of a larger sorted list that may include stale preseason entries.
+    """
+    logger.debug("Fetching recent stats | player_id=%d season=%d n=%d", player_id, season, n)
+    try:
+        payload = await _fetch_data(
+            "/stats",
+            params={
+                "player_ids[]": player_id,
+                "seasons[]": season,
+                "per_page": n,
+            },
+        )
+    except Exception as exc:
+        logger.warning("Recent stats fetch failed | player_id=%d error=%s", player_id, exc)
+        return []
+
+    results: list[PlayerStats] = []
+    for s in payload.get("data") or []:
+        player_raw = s.get("player") or {}
+        game_raw = s.get("game") or {}
+        results.append(
+            PlayerStats(
+                player=_parse_player(player_raw),
+                game_id=int(game_raw.get("id") or 0),
+                points=int(s.get("pts") or 0),
+                rebounds=int(s.get("reb") or 0),
+                assists=int(s.get("ast") or 0),
+                steals=int(s.get("stl") or 0),
+                blocks=int(s.get("blk") or 0),
+                minutes=s.get("min"),
+                fg_pct=s.get("fg_pct"),
+                fg3_pct=s.get("fg3_pct"),
+                ft_pct=s.get("ft_pct"),
+            )
+        )
+    # Strip DNPs
+    results = [r for r in results if r.minutes and r.minutes not in ("0", "0:00")]
+    # Sort descending — most recent first
+    results.sort(key=lambda x: x.game_id, reverse=True)
+    return results
+
+
 async def get_season_averages(player_id: int, season: int = _DEFAULT_SEASON) -> dict[str, Any]:
     """
     Fetch official season averages for a player from BallDontLie.
@@ -855,7 +902,7 @@ async def get_season_averages(player_id: int, season: int = _DEFAULT_SEASON) -> 
     try:
         payload = await _fetch_data(
             "/season_averages",
-            params={"player_id": player_id, "season": season},
+            params={"player_ids[]": player_id, "season": season},
         )
         data: list[dict[str, Any]] = payload.get("data") or []
 

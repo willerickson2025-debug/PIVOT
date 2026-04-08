@@ -3466,79 +3466,38 @@ function Compare() {
 
   const canCompare = playerA && playerB && playerA.id !== playerB.id;
 
-  const buildPayload = async (p) => {
-    const name = `${p.first_name} ${p.last_name}`;
-    const team = p.team?.abbreviation || '';
-    const [avgResp, logsResp] = await Promise.all([
-      fetch(`${API}/nba/bulk-averages?player_ids=${p.id}&season=2025`).catch(() => null),
-      fetch(`${API}/nba/players/${p.id}/stats?season=2025`).catch(() => null),
-    ]);
-    const avgs = avgResp?.ok ? ((await avgResp.json()).averages?.[String(p.id)] || {}) : {};
-    const logsData = logsResp?.ok ? await logsResp.json() : { stats: [] };
-    const logs = logsData.stats || [];
-    const hasAvgs = Object.keys(avgs).length > 0;
-    const gp = hasAvgs ? (avgs.games_played || logs.length) : logs.length;
-    const la = (fn) => logs.length ? logs.reduce((s,g)=>s+(fn(g)||0),0)/logs.length : null;
-    const laPct = (f) => { const v=logs.filter(g=>g[f]!=null); return v.length?v.reduce((s,g)=>s+g[f],0)/v.length:null; };
-    const recent = logs.slice(-10);
-    const rAvg = (fn) => recent.length ? recent.reduce((s,g)=>s+(fn(g)||0),0)/recent.length : null;
-    const pts  = hasAvgs ? +avgs.pts  : la(g=>g.points);
-    const reb  = hasAvgs ? +avgs.reb  : la(g=>g.rebounds);
-    const ast  = hasAvgs ? +avgs.ast  : la(g=>g.assists);
-    const stl  = hasAvgs ? +avgs.stl  : la(g=>g.steals);
-    const blk  = hasAvgs ? +avgs.blk  : la(g=>g.blocks);
-    const min  = hasAvgs ? +avgs.min  : 0;
-    const fga  = hasAvgs ? +avgs.fga  : 0;
-    const fta  = hasAvgs ? +avgs.fta  : 0;
-    const fgm  = hasAvgs ? +avgs.fgm  : 0;
-    const fg3m = hasAvgs ? +avgs.fg3m : 0;
-    const fg3a = hasAvgs ? +avgs.fg3a : 0;
-    const ts   = (fga > 0 && pts > 0) ? pts/(2*(fga+0.44*fta)) : null;
-    const efg  = fga > 0 ? (fgm+0.5*fg3m)/fga : null;
-    const p36  = (v) => (min > 0 && v != null) ? +(v/min*36).toFixed(1) : null;
-    return {
-      id: p.id, name, team, position: p.position||'', games_played: gp, min,
-      pts:  pts!=null?+pts.toFixed(1):null,  reb: reb!=null?+reb.toFixed(1):null,
-      ast:  ast!=null?+ast.toFixed(1):null,  stl: stl!=null?+stl.toFixed(1):null,
-      blk:  blk!=null?+blk.toFixed(1):null,
-      fg3a: fg3a?+fg3a.toFixed(1):null,
-      fg_pct:  hasAvgs?avgs.fg_pct:laPct('fg_pct'),
-      fg3_pct: hasAvgs?avgs.fg3_pct:laPct('fg3_pct'),
-      ft_pct:  hasAvgs?avgs.ft_pct:laPct('ft_pct'),
-      ts, efg,
-      pts36: p36(pts), reb36: p36(reb), ast36: p36(ast),
-      recent_pts: rAvg(g=>g.points)?.toFixed(1)||'-',
-      recent_reb: rAvg(g=>g.rebounds)?.toFixed(1)||'-',
-      recent_ast: rAvg(g=>g.assists)?.toFixed(1)||'-',
-    };
-  };
-
   const runCompare = async () => {
     if (!canCompare) return;
     setLoading(true); setError(null); setResult(null);
     try {
-      const [a, b] = await Promise.all([buildPayload(playerA), buildPayload(playerB)]);
-      const pctStr = v => v!=null ? `${(v*100).toFixed(1)}%` : 'N/A';
-      const block = (p) =>
-        `${p.name} (${p.team}, ${p.position}) — ${p.games_played} GP, ${p.min} MIN/G\n` +
-        `  PTS: ${p.pts} | REB: ${p.reb} | AST: ${p.ast} | STL: ${p.stl} | BLK: ${p.blk}\n` +
-        `  3PA/G: ${p.fg3a??'N/A'} | 3P%: ${pctStr(p.fg3_pct)} | FG%: ${pctStr(p.fg_pct)} | FT%: ${pctStr(p.ft_pct)}\n` +
-        `  TS%: ${pctStr(p.ts)} | eFG%: ${pctStr(p.efg)}\n` +
-        `  Per-36: ${p.pts36} PTS / ${p.reb36} REB / ${p.ast36} AST\n` +
-        `  L10: ${p.recent_pts}pts / ${p.recent_reb}reb / ${p.recent_ast}ast`;
-      const prompt =
-        `PLAYER COMPARISON — 2025-26 NBA Season\n\n${block(a)}\n\nvs\n\n${block(b)}\n\n` +
-        `Write a sharp H2H breakdown. For shooting, cite 3PA/G alongside 3P% — volume context is mandatory. ` +
-        `Use TS% and eFG% as the primary efficiency lens, not raw FG%. ` +
-        `Name the clear edge in each category. Close with a definitive verdict. No hedging.`;
-      const system = `You are an expert NBA analyst. April 2026, 2025-26 season. Use the stats provided. For three-point shooting, high volume (6+ 3PA/G) at 35-38% is elite — never compare raw 3P% without volume context.`;
-      const cr = await fetch(`${API}/claude/analyze`, {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ prompt, context: system })
+      const r = await fetch(`${API}/analysis/compare?player_a=${playerA.id}&player_b=${playerB.id}&season=2025`);
+      if (!r.ok) throw new Error(await r.text());
+      const data = await r.json();
+      if (data.error) throw new Error(data.error);
+      // Map backend payload fields to the shape the StatBar display expects
+      const mapPlayer = (p) => ({
+        id: p.id,
+        name: p.name,
+        team: p.team,
+        position: p.position,
+        games_played: p.games_played,
+        pts: p.avg_pts,
+        reb: p.avg_reb,
+        ast: p.avg_ast,
+        stl: p.avg_stl,
+        blk: p.avg_blk,
+        fg3a: p.avg_fg3a,
+        fg_pct: p.avg_fg,
+        fg3_pct: p.avg_fg3,
+        ft_pct: p.avg_ft,
+        ts: p.ts_pct,
+        efg: p.efg_pct,
+        recent_pts: p.recent_pts != null ? p.recent_pts.toFixed(1) : '-',
+        recent_reb: p.recent_reb != null ? p.recent_reb.toFixed(1) : '-',
+        recent_ast: p.recent_ast != null ? p.recent_ast.toFixed(1) : '-',
+        nba_id: p.nba_id,
       });
-      if (!cr.ok) throw new Error('Analysis failed');
-      const cd = await cr.json();
-      setResult({ a, b, analysis: cd.analysis });
+      setResult({ a: mapPlayer(data.player_a), b: mapPlayer(data.player_b), analysis: data.analysis });
     } catch(e) { setError(friendlyError(e.message)); } finally { setLoading(false); }
   };
 
