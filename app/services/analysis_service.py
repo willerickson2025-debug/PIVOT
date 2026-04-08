@@ -64,11 +64,21 @@ You will receive a stat block with season averages and recent game logs. If any 
 4. If recent game logs are missing but season averages exist, analyze only the season averages and skip any recent-form commentary entirely.
 5. If a stat reads 0.0 across the board, treat it as a data gap — acknowledge it in one sentence and pivot to what you do know about the player from their career profile.
 
+EFFICIENCY METRICS — USE THESE, NOT RAW FG%:
+True Shooting % (TS%) and Effective FG% (eFG%) are the primary lenses for scoring efficiency. FG% alone is misleading — it ignores free throws and devalues three-point shooting. Always lead efficiency analysis with TS% or eFG% when provided. Context for elite tiers: TS% above 60% is elite, 57–60% is very good, below 54% is a problem. eFG% above 56% is elite, 52–56% is solid.
+
+INTERPRETING L10 TRENDS — CONTEXT IS MANDATORY:
+A 10-game window is roughly 12% of a regular season. Before characterizing any L10 vs season delta as a "decline" or "deterioration":
+1. Check the magnitude — a 2 PPG dip for a 28 PPG scorer is within normal variance. Require at least a 15–20% change from baseline before calling it meaningful.
+2. Check FT rate — a rising FTA/game alongside lower FG attempts often means defenses are scheme-adjusting (more physicality, trying to foul rather than contest). This is a sign the player is a threat, not a sign of decline.
+3. Check the opponent slate — late-season schedules often cluster elite defensive teams, especially playoff seeding races. A shooting dip in 10 games against top-5 defenses is expected, not alarming.
+4. Never use words like "sharp deterioration," "hitting a wall," "running out of gas," or "collapse" for a 10-game window unless the drop is historically severe (>25% below baseline across multiple categories simultaneously).
+
 You have watched more NBA film than anyone in this conversation. You know pace differentials, defensive rating trends, how teams perform on back-to-backs, which coaches make in-game adjustments and which ones don't, which stars disappear in fourth quarters. You use that knowledge.
 
-When analyzing a game: open with the sharpest thing you know about this matchup — the thing most people miss. Then cover the stylistic clash, the one player who will determine the outcome, and the specific reason one team wins. Close with a confident, unhedged prediction.
+When analyzing a player: lead with TS% or eFG% as the efficiency anchor. Then cover role/usage context (is their FTA rate up or down, what does that signal), the L10 trend with proper framing (sample size, opponent context, usage changes), and close with one sharp sentence on where this player actually stands right now. Do not catastrophize variance. Do not minimize real problems either — if the data shows a genuine multi-month decline in efficiency and volume, call it.
 
-When analyzing a player: open with what the numbers actually mean in context — not just what they are. Call out if a player is overrated, underrated, declining, or ascending. Reference the last 10 games trend vs season average and explain what it signals. End with one sentence that captures exactly where this player stands right now.
+When analyzing a game: open with the sharpest thing you know about this matchup — the thing most people miss. Then cover the stylistic clash, the one player who will determine the outcome, and the specific reason one team wins. Close with a confident, unhedged prediction.
 
 Every word must earn its place. If a sentence doesn't add information or edge, cut it. No throat-clearing. No "it's worth noting." No "at the end of the day." Start with the insight, not the setup.
 
@@ -515,6 +525,26 @@ async def _build_player_stat_block(player_id: int, season: int) -> tuple[Any, di
     avg_fg3 = round(float(official.get("fg3_pct") or _safe_avg([s.fg3_pct for s in stats])), 3)
     avg_ft  = round(float(official.get("ft_pct") or _safe_avg([s.ft_pct for s in stats])), 3)
 
+    # Volume / usage context from official season averages
+    avg_fga = round(float(official.get("fga") or 0), 1)
+    avg_fta = round(float(official.get("fta") or 0), 1)
+    avg_fgm = round(float(official.get("fgm") or 0), 1)
+    avg_fg3m = round(float(official.get("fg3m") or 0), 1)
+    avg_tov = round(float(official.get("turnover") or 0), 1)
+    avg_min = round(float(official.get("min") or 0), 1)
+
+    # Advanced efficiency metrics (require volume data to be meaningful)
+    if avg_fga > 0 and avg_pts > 0 and avg_fta >= 0:
+        ts_pct = round(avg_pts / (2.0 * (avg_fga + 0.44 * avg_fta)), 3)
+    else:
+        ts_pct = 0.0
+    if avg_fga > 0:
+        efg_pct = round((avg_fgm + 0.5 * avg_fg3m) / avg_fga, 3)
+        ft_rate = round(avg_fta / avg_fga, 3)  # FTA per FGA — proxy for drawing fouls
+    else:
+        efg_pct = 0.0
+        ft_rate = 0.0
+
     # Recent form: last N games by chronological order (stats are pre-sorted
     # ascending by game_id in nba_service.get_player_stats).
     recent = stats[-_RECENT_FORM_WINDOW:]
@@ -537,6 +567,13 @@ async def _build_player_stat_block(player_id: int, season: int) -> tuple[Any, di
         "avg_fg": avg_fg,
         "avg_fg3": avg_fg3,
         "avg_ft": avg_ft,
+        "avg_fga": avg_fga,
+        "avg_fta": avg_fta,
+        "avg_tov": avg_tov,
+        "avg_min": avg_min,
+        "ts_pct": ts_pct,
+        "efg_pct": efg_pct,
+        "ft_rate": ft_rate,
         "recent_pts": recent_pts,
         "recent_reb": recent_reb,
         "recent_ast": recent_ast,
@@ -569,7 +606,16 @@ def _render_stat_block(player: Any, season: int, agg: dict[str, Any]) -> str:
     """
     team_name = player.team.name if player.team else "N/A"
 
-    return (
+    # Format advanced efficiency (omit if zero — means volume data wasn't returned)
+    ts_line = f"TS%: {agg['ts_pct']:.1%} | eFG%: {agg['efg_pct']:.1%}" if agg.get("ts_pct") else ""
+    vol_line = ""
+    if agg.get("avg_fga"):
+        vol_line = (
+            f"FGA/G: {agg['avg_fga']} | FTA/G: {agg['avg_fta']} "
+            f"(FT Rate: {agg['ft_rate']:.2f}) | TOV/G: {agg['avg_tov']} | MIN: {agg['avg_min']}"
+        )
+
+    block = (
         f"Player: {player.first_name} {player.last_name}\n"
         f"Team: {team_name} | Position: {player.position or 'N/A'} | "
         f"Season: {season} | Games: {agg['total_games']}\n"
@@ -578,8 +624,14 @@ def _render_stat_block(player: Any, season: int, agg: dict[str, Any]) -> str:
         f"  PTS: {agg['avg_pts']} | REB: {agg['avg_reb']} | AST: {agg['avg_ast']} | "
         f"STL: {agg['avg_stl']} | BLK: {agg['avg_blk']}\n"
         f"  FG%: {agg['avg_fg']:.1%} | 3P%: {agg['avg_fg3']:.1%} | FT%: {agg['avg_ft']:.1%}\n"
+    )
+    if ts_line:
+        block += f"  {ts_line}\n"
+    if vol_line:
+        block += f"  {vol_line}\n"
+    block += (
         f"\n"
-        f"LAST {_RECENT_FORM_WINDOW} GAMES:\n"
+        f"LAST {_RECENT_FORM_WINDOW} GAMES (small sample — interpret with context):\n"
         f"  PTS: {agg['recent_pts']} ({_trend_label(agg['recent_pts'], agg['avg_pts'])} vs season) | "
         f"REB: {agg['recent_reb']} ({_trend_label(agg['recent_reb'], agg['avg_reb'])}) | "
         f"AST: {agg['recent_ast']} ({_trend_label(agg['recent_ast'], agg['avg_ast'])})\n"
@@ -588,6 +640,7 @@ def _render_stat_block(player: Any, season: int, agg: dict[str, Any]) -> str:
         f"  FG%: {agg['recent_fg']:.1%} ({_pct_trend_label(agg['recent_fg'], agg['avg_fg'])}) | "
         f"3P%: {agg['recent_fg3']:.1%} ({_pct_trend_label(agg['recent_fg3'], agg['avg_fg3'])})"
     )
+    return block
 
 
 # ---------------------------------------------------------------------------
@@ -702,11 +755,22 @@ async def analyze_player(
 
     stat_block = _render_stat_block(player, season, agg)
 
+    prompt = (
+        f"Analyze this player's {season} NBA season:\n\n"
+        f"{stat_block}\n\n"
+        f"Cover in order:\n"
+        f"1. EFFICIENCY ANCHOR — lead with TS% or eFG% as the primary lens. What does it say about this player's true value?\n"
+        f"2. ROLE & USAGE — what do FGA/G, FTA/G, and FT Rate reveal about how defenses are treating this player? Rising FT rate often means defenses are fouling more, not that the player is declining.\n"
+        f"3. LAST {_RECENT_FORM_WINDOW} GAMES — frame this as a small sample. Before calling anything a decline, check the magnitude (>15% drop?), and consider opponent quality, schedule clustering, and usage shifts. Be accurate, not alarming.\n"
+        f"4. VERDICT — one precise sentence on where this player stands right now.\n"
+        f"Write it as connected prose, not a list."
+    )
+
     result = await claude_service.analyze(
-        prompt=f"Analyze this player's {season} NBA season:\n\n{stat_block}",
+        prompt=prompt,
         system_prompt=NBA_ANALYST_SYSTEM_PROMPT,
         override_model=_FAST_MODEL,
-        override_max_tokens=700,
+        override_max_tokens=800,
     )
 
     logger.info(
