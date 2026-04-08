@@ -1568,6 +1568,15 @@ function Players() {
     { id: 3547238,    nbaId: 1630162, name: 'Anthony Edwards',    position: 'G',   team: 'MIN', pts: 28.9, reb: 5.0, ast: 3.7 },
   ];
 
+  const [featuredLive, setFeaturedLive] = React.useState({});
+  React.useEffect(() => {
+    const ids = FEATURED_PLAYERS.map(p => p.id);
+    fetch(`${API}/nba/bulk-averages?${ids.map(id=>`player_ids=${id}`).join('&')}&season=2025`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.averages) setFeaturedLive(d.averages); })
+      .catch(() => {});
+  }, []);
+
   const pct = (v) => v != null ? `${(v*100).toFixed(1)}%` : '-';
   const hasResult = !loading && result && !result.error;
 
@@ -1677,14 +1686,18 @@ function Players() {
                   <div style={{padding:'14px 16px 16px'}}>
                     <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:15, fontWeight:700, letterSpacing:0.2, color:'var(--white)', marginBottom:14, lineHeight:1.2}}>{p.name}</div>
 
-                    {/* Stat bar */}
+                    {/* Stat bar — live stats override hardcoded fallbacks */}
                     <div style={{display:'flex', justifyContent:'space-around', marginBottom:14, paddingBottom:14, borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
-                      {[{v:p.pts,l:'PTS'},{v:p.reb,l:'REB'},{v:p.ast,l:'AST'}].map(({v,l}) => (
+                      {[['PTS', 'pts', p.pts],['REB', 'reb', p.reb],['AST', 'ast', p.ast]].map(([l, key, fallback]) => {
+                        const live = featuredLive[String(p.id)] || {};
+                        const v = live[key] != null ? (+live[key]).toFixed(1) : fallback;
+                        return (
                         <div key={l} style={{textAlign:'center'}}>
                           <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:18, fontWeight:700, color:'var(--white)', letterSpacing:-0.5}}>{v}</div>
                           <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, letterSpacing:2, color:'var(--text-muted)', textTransform:'uppercase', marginTop:2}}>{l}</div>
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
 
                     <div style={{display:'inline-flex', alignItems:'center', gap:6, background:'rgba(0,255,128,0.06)', border:'1px solid rgba(0,255,128,0.15)', borderRadius:99, padding:'4px 10px'}}>
@@ -1975,6 +1988,52 @@ function FrontOffice() {
     : ALL_TEAMS;
 
   const now = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+
+  // Live stats for MVP Race: BDL IDs confirmed via API
+  // SGA=175, Edwards=3547238, Jokic=246, Wemby=56677822, Cade=17896075, LeBron=237
+  const MVP_PLAYERS = [
+    {name:'Shai Gilgeous-Alexander', team:'OKC', nbaId:1628983, bdlId:175,       pts:31.4, reb:4.4,  ast:6.5, odds:'-180',  note:'OKC dominant scorer, unanimous MVP front-runner'},
+    {name:'Anthony Edwards',          team:'MIN', nbaId:1630162, bdlId:3547238,   pts:28.9, reb:5.0,  ast:3.7, odds:'+220',  note:'Face of Timberwolves playoff run'},
+    {name:'Nikola Jokic',             team:'DEN', nbaId:203999,  bdlId:246,       pts:27.9, reb:12.9, ast:10.9,odds:'+300',  note:'Historic triple-double efficiency, fourth campaign'},
+    {name:'Victor Wembanyama',         team:'SAS', nbaId:1641705, bdlId:56677822,  pts:24.8, reb:11.5, ast:3.1, odds:'+450',  note:'Defensive Player of the Year lock'},
+    {name:'Cade Cunningham',           team:'DET', nbaId:1630595, bdlId:17896075,  pts:24.5, reb:5.6,  ast:9.9, odds:'+700',  note:'Near triple-double threat driving Pistons resurgence'},
+    {name:'LeBron James',              team:'LAL', nbaId:2544,    bdlId:237,       pts:20.8, reb:6.1,  ast:7.1, odds:'+1500', note:'Still elite at 41. Longevity defines the conversation'},
+  ];
+
+  // Live stats for Young Stars: BDL IDs confirmed via API
+  const YOUNG_PLAYERS = [
+    {name:'Victor Wembanyama',  team:'SAS', nbaId:1641705, bdlId:56677822,    age:21, pos:'C', pts:24.8, reb:11.5, ast:3.1, note:'Defensive Player of Year. Future GOAT candidate.'},
+    {name:'Keyonte George',     team:'UTA', nbaId:1641724, bdlId:56677834,    age:21, pos:'G', pts:23.6, reb:3.7,  ast:6.1, note:'Breakout season. Utah\'s most dangerous scorer.'},
+    {name:'Cooper Flagg',       team:'DAL', nbaId:1642843, bdlId:1057262088,  age:18, pos:'F', pts:21.1, reb:6.6,  ast:4.6, note:'Rookie of the Year lock. Generational two-way player.'},
+    {name:'Stephon Castle',     team:'SAS', nbaId:1642355, bdlId:1028025261,  age:21, pos:'G', pts:16.7, reb:5.2,  ast:7.3, note:'Wemby\'s wingman. Playmaking already elite.'},
+    {name:'Alexandre Sarr',     team:'WAS', nbaId:1642356, bdlId:1028028405,  age:20, pos:'C', pts:16.3, reb:7.4,  ast:2.7, note:'Elite rim protection and length. WAS building around him.'},
+    {name:'Scoot Henderson',    team:'POR', nbaId:1641706, bdlId:56677747,    age:21, pos:'G', pts:14.0, reb:2.7,  ast:3.8, note:'Still developing. Blazers betting on upside.'},
+    {name:'Zaccharie Risacher', team:'ATL', nbaId:1642364, bdlId:1028028244,  age:19, pos:'F', pts:9.7,  reb:3.8,  ast:1.1, note:'Year 2 growing pains. ATL patient with potential.'},
+    {name:'Ja\'Kobe Walter',    team:'TOR', nbaId:1642361, bdlId:1028029111,  age:20, pos:'G', pts:7.3,  reb:2.5,  ast:1.2, note:'Steady contributor on rebuilding Raptors.'},
+    {name:'Ron Holland',        team:'DET', nbaId:1642363, bdlId:1028026508,  age:19, pos:'F', pts:8.1,  reb:4.1,  ast:1.2, note:'Raw but flashes brilliance. DET high-ceiling project.'},
+    {name:'Gradey Dick',        team:'TOR', nbaId:1641730, bdlId:56677828,    age:21, pos:'G', pts:6.1,  reb:2.0,  ast:0.7, note:'Sharpshooting role player. Embracing bench role.'},
+  ];
+
+  const [mvpLive, setMvpLive] = React.useState({});
+  const [youngLive, setYoungLive] = React.useState({});
+
+  React.useEffect(() => {
+    if (dashTab !== 'mvp' || Object.keys(mvpLive).length > 0) return;
+    const ids = MVP_PLAYERS.map(p => p.bdlId);
+    fetch(`${API}/nba/bulk-averages?${ids.map(id=>`player_ids=${id}`).join('&')}&season=2025`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.averages) setMvpLive(d.averages); })
+      .catch(() => {});
+  }, [dashTab]);
+
+  React.useEffect(() => {
+    if (dashTab !== 'young' || Object.keys(youngLive).length > 0) return;
+    const ids = YOUNG_PLAYERS.map(p => p.bdlId);
+    fetch(`${API}/nba/bulk-averages?${ids.map(id=>`player_ids=${id}`).join('&')}&season=2025`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.averages) setYoungLive(d.averages); })
+      .catch(() => {});
+  }, [dashTab]);
 
   const TABS = [
     {id:'warboard',  label:'War Board'},
@@ -2267,14 +2326,12 @@ function FrontOffice() {
           {/* ── MVP Race tab ── */}
           {!result && !loading && !error && dashTab === 'mvp' && (
             <div style={{display:'flex', flexWrap:'wrap', gap:16, padding:'24px 24px 60px'}}>
-              {[
-                {name:'Shai Gilgeous-Alexander', team:'OKC', nbaId:1629029, pts:31.4, reb:4.4, ast:6.5, odds:'-180',  note:'OKC dominant scorer, unanimous MVP front-runner'},
-                {name:'Anthony Edwards',          team:'MIN', nbaId:1630162, pts:28.9, reb:5.0, ast:3.7, odds:'+220',  note:'Face of Timberwolves playoff run'},
-                {name:'Nikola Jokic',             team:'DEN', nbaId:203999,  pts:27.9, reb:12.9,ast:10.9,odds:'+300',  note:'Historic triple-double efficiency, fourth campaign'},
-                {name:'Victor Wembanyama',         team:'SAS', nbaId:1641705, pts:24.8, reb:11.5,ast:3.1, odds:'+450',  note:'Defensive Player of the Year lock'},
-                {name:'Cade Cunningham',           team:'DET', nbaId:1630595, pts:24.5, reb:5.6, ast:9.9, odds:'+700',  note:'Near triple-double threat driving Pistons resurgence'},
-                {name:'LeBron James',              team:'LAL', nbaId:2544,    pts:20.8, reb:6.1, ast:7.1, odds:'+1500', note:'Still elite at 41. Longevity defines the conversation'},
-              ].map((p, i) => (
+              {MVP_PLAYERS.map((p, i) => {
+                const live = mvpLive[String(p.bdlId)] || {};
+                const pts = live.pts != null ? (+live.pts).toFixed(1) : p.pts;
+                const reb = live.reb != null ? (+live.reb).toFixed(1) : p.reb;
+                const ast = live.ast != null ? (+live.ast).toFixed(1) : p.ast;
+                return (
                 <div key={p.name} className="g-card2" style={{width:280, padding:22, gap:14}}>
                   <div className="g-glow-overlay"/>
                   {/* Rank + odds */}
@@ -2290,9 +2347,9 @@ function FrontOffice() {
                       <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:2, color:'var(--green)', fontWeight:700, marginTop:3}}>{p.team}</div>
                     </div>
                   </div>
-                  {/* Stats */}
+                  {/* Stats — live from API */}
                   <div style={{display:'flex', gap:0, borderTop:'1px solid rgba(255,255,255,0.06)', paddingTop:14}}>
-                    {[['PTS',p.pts],['REB',p.reb],['AST',p.ast]].map(([l,v], si) => (
+                    {[['PTS',pts],['REB',reb],['AST',ast]].map(([l,v], si) => (
                       <div key={l} style={{flex:1, textAlign:'center', borderRight: si < 2 ? '1px solid rgba(255,255,255,0.06)' : 'none'}}>
                         <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:18, fontWeight:700, color:'var(--white)', letterSpacing:-0.5}}>{v}</div>
                         <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:7, letterSpacing:2, color:'rgba(255,255,255,0.82)', textTransform:'uppercase', marginTop:2}}>{l}</div>
@@ -2302,26 +2359,20 @@ function FrontOffice() {
                   {/* Note */}
                   <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, color:'rgba(255,255,255,0.68)', lineHeight:1.55, textTransform:'none', letterSpacing:0}}>{p.note}</div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
-
 
           {/* ── Young Stars tab ── */}
           {!result && !loading && !error && dashTab === 'young' && (
             <div style={{display:'flex', flexWrap:'wrap', gap:16, padding:'24px 24px 60px'}}>
-              {[
-                {name:'Victor Wembanyama',  team:'SAS', nbaId:1641705, age:21, pos:'C', pts:24.8, reb:11.5, ast:3.1, note:'Defensive Player of Year. Future GOAT candidate.'},
-                {name:'Keyonte George',     team:'UTA', nbaId:1641724, age:21, pos:'G', pts:23.6, reb:3.7,  ast:6.1, note:'Breakout season. Utah\'s most dangerous scorer.'},
-                {name:'Cooper Flagg',       team:'DAL', nbaId:1642365, age:18, pos:'F', pts:21.1, reb:6.6,  ast:4.6, note:'Rookie of the Year lock. Generational two-way player.'},
-                {name:'Stephon Castle',     team:'SAS', nbaId:1642355, age:21, pos:'G', pts:16.7, reb:5.2,  ast:7.3, note:'Wemby\'s wingman. Playmaking already elite.'},
-                {name:'Alexandre Sarr',     team:'WAS', nbaId:1642356, age:20, pos:'C', pts:16.3, reb:7.4,  ast:2.7, note:'Elite rim protection and length. WAS building around him.'},
-                {name:'Scoot Henderson',    team:'POR', nbaId:1641706, age:21, pos:'G', pts:14.0, reb:2.7,  ast:3.8, note:'Still developing. Blazers betting on upside.'},
-                {name:'Zaccharie Risacher', team:'ATL', nbaId:1642364, age:19, pos:'F', pts:9.7,  reb:3.8,  ast:1.1, note:'Year 2 growing pains. ATL patient with potential.'},
-                {name:'Ja\'Kobe Walter',    team:'TOR', nbaId:1642361, age:20, pos:'G', pts:7.3,  reb:2.5,  ast:1.2, note:'Steady contributor on rebuilding Raptors.'},
-                {name:'Ron Holland',        team:'DET', nbaId:1642363, age:19, pos:'F', pts:8.1,  reb:4.1,  ast:1.2, note:'Raw but flashes brilliance. DET high-ceiling project.'},
-                {name:'Gradey Dick',        team:'TOR', nbaId:1641730, age:21, pos:'G', pts:6.1,  reb:2.0,  ast:0.7, note:'Sharpshooting role player. Embracing bench role.'},
-              ].map((p, i) => (
+              {YOUNG_PLAYERS.map((p, i) => {
+                const live = youngLive[String(p.bdlId)] || {};
+                const pts = live.pts != null ? (+live.pts).toFixed(1) : p.pts;
+                const reb = live.reb != null ? (+live.reb).toFixed(1) : p.reb;
+                const ast = live.ast != null ? (+live.ast).toFixed(1) : p.ast;
+                return (
                 <div key={p.name} className="g-card2" style={{width:260, padding:20, gap:14}}>
                   <div className="g-glow-overlay"/>
                   {/* Player identity */}
@@ -2335,9 +2386,9 @@ function FrontOffice() {
                       </div>
                     </div>
                   </div>
-                  {/* Stats */}
+                  {/* Stats — live from API */}
                   <div style={{display:'flex', gap:0, borderTop:'1px solid rgba(255,255,255,0.06)', paddingTop:12}}>
-                    {[['PTS',p.pts],['REB',p.reb],['AST',p.ast]].map(([l,v], si) => (
+                    {[['PTS',pts],['REB',reb],['AST',ast]].map(([l,v], si) => (
                       <div key={l} style={{flex:1, textAlign:'center', borderRight: si < 2 ? '1px solid rgba(255,255,255,0.06)' : 'none'}}>
                         <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:17, fontWeight:700, color:'var(--white)', letterSpacing:-0.5}}>{v}</div>
                         <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:7, letterSpacing:2, color:'rgba(255,255,255,0.82)', textTransform:'uppercase', marginTop:2}}>{l}</div>
@@ -2347,7 +2398,8 @@ function FrontOffice() {
                   {/* Note */}
                   <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, color:'rgba(255,255,255,0.68)', lineHeight:1.55, textTransform:'none', letterSpacing:0}}>{p.note}</div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
 

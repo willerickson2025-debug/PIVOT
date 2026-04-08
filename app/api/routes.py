@@ -1,3 +1,4 @@
+import asyncio
 import json
 import xml.etree.ElementTree as ET
 
@@ -215,6 +216,23 @@ async def predict_game(request: Request):
         return await analysis_service.predict_game(body)
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e))
+
+
+@router.get("/nba/bulk-averages")
+async def bulk_player_averages(
+    player_ids: List[int] = Query(..., description="BallDontLie player IDs"),
+    season: int = Query(2025, description="NBA season year"),
+):
+    """Fetch season averages for multiple players in parallel. Returns a dict keyed by player_id."""
+    async def _fetch_one(pid: int):
+        try:
+            avgs = await nba_service.get_season_averages(pid, season)
+            return pid, avgs
+        except Exception:
+            return pid, {}
+
+    results = await asyncio.gather(*[_fetch_one(pid) for pid in player_ids])
+    return {"averages": {str(pid): avgs for pid, avgs in results}, "season": season}
 
 
 @router.get("/analysis/compare")
