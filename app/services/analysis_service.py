@@ -56,13 +56,15 @@ CRITICAL CONTEXT: Today is April 2026. The 2025-26 NBA season is actively in pro
 STRICT DATA GROUNDING — NON-NEGOTIABLE:
 The data payload in this prompt is the only reality. It completely overrides anything from your training about current rosters, trades, or player team assignments. If the data says a player is on a specific team, that is absolute fact — do not contradict it with pre-training knowledge. Before writing any team or player analysis, silently verify which players and teams are actually present in the provided data, then analyze only those.
 
+TEAM AFFILIATIONS — CRITICAL: The team listed in the stat block header is authoritative. Never state a different team based on training knowledge. Players get traded constantly; your training data is not current. If the stat block says a player is on Team X, accept that as fact. If no team is listed, do not invent one from memory.
+
 CRITICAL RULES FOR MISSING OR INCOMPLETE DATA:
 You will receive a stat block with season averages and recent game logs. If any section of that data is zero, empty, or missing, follow these rules without exception:
 1. Do NOT speculate on why the data is missing. Do not mention injuries, suspensions, rest, load management, two-way contracts, or any real-world explanation for absent numbers.
 2. Do NOT reference the data pipeline, API, feed, or any technical system. You are an analyst, not a developer.
 3. Do NOT invent or hallucinate statistics that were not provided.
 4. If recent game logs are missing but season averages exist, analyze only the season averages and skip any recent-form commentary entirely.
-5. If a stat reads 0.0 across the board, treat it as a data gap — acknowledge it in one sentence and pivot to what you do know about the player from their career profile.
+5. If a stat reads 0.0 across the board, note briefly that their current season data is still being added to the system — then pivot immediately to what you do know about the player from their career profile and overall trajectory. Frame it as PIVOT expanding its coverage, not as a limitation.
 
 EFFICIENCY METRICS — USE THESE, NOT RAW FG%:
 True Shooting % (TS%) and Effective FG% (eFG%) are the primary lenses for scoring efficiency. FG% alone is misleading — it ignores free throws and devalues three-point shooting. Always lead efficiency analysis with TS% or eFG% when provided. Context for elite tiers: TS% above 60% is elite, 57–60% is very good, below 54% is a problem. eFG% above 56% is elite, 52–56% is solid.
@@ -85,6 +87,9 @@ When analyzing a player: lead with TS% or eFG% as the efficiency anchor. Then co
 When analyzing a game: open with the sharpest thing you know about this matchup — the thing most people miss. Then cover the stylistic clash, the one player who will determine the outcome, and the specific reason one team wins. Close with a confident, unhedged prediction.
 
 Every word must earn its place. If a sentence doesn't add information or edge, cut it. No throat-clearing. No "it's worth noting." No "at the end of the day." Start with the insight, not the setup.
+
+BOLD TAKES — PERMITTED AND ENCOURAGED:
+When the data genuinely supports it, make the bold call. If a player is on a GOAT trajectory, say so. If a rookie is generational, use that word. If a player is the best at their position right now, declare it. Do not hedge elite talent with "could potentially" or "has shown flashes." The clients pay for conviction. Historical comparisons to all-time greats are appropriate when the statistical case is real — a player averaging elite efficiency numbers and dominant two-way production can be compared to the players they actually resemble. The only requirement is that the data supports the claim.
 
 FORMATTING — NON-NEGOTIABLE:
 Plain prose only. No markdown. No asterisks, no pound signs, no dashes used as bullets, no numbered lists, no bold, no italics, no horizontal rules, no headers. Paragraphs separated by one blank line. Write like a column in The Athletic or a Sharp report — dense, confident, readable."""
@@ -119,11 +124,13 @@ STRICT DATA GROUNDING — ABSOLUTE RULES:
 2. Do not use training knowledge to fill gaps. If a stat is not in the payload, it did not happen. Say nothing about it.
 3. If player-level stats are missing or sparse, focus entirely on team scores and game state — do not speculate about individual contributions.
 4. Never reference the data pipeline, API, feed, or any technical system. You are an analyst, not a developer.
+5. TEAM AFFILIATIONS — CRITICAL: Never state which team a player belongs to based on training knowledge alone. Players get traded constantly. The only authoritative source of a player's current team is the box score showing them in that team's lineup. If a player appears in a team's box score line, they play for that team — that is all you know for certain. Do not add team attributions from memory.
+6. INJURED / ABSENT PLAYERS: If the prompt includes an injury report listing players as OUT or DOUBTFUL, and those players do not appear in the box score, treat their absence as confirmed and note its impact on the game. Do not speculate about players not mentioned in either the box score or the injury report.
 
 OUTPUT STRUCTURE by game state:
-- FINAL: Key performers (with exact stats), the decisive factor in the outcome, what each team did well or failed at, one sentence on implications.
+- FINAL: Key performers (with exact stats), the decisive factor in the outcome, what each team did well or failed at, notable absences from the injury report that shaped the game, one sentence on implications.
 - LIVE: Who is winning and why based on the actual numbers, who is producing, current trajectory.
-- UPCOMING: Stylistic clash, key individual battles, each team's edge, confident prediction.
+- UPCOMING: Stylistic clash, key individual battles, injury-report absences and their impact, each team's edge, confident prediction.
 
 Be specific — name players, cite actual numbers. Dense, confident prose. No hedging.
 
@@ -772,7 +779,7 @@ async def analyze_player(
             "last_10": None,
             "games_played": 0,
             "analysis": None,
-            "error": f"No {season}-{str(season+1)[-2:]} season data available for {player.first_name} {player.last_name}. The stats feed may be delayed or this player has not appeared in a game yet this season.",
+            "error": f"We're still adding {player.first_name} {player.last_name}'s {season}-{str(season+1)[-2:]} data to the system — check back shortly as we expand our coverage.",
         }
 
     stat_block = _render_stat_block(player, season, agg)
@@ -883,7 +890,8 @@ async def analyze_player_section(
     else:
         stat_context = (
             f"Player: {player.first_name} {player.last_name} — "
-            f"no {season} season stats on record."
+            f"their {season} season data is still being added to our system. "
+            f"Analyze based on career profile and what you know about this player."
         )
 
     prompt = (
@@ -896,7 +904,7 @@ async def analyze_player_section(
         prompt=prompt,
         system_prompt=NBA_ANALYST_SYSTEM_PROMPT,
         override_model=_FAST_MODEL,
-        override_max_tokens=500,
+        override_max_tokens=900,
     )
 
     logger.info(
@@ -979,7 +987,7 @@ async def analyze_player_stream(
         prompt = f"Analyze this player's {season} NBA season:\n\n{stat_block}"
 
     full_text = []
-    async for chunk in claude_service.analyze_stream(prompt, system_prompt=NBA_ANALYST_SYSTEM_PROMPT, override_model=_FAST_MODEL, override_max_tokens=700):
+    async for chunk in claude_service.analyze_stream(prompt, system_prompt=NBA_ANALYST_SYSTEM_PROMPT, override_model=_FAST_MODEL, override_max_tokens=1000):
         full_text.append(chunk)
         yield {"type": "chunk", "text": chunk}
 
@@ -1337,6 +1345,49 @@ async def analyze_game(body: dict[str, Any]) -> dict[str, Any]:
         logger.info("Game analysis cache hit | game_id=%d", game_id)
         return cached
 
+    # ── Injury context for all game types ────────────────────────────────────
+    import httpx as _httpx
+
+    async def _fetch_injury_for_game():
+        try:
+            async with _httpx.AsyncClient(timeout=6) as client:
+                r = await client.get(
+                    "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/injuries",
+                    headers={"User-Agent": "Mozilla/5.0"},
+                )
+            raw = r.json()
+            inj_map: dict[str, list[str]] = {}
+            for tb in raw.get("injuries", []):
+                tname = tb.get("displayName", "")
+                players = []
+                for inj in tb.get("injuries", []):
+                    ath = inj.get("athlete", {})
+                    status = inj.get("status", "")
+                    comment = inj.get("shortComment", "")
+                    if status.lower() in ("out", "doubtful", "questionable"):
+                        entry = f"{ath.get('displayName','')} ({status}"
+                        if comment:
+                            entry += f" — {comment}"
+                        entry += ")"
+                        players.append(entry)
+                if players:
+                    inj_map[tname] = players
+
+            lines = []
+            for tname, players in inj_map.items():
+                if (home_name.split()[-1].lower() in tname.lower() or
+                        home_abbr.lower() in tname.lower()):
+                    lines.append(f"{home_name}: {', '.join(players[:6])}")
+                elif (away_name.split()[-1].lower() in tname.lower() or
+                        away_abbr.lower() in tname.lower()):
+                    lines.append(f"{away_name}: {', '.join(players[:6])}")
+            return "\n".join(lines)
+        except Exception:
+            return ""
+
+    game_injury_ctx = await _fetch_injury_for_game()
+    injury_block = f"\nINJURY REPORT:\n{game_injury_ctx}" if game_injury_ctx else ""
+
     if is_final:
         prompt = (
             f"POST-GAME RECAP — {score_line} FINAL\n"
@@ -1345,13 +1396,16 @@ async def analyze_game(body: dict[str, Any]) -> dict[str, Any]:
         if has_box:
             prompt += _fmt(box.get("away_players", []), away_name)
             prompt += _fmt(box.get("home_players", []), home_name)
+        if injury_block:
+            prompt += f"\n{injury_block}"
         prompt += (
             "\n\nWrite a complete game breakdown. Cover:\n"
             "1. KEY PERFORMERS — name every player who impacted this game, stats and why they mattered\n"
             "2. TURNING POINT — the specific moment(s) that decided the outcome\n"
             "3. WHAT WON IT — the tactical or individual factor the winning team executed\n"
             "4. WHAT LOST IT — where the losing team broke down\n"
-            "5. IMPLICATIONS — what this result means for both franchises going forward\n"
+            "5. INJURY IMPACT — if notable players were out per the injury report, explain how their absence shaped the game\n"
+            "6. IMPLICATIONS — what this result means for both franchises going forward\n"
             "Be specific. Name players, name plays, name quarters. No filler."
         )
     elif is_live:
@@ -1362,6 +1416,8 @@ async def analyze_game(body: dict[str, Any]) -> dict[str, Any]:
         if has_box:
             prompt += _fmt(box.get("away_players", []), away_name)
             prompt += _fmt(box.get("home_players", []), home_name)
+        if injury_block:
+            prompt += f"\n{injury_block}"
         prompt += (
             "\n\nWrite a live breakdown. Cover:\n"
             "1. CURRENT STATE — who is winning and why, what the score differential reflects\n"
@@ -1371,9 +1427,8 @@ async def analyze_game(body: dict[str, Any]) -> dict[str, Any]:
             "Be specific. Use the actual numbers. No hedging."
         )
     else:
-        # ── Upcoming: enrich with live standings + injury report ──────────────
+        # ── Upcoming: enrich with live standings + pre-fetched injury report ──
         from app.services import standings_service as _standings_svc
-        import httpx as _httpx
 
         async def _fetch_standings_ctx():
             try:
@@ -1398,54 +1453,13 @@ async def analyze_game(body: dict[str, Any]) -> dict[str, Any]:
             except Exception:
                 return ""
 
-        async def _fetch_injury_ctx():
-            try:
-                async with _httpx.AsyncClient(timeout=6) as client:
-                    r = await client.get(
-                        "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/injuries",
-                        headers={"User-Agent": "Mozilla/5.0"},
-                    )
-                raw = r.json()
-                # Build lookup: team display name → injured players
-                inj_map: dict[str, list[str]] = {}
-                for tb in raw.get("injuries", []):
-                    tname = tb.get("displayName", "")
-                    players = []
-                    for inj in tb.get("injuries", []):
-                        ath = inj.get("athlete", {})
-                        status = inj.get("status", "")
-                        comment = inj.get("shortComment", "")
-                        if status.lower() in ("out", "doubtful", "questionable"):
-                            entry = f"{ath.get('displayName','')} ({status}"
-                            if comment:
-                                entry += f" — {comment}"
-                            entry += ")"
-                            players.append(entry)
-                    if players:
-                        inj_map[tname] = players
-
-                lines = []
-                for tname, players in inj_map.items():
-                    # Match against home/away by partial name
-                    if (home_name.split()[-1].lower() in tname.lower() or
-                            home_abbr.lower() in tname.lower()):
-                        lines.append(f"{home_name} injuries: {', '.join(players[:6])}")
-                    elif (away_name.split()[-1].lower() in tname.lower() or
-                            away_abbr.lower() in tname.lower()):
-                        lines.append(f"{away_name} injuries: {', '.join(players[:6])}")
-                return "\n".join(lines)
-            except Exception:
-                return ""
-
-        standings_ctx, injury_ctx = await asyncio.gather(
-            _fetch_standings_ctx(), _fetch_injury_ctx()
-        )
+        standings_ctx = await _fetch_standings_ctx()
 
         context_block = ""
         if standings_ctx:
             context_block += f"\nCURRENT STANDINGS:\n{standings_ctx}"
-        if injury_ctx:
-            context_block += f"\n\nINJURY REPORT:\n{injury_ctx}"
+        if game_injury_ctx:
+            context_block += f"\n\nINJURY REPORT:\n{game_injury_ctx}"
 
         prompt = (
             f"PRE-GAME MATCHUP PREVIEW — {score_line}\n"
@@ -1464,7 +1478,7 @@ async def analyze_game(body: dict[str, Any]) -> dict[str, Any]:
         prompt=prompt,
         system_prompt=GAME_ANALYST_SYSTEM_PROMPT,
         override_model=_FAST_MODEL,
-        override_max_tokens=1100,
+        override_max_tokens=1400,
         override_temperature=0.1,
     )
 

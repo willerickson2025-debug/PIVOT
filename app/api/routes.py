@@ -174,11 +174,12 @@ async def nba_news():
                 headers={"User-Agent": "Mozilla/5.0"},
             )
         root = ET.fromstring(r.text)
-        headlines = [
-            item.findtext("title", "").strip()
-            for item in root.findall("./channel/item")
-            if item.findtext("title", "").strip()
-        ][:25]
+        headlines = []
+        for item in root.findall("./channel/item")[:25]:
+            title = item.findtext("title", "").strip()
+            link  = item.findtext("link", "").strip()
+            if title:
+                headlines.append({"title": title, "url": link})
         return {"headlines": headlines}
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e))

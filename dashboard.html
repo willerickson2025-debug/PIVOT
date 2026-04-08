@@ -698,6 +698,17 @@ nav.solid {
 <script type="text/babel">
 const API = "https://web-production-5f6e1.up.railway.app/api/v1";
 
+function friendlyError(msg) {
+  if (!msg) return 'Something went wrong. Try again.';
+  const s = msg.toLowerCase();
+  if (s.includes('overloaded') || s.includes('529')) return 'Claude is overloaded right now. Try again in a moment.';
+  if (s.includes('529')) return 'Claude is overloaded right now. Try again in a moment.';
+  if (s.includes('timeout') || s.includes('timed out')) return 'Request timed out. Try again.';
+  if (s.includes('502') || s.includes('bad gateway')) return 'We\'re still building out this data. Try again in a moment.';
+  if (s.includes('could not compute') || s.includes('no text content')) return 'We\'re adding more data to support this analysis. Try again in a moment.';
+  return msg;
+}
+
 function localDate(offset = 0) {
   const d = new Date(); d.setDate(d.getDate() + offset);
   const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), day = String(d.getDate()).padStart(2,'0');
@@ -1083,7 +1094,7 @@ function GameAnalysisModal({ game, onClose }) {
     })
       .then(r => r.ok ? r.json() : r.json().then(e => { throw new Error(e.detail || 'Analysis unavailable'); }))
       .then(data => { setResult(data); setLoading(false); })
-      .catch(e => { setError(e.message); setLoading(false); });
+      .catch(e => { setError(friendlyError(e.message)); setLoading(false); });
     load();
     if (isLiveGame) { const iv = setInterval(load, 60000); return () => clearInterval(iv); }
   }, [game.id]);
@@ -1267,7 +1278,13 @@ function GameCard({ g, onSelect, onAnalyze }) {
 
       {/* Footer */}
       <div className="g-card-footer" style={{marginTop:'auto'}}>
-        <span className="g-conf-pill">{[g.home_team?.conference, g.home_team?.division].filter(Boolean).join(' · ')}</span>
+        <span className="g-conf-pill">{(() => {
+          const hc = g.home_team?.conference, ac = g.visitor_team?.conference;
+          const hd = g.home_team?.division,   ad = g.visitor_team?.division;
+          if (hd && hd === ad) return `${hd} · DIVISION`;
+          if (hc && hc !== ac) return `${hc} vs ${ac} · CROSS-CONF`;
+          return [hc, hd].filter(Boolean).join(' · ');
+        })()}</span>
         <div style={{display:'flex', gap:10, alignItems:'center'}}>
           {isUpcoming && !prediction && (
             <button
@@ -1316,7 +1333,7 @@ function Games() {
       if (!r.ok) throw new Error(await r.text());
       const data = await r.json();
       setGames(data.games || []);
-    } catch(e) { setError(e.message); } finally { setLoading(false); }
+    } catch(e) { setError(friendlyError(e.message)); } finally { setLoading(false); }
   };
 
   // Auto-refresh only when viewing today and there are live games
@@ -1366,7 +1383,7 @@ function Analysis() {
       const r = await fetch(`${API}/analysis/today-games${d?`?date=${d}`:''}`);
       if (!r.ok) throw new Error(await r.text());
       setResult(await r.json());
-    } catch(e) { setError(e.message); } finally { setLoading(false); }
+    } catch(e) { setError(friendlyError(e.message)); } finally { setLoading(false); }
   };
 
   return (
@@ -1539,7 +1556,7 @@ function Players() {
           }
         }
       }
-    } catch(e) { setError(e.message); setLoading(false); }
+    } catch(e) { setError(friendlyError(e.message)); setLoading(false); }
   };
 
   const searchByName = async () => {
@@ -1943,7 +1960,7 @@ function FrontOffice() {
   React.useEffect(() => {
     const load = () => fetch(`${API}/nba/news`)
       .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d?.headlines) setHeadlines(d.headlines.slice(0, 10)); })
+      .then(d => { if (d?.headlines) setHeadlines(d.headlines.slice(0, 12)); })
       .catch(() => {});
     load();
     const iv = setInterval(load, 300000);
@@ -1987,7 +2004,7 @@ function FrontOffice() {
       const r = await fetch(`${API}/frontoffice/roster?team_name=${encodeURIComponent(t)}`);
       if (!r.ok) throw new Error(await r.text());
       setResult(await r.json());
-    } catch(e) { setError(e.message); } finally { setLoading(false); }
+    } catch(e) { setError(friendlyError(e.message)); } finally { setLoading(false); }
   };
 
   const ALL_TEAMS = [
@@ -2021,6 +2038,12 @@ function FrontOffice() {
     {abbr:'UTA',name:'Jazz',       used:118},{abbr:'WAS',name:'Wizards',    used:113},
   ];
 
+  // Cap thresholds (2025-26 scale)
+  const LUXURY_TAX   = 170;  // luxury tax line — teams above pay penalties
+  const CAP_LINE_VAL = 188;  // salary cap marker on bar
+  const APRON_VAL    = 195;  // second apron risk zone
+  const BAR_MAX      = 215;  // bar ceiling
+
   const filtered = search.trim().length > 0
     ? ALL_TEAMS.filter(t => t.name.toLowerCase().includes(search.toLowerCase()) || t.abbr.toLowerCase().includes(search.toLowerCase()))
     : ALL_TEAMS;
@@ -2031,25 +2054,25 @@ function FrontOffice() {
   // SGA=175, Edwards=3547238, Jokic=246, Wemby=56677822, Cade=17896075, LeBron=237
   const MVP_PLAYERS = [
     {name:'Shai Gilgeous-Alexander', team:'OKC', nbaId:1628983, bdlId:175,       pts:31.4, reb:4.4,  ast:6.5, odds:'-180',  note:'OKC dominant scorer, unanimous MVP front-runner'},
-    {name:'Anthony Edwards',          team:'MIN', nbaId:1630162, bdlId:3547238,   pts:28.9, reb:5.0,  ast:3.7, odds:'+220',  note:'Face of Timberwolves playoff run'},
+    {name:'Anthony Edwards',          team:'MIN', nbaId:1630162, bdlId:3547238,   pts:28.9, reb:5.0,  ast:3.7, odds:'+220',  note:'Most explosive scorer in the West. MIN\'s engine.'},
     {name:'Nikola Jokic',             team:'DEN', nbaId:203999,  bdlId:246,       pts:27.9, reb:12.9, ast:10.9,odds:'+300',  note:'Historic triple-double efficiency, fourth campaign'},
     {name:'Victor Wembanyama',         team:'SAS', nbaId:1641705, bdlId:56677822,  pts:24.8, reb:11.5, ast:3.1, odds:'+450',  note:'Defensive Player of the Year lock'},
     {name:'Cade Cunningham',           team:'DET', nbaId:1630595, bdlId:17896075,  pts:24.5, reb:5.6,  ast:9.9, odds:'+700',  note:'Near triple-double threat driving Pistons resurgence'},
-    {name:'LeBron James',              team:'LAL', nbaId:2544,    bdlId:237,       pts:20.8, reb:6.1,  ast:7.1, odds:'+1500', note:'Still elite at 41. Longevity defines the conversation'},
+    {name:'LeBron James',              team:'LAL', nbaId:2544,    bdlId:237,       pts:20.8, reb:6.1,  ast:7.1, odds:'+2500', note:'Still producing at 41. Legacy argument runs alongside current play.'},
   ];
 
   // Live stats for Young Stars: BDL IDs confirmed via API
   const YOUNG_PLAYERS = [
     {name:'Victor Wembanyama',  team:'SAS', nbaId:1641705, bdlId:56677822,    age:21, pos:'C', pts:24.8, reb:11.5, ast:3.1, note:'Defensive Player of Year. Future GOAT candidate.'},
     {name:'Keyonte George',     team:'UTA', nbaId:1641724, bdlId:56677834,    age:21, pos:'G', pts:23.6, reb:3.7,  ast:6.1, note:'Breakout season. Utah\'s most dangerous scorer.'},
-    {name:'Cooper Flagg',       team:'DAL', nbaId:1642843, bdlId:1057262088,  age:18, pos:'F', pts:21.1, reb:6.6,  ast:4.6, note:'Rookie of the Year lock. Generational two-way player.'},
+    {name:'Cooper Flagg',       team:'DAL', nbaId:1642843, bdlId:1057262088,  age:18, pos:'F', pts:21.1, reb:6.6,  ast:4.6, note:'Two-way impact from day one. ROY conversation is real.'},
     {name:'Stephon Castle',     team:'SAS', nbaId:1642355, bdlId:1028025261,  age:21, pos:'G', pts:16.7, reb:5.2,  ast:7.3, note:'Wemby\'s wingman. Playmaking already elite.'},
-    {name:'Alexandre Sarr',     team:'WAS', nbaId:1642356, bdlId:1028028405,  age:20, pos:'C', pts:16.3, reb:7.4,  ast:2.7, note:'Elite rim protection and length. WAS building around him.'},
+    {name:'Alexandre Sarr',     team:'WAS', nbaId:1642356, bdlId:1028028405,  age:20, pos:'C', pts:16.3, reb:7.4,  ast:2.7, note:'Elite rim protection and length. Ceiling is legitimate.'},
     {name:'Scoot Henderson',    team:'POR', nbaId:1641706, bdlId:56677747,    age:21, pos:'G', pts:14.0, reb:2.7,  ast:3.8, note:'Still developing. Blazers betting on upside.'},
     {name:'Zaccharie Risacher', team:'ATL', nbaId:1642364, bdlId:1028028244,  age:19, pos:'F', pts:9.7,  reb:3.8,  ast:1.1, note:'Year 2 growing pains. ATL patient with potential.'},
     {name:'Ja\'Kobe Walter',    team:'TOR', nbaId:1642361, bdlId:1028029111,  age:20, pos:'G', pts:7.3,  reb:2.5,  ast:1.2, note:'Steady contributor on rebuilding Raptors.'},
     {name:'Ron Holland',        team:'DET', nbaId:1642363, bdlId:1028026508,  age:19, pos:'F', pts:8.1,  reb:4.1,  ast:1.2, note:'Raw but flashes brilliance. DET high-ceiling project.'},
-    {name:'Gradey Dick',        team:'TOR', nbaId:1641730, bdlId:56677828,    age:21, pos:'G', pts:6.1,  reb:2.0,  ast:0.7, note:'Sharpshooting role player. Embracing bench role.'},
+    {name:'Gradey Dick',        team:'TOR', nbaId:1641730, bdlId:56677828,    age:21, pos:'G', pts:6.1,  reb:2.0,  ast:0.7, note:'Finding his footing. TOR giving him runway to develop.'},
   ];
 
   const [mvpLive, setMvpLive] = React.useState({});
@@ -2192,23 +2215,25 @@ function FrontOffice() {
             <div style={{flex:1, height:1, background:'rgba(255,255,255,0.05)'}}/>
             <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, color:'rgba(255,255,255,0.18)'}}>{now}</div>
           </div>
-          {(headlines.length ? headlines : [
-            'Cap set at $188M for 2025-26 season',
-            'Luxury tax line: $228.2M second apron',
-            '8 teams currently over tax threshold',
-            'Mid-level exception: $12.8M for tax teams',
-            'Trade deadline reshaped Western Conference',
-            'Max extensions expected before training camp',
-            'Rookie scale reshapes value landscape in 2026',
-            'Cap smoothing projected through 2028 season',
-            'Second apron restricts trade aggregation',
-            'Several teams exploring amnesty provisions',
-          ]).map((h,i) => (
-            <div key={i} style={{display:'flex', gap:8, alignItems:'flex-start', padding:'8px 0', borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
-              <div style={{width:3, height:3, borderRadius:'50%', background:'rgba(0,255,128,0.4)', marginTop:6, flexShrink:0}}/>
-              <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, color:'rgba(255,255,255,0.75)', lineHeight:1.55, textTransform:'none', letterSpacing:0, fontWeight:700}}>{h}</span>
-            </div>
-          ))}
+          {(headlines.length ? headlines : []).map((h,i) => {
+            const title = typeof h === 'string' ? h : h.title;
+            const url   = typeof h === 'object' ? h.url : null;
+            return (
+              <div key={i} style={{display:'flex', gap:8, alignItems:'flex-start', padding:'8px 0', borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
+                <div style={{width:3, height:3, borderRadius:'50%', background:'rgba(0,255,128,0.4)', marginTop:6, flexShrink:0}}/>
+                {url ? (
+                  <a href={url} target="_blank" rel="noopener noreferrer"
+                    style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, color:'rgba(255,255,255,0.75)', lineHeight:1.55, textTransform:'none', letterSpacing:0, fontWeight:700, textDecoration:'none', cursor:'pointer'}}
+                    onMouseEnter={e=>e.currentTarget.style.color='var(--green)'}
+                    onMouseLeave={e=>e.currentTarget.style.color='rgba(255,255,255,0.75)'}>
+                    {title} →
+                  </a>
+                ) : (
+                  <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, color:'rgba(255,255,255,0.75)', lineHeight:1.55, textTransform:'none', letterSpacing:0, fontWeight:700}}>{title}</span>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -2245,13 +2270,16 @@ function FrontOffice() {
         <div>
 
           {/* Stat strip — cap + warboard tab */}
-          {!result && !loading && !error && (dashTab === 'cap' || dashTab === 'warboard') && (
+          {!result && !loading && !error && (dashTab === 'cap' || dashTab === 'warboard') && (() => {
+            const teamsOverTax   = CAP_DATA.filter(c => c.used > LUXURY_TAX).length;
+            const teamsOverApron = CAP_DATA.filter(c => c.used >= APRON_VAL).length;
+            return (
             <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10, padding:'20px 24px 0'}}>
               {[
-                {val:'$188M', label:'Salary Cap', sub:'2025-26'},
-                {val:'$228M', label:'Second Apron', sub:'Hard line'},
-                {val:'8',     label:'Teams Over Tax', sub:'Paying penalties'},
-                {val:'$12.8M',label:'Mid-Level Exc.', sub:'Taxpayer MLE'},
+                {val:'$188M',             label:'Salary Cap',      sub:'2025-26 threshold'},
+                {val:`${teamsOverTax}`,   label:'Teams Over Tax',  sub:`${teamsOverApron} at apron risk`},
+                {val:'$228M',             label:'Second Apron',    sub:'Hard-cap line'},
+                {val:'$12.8M',            label:'Mid-Level Exc.',  sub:'Taxpayer MLE'},
               ].map(({val,label,sub}) => (
                 <div key={label} style={{background:'rgba(17,20,26,0.9)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:10, padding:'14px 16px', position:'relative', overflow:'hidden'}}>
                   <div style={{position:'absolute', top:0, left:0, right:0, height:2, background:'linear-gradient(90deg,rgba(0,255,128,0.4),transparent)'}}/>
@@ -2261,7 +2289,8 @@ function FrontOffice() {
                 </div>
               ))}
             </div>
-          )}
+            );
+          })()}
 
           {/* ── War Board tab ── */}
           {!result && !loading && !error && dashTab === 'warboard' && (
@@ -2271,7 +2300,7 @@ function FrontOffice() {
               </div>
             ) : standingsError ? (
               <div style={{display:'flex', alignItems:'center', justifyContent:'center', height:120}}>
-                <div style={{fontFamily:'Helvetica Neue, sans-serif', fontWeight:700, fontSize:11, letterSpacing:4, color:'rgba(239,68,68,0.6)', textTransform:'uppercase'}}>STANDINGS FEED OFFLINE</div>
+                <div style={{fontFamily:'Helvetica Neue, sans-serif', fontWeight:700, fontSize:11, letterSpacing:4, color:'rgba(239,68,68,0.6)', textTransform:'uppercase'}}>ADDING LIVE DATA — RETRY SHORTLY</div>
               </div>
             ) : (() => {
               const capMap = {};
@@ -2283,8 +2312,10 @@ function FrontOffice() {
                     const tier = getCapTier(t.capUsed);
                     const lev = getLeverage(t.capUsed);
                     const timeline = getTimeline(t.pct);
-                    const barPct = Math.min(100,(t.capUsed/215)*100);
-                    const capLinePct = (188/215)*100;
+                    const barPct    = Math.min(100,(t.capUsed/BAR_MAX)*100);
+                    const capPct    = (CAP_LINE_VAL/BAR_MAX)*100;
+                    const apronPct  = (APRON_VAL/BAR_MAX)*100;
+                    const div = t.division || '';
                     return (
                       <div key={t.abbr} className="g-card2" onClick={()=>runRoster(t.name)} style={{width:240, padding:20, gap:12}}>
                         <div className="g-glow-overlay"/>
@@ -2298,14 +2329,19 @@ function FrontOffice() {
                           <img src={`https://a.espn.com/combiner/i?img=/i/teamlogos/nba/500/${t.abbr.toLowerCase()}.png&h=40&w=40`} alt={t.abbr} width={32} height={32} style={{objectFit:'contain',flexShrink:0}} onError={e=>e.target.style.display='none'}/>
                           <div>
                             <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:13, fontWeight:700, color:'rgba(255,255,255,0.88)'}}>{t.name}</div>
-                            <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:10, color:'rgba(255,255,255,0.62)'}}>{t.rec} · {t.conference}</div>
+                            <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, color:'rgba(255,255,255,0.52)'}}>{t.rec} · {t.conference}{div ? ` · ${div}` : ''}</div>
                           </div>
                         </div>
-                        {/* Cap bar */}
+                        {/* Cap bar — two markers: cap line + apron line */}
                         <div>
-                          <div style={{position:'relative', height:8, background:'rgba(255,255,255,0.05)', borderRadius:2, marginBottom:6}}>
+                          <div style={{position:'relative', height:8, background:'rgba(255,255,255,0.05)', borderRadius:2, marginBottom:4}}>
                             <div style={{position:'absolute', top:0, left:0, height:'100%', width:`${barPct}%`, background:tier.color==='#ef4444'?'rgba(239,68,68,0.6)':tier.color==='#f97316'?'rgba(249,115,22,0.55)':tier.color==='#fbbf24'?'rgba(251,191,36,0.5)':'rgba(34,197,94,0.5)', borderRadius:2}}/>
-                            <div style={{position:'absolute', top:-2, bottom:-2, left:`${capLinePct}%`, width:1, background:'rgba(255,255,255,0.2)'}}/>
+                            <div style={{position:'absolute', top:-2, bottom:-2, left:`${capPct}%`, width:1, background:'rgba(255,255,255,0.18)'}} title="Salary Cap"/>
+                            <div style={{position:'absolute', top:-2, bottom:-2, left:`${apronPct}%`, width:1, background:'rgba(239,68,68,0.5)'}} title="Second Apron"/>
+                          </div>
+                          <div style={{display:'flex', justifyContent:'space-between', marginBottom:4}}>
+                            <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:7, color:'rgba(255,255,255,0.22)'}}>CAP</div>
+                            <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:7, color:'rgba(239,68,68,0.4)'}}>APRON</div>
                           </div>
                           <div style={{display:'flex', alignItems:'center', justifyContent:'space-between'}}>
                             <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:15, fontWeight:700, color:'rgba(255,255,255,0.7)', letterSpacing:-0.3}}>${t.capUsed}M</div>
@@ -2329,8 +2365,9 @@ function FrontOffice() {
           {!result && !loading && !error && dashTab === 'cap' && (
             <div style={{display:'flex', flexWrap:'wrap', gap:16, padding:'20px 24px 60px'}}>
               {CAP_DATA.map((t, i) => {
-                const barPct = Math.min(100,(t.used/215)*100);
-                const capLinePct = (188/215)*100;
+                const barPct   = Math.min(100,(t.used/BAR_MAX)*100);
+                const capPct   = (CAP_LINE_VAL/BAR_MAX)*100;
+                const apronPct = (APRON_VAL/BAR_MAX)*100;
                 const tier = getCapTier(t.used);
                 const lev = getLeverage(t.used);
                 return (
@@ -2346,15 +2383,22 @@ function FrontOffice() {
                       <img src={`https://a.espn.com/combiner/i?img=/i/teamlogos/nba/500/${t.abbr.toLowerCase()}.png&h=40&w=40`} alt={t.abbr} width={32} height={32} style={{objectFit:'contain',flexShrink:0}} onError={e=>e.target.style.display='none'}/>
                       <div>
                         <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:13, fontWeight:700, letterSpacing:-0.3, color:'rgba(255,255,255,0.88)'}}>{t.name}</div>
-                        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, color:'rgba(255,255,255,0.82)'}}>{t.abbr}</div>
+                        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, color:'rgba(255,255,255,0.52)'}}>{t.abbr} · {t.used > LUXURY_TAX ? 'Paying Tax' : 'Under Tax'}</div>
                       </div>
                     </div>
                     {/* Big number */}
                     <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:26, fontWeight:700, letterSpacing:-0.5, color:tier.color, lineHeight:1}}>${t.used}M</div>
-                    {/* Cap bar */}
-                    <div style={{position:'relative', height:8, background:'rgba(255,255,255,0.05)', borderRadius:2}}>
-                      <div style={{position:'absolute', top:0, left:0, height:'100%', width:`${barPct}%`, background:tier.color==='#ef4444'?'rgba(239,68,68,0.6)':tier.color==='#f97316'?'rgba(249,115,22,0.55)':tier.color==='#fbbf24'?'rgba(251,191,36,0.5)':'rgba(34,197,94,0.5)', borderRadius:2}}/>
-                      <div style={{position:'absolute', top:-2, bottom:-2, left:`${capLinePct}%`, width:1, background:'rgba(255,255,255,0.2)'}}/>
+                    {/* Cap bar — two markers: cap line + apron */}
+                    <div>
+                      <div style={{position:'relative', height:8, background:'rgba(255,255,255,0.05)', borderRadius:2, marginBottom:4}}>
+                        <div style={{position:'absolute', top:0, left:0, height:'100%', width:`${barPct}%`, background:tier.color==='#ef4444'?'rgba(239,68,68,0.6)':tier.color==='#f97316'?'rgba(249,115,22,0.55)':tier.color==='#fbbf24'?'rgba(251,191,36,0.5)':'rgba(34,197,94,0.5)', borderRadius:2}}/>
+                        <div style={{position:'absolute', top:-2, bottom:-2, left:`${capPct}%`, width:1, background:'rgba(255,255,255,0.18)'}} title="Salary Cap"/>
+                        <div style={{position:'absolute', top:-2, bottom:-2, left:`${apronPct}%`, width:1, background:'rgba(239,68,68,0.45)'}} title="Second Apron"/>
+                      </div>
+                      <div style={{display:'flex', justifyContent:'space-between'}}>
+                        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:7, color:'rgba(255,255,255,0.22)'}}>CAP $188M</div>
+                        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:7, color:'rgba(239,68,68,0.4)'}}>APRON $228M</div>
+                      </div>
                     </div>
                     {/* Leverage + footer */}
                     <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', borderTop:'1px solid rgba(255,255,255,0.05)', paddingTop:10, marginTop:'auto'}}>
@@ -2735,7 +2779,13 @@ function CoachGameCard({ g, onSelect }) {
       </div>
 
       <div className="g-card-footer" style={{marginTop:'auto'}}>
-        <span className="g-conf-pill">{[g.home_team?.conference, g.home_team?.division].filter(Boolean).join(' · ')}</span>
+        <span className="g-conf-pill">{(() => {
+          const hc = g.home_team?.conference, ac = g.visitor_team?.conference;
+          const hd = g.home_team?.division,   ad = g.visitor_team?.division;
+          if (hd && hd === ad) return `${hd} · DIVISION`;
+          if (hc && hc !== ac) return `${hc} vs ${ac} · CROSS-CONF`;
+          return [hc, hd].filter(Boolean).join(' · ');
+        })()}</span>
         <div style={{display:'inline-flex', alignItems:'center', gap:6, background:'rgba(0,255,128,0.06)', border:'1px solid rgba(0,255,128,0.2)', borderRadius:3, padding:'7px 14px'}}>
           <div style={{width:4, height:4, borderRadius:'50%', background:'var(--green)', opacity:0.8}}/>
           <span style={{fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', fontSize:9, letterSpacing:3, fontWeight:700, color:'var(--green)', textTransform:'uppercase'}}>Coach Mode</span>
@@ -2786,7 +2836,7 @@ function CoachMode() {
       const data = await r.json();
       setResult({...data, mode});
       setHistory(prev => [{...data, mode, timestamp: new Date().toLocaleTimeString()}, ...prev.slice(0, 9)]);
-    } catch(e) { setError(e.message); } finally { setLoading(false); }
+    } catch(e) { setError(friendlyError(e.message)); } finally { setLoading(false); }
   };
 
   // Heat class for box score
@@ -2831,7 +2881,14 @@ function CoachMode() {
         </div>
 
         {games.length === 0 ? (
-          <div style={{textAlign:'center', padding:'80px 0', fontFamily:'Helvetica Neue, sans-serif', fontSize:11, letterSpacing:4, color:'rgba(255,255,255,0.15)', textTransform:'uppercase'}}>No games scheduled today</div>
+          <div style={{textAlign:'center', padding:'80px 0'}}>
+            <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, letterSpacing:4, color:'rgba(255,255,255,0.18)', textTransform:'uppercase', marginBottom:16}}>No games scheduled today</div>
+            <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:12, color:'rgba(255,255,255,0.35)', letterSpacing:0, textTransform:'none', fontWeight:500, lineHeight:1.8}}>
+              Coach Mode uses live box score data to generate adjustments.<br/>
+              It works during live games and for completed games with box scores.<br/>
+              Check back on a game day — select any live or final game to begin.
+            </div>
+          </div>
         ) : (
           <div className="g-grid">
             {games.map(g => (
@@ -3131,7 +3188,7 @@ function About() {
         {/* ── Masthead ── */}
         <div style={{marginBottom:80}}>
           <div style={{fontFamily:hv, fontWeight:700, fontSize:10, letterSpacing:6, color:'var(--green)', textTransform:'uppercase', marginBottom:24}}>
-            PIVOT / INTELLIGENCE ENGINE
+            PIVOT / NBA INTELLIGENCE
           </div>
           <h1 style={{fontFamily:hv, fontWeight:700, fontSize:'clamp(56px,8vw,96px)', letterSpacing:'-4px', lineHeight:0.88, color:'#F0F2F5', textTransform:'uppercase', marginBottom:0}}>
             THE<br/>ARCHITECTS
@@ -3144,13 +3201,13 @@ function About() {
         <div style={{marginBottom:56}}>
           <div style={{fontFamily:hv, fontWeight:700, fontSize:10, letterSpacing:5, color:'rgba(255,255,255,0.52)', textTransform:'uppercase', marginBottom:32}}>I. THE PLATFORM</div>
           <p style={{...body, marginBottom:28}}>
-            PIVOT is not a dashboard. It is a decision infrastructure. An AI-powered intelligence engine built to eliminate noise from professional basketball and surface only what matters: pure, actionable advantage at the exact moment a decision is required.
+            PIVOT started as a question: why does the best basketball analysis still live in spreadsheets, PDF scouting reports, and gut feel? We built the platform we wanted to use — one that reads the live box score, pulls actual salary data, and gives you real analysis right now, not a recap tomorrow.
           </p>
           <p style={{...body, marginBottom:28}}>
-            The platform processes live box scores, cap ledgers, and player behavioral data in real time, synthesizing raw signal into tactical clarity. Every output is grounded in current data, cross-referenced across multiple intelligence layers, and calibrated to the specific pressure context it is meant to address: whether that is a timeout call in the fourth quarter or a contract decision six months before the trade deadline.
+            It covers three areas of the game: the sideline, the front office, and player evaluation. Coach Mode reads what is happening in a live game and suggests adjustments based on the actual numbers — who is in foul trouble, what lineups are getting beaten, where the other team is exposed. Front Office puts cap figures and roster construction in one place so you can see the tradeoffs clearly. Player analysis goes beyond points per game and looks at efficiency, usage, and trajectory.
           </p>
           <p style={{...body}}>
-            This is not analytics for the casual observer. PIVOT was engineered for those who understand the game at a molecular level and who refuse to make a decision without the intelligence to justify it.
+            We are not trying to replace basketball people. We built this for basketball people — the ones who already know the game and want better information faster.
           </p>
         </div>
 
@@ -3158,15 +3215,15 @@ function About() {
 
         {/* ── Deployment Strategy ── */}
         <div style={{marginBottom:56}}>
-          <div style={{fontFamily:hv, fontWeight:700, fontSize:10, letterSpacing:5, color:'rgba(255,255,255,0.52)', textTransform:'uppercase', marginBottom:32}}>II. DEPLOYMENT STRATEGY</div>
+          <div style={{fontFamily:hv, fontWeight:700, fontSize:10, letterSpacing:5, color:'rgba(255,255,255,0.52)', textTransform:'uppercase', marginBottom:32}}>II. HOW IT WORKS</div>
           <p style={{...body, marginBottom:28}}>
-            Traditional scouting operates on a 48-hour delay. PIVOT operates in the present. Our deployment strategy is built around three critical pressure points: the sideline, the war room, and the front office. Each layer is designed to compress decision time and eliminate guesswork at the moment it costs most.
+            Every analysis in PIVOT is grounded in live data. Game scores, injury reports, standings, and salary figures are pulled fresh on each request — not cached from last week, not pulled from a static database. When you ask about a player, we are looking at what they actually did this season, not a summary written months ago.
           </p>
           <p style={{...body, marginBottom:28}}>
-            Coach Mode delivers live tactical adjustments derived directly from the active box score. No lag, no interpretation. Front Office tools surface cap constraints, salary leverage points, and multi-year financial exposure before the market forces a move. Player modeling scores trajectory arcs and contract valuation before the rest of the league has priced them in.
+            We use Claude, Anthropic's AI, to interpret that data and turn it into readable analysis. But the AI is working from real numbers we give it — it is not guessing. Coach Mode reads the live box score before generating any suggestion. Player comparisons use official season averages, not computed estimates. Front Office analysis pulls current cap figures and injury status for both sides of any trade conversation.
           </p>
           <p style={{...body}}>
-            The gap between raw data and on-court execution is where games are lost. PIVOT exists to close it permanently.
+            The goal is simple: get from question to answer faster, with fewer tabs open and fewer things you have to just trust someone else got right.
           </p>
         </div>
 
@@ -3183,7 +3240,7 @@ function About() {
               <span style={{fontFamily:hv, fontWeight:700, fontSize:10, letterSpacing:4, color:'var(--green)', textTransform:'uppercase'}}>LEAD ARCHITECT / CO-FOUNDER</span>
             </div>
             <p style={{...body}}>
-              Will builds the intelligence core. He engineers the AI models, structures the data pipelines, and translates raw basketball signal into systems that perform under real pressure. His work sits at the intersection of statistical complexity and operational clarity: the place where the numbers stop being numbers and start being decisions. Every output PIVOT generates runs through architecture Will designed.
+              Will built the backend — the API infrastructure, data pipelines, and AI integrations that make the platform actually work. He has been watching NBA games his whole life and got tired of analytics tools that felt built by people who had not. PIVOT is his answer to that. He cares about getting the numbers right first, and the presentation second.
             </p>
           </div>
 
@@ -3194,7 +3251,7 @@ function About() {
               <span style={{fontFamily:hv, fontWeight:700, fontSize:10, letterSpacing:4, color:'var(--green)', textTransform:'uppercase'}}>CHIEF MARKETING OFFICER / CO-FOUNDER</span>
             </div>
             <p style={{...body}}>
-              Evan controls how PIVOT reaches the market. He translates the platform's technical depth into positioning that resonates with front offices, coaching staffs, and serious basketball operators. He makes sure the right people understand exactly what they are acquiring before the first conversation begins. His instinct for the game informs the story, and his precision in execution ensures that story lands.
+              Evan handles go-to-market and makes sure what we are building actually connects with the people who would use it. He has strong opinions about the game, which makes him a useful check on whether the analysis we are generating holds up to someone who watches film. He also knows how to talk to people who run teams, which matters when the product is something they have never seen before.
             </p>
           </div>
 
@@ -3205,7 +3262,7 @@ function About() {
               <span style={{fontFamily:hv, fontWeight:700, fontSize:10, letterSpacing:4, color:'var(--green)', textTransform:'uppercase'}}>CHIEF FINANCIAL OFFICER / CO-FOUNDER</span>
             </div>
             <p style={{...body}}>
-              Worth manages the financial architecture that makes PIVOT sustainable at scale. From capital allocation and runway strategy to the monetization models that convert enterprise-grade intelligence into recurring revenue, he keeps the business structurally sound and the margins honest. In a market where most analytics companies burn capital on noise, Worth ensures PIVOT builds on signal.
+              Worth runs the financial side and keeps the business honest. He thinks clearly about where we are spending, what it buys us, and when the math on a decision stops making sense. That same mindset — knowing what a number actually means — applies to how we approach player valuation and cap analysis inside the platform. He is the reason we do not overclaim what the tool can do.
             </p>
           </div>
         </div>
@@ -3215,7 +3272,7 @@ function About() {
         {/* ── Closing mark ── */}
         <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
           <div style={{fontFamily:hv, fontWeight:700, fontSize:13, letterSpacing:7, color:'rgba(255,255,255,0.12)', textTransform:'uppercase'}}>PIVOT</div>
-          <div style={{fontFamily:hv, fontWeight:700, fontSize:9, letterSpacing:3, color:'rgba(255,255,255,0.12)', textTransform:'uppercase'}}>Intelligence Engine / Confidential</div>
+          <div style={{fontFamily:hv, fontWeight:700, fontSize:9, letterSpacing:3, color:'rgba(255,255,255,0.12)', textTransform:'uppercase'}}>Built in 2025 / Private Beta</div>
         </div>
 
       </div>
@@ -3402,7 +3459,7 @@ function Compare() {
       if (!cr.ok) throw new Error('Analysis failed');
       const cd = await cr.json();
       setResult({ a, b, analysis: cd.analysis });
-    } catch(e) { setError(e.message); } finally { setLoading(false); }
+    } catch(e) { setError(friendlyError(e.message)); } finally { setLoading(false); }
   };
 
   const fmtPct = v => v!=null ? `${(v*100).toFixed(1)}%` : '-';
