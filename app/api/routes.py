@@ -42,7 +42,7 @@ async def headshot_proxy(nba_id: int, response: Response):
 async def health():
     from app.core.config import get_settings
     settings = get_settings()
-    return {"status": "ok", "environment": settings.environment, "version": "1.0.0"}
+    return {"status": "ok", "environment": settings.environment, "version": "1.1.0"}
 
 
 # ── NBA ───────────────────────────────────────────────────────────────────────
