@@ -1961,12 +1961,6 @@ function FrontOffice() {
   const [dnaLoading, setDnaLoading] = React.useState(false);
   const [dnaError, setDnaError] = React.useState(null);
 
-  // College state
-  const [collegeGames, setCollegeGames] = React.useState([]);
-  const [collegeNews, setCollegeNews] = React.useState([]);
-  const [collegeRankings, setCollegeRankings] = React.useState([]);
-  const [collegeLoading, setCollegeLoading] = React.useState(false);
-
   const runDna = async (teamName) => {
     if (!teamName) return;
     setDnaTeam(teamName);
@@ -1978,50 +1972,6 @@ function FrontOffice() {
     } catch(e) { setDnaError(friendlyError(e.message)); } finally { setDnaLoading(false); }
   };
 
-  React.useEffect(() => {
-    if (dashTab !== 'college') return;
-    setCollegeLoading(true);
-    const today = localDate();
-    Promise.all([
-      fetch(`https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/scoreboard?dates=${today.replace(/-/g,'')}&limit=50`).then(r=>r.json()).catch(()=>null),
-      fetch(`https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/news?limit=15`).then(r=>r.json()).catch(()=>null),
-      fetch(`https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/rankings`).then(r=>r.json()).catch(()=>null),
-    ]).then(([scores, news, rankings]) => {
-      if (scores?.events) {
-        setCollegeGames(scores.events.map(e => {
-          const comps = e.competitions?.[0];
-          const home = comps?.competitors?.find(c=>c.homeAway==='home');
-          const away = comps?.competitors?.find(c=>c.homeAway==='away');
-          const status = comps?.status?.type?.description || '';
-          const clock = comps?.status?.displayClock || '';
-          const period = comps?.status?.period || 0;
-          return {
-            id: e.id,
-            home: home?.team?.abbreviation || home?.team?.displayName || '?',
-            homeFull: home?.team?.displayName || '?',
-            homeScore: home?.score || '0',
-            homeRank: home?.curatedRank?.current,
-            away: away?.team?.abbreviation || away?.team?.displayName || '?',
-            awayFull: away?.team?.displayName || '?',
-            awayScore: away?.score || '0',
-            awayRank: away?.curatedRank?.current,
-            status, clock, period,
-            isFinal: status.toLowerCase().includes('final'),
-            isLive: status.toLowerCase().includes('progress') || status.toLowerCase().includes('half'),
-            time: comps?.date ? new Date(comps.date).toLocaleTimeString([],{hour:'numeric',minute:'2-digit',timeZoneName:'short'}) : '',
-          };
-        }));
-      }
-      if (news?.articles) {
-        setCollegeNews(news.articles.slice(0,12).map(a=>({title:a.headline||a.title||'',url:a.links?.web?.href||''})));
-      }
-      if (rankings?.rankings) {
-        const ap = rankings.rankings.find(r=>r.name?.includes('AP') || r.shortName?.includes('AP'));
-        if (ap?.ranks) setCollegeRankings(ap.ranks.slice(0,25).map(r=>({rank:r.current, name:r.team?.displayName||'?', abbr:r.team?.abbreviation||'?', record:r.recordSummary||''})));
-      }
-      setCollegeLoading(false);
-    });
-  }, [dashTab]);
   const [standings, setStandings] = React.useState(null);
   const [standingsLoading, setStandingsLoading] = React.useState(true);
   const [standingsError, setStandingsError] = React.useState(false);
@@ -2178,7 +2128,6 @@ function FrontOffice() {
     {id:'mvp',       label:'MVP Race'},
     {id:'young',     label:'Young Stars'},
     {id:'injuries',  label:'Injury Report'},
-    {id:'college',   label:'College'},
   ];
 
   const getCapTier = (used) => {
@@ -2669,93 +2618,6 @@ function FrontOffice() {
                       </button>
                     ))}
                   </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* ── College tab ── */}
-          {!result && !loading && !error && dashTab === 'college' && (
-            <div style={{padding:'24px 24px 60px'}}>
-              {collegeLoading && (
-                <div style={{display:'flex', alignItems:'center', justifyContent:'center', height:200}}>
-                  <div style={{fontFamily:'Helvetica Neue, sans-serif', fontWeight:700, fontSize:11, letterSpacing:6, color:'var(--green)', textTransform:'uppercase', animation:'blink 1.2s ease-in-out infinite'}}>LOADING COLLEGE FEED...</div>
-                </div>
-              )}
-              {!collegeLoading && (
-                <div style={{display:'grid', gridTemplateColumns:'1fr 280px', gap:24, alignItems:'start'}}>
-                  {/* Games + Rankings */}
-                  <div>
-                    {/* Games */}
-                    {collegeGames.length > 0 && (
-                      <div style={{marginBottom:32}}>
-                        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:4, color:'rgba(0,255,128,0.9)', fontWeight:700, textTransform:'uppercase', marginBottom:14}}>Today's Games</div>
-                        <div style={{display:'flex', flexDirection:'column', gap:6}}>
-                          {collegeGames.map(g => (
-                            <div key={g.id} style={{background:'rgba(17,20,26,0.8)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:8, padding:'12px 16px', display:'flex', alignItems:'center', gap:16}}>
-                              <div style={{flex:1}}>
-                                <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:4}}>
-                                  {g.awayRank && <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, color:'var(--green)', fontWeight:700}}>#{g.awayRank}</span>}
-                                  <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:13, fontWeight:700, color:'rgba(255,255,255,0.88)'}}>{g.awayFull}</span>
-                                  {g.isFinal || g.isLive ? <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:16, fontWeight:700, color:'var(--white)', marginLeft:'auto'}}>{g.awayScore}</span> : null}
-                                </div>
-                                <div style={{display:'flex', alignItems:'center', gap:8}}>
-                                  {g.homeRank && <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, color:'var(--green)', fontWeight:700}}>#{g.homeRank}</span>}
-                                  <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:13, fontWeight:700, color:'rgba(255,255,255,0.88)'}}>{g.homeFull}</span>
-                                  {g.isFinal || g.isLive ? <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:16, fontWeight:700, color:'var(--white)', marginLeft:'auto'}}>{g.homeScore}</span> : null}
-                                </div>
-                              </div>
-                              <div style={{textAlign:'right', flexShrink:0}}>
-                                {g.isLive ? (
-                                  <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:2, color:'var(--green)', fontWeight:700, background:'rgba(0,255,128,0.1)', border:'1px solid rgba(0,255,128,0.25)', borderRadius:3, padding:'3px 8px'}}>
-                                    {g.period ? `${g.period}H ` : ''}{g.clock || 'LIVE'}
-                                  </div>
-                                ) : g.isFinal ? (
-                                  <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:2, color:'rgba(255,255,255,0.52)', fontWeight:700}}>FINAL</div>
-                                ) : (
-                                  <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:10, color:'rgba(255,255,255,0.62)', fontWeight:700}}>{g.time}</div>
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    {collegeGames.length === 0 && !collegeLoading && (
-                      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:12, color:'rgba(255,255,255,0.52)', padding:'40px 0'}}>No college games scheduled today.</div>
-                    )}
-                    {/* News */}
-                    {collegeNews.length > 0 && (
-                      <div>
-                        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:4, color:'rgba(0,255,128,0.9)', fontWeight:700, textTransform:'uppercase', marginBottom:14}}>College Headlines</div>
-                        <div style={{display:'flex', flexDirection:'column', gap:0, borderRadius:8, overflow:'hidden', border:'1px solid rgba(255,255,255,0.07)'}}>
-                          {collegeNews.map((n,i)=>(
-                            <a key={i} href={n.url} target="_blank" rel="noopener noreferrer"
-                              style={{display:'block', padding:'12px 16px', borderBottom:i<collegeNews.length-1?'1px solid rgba(255,255,255,0.05)':'none', background:'rgba(17,20,26,0.7)', color:'rgba(255,255,255,0.78)', textDecoration:'none', fontFamily:'Helvetica Neue, sans-serif', fontSize:12, fontWeight:700, lineHeight:1.4, transition:'color 0.12s'}}
-                              onMouseEnter={e=>e.currentTarget.style.color='var(--green)'}
-                              onMouseLeave={e=>e.currentTarget.style.color='rgba(255,255,255,0.78)'}>
-                              {n.title} →
-                            </a>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  {/* AP Rankings sidebar */}
-                  {collegeRankings.length > 0 && (
-                    <div style={{background:'rgba(17,20,26,0.8)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:10, padding:'20px'}}>
-                      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:4, color:'rgba(0,255,128,0.9)', fontWeight:700, textTransform:'uppercase', marginBottom:16}}>AP Poll</div>
-                      {collegeRankings.map(t => (
-                        <div key={t.rank} style={{display:'flex', alignItems:'center', gap:10, padding:'7px 0', borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
-                          <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, fontWeight:700, color: t.rank<=5?'var(--green)':t.rank<=10?'rgba(255,255,255,0.52)':'rgba(255,255,255,0.28)', width:18, flexShrink:0}}>{t.rank}</div>
-                          <div style={{flex:1, minWidth:0}}>
-                            <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:12, fontWeight:700, color:'rgba(255,255,255,0.88)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{t.name}</div>
-                            {t.record && <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, color:'rgba(255,255,255,0.52)'}}>{t.record}</div>}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
                 </div>
               )}
             </div>
