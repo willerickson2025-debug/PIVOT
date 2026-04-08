@@ -1638,3 +1638,95 @@ async def predict_game(body: dict[str, Any]) -> dict[str, Any]:
     analysis_cache.set(cache_key, response, ttl=1800)
     logger.info("predict_game complete | game_id=%d pick=%s confidence=%d", game_id, pick, confidence)
     return response
+
+
+async def compare_players(
+    player_a_id: int,
+    player_b_id: int,
+    season: int = _DEFAULT_SEASON,
+) -> dict[str, Any]:
+    """
+    Fetch stats for two players in parallel and return a Claude-generated matchup read.
+
+    Returns structured data for both players plus a prose comparison analysis.
+    """
+    logger.info("compare_players | a=%d b=%d season=%d", player_a_id, player_b_id, season)
+
+    cache_key = f"compare:{min(player_a_id, player_b_id)}:{max(player_a_id, player_b_id)}:{season}"
+    cached = analysis_cache.get(cache_key)
+    if cached:
+        logger.info("compare_players cache hit | %s", cache_key)
+        return cached
+
+    try:
+        (player_a, agg_a), (player_b, agg_b) = await asyncio.gather(
+            _build_player_stat_block(player_a_id, season),
+            _build_player_stat_block(player_b_id, season),
+        )
+    except Exception as exc:
+        logger.warning("compare_players lookup failed | %s", exc)
+        return {"error": str(exc)}
+
+    block_a = _render_stat_block(player_a, season, agg_a)
+    block_b = _render_stat_block(player_b, season, agg_b)
+
+    name_a = f"{player_a.first_name} {player_a.last_name}"
+    name_b = f"{player_b.first_name} {player_b.last_name}"
+
+    prompt = (
+        f"HEAD-TO-HEAD PLAYER COMPARISON — {season} Season\n\n"
+        f"PLAYER A:\n{block_a}\n\n"
+        f"PLAYER B:\n{block_b}\n\n"
+        f"Write a sharp head-to-head breakdown. Cover:\n"
+        f"1. Who has the better season by the numbers and what the gap actually means\n"
+        f"2. The specific areas where each player has a clear edge\n"
+        f"3. Recent form — who is peaking and who is declining\n"
+        f"4. A direct verdict: who is the better player right now and why\n\n"
+        f"Be concrete. Cite the actual stats. No hedging, no both-sides equivocation. "
+        f"End with one sentence that is your definitive verdict."
+    )
+
+    result = await claude_service.analyze(
+        prompt=prompt,
+        system_prompt=NBA_ANALYST_SYSTEM_PROMPT,
+        override_model=_FAST_MODEL,
+        override_max_tokens=700,
+        override_temperature=0.1,
+    )
+
+    def _player_payload(player: Any, agg: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "id": player.id,
+            "name": f"{player.first_name} {player.last_name}",
+            "first_name": player.first_name,
+            "last_name": player.last_name,
+            "position": player.position or "",
+            "team": player.team.abbreviation if player.team else "",
+            "team_name": player.team.name if player.team else "",
+            "games_played": agg["total_games"],
+            "avg_pts": agg["avg_pts"],
+            "avg_reb": agg["avg_reb"],
+            "avg_ast": agg["avg_ast"],
+            "avg_stl": agg["avg_stl"],
+            "avg_blk": agg["avg_blk"],
+            "avg_fg": agg["avg_fg"],
+            "avg_fg3": agg["avg_fg3"],
+            "avg_ft": agg["avg_ft"],
+            "recent_pts": agg["recent_pts"],
+            "recent_reb": agg["recent_reb"],
+            "recent_ast": agg["recent_ast"],
+            "recent_fg": agg["recent_fg"],
+            "recent_fg3": agg["recent_fg3"],
+        }
+
+    response = {
+        "player_a": _player_payload(player_a, agg_a),
+        "player_b": _player_payload(player_b, agg_b),
+        "analysis": result.analysis,
+        "model": result.model,
+        "tokens_used": result.tokens_used,
+        "season": season,
+    }
+    analysis_cache.set(cache_key, response, ttl=3600)
+    logger.info("compare_players complete | %s vs %s tokens=%d", name_a, name_b, result.tokens_used)
+    return response

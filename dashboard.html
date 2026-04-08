@@ -3150,6 +3150,231 @@ function About() {
   );
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Player Compare
+// ─────────────────────────────────────────────────────────────────────────────
+
+function PlayerSearchBox({ label, onSelect }) {
+  const [query, setQuery] = React.useState('');
+  const [suggestions, setSuggestions] = React.useState([]);
+  const [showSugg, setShowSugg] = React.useState(false);
+  const [chosen, setChosen] = React.useState(null);
+
+  const fetchSugg = async (val) => {
+    if (val.length < 2) { setSuggestions([]); return; }
+    try {
+      const r = await fetch(`${API}/nba/players?name=${encodeURIComponent(val)}`);
+      if (r.ok) { const d = await r.json(); setSuggestions((d.players||[]).slice(0,6)); }
+    } catch(_) {}
+  };
+
+  const pick = (p) => {
+    const name = `${p.first_name} ${p.last_name}`;
+    setQuery(name); setChosen(p); setSuggestions([]); setShowSugg(false);
+    onSelect(p);
+  };
+
+  const clear = () => { setQuery(''); setChosen(null); setSuggestions([]); onSelect(null); };
+
+  return (
+    <div style={{flex:1, minWidth:0}}>
+      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:4, color:'rgba(0,255,128,0.72)', fontWeight:700, textTransform:'uppercase', marginBottom:10}}>{label}</div>
+      <div style={{position:'relative'}}>
+        <div style={{display:'flex', alignItems:'center', background:'rgba(22,27,34,0.9)', border:`1px solid ${chosen ? 'rgba(0,255,128,0.5)' : 'rgba(255,255,255,0.1)'}`, borderRadius:6, overflow:'visible', transition:'border-color 0.15s'}}>
+          <span style={{padding:'0 14px', color:'rgba(0,255,128,0.7)', fontSize:16, flexShrink:0}}>⌕</span>
+          <input
+            style={{flex:1, background:'transparent', border:'none', outline:'none', color:'var(--white)', fontFamily:'Helvetica Neue, sans-serif', fontWeight:700, fontSize:14, letterSpacing:0, padding:'14px 0', textTransform:'none'}}
+            placeholder="Search player…"
+            value={query}
+            onChange={e => { setQuery(e.target.value); setChosen(null); fetchSugg(e.target.value); setShowSugg(true); onSelect(null); }}
+            onKeyDown={e => { if(e.key==='Escape') setShowSugg(false); }}
+            onBlur={() => setTimeout(() => setShowSugg(false), 150)}
+          />
+          {chosen && (
+            <button onClick={clear} style={{background:'none', border:'none', color:'rgba(255,255,255,0.3)', cursor:'pointer', padding:'0 14px', fontSize:16, flexShrink:0}}>×</button>
+          )}
+        </div>
+        {showSugg && suggestions.length > 0 && (
+          <div style={{position:'absolute', top:'100%', left:0, right:0, background:'rgba(22,27,34,0.98)', backdropFilter:'blur(20px)', border:'1px solid var(--border-strong)', borderTop:'none', zIndex:9999, borderRadius:'0 0 8px 8px', overflow:'hidden', boxShadow:'0 20px 60px rgba(0,0,0,0.7)'}}>
+            {suggestions.map(p => (
+              <div key={p.id} onMouseDown={() => pick(p)}
+                style={{padding:'12px 16px', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'space-between', borderBottom:'1px solid rgba(255,255,255,0.04)'}}
+                onMouseEnter={e => e.currentTarget.style.background='rgba(0,255,128,0.06)'}
+                onMouseLeave={e => e.currentTarget.style.background='transparent'}>
+                <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:13, fontWeight:700, color:'var(--white)', letterSpacing:0, textTransform:'none'}}>{p.first_name} {p.last_name}</span>
+                <div style={{display:'flex', gap:8}}>
+                  {p.team?.abbreviation && <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:2, color:'rgba(0,255,128,0.8)', fontWeight:700}}>{p.team.abbreviation}</span>}
+                  {p.position && <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:2, color:'rgba(255,255,255,0.4)', fontWeight:700}}>{p.position}</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      {chosen && (
+        <div style={{marginTop:10, display:'flex', alignItems:'center', gap:10}}>
+          <img src={`${API}/headshot/${chosen.id}`} style={{width:44, height:44, borderRadius:'50%', objectFit:'cover', border:'2px solid rgba(0,255,128,0.4)', background:'rgba(255,255,255,0.04)'}} onError={e=>e.target.style.display='none'}/>
+          <div>
+            <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:13, fontWeight:700, color:'var(--white)', letterSpacing:0, textTransform:'none'}}>{chosen.first_name} {chosen.last_name}</div>
+            <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:3, color:'rgba(0,255,128,0.72)', fontWeight:700}}>{chosen.team?.abbreviation || ''} · {chosen.position || ''}</div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StatCompareRow({ label, a, b, higher='more' }) {
+  const aNum = parseFloat(a) || 0;
+  const bNum = parseFloat(b) || 0;
+  const aWins = higher === 'more' ? aNum > bNum : aNum < bNum;
+  const bWins = higher === 'more' ? bNum > aNum : bNum < aNum;
+  const green = 'var(--green)';
+  const dim = 'rgba(255,255,255,0.52)';
+  return (
+    <div style={{display:'grid', gridTemplateColumns:'1fr 56px 1fr', alignItems:'center', padding:'8px 0', borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
+      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:13, fontWeight:700, color: aWins ? green : 'rgba(255,255,255,0.82)', letterSpacing:0, textTransform:'none', textAlign:'right', textShadow: aWins ? '0 0 18px rgba(0,255,128,0.5)' : 'none'}}>{a}</div>
+      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, letterSpacing:3, color:'rgba(255,255,255,0.3)', fontWeight:700, textAlign:'center', textTransform:'uppercase'}}>{label}</div>
+      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:13, fontWeight:700, color: bWins ? green : 'rgba(255,255,255,0.82)', letterSpacing:0, textTransform:'none', textShadow: bWins ? '0 0 18px rgba(0,255,128,0.5)' : 'none'}}>{b}</div>
+    </div>
+  );
+}
+
+function Compare() {
+  const [playerA, setPlayerA] = React.useState(null);
+  const [playerB, setPlayerB] = React.useState(null);
+  const [result, setResult] = React.useState(null);
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState(null);
+
+  const canCompare = playerA && playerB && playerA.id !== playerB.id;
+
+  const runCompare = async () => {
+    if (!canCompare) return;
+    setLoading(true); setError(null); setResult(null);
+    try {
+      const r = await fetch(`${API}/analysis/compare?player_a=${playerA.id}&player_b=${playerB.id}&season=2025`);
+      if (!r.ok) throw new Error(await r.text());
+      setResult(await r.json());
+    } catch(e) { setError(e.message); } finally { setLoading(false); }
+  };
+
+  const pct = v => v != null ? `${(v*100).toFixed(1)}%` : '-';
+
+  return (
+    <div style={{maxWidth:1100, margin:'0 auto', padding:'40px 32px'}}>
+
+      {/* Search row */}
+      <div style={{display:'flex', gap:24, alignItems:'flex-start', marginBottom:32}}>
+        <PlayerSearchBox label="Player A" onSelect={p => { setPlayerA(p); setResult(null); setError(null); }}/>
+        <div style={{display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', paddingTop:36, flexShrink:0}}>
+          <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:18, fontWeight:700, letterSpacing:6, color:'rgba(255,255,255,0.15)'}}>VS</div>
+        </div>
+        <PlayerSearchBox label="Player B" onSelect={p => { setPlayerB(p); setResult(null); setError(null); }}/>
+      </div>
+
+      {/* Compare button */}
+      {canCompare && !result && !loading && (
+        <div style={{display:'flex', justifyContent:'center', marginBottom:40}}>
+          <button onClick={runCompare}
+            style={{background:'var(--green)', color:'var(--black-deep)', border:'none', padding:'16px 48px', fontSize:11, letterSpacing:5, fontWeight:700, fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', textTransform:'uppercase', cursor:'pointer', borderRadius:4, boxShadow:'0 0 32px rgba(0,255,128,0.35)', transition:'all 0.15s'}}
+            onMouseEnter={e => e.currentTarget.style.boxShadow='0 0 52px rgba(0,255,128,0.6)'}
+            onMouseLeave={e => e.currentTarget.style.boxShadow='0 0 32px rgba(0,255,128,0.35)'}>
+            RUN COMPARISON →
+          </button>
+        </div>
+      )}
+
+      {error && <div className="err" style={{margin:'0 0 24px'}}>{error}</div>}
+
+      {loading && (
+        <div style={{display:'flex', flexDirection:'column', alignItems:'center', gap:16, padding:'60px 0'}}>
+          <Loader label="PIVOT COMPUTING"/>
+          <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:10, letterSpacing:5, color:'rgba(0,255,128,0.5)', fontWeight:700}}>ANALYZING MATCHUP</div>
+        </div>
+      )}
+
+      {!loading && result && (() => {
+        const a = result.player_a;
+        const b = result.player_b;
+        return (
+          <div>
+            {/* Player stat cards */}
+            <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:24, marginBottom:28}}>
+              {[a, b].map((p, idx) => (
+                <div key={idx} className="g-card2" style={{padding:28}}>
+                  <div style={{display:'flex', alignItems:'center', gap:14, marginBottom:22}}>
+                    <img src={`${API}/headshot/${p.id}`} style={{width:56, height:56, borderRadius:'50%', objectFit:'cover', border:'2px solid rgba(0,255,128,0.35)', background:'rgba(255,255,255,0.04)', flexShrink:0}} onError={e=>e.target.style.display='none'}/>
+                    <div>
+                      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:15, fontWeight:700, color:'var(--white)', letterSpacing:0, textTransform:'none', marginBottom:4}}>{p.name}</div>
+                      <div style={{display:'flex', gap:8}}>
+                        <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:3, color:'rgba(0,255,128,0.82)', fontWeight:700}}>{p.team}</span>
+                        <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:3, color:'rgba(255,255,255,0.4)', fontWeight:700}}>{p.position}</span>
+                        <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:3, color:'rgba(255,255,255,0.3)', fontWeight:700}}>{p.games_played} GP</span>
+                      </div>
+                    </div>
+                    <div style={{marginLeft:'auto', fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:3, fontWeight:700, color:'rgba(0,255,128,0.6)', textTransform:'uppercase'}}>Player {idx === 0 ? 'A' : 'B'}</div>
+                  </div>
+
+                  {/* Season stat grid */}
+                  <div style={{display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:12, marginBottom:20}}>
+                    {[['PTS', p.avg_pts], ['REB', p.avg_reb], ['AST', p.avg_ast], ['STL', p.avg_stl], ['BLK', p.avg_blk], ['FG%', pct(p.avg_fg)]].map(([lbl, val]) => (
+                      <div key={lbl} style={{textAlign:'center', background:'rgba(255,255,255,0.03)', borderRadius:4, padding:'10px 0'}}>
+                        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:16, fontWeight:700, color:'var(--green)', letterSpacing:0, textShadow:'0 0 20px rgba(0,255,128,0.5)'}}>{val}</div>
+                        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, letterSpacing:3, color:'rgba(255,255,255,0.35)', fontWeight:700, marginTop:3}}>{lbl}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Shooting */}
+                  <div style={{display:'flex', gap:16, paddingTop:14, borderTop:'1px solid rgba(255,255,255,0.05)'}}>
+                    {[['3P%', pct(p.avg_fg3)], ['FT%', pct(p.avg_ft)]].map(([lbl, val]) => (
+                      <div key={lbl} style={{flex:1, textAlign:'center'}}>
+                        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:13, fontWeight:700, color:'rgba(255,255,255,0.82)'}}>{val}</div>
+                        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, letterSpacing:3, color:'rgba(255,255,255,0.3)', fontWeight:700, marginTop:2}}>{lbl}</div>
+                      </div>
+                    ))}
+                    <div style={{flex:2, borderLeft:'1px solid rgba(255,255,255,0.05)', paddingLeft:16}}>
+                      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, letterSpacing:3, color:'rgba(0,255,128,0.6)', fontWeight:700, marginBottom:6}}>LAST 10 AVG</div>
+                      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, fontWeight:700, color:'rgba(255,255,255,0.7)', letterSpacing:0, textTransform:'none'}}>
+                        {p.recent_pts}pts · {p.recent_reb}reb · {p.recent_ast}ast
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Head-to-head stat comparison */}
+            <div className="g-card2" style={{padding:'24px 32px', marginBottom:24}}>
+              <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:5, color:'rgba(0,255,128,0.82)', fontWeight:700, textTransform:'uppercase', marginBottom:18, textAlign:'center'}}>Head-to-Head · Season Averages</div>
+              <div style={{display:'grid', gridTemplateColumns:'1fr 56px 1fr', marginBottom:12}}>
+                <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, fontWeight:700, color:'rgba(255,255,255,0.5)', letterSpacing:2, textAlign:'right', paddingRight:8, textTransform:'none'}}>{a.name.split(' ').slice(-1)[0]}</div>
+                <div/>
+                <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, fontWeight:700, color:'rgba(255,255,255,0.5)', letterSpacing:2, textTransform:'none'}}>{b.name.split(' ').slice(-1)[0]}</div>
+              </div>
+              <StatCompareRow label="PTS"  a={a.avg_pts} b={b.avg_pts}/>
+              <StatCompareRow label="REB"  a={a.avg_reb} b={b.avg_reb}/>
+              <StatCompareRow label="AST"  a={a.avg_ast} b={b.avg_ast}/>
+              <StatCompareRow label="STL"  a={a.avg_stl} b={b.avg_stl}/>
+              <StatCompareRow label="BLK"  a={a.avg_blk} b={b.avg_blk}/>
+              <StatCompareRow label="FG%"  a={pct(a.avg_fg)}  b={pct(b.avg_fg)}/>
+              <StatCompareRow label="3P%"  a={pct(a.avg_fg3)} b={pct(b.avg_fg3)}/>
+              <StatCompareRow label="FT%"  a={pct(a.avg_ft)}  b={pct(b.avg_ft)}/>
+            </div>
+
+            {/* Claude verdict */}
+            <div className="g-card2" style={{padding:'28px 32px'}}>
+              <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:5, color:'rgba(0,255,128,0.82)', fontWeight:700, textTransform:'uppercase', marginBottom:20}}>PIVOT Matchup Analysis</div>
+              <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:14, lineHeight:1.9, letterSpacing:0, color:'rgba(255,255,255,0.88)', whiteSpace:'pre-wrap', fontWeight:700, textTransform:'none'}}>{result.analysis}</div>
+            </div>
+          </div>
+        );
+      })()}
+    </div>
+  );
+}
+
 function App() {
   const [tab, setTab] = React.useState('home');
   const [scrolled, setScrolled] = React.useState(false);
@@ -3167,7 +3392,7 @@ function App() {
       <nav className={scrolled || !isHome ? 'solid' : ''}>
         <div className="nav-logo" onClick={() => setTab('home')}>PIVOT</div>
         <div className="nav-tabs">
-          {[['games','Games'],['players','Players'],['frontoffice','Front Office'],['coach','Coach Mode'],['about','About PIVOT']].map(([id,label]) => (
+          {[['games','Games'],['players','Players'],['compare','Compare'],['frontoffice','Front Office'],['coach','Coach Mode'],['about','About PIVOT']].map(([id,label]) => (
             <button key={id} className={`nav-tab ${tab===id?'active':''}`} onClick={() => setTab(id)}>{label}</button>
           ))}
         </div>
@@ -3177,6 +3402,7 @@ function App() {
         {tab === 'home'        && <Home onNavigate={setTab}/>}
         {tab === 'games'       && <Games/>}
         {tab === 'players'     && <Players/>}
+        {tab === 'compare'     && <Compare/>}
         {tab === 'frontoffice' && <FrontOffice/>}
         {tab === 'coach'       && <CoachMode/>}
         {tab === 'analysis'    && <Analysis/>}

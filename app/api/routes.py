@@ -217,6 +217,18 @@ async def predict_game(request: Request):
         raise HTTPException(status_code=502, detail=str(e))
 
 
+@router.get("/analysis/compare")
+async def compare_players(
+    player_a: int = Query(..., description="BallDontLie player ID for player A"),
+    player_b: int = Query(..., description="BallDontLie player ID for player B"),
+    season: int = Query(2025, description="NBA season year"),
+):
+    try:
+        return await analysis_service.compare_players(player_a, player_b, season)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+
 @router.get("/analysis/today-games", response_model=GameAnalysisResponse)
 async def today_games_analysis(date: Optional[str] = Query(None, description="Format: YYYY-MM-DD")):
     if date and not validate_date_string(date):
