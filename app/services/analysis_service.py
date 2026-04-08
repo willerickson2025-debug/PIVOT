@@ -1183,8 +1183,8 @@ async def analyze_game(body: dict[str, Any]) -> dict[str, Any]:
 
     has_box = box.get("total_players", 0) > 0
 
-    # Cache: 3 min live, 20 min final, 10 min upcoming
-    cache_ttl = 180 if is_live else (1200 if is_final else 600)
+    # Cache: 3 min live, 20 min final, 5 min upcoming (injuries/standings can change)
+    cache_ttl = 180 if is_live else (1200 if is_final else 300)
     cache_key = f"game_analysis:{game_id}:{period}:{home_score}:{away_score}"
     cached = analysis_cache.get(cache_key)
     if cached:
@@ -1225,23 +1225,100 @@ async def analyze_game(body: dict[str, Any]) -> dict[str, Any]:
             "Be specific. Use the actual numbers. No hedging."
         )
     else:
+        # ── Upcoming: enrich with live standings + injury report ──────────────
+        from app.services import standings_service as _standings_svc
+        import httpx as _httpx
+
+        async def _fetch_standings_ctx():
+            try:
+                data = await _standings_svc.get_standings()
+                by_abbr = {t["abbr"]: t for t in data.get("league", [])}
+                hr = by_abbr.get(home_abbr, {})
+                ar = by_abbr.get(away_abbr, {})
+                lines = []
+                if hr:
+                    lines.append(
+                        f"{home_name} ({home_abbr}): {hr.get('wins',0)}-{hr.get('losses',0)} "
+                        f"({hr.get('pct',0):.3f} PCT), #{hr.get('seed','?')} {hr.get('conference','?')}, "
+                        f"{hr.get('gb',0)} GB"
+                    )
+                if ar:
+                    lines.append(
+                        f"{away_name} ({away_abbr}): {ar.get('wins',0)}-{ar.get('losses',0)} "
+                        f"({ar.get('pct',0):.3f} PCT), #{ar.get('seed','?')} {ar.get('conference','?')}, "
+                        f"{ar.get('gb',0)} GB"
+                    )
+                return "\n".join(lines) if lines else ""
+            except Exception:
+                return ""
+
+        async def _fetch_injury_ctx():
+            try:
+                async with _httpx.AsyncClient(timeout=6) as client:
+                    r = await client.get(
+                        "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/injuries",
+                        headers={"User-Agent": "Mozilla/5.0"},
+                    )
+                raw = r.json()
+                # Build lookup: team display name → injured players
+                inj_map: dict[str, list[str]] = {}
+                for tb in raw.get("injuries", []):
+                    tname = tb.get("displayName", "")
+                    players = []
+                    for inj in tb.get("injuries", []):
+                        ath = inj.get("athlete", {})
+                        status = inj.get("status", "")
+                        comment = inj.get("shortComment", "")
+                        if status.lower() in ("out", "doubtful", "questionable"):
+                            entry = f"{ath.get('displayName','')} ({status}"
+                            if comment:
+                                entry += f" — {comment}"
+                            entry += ")"
+                            players.append(entry)
+                    if players:
+                        inj_map[tname] = players
+
+                lines = []
+                for tname, players in inj_map.items():
+                    # Match against home/away by partial name
+                    if (home_name.split()[-1].lower() in tname.lower() or
+                            home_abbr.lower() in tname.lower()):
+                        lines.append(f"{home_name} injuries: {', '.join(players[:6])}")
+                    elif (away_name.split()[-1].lower() in tname.lower() or
+                            away_abbr.lower() in tname.lower()):
+                        lines.append(f"{away_name} injuries: {', '.join(players[:6])}")
+                return "\n".join(lines)
+            except Exception:
+                return ""
+
+        standings_ctx, injury_ctx = await asyncio.gather(
+            _fetch_standings_ctx(), _fetch_injury_ctx()
+        )
+
+        context_block = ""
+        if standings_ctx:
+            context_block += f"\nCURRENT STANDINGS:\n{standings_ctx}"
+        if injury_ctx:
+            context_block += f"\n\nINJURY REPORT:\n{injury_ctx}"
+
         prompt = (
             f"PRE-GAME MATCHUP PREVIEW — {score_line}\n"
-            f"{away_name} at {home_name}\n\n"
-            "Write a complete preview. Cover:\n"
-            "1. STYLISTIC CLASH — how these teams play and where the styles conflict\n"
-            "2. KEY BATTLES — the individual matchups that will decide this game\n"
-            "3. EDGES — where each team has a clear advantage tonight\n"
-            "4. X-FACTOR — the player or trend that could swing it\n"
-            "5. PREDICTION — a confident call with a reason\n"
-            "Be specific. Name players, name schemes. No generic takes."
+            f"{away_name} ({away_abbr}) at {home_name} ({home_abbr})\n"
+            f"{context_block}\n\n"
+            "Write a complete game preview grounded in the standings and injury data above. Cover:\n"
+            "1. FORM & STAKES — what each team's record means right now, playoff implications\n"
+            "2. STYLISTIC CLASH — how these teams play and where the styles conflict\n"
+            "3. KEY BATTLES — the individual matchups that decide this game\n"
+            "4. INJURY IMPACT — how the injury report changes the calculus (if injuries listed above)\n"
+            "5. PREDICTION — a confident call with a specific reason\n"
+            "Be specific. Name players, name schemes. No generic takes. Ground everything in the data provided."
         )
 
     result = await claude_service.analyze(
         prompt=prompt,
         system_prompt=GAME_ANALYST_SYSTEM_PROMPT,
         override_model=_FAST_MODEL,
-        override_max_tokens=900,
+        override_max_tokens=1100,
         override_temperature=0.1,
     )
 
