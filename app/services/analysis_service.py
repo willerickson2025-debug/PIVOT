@@ -66,8 +66,12 @@ You will receive a stat block with season averages and recent game logs. If any 
 4. If recent game logs are missing but season averages exist, analyze only the season averages and skip any recent-form commentary entirely.
 5. If a stat reads 0.0 across the board, note briefly that their current season data is still being added to the system — then pivot immediately to what you do know about the player from their career profile and overall trajectory. Frame it as PIVOT expanding its coverage, not as a limitation.
 
-EFFICIENCY METRICS — USE THESE, NOT RAW FG%:
-True Shooting % (TS%) and Effective FG% (eFG%) are the primary lenses for scoring efficiency. FG% alone is misleading — it ignores free throws and devalues three-point shooting. Always lead efficiency analysis with TS% or eFG% when provided. Context for elite tiers: TS% above 60% is elite, 57–60% is very good, below 54% is a problem. eFG% above 56% is elite, 52–56% is solid.
+EFFICIENCY — THE ONLY METRICS THAT MATTER:
+True Shooting % (TS%) is the single most important efficiency number. It accounts for field goals, three-pointers, AND free throws — the complete picture of scoring value. eFG% is second. FT Rate (FTA/FGA) is third, because it tells you how aggressively a player gets to the line.
+
+RAW FG% IS FORBIDDEN AS A PRIMARY EFFICIENCY INDICATOR. Never open an efficiency analysis with "shoots X% from the field." Never compare two players using raw FG% as the benchmark. FG% ignores three-point value and ignores free throws — both fatal flaws. A player who shoots 44% FG with 8 FTA/game and 6 3PA/game is almost certainly more efficient than a player who shoots 50% FG with 1 FTA/game and 0 3PA. The stat block puts TS% first — use it that way.
+
+Efficiency tiers for TS%: 62%+ is historically elite (top of the league), 58–62% is very good, 54–58% is average, below 54% is a problem. eFG%: 56%+ elite, 52–56% solid, below 52% inefficient. FT Rate: above 0.40 means defenses can't stay in front of this player; below 0.20 means they're not creating contact or not being schemed against.
 
 3-POINT SHOOTING — VOLUME CONTEXT IS MANDATORY:
 Raw 3P% is nearly meaningless without knowing 3PA/game. High-volume three-point shooters (6+ 3PA/game) consistently shoot 34–38% — that is their correct operating range. Among the top-10 players in 3PA/game league-wide, virtually none shoot above 40%. A player averaging 36–38% on 8+ 3PA/game is an elite shooter by any serious metric. Never compare raw 3P% between a high-volume and low-volume shooter without explicitly noting the volume difference. A role player shooting 43% on 3 attempts is not a better shooter than a lead creator shooting 37% on 9 attempts.
@@ -179,6 +183,18 @@ SECTION_PROMPTS: dict[str, str] = {
         "Break down this player's financial situation: estimated contract value vs production, "
         "whether they are an overpaid or underpaid asset, trade value relative to salary, years "
         "remaining context, and what a front office should think about this contract."
+    ),
+    "on_off": (
+        "Analyze this player's on/off court impact. Use their TS%, FT Rate, usage, assists, "
+        "defensive stats, and positional role to reason through: what does the floor look like "
+        "when they're on vs off — does their spacing change the offense, does their FT-drawing "
+        "ability create possessions, does their defense anchor a scheme or create a liability? "
+        "Draw on what you know about how this team plays and how the player's skill set "
+        "interacts with that system. If they have high usage, what happens when they're resting "
+        "and that usage must be redistributed? Be specific: name lineup combinations, name the "
+        "opponents who feast on them in isolation, name the coverages that make them irrelevant. "
+        "Close with a net impact verdict — is this player a net positive, a net negative, or "
+        "does it depend on the specific matchup context?"
     ),
 }
 
@@ -631,43 +647,53 @@ def _render_stat_block(player: Any, season: int, agg: dict[str, Any]) -> str:
         f"Team: {team_name} | Position: {player.position or 'N/A'} | "
         f"Season: {season} | Games: {agg['total_games']} | MIN/G: {agg['avg_min']}\n"
         f"\n"
-        f"SEASON AVERAGES (per game):\n"
+    )
+
+    # ── EFFICIENCY FIRST — the only numbers that matter for scoring quality ──
+    if has_vol:
+        ts_tier = "ELITE" if agg['ts_pct'] >= 0.62 else ("VERY GOOD" if agg['ts_pct'] >= 0.58 else ("AVG" if agg['ts_pct'] >= 0.54 else "BELOW AVG"))
+        block += (
+            f"EFFICIENCY (primary lens):\n"
+            f"  TS%: {agg['ts_pct']:.1%} [{ts_tier}] | eFG%: {agg['efg_pct']:.1%} | "
+            f"FT Rate: {agg['ft_rate']:.2f} | FT%: {agg['avg_ft']:.1%}\n"
+            f"  Shot diet: {agg['avg_fga']} FGA/G | {agg['avg_fg3a']} 3PA/G ({agg['avg_fg3']:.1%} 3P%) | "
+            f"{agg['avg_fta']} FTA/G\n"
+        )
+    else:
+        block += (
+            f"EFFICIENCY: limited volume data — 3P%: {agg['avg_fg3']:.1%} | FT%: {agg['avg_ft']:.1%}\n"
+        )
+
+    # ── PRODUCTION per game ──
+    block += (
+        f"\nPRODUCTION (per game):\n"
         f"  PTS: {agg['avg_pts']} | REB: {agg['avg_reb']} | AST: {agg['avg_ast']} | "
         f"STL: {agg['avg_stl']} | BLK: {agg['avg_blk']} | TOV: {agg['avg_tov']}\n"
     )
-    if has_vol:
-        block += (
-            f"  3PA/G: {agg['avg_fg3a']} | 3P%: {agg['avg_fg3']:.1%} | "
-            f"FGA/G: {agg['avg_fga']} | FTA/G: {agg['avg_fta']} "
-            f"(FT Rate: {agg['ft_rate']:.2f}) | FT%: {agg['avg_ft']:.1%}\n"
-            f"  TS%: {agg['ts_pct']:.1%} | eFG%: {agg['efg_pct']:.1%}\n"
-        )
-    else:
-        block += f"  FG%: {agg['avg_fg']:.1%} | 3P%: {agg['avg_fg3']:.1%} | FT%: {agg['avg_ft']:.1%}\n"
 
+    # ── PER 36 (minutes-neutral) ──
     if agg.get("avg_min", 0) > 0:
         block += (
-            f"  PER 36: {agg['per36_pts']} PTS / {agg['per36_reb']} REB / {agg['per36_ast']} AST\n"
+            f"  Per 36 min: {agg['per36_pts']} PTS / {agg['per36_reb']} REB / {agg['per36_ast']} AST\n"
         )
 
+    # ── LAST 10 with per-36 context ──
     recent_min = agg.get("recent_min", 0)
-    min_note = f" | MPG this stretch: {recent_min}" if recent_min > 0 else ""
+    min_note = f" | {recent_min} MPG this stretch" if recent_min > 0 else ""
     block += (
-        f"\n"
-        f"LAST {_RECENT_FORM_WINDOW} GAMES (small sample ~12% of season{min_note}):\n"
+        f"\nLAST {_RECENT_FORM_WINDOW} GAMES (~12% sample{min_note}):\n"
         f"  PTS: {agg['recent_pts']} ({_trend_label(agg['recent_pts'], agg['avg_pts'])} vs season) | "
         f"REB: {agg['recent_reb']} ({_trend_label(agg['recent_reb'], agg['avg_reb'])}) | "
         f"AST: {agg['recent_ast']} ({_trend_label(agg['recent_ast'], agg['avg_ast'])})\n"
         f"  STL: {agg['recent_stl']} ({_trend_label(agg['recent_stl'], agg['avg_stl'])}) | "
         f"BLK: {agg['recent_blk']} ({_trend_label(agg['recent_blk'], agg['avg_blk'])})\n"
-        f"  FG%: {agg['recent_fg']:.1%} ({_pct_trend_label(agg['recent_fg'], agg['avg_fg'])}) | "
-        f"3P%: {agg['recent_fg3']:.1%} ({_pct_trend_label(agg['recent_fg3'], agg['avg_fg3'])})\n"
+        f"  L10 3P%: {agg['recent_fg3']:.1%} ({_pct_trend_label(agg['recent_fg3'], agg['avg_fg3'])} vs season)\n"
     )
     if agg.get("recent_pts_36") and recent_min > 0:
         block += (
-            f"  PER 36 (L10): {agg['recent_pts_36']} PTS / {agg['recent_reb_36']} REB / "
+            f"  Per-36 (L10): {agg['recent_pts_36']} PTS / {agg['recent_reb_36']} REB / "
             f"{agg['recent_ast_36']} AST "
-            f"(vs season per-36: {agg['per36_pts']} / {agg['per36_reb']} / {agg['per36_ast']})\n"
+            f"[season per-36: {agg['per36_pts']} / {agg['per36_reb']} / {agg['per36_ast']}]\n"
         )
     return block
 
@@ -1966,4 +1992,90 @@ async def compare_players(
     }
     analysis_cache.set(cache_key, response, ttl=3600)
     logger.info("compare_players complete | %s vs %s tokens=%d", name_a, name_b, result.tokens_used)
+    return response
+
+# ---------------------------------------------------------------------------
+# Team DNA Analysis
+# ---------------------------------------------------------------------------
+
+TEAM_DNA_SYSTEM_PROMPT: str = """You are a professional NBA scout and tactician. Your specialty is breaking down how teams actually play — their offensive and defensive systems, shot diet, pace, spacing, and scheme identity.
+
+CRITICAL CONTEXT: Today is April 2026. The 2025-26 NBA season is in progress. Use your full knowledge of how these franchises have played this season and historically.
+
+When analyzing a team's DNA, be specific. Name the plays they run, the coverages they prefer, the personnel who drive the scheme. Use shot-diet language (3PT rate, paint frequency, mid-range reliance), pace terminology (possessions per 48), and defensive scheme names (drop coverage, switching, hedging, zone). Name the players who execute each piece.
+
+Do not be generic. "They play fast and spread the floor" is not analysis. "They rank top-5 in pace, initiate 40% of possessions from the pick-and-roll with their point guard as the ball handler, and shoot above 40% of their field goal attempts from three" is analysis.
+
+FORMATTING: Plain prose only. No markdown, no bullets, no headers, no asterisks. Dense, expert prose in paragraphs. Write like a scout memo — every sentence earns its place."""
+
+
+async def analyze_team_dna(team_name: str) -> dict[str, Any]:
+    """
+    Generate a deep team identity breakdown: offense, defense, pace, shot diet,
+    scheme tendencies, and vulnerability profile.
+    """
+    logger.info("analyze_team_dna | team=%s", team_name)
+
+    cache_key = f"team_dna:{team_name.lower().strip()}"
+    cached = analysis_cache.get(cache_key)
+    if cached:
+        logger.info("team_dna cache hit | team=%s", team_name)
+        return cached
+
+    # Enrich with live standings
+    from app.services import standings_service as _standings_svc
+    standings_ctx = ""
+    try:
+        data = await _standings_svc.get_standings()
+        for t in data.get("league", []):
+            if team_name.lower() in t.get("name", "").lower() or team_name.lower() in t.get("abbr", "").lower():
+                standings_ctx = (
+                    f"{t['name']} ({t['abbr']}): {t.get('rec','?')} | "
+                    f"#{t.get('seed','?')} {t.get('conference','?')} | "
+                    f"{t.get('pct',0):.3f} PCT | {t.get('gb',0)} GB"
+                )
+                break
+    except Exception:
+        pass
+
+    context_block = f"\nCURRENT STANDING:\n{standings_ctx}" if standings_ctx else ""
+
+    prompt = (
+        f"TEAM DNA REPORT — {team_name.upper()}{context_block}\n\n"
+        "Write a complete tactical identity breakdown for this franchise. Cover:\n\n"
+        "OFFENSIVE IDENTITY — What is their primary offensive system? Pick-and-roll heavy, "
+        "motion offense, iso-centric, pace-and-space? Who initiates? What is their 3PT rate "
+        "(league average is ~37% of shots from three — are they above or below)? How much do "
+        "they rely on the paint vs mid-range? Who are their primary playmakers and what actions "
+        "do they run for them?\n\n"
+        "DEFENSIVE IDENTITY — What scheme do they run (man, zone, switching, drop coverage)? "
+        "How do they handle screens — hedge, switch, ICE? Where do they give up shots by "
+        "design and where is the real vulnerability? Who anchors the defense?\n\n"
+        "PACE & TEMPO — Fast, average, deliberate? How does their pace affect matchup "
+        "dynamics? Do they push in transition or set up in the half court?\n\n"
+        "SHOT DIET PROFILE — Describe their shot selection tendencies. 3PT focused, "
+        "paint-heavy, balanced? Are they getting to the line at a high rate or not at all?\n\n"
+        "SCHEME VULNERABILITIES — What style of opponent beats this team? What defensive "
+        "coverage kills their offense? What offensive attack exploits their defense? "
+        "Be specific: name the player matchup problems, the play types, the defensive rotations "
+        "that break them.\n\n"
+        "Close with one sentence that captures the essence of who this team is right now."
+    )
+
+    result = await claude_service.analyze(
+        prompt=prompt,
+        system_prompt=TEAM_DNA_SYSTEM_PROMPT,
+        override_max_tokens=1400,
+        override_temperature=0.1,
+    )
+
+    response = {
+        "team": team_name,
+        "standing": standings_ctx,
+        "analysis": result.analysis,
+        "model": result.model,
+        "tokens_used": result.tokens_used,
+    }
+    analysis_cache.set(cache_key, response, ttl=21600)  # 6-hour cache — team identity is stable
+    logger.info("team_dna complete | team=%s tokens=%d", team_name, result.tokens_used)
     return response

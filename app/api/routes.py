@@ -236,6 +236,15 @@ async def bulk_player_averages(
     return {"averages": {str(pid): avgs for pid, avgs in results}, "season": season}
 
 
+@router.get("/analysis/team-dna")
+async def team_dna(team_name: str = Query(..., description="Team name")):
+    """Deep tactical identity breakdown: offense, defense, pace, shot diet, vulnerabilities."""
+    try:
+        return await analysis_service.analyze_team_dna(team_name)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+
 @router.get("/analysis/compare")
 async def compare_players(
     player_a: int = Query(..., description="BallDontLie player ID for player A"),
