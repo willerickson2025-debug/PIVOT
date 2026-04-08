@@ -3289,13 +3289,52 @@ function Compare() {
 
   const canCompare = playerA && playerB && playerA.id !== playerB.id;
 
+  const buildPlayerPayload = async (p) => {
+    const name = `${p.first_name} ${p.last_name}`;
+    const team = p.team?.abbreviation || p.team?.name || '';
+    const r = await fetch(`${API}/nba/players/${p.id}/stats?season=2025`);
+    const d = r.ok ? await r.json() : { stats: [] };
+    const stats = d.stats || [];
+    const gp = stats.length;
+    const avg = (fn) => gp ? (stats.reduce((s, g) => s + (fn(g) || 0), 0) / gp) : null;
+    const pctAvg = (field) => {
+      const valid = stats.filter(g => g[field] != null);
+      return valid.length ? valid.reduce((s, g) => s + g[field], 0) / valid.length : null;
+    };
+    const recent = stats.slice(-10);
+    const rAvg = (fn) => recent.length ? (recent.reduce((s, g) => s + (fn(g) || 0), 0) / recent.length) : null;
+    return {
+      id: p.id, name, team, position: p.position || '', games_played: gp,
+      avg_pts: avg(g => g.points)?.toFixed(1) || '-',
+      avg_reb: avg(g => g.rebounds)?.toFixed(1) || '-',
+      avg_ast: avg(g => g.assists)?.toFixed(1) || '-',
+      avg_stl: avg(g => g.steals)?.toFixed(1) || '-',
+      avg_blk: avg(g => g.blocks)?.toFixed(1) || '-',
+      avg_fg:  pctAvg('fg_pct'),
+      avg_fg3: pctAvg('fg3_pct'),
+      avg_ft:  pctAvg('ft_pct'),
+      recent_pts: rAvg(g => g.points)?.toFixed(1) || '-',
+      recent_reb: rAvg(g => g.rebounds)?.toFixed(1) || '-',
+      recent_ast: rAvg(g => g.assists)?.toFixed(1) || '-',
+    };
+  };
+
   const runCompare = async () => {
     if (!canCompare) return;
     setLoading(true); setError(null); setResult(null);
     try {
-      const r = await fetch(`${API}/analysis/compare?player_a=${playerA.id}&player_b=${playerB.id}&season=2025`);
-      if (!r.ok) throw new Error(await r.text());
-      setResult(await r.json());
+      const [a, b] = await Promise.all([buildPlayerPayload(playerA), buildPlayerPayload(playerB)]);
+      const pct = v => v != null ? `${(v*100).toFixed(1)}%` : 'N/A';
+      const block = (p) => `${p.name} (${p.team}, ${p.position})\n  GP: ${p.games_played} | PTS: ${p.avg_pts} | REB: ${p.avg_reb} | AST: ${p.avg_ast} | STL: ${p.avg_stl} | BLK: ${p.avg_blk}\n  FG: ${pct(p.avg_fg)} | 3P: ${pct(p.avg_fg3)} | FT: ${pct(p.avg_ft)}\n  Last 10: ${p.recent_pts}pts / ${p.recent_reb}reb / ${p.recent_ast}ast`;
+      const prompt = `PLAYER COMPARISON — 2025-26 NBA Season\n\n${block(a)}\n\nvs\n\n${block(b)}\n\nWrite a sharp H2H breakdown covering: scoring style, playmaking, defense, efficiency. Name the clear winner in each category. Close with a definitive overall verdict on who the better player is right now. Be specific. No hedging.`;
+      const system = `You are an expert NBA analyst. Today is April 2026 — the 2025-26 season. Use the stats provided plus your knowledge of each player's role, style, and impact. Give a clear verdict.`;
+      const cr = await fetch(`${API}/claude/analyze`, {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ prompt, context: system })
+      });
+      if (!cr.ok) throw new Error('Claude analysis failed');
+      const cd = await cr.json();
+      setResult({ player_a: a, player_b: b, analysis: cd.analysis });
     } catch(e) { setError(e.message); } finally { setLoading(false); }
   };
 
