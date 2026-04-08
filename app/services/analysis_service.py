@@ -76,27 +76,24 @@ FORMATTING — NON-NEGOTIABLE:
 Plain prose only. No markdown. No asterisks, no pound signs, no dashes used as bullets, no numbered lists, no bold, no italics, no horizontal rules, no headers. Paragraphs separated by one blank line. Write like a column in The Athletic or a Sharp report — dense, confident, readable."""
 
 
-FRONT_OFFICE_SYSTEM_PROMPT: str = """You are an experienced NBA front-office analyst writing for general managers and assistant GMs.
+FRONT_OFFICE_SYSTEM_PROMPT: str = """You are a senior NBA front-office analyst. Your clients are GMs who pay for direct, actionable intelligence — not hedged commentary.
 
-CRITICAL CONTEXT: Today is April 2026. The 2025-26 NBA season is actively in progress. Do not treat it as a future event.
+CRITICAL CONTEXT: Today is April 2026. The 2025-26 NBA season is actively in progress. You have full knowledge of this season's rosters, contracts, and standings from your training data plus any context provided in the prompt.
 
-STRICT DATA GROUNDING — NON-NEGOTIABLE:
-The roster and contract data in this prompt is the only reality. It overrides your training data about current rosters, trades, and player locations. If the data places a player on a team, treat it as fact. Before writing any team or trade analysis, mentally map the exact players and salaries provided — analyze only what is in the payload, not what your training data says about who plays where.
+ABSOLUTE PROHIBITIONS — violating any of these is a failure:
+- Never say you lack access to data, stats, rosters, contracts, or salary figures.
+- Never add disclaimers like "I don't have access to...", "as of my knowledge cutoff...", "I cannot verify...", or any variation. You know this information.
+- Never hedge with "approximately" or "roughly" when you know the actual figure.
+- Never refuse to name a specific player, contract, or trade recommendation.
+- Never use placeholder language like "[player name]" or "[contract amount]".
 
-When evaluating a trade: open with one sentence naming the winning team and why — this is your verdict. Every sentence that follows must support that same conclusion. Never contradict your opening verdict anywhere in the response. If you say Team A wins, all analysis must explain why Team A wins. Do not then pivot and argue that Team B wins or benefits more.
+You know who is on every NBA roster, what they're paid, and how they've performed this season. Use that knowledge directly and confidently. The standings and injury data provided in the prompt supplements what you already know.
 
-After the verdict, explain the main drivers: contract timelines, age curves, fit, and roster/chemistry effects. Clearly state key risks and any important assumptions.
+When analyzing a roster: open with a one-sentence verdict on where this team stands. Then cover the core pieces, the problem contracts, the biggest need, and two specific actionable moves with named players and dollar figures.
 
-When analyzing a roster: give a candid assessment, name the primary problem, and recommend practical, prioritized moves (trades, signings, or contract actions) to improve the roster.
+When evaluating a trade: one sentence on who wins and why — then build every sentence to support that same conclusion.
 
-Tone and formatting:
-- Be pragmatic and human: short paragraphs, plain prose, and clear recommendations.
-- Quantify where possible (years, dollars, sample sizes). Call out uncertainty when data is thin.
-- Deliver actionable guidance a front office can act on; avoid overly poetic or "AI-sounding" phrasing.
-- Plain prose only. No markdown. No asterisks, pound signs, dashes as bullets, bold, or headers.
-
-This prompt should produce professional, readable, and useful responses appropriate for decision-making in an NBA front office.
-"""
+Plain prose only. No markdown, no bullets, no numbered lists, no headers, no asterisks. Paragraphs separated by one blank line. Dense, confident, readable — like a Sharp memo."""
 
 
 GAME_ANALYST_SYSTEM_PROMPT: str = """You are a precision NBA game analyst. Your only job is to translate the provided game data into clean, factual observations.
@@ -1067,20 +1064,83 @@ async def analyze_roster(team_name: str) -> dict[str, Any]:
     else:
         logger.debug("No exact team match for %r; proceeding with prompt as-is", team_name)
 
+    # ── Enrich with live standings + injury report ────────────────────────────
+    from app.services import standings_service as _standings_svc
+    import httpx as _httpx
+
+    async def _get_team_standing():
+        try:
+            data = await _standings_svc.get_standings()
+            abbr = matched_team.abbreviation if matched_team else ""
+            by_abbr = {t["abbr"]: t for t in data.get("league", [])}
+            rec = by_abbr.get(abbr, {})
+            if rec:
+                return (
+                    f"{rec.get('name',team_name)} ({abbr}): "
+                    f"{rec.get('wins',0)}-{rec.get('losses',0)} "
+                    f"({rec.get('pct',0):.3f} PCT), "
+                    f"#{rec.get('seed','?')} in {rec.get('conference','?')} Conference, "
+                    f"{rec.get('gb',0)} GB"
+                )
+        except Exception:
+            pass
+        return ""
+
+    async def _get_team_injuries():
+        try:
+            async with _httpx.AsyncClient(timeout=6) as client:
+                r = await client.get(
+                    "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/injuries",
+                    headers={"User-Agent": "Mozilla/5.0"},
+                )
+            raw = r.json()
+            team_kw = (matched_team.name if matched_team else team_name).split()[-1].lower()
+            for tb in raw.get("injuries", []):
+                tname = tb.get("displayName", "").lower()
+                if team_kw in tname:
+                    players = []
+                    for inj in tb.get("injuries", []):
+                        ath = inj.get("athlete", {})
+                        status = inj.get("status", "")
+                        comment = inj.get("shortComment", "")
+                        entry = f"{ath.get('displayName','')} ({status}"
+                        if comment:
+                            entry += f" — {comment}"
+                        entry += ")"
+                        players.append(entry)
+                    if players:
+                        return ", ".join(players[:10])
+        except Exception:
+            pass
+        return ""
+
+    standing_str, injury_str = await asyncio.gather(_get_team_standing(), _get_team_injuries())
+
+    context_lines = []
+    if standing_str:
+        context_lines.append(f"CURRENT STANDINGS:\n{standing_str}")
+    if injury_str:
+        context_lines.append(f"INJURY REPORT:\n{injury_str}")
+    context_block = ("\n\n" + "\n\n".join(context_lines)) if context_lines else ""
+
     prompt = (
-        f"Provide a comprehensive front office analysis for the {team_name}.\n\n"
-        f"Cover:\n"
-        f"1. Current roster assessment — who are the core pieces, who is expendable\n"
-        f"2. Cap situation — are they over or under the cap, any bad contracts\n"
-        f"3. Biggest roster need right now\n"
-        f"4. Top 2 moves the front office should make this offseason\n"
-        f"5. Trade candidates — who has value to other teams\n\n"
-        f"Use your knowledge of the current {_DEFAULT_SEASON} NBA season."
+        f"FRONT OFFICE ANALYSIS — {team_name.upper()}"
+        f"{context_block}\n\n"
+        f"Using the real-time data above plus your full knowledge of the 2025-26 season, "
+        f"write a sharp front-office memo covering:\n\n"
+        f"1. WHERE THIS TEAM STANDS — verdict on their season and trajectory given their record\n"
+        f"2. CORE PIECES — who is untouchable and why\n"
+        f"3. CAP SITUATION — who is overpaid, who is a bargain, key contract timelines\n"
+        f"4. BIGGEST NEED — the specific gap holding this team back\n"
+        f"5. TOP 2 MOVES — name the exact players, teams, and deal structures\n"
+        f"6. TRADE CANDIDATES — who has market value right now and why\n\n"
+        f"Name specific players. Use real contract figures. Give a real verdict. No hedging."
     )
 
     result = await claude_service.analyze(
         prompt=prompt,
         system_prompt=FRONT_OFFICE_SYSTEM_PROMPT,
+        override_max_tokens=1200,
     )
 
     logger.info("Roster analysis complete | team=%r tokens=%d", team_name, result.tokens_used)
