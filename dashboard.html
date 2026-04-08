@@ -1143,7 +1143,7 @@ function GameCard({ g, onSelect, onAnalyze }) {
 
   React.useEffect(() => {
     if (!hasScore) return;
-    fetch(`${API}/nba/games/${g.id}/boxscore`)
+    const load = () => fetch(`${API}/nba/games/${g.id}/boxscore`)
       .then(r => r.ok ? r.json() : null)
       .then(data => {
         if (!data || data.total_players === 0) return;
@@ -1160,7 +1160,9 @@ function GameCard({ g, onSelect, onAnalyze }) {
           }));
         setPerformers(top);
       }).catch(() => {});
-  }, [g.id, hasScore]);
+    load();
+    if (isLive) { const iv = setInterval(load, 20000); return () => clearInterval(iv); }
+  }, [g.id, hasScore, isLive]);
 
   const handlePredict = async (e) => {
     e.stopPropagation();
@@ -1582,10 +1584,13 @@ function Players() {
   const [featuredLive, setFeaturedLive] = React.useState({});
   React.useEffect(() => {
     const ids = FEATURED_PLAYERS.map(p => p.id);
-    fetch(`${API}/nba/bulk-averages?${ids.map(id=>`player_ids=${id}`).join('&')}&season=2025`)
+    const load = () => fetch(`${API}/nba/bulk-averages?${ids.map(id=>`player_ids=${id}`).join('&')}&season=2025`)
       .then(r => r.ok ? r.json() : null)
       .then(d => { if (d?.averages) setFeaturedLive(d.averages); })
       .catch(() => {});
+    load();
+    const iv = setInterval(load, 120000);
+    return () => clearInterval(iv);
   }, []);
 
   const pct = (v) => v != null ? `${(v*100).toFixed(1)}%` : '-';
@@ -1925,17 +1930,23 @@ function FrontOffice() {
   const [standingsError, setStandingsError] = React.useState(false);
 
   React.useEffect(() => {
-    fetch(`${API}/nba/news`)
+    const load = () => fetch(`${API}/nba/news`)
       .then(r => r.ok ? r.json() : null)
       .then(d => { if (d?.headlines) setHeadlines(d.headlines.slice(0, 10)); })
       .catch(() => {});
+    load();
+    const iv = setInterval(load, 300000);
+    return () => clearInterval(iv);
   }, []);
 
   React.useEffect(() => {
-    fetch(`${API}/standings`)
+    const load = () => fetch(`${API}/standings`)
       .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
       .then(d => { setStandings(d); setStandingsLoading(false); })
       .catch(() => { setStandingsError(true); setStandingsLoading(false); });
+    load();
+    const iv = setInterval(load, 600000);
+    return () => clearInterval(iv);
   }, []);
 
   const [injuries, setInjuries] = React.useState(null);
@@ -1943,12 +1954,17 @@ function FrontOffice() {
   const [injuriesError, setInjuriesError] = React.useState(false);
 
   React.useEffect(() => {
-    if (dashTab !== 'injuries' || injuries || injuriesLoading) return;
-    setInjuriesLoading(true);
-    fetch(`${API}/nba/injuries`)
-      .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
-      .then(d => { setInjuries(d); setInjuriesLoading(false); })
-      .catch(() => { setInjuriesError(true); setInjuriesLoading(false); });
+    if (dashTab !== 'injuries') return;
+    const load = () => {
+      setInjuriesLoading(true);
+      fetch(`${API}/nba/injuries`)
+        .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+        .then(d => { setInjuries(d); setInjuriesLoading(false); })
+        .catch(() => { setInjuriesError(true); setInjuriesLoading(false); });
+    };
+    load();
+    const iv = setInterval(load, 300000);
+    return () => clearInterval(iv);
   }, [dashTab]);
 
   const runRoster = async (teamName) => {
@@ -2029,21 +2045,27 @@ function FrontOffice() {
   const [youngLive, setYoungLive] = React.useState({});
 
   React.useEffect(() => {
-    if (dashTab !== 'mvp' || Object.keys(mvpLive).length > 0) return;
+    if (dashTab !== 'mvp') return;
     const ids = MVP_PLAYERS.map(p => p.bdlId);
-    fetch(`${API}/nba/bulk-averages?${ids.map(id=>`player_ids=${id}`).join('&')}&season=2025`)
+    const load = () => fetch(`${API}/nba/bulk-averages?${ids.map(id=>`player_ids=${id}`).join('&')}&season=2025`)
       .then(r => r.ok ? r.json() : null)
       .then(d => { if (d?.averages) setMvpLive(d.averages); })
       .catch(() => {});
+    load();
+    const iv = setInterval(load, 120000);
+    return () => clearInterval(iv);
   }, [dashTab]);
 
   React.useEffect(() => {
-    if (dashTab !== 'young' || Object.keys(youngLive).length > 0) return;
+    if (dashTab !== 'young') return;
     const ids = YOUNG_PLAYERS.map(p => p.bdlId);
-    fetch(`${API}/nba/bulk-averages?${ids.map(id=>`player_ids=${id}`).join('&')}&season=2025`)
+    const load = () => fetch(`${API}/nba/bulk-averages?${ids.map(id=>`player_ids=${id}`).join('&')}&season=2025`)
       .then(r => r.ok ? r.json() : null)
       .then(d => { if (d?.averages) setYoungLive(d.averages); })
       .catch(() => {});
+    load();
+    const iv = setInterval(load, 120000);
+    return () => clearInterval(iv);
   }, [dashTab]);
 
   const TABS = [
@@ -3264,18 +3286,28 @@ function PlayerSearchBox({ label, onSelect }) {
   );
 }
 
-function StatCompareRow({ label, a, b, higher='more' }) {
-  const aNum = parseFloat(a) || 0;
-  const bNum = parseFloat(b) || 0;
-  const aWins = higher === 'more' ? aNum > bNum : aNum < bNum;
-  const bWins = higher === 'more' ? bNum > aNum : bNum < aNum;
+function StatBar({ label, aVal, bVal, aName, bName, fmt, higher='more' }) {
+  const a = parseFloat(aVal) || 0;
+  const b = parseFloat(bVal) || 0;
+  const total = a + b;
+  const aPct = total > 0 ? (a / total) * 100 : 50;
+  const bPct = 100 - aPct;
+  const aWins = higher === 'more' ? a > b : a < b;
+  const bWins = higher === 'more' ? b > a : b < a;
   const green = 'var(--green)';
-  const dim = 'rgba(255,255,255,0.52)';
+  const hi = 'rgba(255,255,255,0.95)';
+  const lo = 'rgba(255,255,255,0.38)';
   return (
-    <div style={{display:'grid', gridTemplateColumns:'1fr 56px 1fr', alignItems:'center', padding:'8px 0', borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
-      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:13, fontWeight:700, color: aWins ? green : 'rgba(255,255,255,0.82)', letterSpacing:0, textTransform:'none', textAlign:'right', textShadow: aWins ? '0 0 18px rgba(0,255,128,0.5)' : 'none'}}>{a}</div>
-      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, letterSpacing:3, color:'rgba(255,255,255,0.3)', fontWeight:700, textAlign:'center', textTransform:'uppercase'}}>{label}</div>
-      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:13, fontWeight:700, color: bWins ? green : 'rgba(255,255,255,0.82)', letterSpacing:0, textTransform:'none', textShadow: bWins ? '0 0 18px rgba(0,255,128,0.5)' : 'none'}}>{b}</div>
+    <div style={{marginBottom:18}}>
+      <div style={{display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:6}}>
+        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:14, fontWeight:700, color: aWins ? green : hi, letterSpacing:0, textShadow: aWins ? '0 0 14px rgba(0,255,128,0.5)' : 'none', minWidth:52}}>{fmt ? fmt(aVal) : aVal}</div>
+        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, letterSpacing:3, color:'rgba(255,255,255,0.3)', fontWeight:700, textTransform:'uppercase'}}>{label}</div>
+        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:14, fontWeight:700, color: bWins ? green : hi, letterSpacing:0, textAlign:'right', textShadow: bWins ? '0 0 14px rgba(0,255,128,0.5)' : 'none', minWidth:52}}>{fmt ? fmt(bVal) : bVal}</div>
+      </div>
+      <div style={{display:'flex', height:4, borderRadius:2, overflow:'hidden', background:'rgba(255,255,255,0.06)'}}>
+        <div style={{width:`${aPct}%`, background: aWins ? 'var(--green)' : 'rgba(255,255,255,0.25)', transition:'width 0.6s ease', borderRadius:'2px 0 0 2px'}}/>
+        <div style={{width:`${bPct}%`, background: bWins ? 'var(--green)' : 'rgba(255,255,255,0.25)', transition:'width 0.6s ease', borderRadius:'0 2px 2px 0'}}/>
+      </div>
     </div>
   );
 }
@@ -3338,16 +3370,16 @@ function Compare() {
     } catch(e) { setError(e.message); } finally { setLoading(false); }
   };
 
-  const pct = v => v != null ? `${(v*100).toFixed(1)}%` : '-';
+  const fmtPct = v => v != null ? `${(v*100).toFixed(1)}%` : '-';
 
   return (
-    <div style={{maxWidth:1100, margin:'0 auto', padding:'40px 32px'}}>
+    <div style={{maxWidth:900, margin:'0 auto', padding:'40px 24px'}}>
 
       {/* Search row */}
-      <div style={{display:'flex', gap:24, alignItems:'flex-start', marginBottom:32}}>
+      <div style={{display:'grid', gridTemplateColumns:'1fr auto 1fr', gap:16, alignItems:'center', marginBottom:32}}>
         <PlayerSearchBox label="Player A" onSelect={p => { setPlayerA(p); setResult(null); setError(null); }}/>
-        <div style={{display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', paddingTop:36, flexShrink:0}}>
-          <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:18, fontWeight:700, letterSpacing:6, color:'rgba(255,255,255,0.15)'}}>VS</div>
+        <div style={{textAlign:'center', paddingTop:28}}>
+          <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, fontWeight:700, letterSpacing:5, color:'rgba(255,255,255,0.18)'}}>VS</div>
         </div>
         <PlayerSearchBox label="Player B" onSelect={p => { setPlayerB(p); setResult(null); setError(null); }}/>
       </div>
@@ -3356,9 +3388,9 @@ function Compare() {
       {canCompare && !result && !loading && (
         <div style={{display:'flex', justifyContent:'center', marginBottom:40}}>
           <button onClick={runCompare}
-            style={{background:'var(--green)', color:'var(--black-deep)', border:'none', padding:'16px 48px', fontSize:11, letterSpacing:5, fontWeight:700, fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', textTransform:'uppercase', cursor:'pointer', borderRadius:4, boxShadow:'0 0 32px rgba(0,255,128,0.35)', transition:'all 0.15s'}}
-            onMouseEnter={e => e.currentTarget.style.boxShadow='0 0 52px rgba(0,255,128,0.6)'}
-            onMouseLeave={e => e.currentTarget.style.boxShadow='0 0 32px rgba(0,255,128,0.35)'}>
+            style={{background:'var(--green)', color:'var(--black-deep)', border:'none', padding:'14px 44px', fontSize:10, letterSpacing:5, fontWeight:700, fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', textTransform:'uppercase', cursor:'pointer', borderRadius:3, boxShadow:'0 0 28px rgba(0,255,128,0.35)', transition:'box-shadow 0.15s'}}
+            onMouseEnter={e => e.currentTarget.style.boxShadow='0 0 48px rgba(0,255,128,0.6)'}
+            onMouseLeave={e => e.currentTarget.style.boxShadow='0 0 28px rgba(0,255,128,0.35)'}>
             RUN COMPARISON →
           </button>
         </div>
@@ -3369,83 +3401,85 @@ function Compare() {
       {loading && (
         <div style={{display:'flex', flexDirection:'column', alignItems:'center', gap:16, padding:'60px 0'}}>
           <Loader label="PIVOT COMPUTING"/>
-          <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:10, letterSpacing:5, color:'rgba(0,255,128,0.5)', fontWeight:700}}>ANALYZING MATCHUP</div>
+          <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:5, color:'rgba(0,255,128,0.5)', fontWeight:700}}>LOADING MATCHUP</div>
         </div>
       )}
 
       {!loading && result && (() => {
         const a = result.player_a;
         const b = result.player_b;
+        const paras = (result.analysis || '').split(/\n{2,}/).filter(Boolean);
         return (
           <div>
-            {/* Player stat cards */}
-            <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:24, marginBottom:28}}>
-              {[a, b].map((p, idx) => (
-                <div key={idx} className="g-card2" style={{padding:28}}>
-                  <div style={{display:'flex', alignItems:'center', gap:14, marginBottom:22}}>
-                    <img src={`${API}/headshot/${p.id}`} style={{width:56, height:56, borderRadius:'50%', objectFit:'cover', border:'2px solid rgba(0,255,128,0.35)', background:'rgba(255,255,255,0.04)', flexShrink:0}} onError={e=>e.target.style.display='none'}/>
-                    <div>
-                      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:15, fontWeight:700, color:'var(--white)', letterSpacing:0, textTransform:'none', marginBottom:4}}>{p.name}</div>
-                      <div style={{display:'flex', gap:8}}>
-                        <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:3, color:'rgba(0,255,128,0.82)', fontWeight:700}}>{p.team}</span>
-                        <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:3, color:'rgba(255,255,255,0.4)', fontWeight:700}}>{p.position}</span>
-                        <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:3, color:'rgba(255,255,255,0.3)', fontWeight:700}}>{p.games_played} GP</span>
-                      </div>
-                    </div>
-                    <div style={{marginLeft:'auto', fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:3, fontWeight:700, color:'rgba(0,255,128,0.6)', textTransform:'uppercase'}}>Player {idx === 0 ? 'A' : 'B'}</div>
-                  </div>
 
-                  {/* Season stat grid */}
-                  <div style={{display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:12, marginBottom:20}}>
-                    {[['PTS', p.avg_pts], ['REB', p.avg_reb], ['AST', p.avg_ast], ['STL', p.avg_stl], ['BLK', p.avg_blk], ['FG%', pct(p.avg_fg)]].map(([lbl, val]) => (
-                      <div key={lbl} style={{textAlign:'center', background:'rgba(255,255,255,0.03)', borderRadius:4, padding:'10px 0'}}>
-                        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:16, fontWeight:700, color:'var(--green)', letterSpacing:0, textShadow:'0 0 20px rgba(0,255,128,0.5)'}}>{val}</div>
-                        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, letterSpacing:3, color:'rgba(255,255,255,0.35)', fontWeight:700, marginTop:3}}>{lbl}</div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Shooting */}
-                  <div style={{display:'flex', gap:16, paddingTop:14, borderTop:'1px solid rgba(255,255,255,0.05)'}}>
-                    {[['3P%', pct(p.avg_fg3)], ['FT%', pct(p.avg_ft)]].map(([lbl, val]) => (
-                      <div key={lbl} style={{flex:1, textAlign:'center'}}>
-                        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:13, fontWeight:700, color:'rgba(255,255,255,0.82)'}}>{val}</div>
-                        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, letterSpacing:3, color:'rgba(255,255,255,0.3)', fontWeight:700, marginTop:2}}>{lbl}</div>
-                      </div>
-                    ))}
-                    <div style={{flex:2, borderLeft:'1px solid rgba(255,255,255,0.05)', paddingLeft:16}}>
-                      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, letterSpacing:3, color:'rgba(0,255,128,0.6)', fontWeight:700, marginBottom:6}}>LAST 10 AVG</div>
-                      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, fontWeight:700, color:'rgba(255,255,255,0.7)', letterSpacing:0, textTransform:'none'}}>
-                        {p.recent_pts}pts · {p.recent_reb}reb · {p.recent_ast}ast
-                      </div>
+            {/* Hero header: side-by-side player identity */}
+            <div className="g-card2" style={{padding:'28px 32px', marginBottom:20}}>
+              <div style={{display:'grid', gridTemplateColumns:'1fr auto 1fr', alignItems:'center', gap:24}}>
+                {/* Player A */}
+                <div style={{display:'flex', alignItems:'center', gap:16}}>
+                  <img src={`${API}/headshot/${a.id}`} style={{width:72, height:72, borderRadius:'50%', objectFit:'cover', border:'2px solid rgba(0,255,128,0.4)', background:'rgba(255,255,255,0.04)', flexShrink:0}} onError={e=>e.target.style.display='none'}/>
+                  <div>
+                    <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:18, fontWeight:700, color:'var(--white)', letterSpacing:0, marginBottom:5}}>{a.name}</div>
+                    <div style={{display:'flex', gap:8, flexWrap:'wrap'}}>
+                      <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:3, color:'rgba(0,255,128,0.82)', fontWeight:700}}>{a.team}</span>
+                      <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:2, color:'rgba(255,255,255,0.35)', fontWeight:700}}>{a.position} · {a.games_played} GP</span>
                     </div>
                   </div>
                 </div>
-              ))}
+                {/* VS divider */}
+                <div style={{textAlign:'center'}}>
+                  <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:5, color:'rgba(0,255,128,0.5)', fontWeight:700}}>VS</div>
+                </div>
+                {/* Player B */}
+                <div style={{display:'flex', alignItems:'center', gap:16, justifyContent:'flex-end', flexDirection:'row-reverse'}}>
+                  <img src={`${API}/headshot/${b.id}`} style={{width:72, height:72, borderRadius:'50%', objectFit:'cover', border:'2px solid rgba(0,255,128,0.4)', background:'rgba(255,255,255,0.04)', flexShrink:0}} onError={e=>e.target.style.display='none'}/>
+                  <div style={{textAlign:'right'}}>
+                    <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:18, fontWeight:700, color:'var(--white)', letterSpacing:0, marginBottom:5}}>{b.name}</div>
+                    <div style={{display:'flex', gap:8, flexWrap:'wrap', justifyContent:'flex-end'}}>
+                      <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:3, color:'rgba(0,255,128,0.82)', fontWeight:700}}>{b.team}</span>
+                      <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:2, color:'rgba(255,255,255,0.35)', fontWeight:700}}>{b.position} · {b.games_played} GP</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            {/* Head-to-head stat comparison */}
-            <div className="g-card2" style={{padding:'24px 32px', marginBottom:24}}>
-              <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:5, color:'rgba(0,255,128,0.82)', fontWeight:700, textTransform:'uppercase', marginBottom:18, textAlign:'center'}}>Head-to-Head · Season Averages</div>
-              <div style={{display:'grid', gridTemplateColumns:'1fr 56px 1fr', marginBottom:12}}>
-                <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, fontWeight:700, color:'rgba(255,255,255,0.5)', letterSpacing:2, textAlign:'right', paddingRight:8, textTransform:'none'}}>{a.name.split(' ').slice(-1)[0]}</div>
-                <div/>
-                <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, fontWeight:700, color:'rgba(255,255,255,0.5)', letterSpacing:2, textTransform:'none'}}>{b.name.split(' ').slice(-1)[0]}</div>
+            {/* Stat bars — full unified comparison */}
+            <div className="g-card2" style={{padding:'28px 32px', marginBottom:20}}>
+              <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:5, color:'rgba(0,255,128,0.7)', fontWeight:700, textTransform:'uppercase', marginBottom:24}}>2025-26 Season Averages</div>
+              <StatBar label="PTS"  aVal={a.avg_pts} bVal={b.avg_pts} aName={a.name} bName={b.name}/>
+              <StatBar label="REB"  aVal={a.avg_reb} bVal={b.avg_reb} aName={a.name} bName={b.name}/>
+              <StatBar label="AST"  aVal={a.avg_ast} bVal={b.avg_ast} aName={a.name} bName={b.name}/>
+              <StatBar label="STL"  aVal={a.avg_stl} bVal={b.avg_stl} aName={a.name} bName={b.name}/>
+              <StatBar label="BLK"  aVal={a.avg_blk} bVal={b.avg_blk} aName={a.name} bName={b.name}/>
+              <StatBar label="FG%"  aVal={a.avg_fg != null ? +(a.avg_fg*100).toFixed(1) : null} bVal={b.avg_fg != null ? +(b.avg_fg*100).toFixed(1) : null} fmt={v => v != null ? `${v}%` : '-'}/>
+              <StatBar label="3P%"  aVal={a.avg_fg3 != null ? +(a.avg_fg3*100).toFixed(1) : null} bVal={b.avg_fg3 != null ? +(b.avg_fg3*100).toFixed(1) : null} fmt={v => v != null ? `${v}%` : '-'}/>
+              <div style={{marginBottom:0}}>
+                <StatBar label="FT%"  aVal={a.avg_ft != null ? +(a.avg_ft*100).toFixed(1) : null} bVal={b.avg_ft != null ? +(b.avg_ft*100).toFixed(1) : null} fmt={v => v != null ? `${v}%` : '-'}/>
               </div>
-              <StatCompareRow label="PTS"  a={a.avg_pts} b={b.avg_pts}/>
-              <StatCompareRow label="REB"  a={a.avg_reb} b={b.avg_reb}/>
-              <StatCompareRow label="AST"  a={a.avg_ast} b={b.avg_ast}/>
-              <StatCompareRow label="STL"  a={a.avg_stl} b={b.avg_stl}/>
-              <StatCompareRow label="BLK"  a={a.avg_blk} b={b.avg_blk}/>
-              <StatCompareRow label="FG%"  a={pct(a.avg_fg)}  b={pct(b.avg_fg)}/>
-              <StatCompareRow label="3P%"  a={pct(a.avg_fg3)} b={pct(b.avg_fg3)}/>
-              <StatCompareRow label="FT%"  a={pct(a.avg_ft)}  b={pct(b.avg_ft)}/>
+              <div style={{borderTop:'1px solid rgba(255,255,255,0.06)', paddingTop:18, marginTop:6, display:'grid', gridTemplateColumns:'1fr auto 1fr', gap:8, alignItems:'center'}}>
+                <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, fontWeight:700, color:'rgba(255,255,255,0.6)'}}>L10: {a.recent_pts}pts / {a.recent_reb}reb / {a.recent_ast}ast</div>
+                <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, letterSpacing:3, color:'rgba(255,255,255,0.2)', fontWeight:700, textAlign:'center'}}>LAST 10</div>
+                <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, fontWeight:700, color:'rgba(255,255,255,0.6)', textAlign:'right'}}>L10: {b.recent_pts}pts / {b.recent_reb}reb / {b.recent_ast}ast</div>
+              </div>
             </div>
 
             {/* Claude verdict */}
             <div className="g-card2" style={{padding:'28px 32px'}}>
-              <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:5, color:'rgba(0,255,128,0.82)', fontWeight:700, textTransform:'uppercase', marginBottom:20}}>PIVOT Matchup Analysis</div>
-              <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:14, lineHeight:1.9, letterSpacing:0, color:'rgba(255,255,255,0.88)', whiteSpace:'pre-wrap', fontWeight:700, textTransform:'none'}}>{result.analysis}</div>
+              <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:5, color:'rgba(0,255,128,0.82)', fontWeight:700, textTransform:'uppercase', marginBottom:22}}>PIVOT Matchup Analysis</div>
+              <div style={{display:'flex', flexDirection:'column', gap:16}}>
+                {paras.map((p, i) => (
+                  <p key={i} style={{margin:0, fontFamily:'Helvetica Neue, sans-serif', fontSize:14, lineHeight:1.85, letterSpacing:0, color: i === paras.length-1 ? 'var(--white)' : 'rgba(255,255,255,0.82)', fontWeight: i === paras.length-1 ? 700 : 500, textTransform:'none'}}>{p.replace(/^\d+\.\s*/, '')}</p>
+                ))}
+              </div>
+              <div style={{marginTop:24, display:'flex', gap:12}}>
+                <button onClick={runCompare}
+                  style={{background:'none', border:'1px solid rgba(0,255,128,0.35)', color:'rgba(0,255,128,0.82)', padding:'8px 20px', fontSize:9, letterSpacing:4, fontWeight:700, fontFamily:'Helvetica Neue, sans-serif', textTransform:'uppercase', cursor:'pointer', borderRadius:3, transition:'all 0.15s'}}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor='rgba(0,255,128,0.7)'; e.currentTarget.style.color='var(--green)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor='rgba(0,255,128,0.35)'; e.currentTarget.style.color='rgba(0,255,128,0.82)'; }}>
+                  REFRESH →
+                </button>
+              </div>
             </div>
           </div>
         );
