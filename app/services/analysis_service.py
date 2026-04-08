@@ -67,12 +67,16 @@ You will receive a stat block with season averages and recent game logs. If any 
 EFFICIENCY METRICS — USE THESE, NOT RAW FG%:
 True Shooting % (TS%) and Effective FG% (eFG%) are the primary lenses for scoring efficiency. FG% alone is misleading — it ignores free throws and devalues three-point shooting. Always lead efficiency analysis with TS% or eFG% when provided. Context for elite tiers: TS% above 60% is elite, 57–60% is very good, below 54% is a problem. eFG% above 56% is elite, 52–56% is solid.
 
+3-POINT SHOOTING — VOLUME CONTEXT IS MANDATORY:
+Raw 3P% is nearly meaningless without knowing 3PA/game. High-volume three-point shooters (6+ 3PA/game) consistently shoot 34–38% — that is their correct operating range. Among the top-10 players in 3PA/game league-wide, virtually none shoot above 40%. A player averaging 36–38% on 8+ 3PA/game is an elite shooter by any serious metric. Never compare raw 3P% between a high-volume and low-volume shooter without explicitly noting the volume difference. A role player shooting 43% on 3 attempts is not a better shooter than a lead creator shooting 37% on 9 attempts.
+
 INTERPRETING L10 TRENDS — CONTEXT IS MANDATORY:
-A 10-game window is roughly 12% of a regular season. Before characterizing any L10 vs season delta as a "decline" or "deterioration":
-1. Check the magnitude — a 2 PPG dip for a 28 PPG scorer is within normal variance. Require at least a 15–20% change from baseline before calling it meaningful.
-2. Check FT rate — a rising FTA/game alongside lower FG attempts often means defenses are scheme-adjusting (more physicality, trying to foul rather than contest). This is a sign the player is a threat, not a sign of decline.
-3. Check the opponent slate — late-season schedules often cluster elite defensive teams, especially playoff seeding races. A shooting dip in 10 games against top-5 defenses is expected, not alarming.
-4. Never use words like "sharp deterioration," "hitting a wall," "running out of gas," or "collapse" for a 10-game window unless the drop is historically severe (>25% below baseline across multiple categories simultaneously).
+A 10-game window is roughly 12% of a regular season. The stat block provides per-36 numbers for both the season and L10 — USE THEM. Per-game raw stats drop when minutes drop (blowouts, load management, lineup changes). Before characterizing any L10 vs season delta as a "decline" or "deterioration":
+1. Check per-36 first — if per-36 is flat, the raw per-game drop is a minutes story, not a production story. State this explicitly.
+2. Check the magnitude — require at least a 15–20% change from baseline in per-36 numbers before calling anything meaningful.
+3. Check FT rate — a rising FTA/game alongside lower FG attempts often means defenses are fouling more aggressively (a sign of defensive respect, not player decline).
+4. Check the opponent slate — late-season schedules cluster elite defensive teams. A shooting dip against top-5 defenses is expected.
+5. Never use "sharp deterioration," "hitting a wall," "running out of gas," or "collapse" for a 10-game window unless the drop is severe (>25% below baseline) in per-36 numbers across multiple categories simultaneously.
 
 You have watched more NBA film than anyone in this conversation. You know pace differentials, defensive rating trends, how teams perform on back-to-backs, which coaches make in-game adjustments and which ones don't, which stars disappear in fourth quarters. You use that knowledge.
 
@@ -526,61 +530,69 @@ async def _build_player_stat_block(player_id: int, season: int) -> tuple[Any, di
     avg_ft  = round(float(official.get("ft_pct") or _safe_avg([s.ft_pct for s in stats])), 3)
 
     # Volume / usage context from official season averages
-    avg_fga = round(float(official.get("fga") or 0), 1)
-    avg_fta = round(float(official.get("fta") or 0), 1)
-    avg_fgm = round(float(official.get("fgm") or 0), 1)
+    avg_fga  = round(float(official.get("fga")  or 0), 1)
+    avg_fta  = round(float(official.get("fta")  or 0), 1)
+    avg_fgm  = round(float(official.get("fgm")  or 0), 1)
     avg_fg3m = round(float(official.get("fg3m") or 0), 1)
-    avg_tov = round(float(official.get("turnover") or 0), 1)
-    avg_min = round(float(official.get("min") or 0), 1)
+    avg_fg3a = round(float(official.get("fg3a") or 0), 1)   # 3-point attempts per game
+    avg_tov  = round(float(official.get("turnover") or 0), 1)
+    avg_min  = round(float(official.get("min")  or 0), 1)
 
     # Advanced efficiency metrics (require volume data to be meaningful)
-    if avg_fga > 0 and avg_pts > 0 and avg_fta >= 0:
-        ts_pct = round(avg_pts / (2.0 * (avg_fga + 0.44 * avg_fta)), 3)
-    else:
-        ts_pct = 0.0
-    if avg_fga > 0:
+    if avg_fga > 0 and avg_pts > 0:
+        ts_pct  = round(avg_pts / (2.0 * (avg_fga + 0.44 * avg_fta)), 3)
         efg_pct = round((avg_fgm + 0.5 * avg_fg3m) / avg_fga, 3)
-        ft_rate = round(avg_fta / avg_fga, 3)  # FTA per FGA — proxy for drawing fouls
+        ft_rate = round(avg_fta / avg_fga, 3)   # FTA/FGA — how often defense fouls
     else:
-        efg_pct = 0.0
-        ft_rate = 0.0
+        ts_pct = efg_pct = ft_rate = 0.0
 
-    # Recent form: last N games by chronological order (stats are pre-sorted
-    # ascending by game_id in nba_service.get_player_stats).
+    # Per-36 season averages (minutes-neutral production)
+    def _per36(raw: float, mpg: float) -> float:
+        return round(raw / mpg * 36, 1) if mpg > 0 else 0.0
+
+    per36_pts = _per36(avg_pts, avg_min)
+    per36_reb = _per36(avg_reb, avg_min)
+    per36_ast = _per36(avg_ast, avg_min)
+
+    # Recent form: last N games, including minutes parsing for per-36 context
     recent = stats[-_RECENT_FORM_WINDOW:]
 
-    recent_pts  = _safe_avg([s.points for s in recent])
+    def _parse_min(m: Any) -> float:
+        try:
+            parts = str(m or "0").split(":")
+            return float(parts[0]) + (float(parts[1]) / 60 if len(parts) == 2 else 0.0)
+        except Exception:
+            return 0.0
+
+    recent_pts  = _safe_avg([s.points   for s in recent])
     recent_reb  = _safe_avg([s.rebounds for s in recent])
-    recent_ast  = _safe_avg([s.assists for s in recent])
-    recent_stl  = _safe_avg([s.steals for s in recent])
-    recent_blk  = _safe_avg([s.blocks for s in recent])
-    recent_fg   = _safe_avg([s.fg_pct for s in recent])
-    recent_fg3  = _safe_avg([s.fg3_pct for s in recent])
+    recent_ast  = _safe_avg([s.assists  for s in recent])
+    recent_stl  = _safe_avg([s.steals   for s in recent])
+    recent_blk  = _safe_avg([s.blocks   for s in recent])
+    recent_fg   = _safe_avg([s.fg_pct   for s in recent])
+    recent_fg3  = _safe_avg([s.fg3_pct  for s in recent])
+    recent_min  = round(_safe_avg([_parse_min(s.minutes) for s in recent if s.minutes]), 1)
+
+    # L10 per-36 (minutes-neutral — catches blowout/rest effects)
+    recent_pts_36 = _per36(recent_pts, recent_min)
+    recent_reb_36 = _per36(recent_reb, recent_min)
+    recent_ast_36 = _per36(recent_ast, recent_min)
 
     aggregates: dict[str, Any] = {
-        "total_games": total_games,
-        "avg_pts": avg_pts,
-        "avg_reb": avg_reb,
-        "avg_ast": avg_ast,
-        "avg_stl": avg_stl,
-        "avg_blk": avg_blk,
-        "avg_fg": avg_fg,
-        "avg_fg3": avg_fg3,
-        "avg_ft": avg_ft,
-        "avg_fga": avg_fga,
-        "avg_fta": avg_fta,
-        "avg_tov": avg_tov,
-        "avg_min": avg_min,
-        "ts_pct": ts_pct,
-        "efg_pct": efg_pct,
-        "ft_rate": ft_rate,
-        "recent_pts": recent_pts,
-        "recent_reb": recent_reb,
-        "recent_ast": recent_ast,
-        "recent_stl": recent_stl,
-        "recent_blk": recent_blk,
-        "recent_fg": recent_fg,
-        "recent_fg3": recent_fg3,
+        "total_games":  total_games,
+        "avg_pts":  avg_pts,  "avg_reb":  avg_reb,  "avg_ast":  avg_ast,
+        "avg_stl":  avg_stl,  "avg_blk":  avg_blk,
+        "avg_fg":   avg_fg,   "avg_fg3":  avg_fg3,  "avg_ft":   avg_ft,
+        "avg_fga":  avg_fga,  "avg_fta":  avg_fta,  "avg_fg3a": avg_fg3a,
+        "avg_tov":  avg_tov,  "avg_min":  avg_min,
+        "ts_pct":   ts_pct,   "efg_pct":  efg_pct,  "ft_rate":  ft_rate,
+        "per36_pts": per36_pts, "per36_reb": per36_reb, "per36_ast": per36_ast,
+        "recent_pts": recent_pts, "recent_reb": recent_reb, "recent_ast": recent_ast,
+        "recent_stl": recent_stl, "recent_blk": recent_blk,
+        "recent_fg":  recent_fg,  "recent_fg3": recent_fg3,
+        "recent_min": recent_min,
+        "recent_pts_36": recent_pts_36, "recent_reb_36": recent_reb_36,
+        "recent_ast_36": recent_ast_36,
     }
 
     return player, aggregates
@@ -605,41 +617,51 @@ def _render_stat_block(player: Any, season: int, agg: dict[str, Any]) -> str:
         Multi-line stat block, plain text, no markdown.
     """
     team_name = player.team.name if player.team else "N/A"
-
-    # Format advanced efficiency (omit if zero — means volume data wasn't returned)
-    ts_line = f"TS%: {agg['ts_pct']:.1%} | eFG%: {agg['efg_pct']:.1%}" if agg.get("ts_pct") else ""
-    vol_line = ""
-    if agg.get("avg_fga"):
-        vol_line = (
-            f"FGA/G: {agg['avg_fga']} | FTA/G: {agg['avg_fta']} "
-            f"(FT Rate: {agg['ft_rate']:.2f}) | TOV/G: {agg['avg_tov']} | MIN: {agg['avg_min']}"
-        )
+    has_vol = agg.get("avg_fga", 0) > 0
 
     block = (
         f"Player: {player.first_name} {player.last_name}\n"
         f"Team: {team_name} | Position: {player.position or 'N/A'} | "
-        f"Season: {season} | Games: {agg['total_games']}\n"
+        f"Season: {season} | Games: {agg['total_games']} | MIN/G: {agg['avg_min']}\n"
         f"\n"
-        f"SEASON AVERAGES:\n"
+        f"SEASON AVERAGES (per game):\n"
         f"  PTS: {agg['avg_pts']} | REB: {agg['avg_reb']} | AST: {agg['avg_ast']} | "
-        f"STL: {agg['avg_stl']} | BLK: {agg['avg_blk']}\n"
-        f"  FG%: {agg['avg_fg']:.1%} | 3P%: {agg['avg_fg3']:.1%} | FT%: {agg['avg_ft']:.1%}\n"
+        f"STL: {agg['avg_stl']} | BLK: {agg['avg_blk']} | TOV: {agg['avg_tov']}\n"
     )
-    if ts_line:
-        block += f"  {ts_line}\n"
-    if vol_line:
-        block += f"  {vol_line}\n"
+    if has_vol:
+        block += (
+            f"  3PA/G: {agg['avg_fg3a']} | 3P%: {agg['avg_fg3']:.1%} | "
+            f"FGA/G: {agg['avg_fga']} | FTA/G: {agg['avg_fta']} "
+            f"(FT Rate: {agg['ft_rate']:.2f}) | FT%: {agg['avg_ft']:.1%}\n"
+            f"  TS%: {agg['ts_pct']:.1%} | eFG%: {agg['efg_pct']:.1%}\n"
+        )
+    else:
+        block += f"  FG%: {agg['avg_fg']:.1%} | 3P%: {agg['avg_fg3']:.1%} | FT%: {agg['avg_ft']:.1%}\n"
+
+    if agg.get("avg_min", 0) > 0:
+        block += (
+            f"  PER 36: {agg['per36_pts']} PTS / {agg['per36_reb']} REB / {agg['per36_ast']} AST\n"
+        )
+
+    recent_min = agg.get("recent_min", 0)
+    min_note = f" | MPG this stretch: {recent_min}" if recent_min > 0 else ""
     block += (
         f"\n"
-        f"LAST {_RECENT_FORM_WINDOW} GAMES (small sample — interpret with context):\n"
+        f"LAST {_RECENT_FORM_WINDOW} GAMES (small sample ~12% of season{min_note}):\n"
         f"  PTS: {agg['recent_pts']} ({_trend_label(agg['recent_pts'], agg['avg_pts'])} vs season) | "
         f"REB: {agg['recent_reb']} ({_trend_label(agg['recent_reb'], agg['avg_reb'])}) | "
         f"AST: {agg['recent_ast']} ({_trend_label(agg['recent_ast'], agg['avg_ast'])})\n"
         f"  STL: {agg['recent_stl']} ({_trend_label(agg['recent_stl'], agg['avg_stl'])}) | "
         f"BLK: {agg['recent_blk']} ({_trend_label(agg['recent_blk'], agg['avg_blk'])})\n"
         f"  FG%: {agg['recent_fg']:.1%} ({_pct_trend_label(agg['recent_fg'], agg['avg_fg'])}) | "
-        f"3P%: {agg['recent_fg3']:.1%} ({_pct_trend_label(agg['recent_fg3'], agg['avg_fg3'])})"
+        f"3P%: {agg['recent_fg3']:.1%} ({_pct_trend_label(agg['recent_fg3'], agg['avg_fg3'])})\n"
     )
+    if agg.get("recent_pts_36") and recent_min > 0:
+        block += (
+            f"  PER 36 (L10): {agg['recent_pts_36']} PTS / {agg['recent_reb_36']} REB / "
+            f"{agg['recent_ast_36']} AST "
+            f"(vs season per-36: {agg['per36_pts']} / {agg['per36_reb']} / {agg['per36_ast']})\n"
+        )
     return block
 
 
@@ -759,9 +781,9 @@ async def analyze_player(
         f"Analyze this player's {season} NBA season:\n\n"
         f"{stat_block}\n\n"
         f"Cover in order:\n"
-        f"1. EFFICIENCY ANCHOR — lead with TS% or eFG% as the primary lens. What does it say about this player's true value?\n"
-        f"2. ROLE & USAGE — what do FGA/G, FTA/G, and FT Rate reveal about how defenses are treating this player? Rising FT rate often means defenses are fouling more, not that the player is declining.\n"
-        f"3. LAST {_RECENT_FORM_WINDOW} GAMES — frame this as a small sample. Before calling anything a decline, check the magnitude (>15% drop?), and consider opponent quality, schedule clustering, and usage shifts. Be accurate, not alarming.\n"
+        f"1. EFFICIENCY ANCHOR — lead with TS% or eFG%. What does it say about this player's true scoring value? For 3-point shooting, cite 3PA/G alongside 3P% — volume context is mandatory.\n"
+        f"2. ROLE & USAGE — what do FGA/G, FTA/G, FT Rate, and MIN/G reveal about how this player is being used and how defenses are scheming against them?\n"
+        f"3. LAST {_RECENT_FORM_WINDOW} GAMES — compare per-36 L10 vs per-36 season first. If per-36 is flat but raw per-game is down, say so directly: that is a minutes story. Only flag a real concern if per-36 numbers have moved significantly.\n"
         f"4. VERDICT — one precise sentence on where this player stands right now.\n"
         f"Write it as connected prose, not a list."
     )
