@@ -1167,12 +1167,23 @@ function GameCard({ g, onSelect, onAnalyze }) {
     if (prediction || predLoading) return;
     setPredLoading(true);
     try {
-      const r = await fetch(`${API}/analysis/predict-game`, {
-        method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(g)
+      const homeName = g.home_team.full_name || g.home_team.name;
+      const awayName = g.visitor_team.full_name || g.visitor_team.name;
+      const homeAbbr = g.home_team.abbreviation;
+      const awayAbbr = g.visitor_team.abbreviation;
+      const prompt = `UPCOMING GAME: ${awayName} (${awayAbbr}) at ${homeName} (${homeAbbr})\n\nReturn a JSON object with exactly these four fields:\n  pick: the full team name you pick to win (must be exactly "${homeName}" or "${awayName}")\n  confidence: integer between 50 and 95 representing your confidence percentage\n  key_factor: one sentence naming the single most important factor that determines this outcome\n  reasoning: exactly two sentences explaining your pick\n\nReturn only valid JSON. No markdown, no explanation outside the JSON object.`;
+      const system = `You are a sharp NBA predictor. Use your knowledge of these franchises, their current season trajectories, home court advantage, and stylistic matchups. Today is April 2026 — the 2025-26 season is in progress. Return only a valid JSON object with the exact fields requested. No markdown fences, no extra text.`;
+      const r = await fetch(`${API}/claude/analyze`, {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ prompt, context: system })
       });
       const data = await r.json();
-      setPrediction(data.error ? null : data);
-    } catch(_) {} finally { setPredLoading(false); }
+      let raw = (data.analysis || '').trim();
+      if (raw.startsWith('```')) { raw = raw.split('```')[1]; if (raw.startsWith('json')) raw = raw.slice(4); raw = raw.trim(); }
+      const parsed = JSON.parse(raw);
+      const confidence = Math.max(50, Math.min(95, parseInt(parsed.confidence) || 60));
+      setPrediction({ pick: parsed.pick, confidence, key_factor: parsed.key_factor, reasoning: parsed.reasoning });
+    } catch(_) { setPrediction(null); } finally { setPredLoading(false); }
   };
 
   const handleMouseMove = (e) => {
