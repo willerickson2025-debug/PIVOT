@@ -208,6 +208,15 @@ async def game_analysis(request: Request):
         raise HTTPException(status_code=502, detail=str(e))
 
 
+@router.post("/analysis/predict-game")
+async def predict_game(request: Request):
+    try:
+        body = await request.json()
+        return await analysis_service.predict_game(body)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+
 @router.get("/analysis/today-games", response_model=GameAnalysisResponse)
 async def today_games_analysis(date: Optional[str] = Query(None, description="Format: YYYY-MM-DD")):
     if date and not validate_date_string(date):

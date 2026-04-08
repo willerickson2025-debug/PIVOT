@@ -1554,3 +1554,87 @@ async def timeout_play(body: dict[str, Any]) -> dict[str, Any]:
         "model": result.model,
         "tokens_used": result.tokens_used,
     }
+
+
+async def predict_game(body: dict[str, Any]) -> dict[str, Any]:
+    """
+    Return a structured prediction for an upcoming game.
+
+    Accepts the same game object the frontend has (home_team, visitor_team, status).
+    Returns JSON: pick, confidence (int 50-95), key_factor (1 sentence), reasoning (2 sentences).
+    Only valid for upcoming games — returns an error dict for live/final games.
+    """
+    import json as _json
+
+    home_t  = body.get("home_team") or {}
+    away_t  = body.get("visitor_team") or {}
+    home_name = home_t.get("full_name") or home_t.get("name") or "Home"
+    away_name = away_t.get("full_name") or away_t.get("name") or "Away"
+    home_abbr = home_t.get("abbreviation") or home_name
+    away_abbr = away_t.get("abbreviation") or away_name
+    game_id   = int(body.get("id") or 0)
+    status    = (body.get("status") or "").lower()
+
+    if "final" in status or any(q in status for q in ["qtr", "half", "in progress"]):
+        return {"error": "Predictions only available for upcoming games."}
+
+    cache_key = f"predict_game:{game_id}"
+    cached = analysis_cache.get(cache_key)
+    if cached:
+        logger.info("predict_game cache hit | game_id=%d", game_id)
+        return cached
+
+    prompt = (
+        f"UPCOMING GAME: {away_name} ({away_abbr}) at {home_name} ({home_abbr})\n\n"
+        f"Return a JSON object with exactly these four fields:\n"
+        f"  pick: the full team name you pick to win (must be exactly \"{home_name}\" or \"{away_name}\")\n"
+        f"  confidence: integer between 50 and 95 representing your confidence percentage\n"
+        f"  key_factor: one sentence naming the single most important factor that determines this outcome\n"
+        f"  reasoning: exactly two sentences explaining your pick\n\n"
+        f"Return only valid JSON. No markdown, no explanation outside the JSON object."
+    )
+
+    system = (
+        "You are a sharp NBA predictor. Use your knowledge of these franchises, their current season trajectories, "
+        "home court advantage, and stylistic matchups. Today is April 2026 — the 2025-26 season is in progress. "
+        "Return only a valid JSON object with the exact fields requested. No markdown fences, no extra text."
+    )
+
+    result = await claude_service.analyze(
+        prompt=prompt,
+        system_prompt=system,
+        override_model=_FAST_MODEL,
+        override_max_tokens=200,
+        override_temperature=0.2,
+    )
+
+    raw = result.analysis.strip()
+    # Strip markdown fences if present
+    if raw.startswith("```"):
+        raw = raw.split("```")[1]
+        if raw.startswith("json"):
+            raw = raw[4:]
+    raw = raw.strip()
+
+    try:
+        parsed = _json.loads(raw)
+        pick       = str(parsed.get("pick", home_name))
+        confidence = max(50, min(95, int(parsed.get("confidence", 60))))
+        key_factor = str(parsed.get("key_factor", ""))
+        reasoning  = str(parsed.get("reasoning", ""))
+    except Exception:
+        logger.warning("predict_game JSON parse failed | raw=%r", raw[:200])
+        return {"error": "Could not parse prediction."}
+
+    response = {
+        "game_id": game_id,
+        "pick": pick,
+        "confidence": confidence,
+        "key_factor": key_factor,
+        "reasoning": reasoning,
+        "model": result.model,
+        "tokens_used": result.tokens_used,
+    }
+    analysis_cache.set(cache_key, response, ttl=1800)
+    logger.info("predict_game complete | game_id=%d pick=%s confidence=%d", game_id, pick, confidence)
+    return response
