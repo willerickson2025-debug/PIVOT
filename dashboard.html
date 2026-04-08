@@ -3335,27 +3335,40 @@ function Compare() {
   const buildPlayerPayload = async (p) => {
     const name = `${p.first_name} ${p.last_name}`;
     const team = p.team?.abbreviation || p.team?.name || '';
-    const r = await fetch(`${API}/nba/players/${p.id}/stats?season=2025`);
-    const d = r.ok ? await r.json() : { stats: [] };
-    const stats = d.stats || [];
-    const gp = stats.length;
-    const avg = (fn) => gp ? (stats.reduce((s, g) => s + (fn(g) || 0), 0) / gp) : null;
-    const pctAvg = (field) => {
-      const valid = stats.filter(g => g[field] != null);
+
+    // Fetch official season averages + game logs in parallel.
+    // Season averages use BDL's /season_averages (pre-computed, correct).
+    // Game logs are only used for L10 recent form.
+    const [avgResp, logsResp] = await Promise.all([
+      fetch(`${API}/nba/bulk-averages?player_ids=${p.id}&season=2025`).catch(() => null),
+      fetch(`${API}/nba/players/${p.id}/stats?season=2025`).catch(() => null),
+    ]);
+
+    const avgs = avgResp?.ok ? ((await avgResp.json()).averages?.[String(p.id)] || {}) : {};
+    const logsData = logsResp?.ok ? await logsResp.json() : { stats: [] };
+    const logs = logsData.stats || [];
+    const recent = logs.slice(-10);
+    const rAvg = (fn) => recent.length ? (recent.reduce((s, g) => s + (fn(g) || 0), 0) / recent.length) : null;
+
+    // If official averages exist use them; otherwise compute from game logs as fallback.
+    const hasAvgs = Object.keys(avgs).length > 0;
+    const gp = hasAvgs ? (avgs.games_played || avgs.gp || logs.length) : logs.length;
+    const logAvg = (fn) => logs.length ? (logs.reduce((s, g) => s + (fn(g) || 0), 0) / logs.length) : null;
+    const logPctAvg = (field) => {
+      const valid = logs.filter(g => g[field] != null);
       return valid.length ? valid.reduce((s, g) => s + g[field], 0) / valid.length : null;
     };
-    const recent = stats.slice(-10);
-    const rAvg = (fn) => recent.length ? (recent.reduce((s, g) => s + (fn(g) || 0), 0) / recent.length) : null;
+
     return {
       id: p.id, name, team, position: p.position || '', games_played: gp,
-      avg_pts: avg(g => g.points)?.toFixed(1) || '-',
-      avg_reb: avg(g => g.rebounds)?.toFixed(1) || '-',
-      avg_ast: avg(g => g.assists)?.toFixed(1) || '-',
-      avg_stl: avg(g => g.steals)?.toFixed(1) || '-',
-      avg_blk: avg(g => g.blocks)?.toFixed(1) || '-',
-      avg_fg:  pctAvg('fg_pct'),
-      avg_fg3: pctAvg('fg3_pct'),
-      avg_ft:  pctAvg('ft_pct'),
+      avg_pts: hasAvgs ? (+avgs.pts || 0).toFixed(1) : (logAvg(g => g.points)?.toFixed(1) || '-'),
+      avg_reb: hasAvgs ? (+avgs.reb || 0).toFixed(1) : (logAvg(g => g.rebounds)?.toFixed(1) || '-'),
+      avg_ast: hasAvgs ? (+avgs.ast || 0).toFixed(1) : (logAvg(g => g.assists)?.toFixed(1) || '-'),
+      avg_stl: hasAvgs ? (+avgs.stl || 0).toFixed(1) : (logAvg(g => g.steals)?.toFixed(1) || '-'),
+      avg_blk: hasAvgs ? (+avgs.blk || 0).toFixed(1) : (logAvg(g => g.blocks)?.toFixed(1) || '-'),
+      avg_fg:  hasAvgs ? avgs.fg_pct : logPctAvg('fg_pct'),
+      avg_fg3: hasAvgs ? avgs.fg3_pct : logPctAvg('fg3_pct'),
+      avg_ft:  hasAvgs ? avgs.ft_pct : logPctAvg('ft_pct'),
       recent_pts: rAvg(g => g.points)?.toFixed(1) || '-',
       recent_reb: rAvg(g => g.rebounds)?.toFixed(1) || '-',
       recent_ast: rAvg(g => g.assists)?.toFixed(1) || '-',
