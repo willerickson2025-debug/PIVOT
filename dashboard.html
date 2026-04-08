@@ -19,7 +19,7 @@ body::before {
   position: fixed; inset: 0; z-index: 9999; pointer-events: none;
   background: radial-gradient(
     280px circle at var(--cursor-x, -9999px) var(--cursor-y, -9999px),
-    rgba(0,230,118,0.045),
+    rgba(0,255,128,0.045),
     transparent 70%
   );
   transition: background 0.06s;
@@ -29,8 +29,8 @@ body::before {
   --black: #0F1115;
   --black-deep: #080A0E;
   --white: #F0F2F5;
-  --green: #00E676;
-  --green-dim: rgba(0,230,118,0.15);
+  --green: #00FF80;
+  --green-dim: rgba(0,255,128,0.15);
   --grey: #161B22;
   --grey2: #1C2128;
   --grey3: #242B35;
@@ -145,7 +145,7 @@ nav.solid {
   position: absolute; inset: 0; z-index: 2; pointer-events: none;
   background: radial-gradient(
     700px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
-    rgba(0,255,65,0.07),
+    rgba(0,255,128,0.07),
     transparent 70%
   );
   transition: background 0.05s;
@@ -171,8 +171,8 @@ nav.solid {
 .home-badge {
   display: inline-flex; align-items: center; gap: 8px;
   padding: 5px 14px; border-radius: 99px;
-  border: 1px solid rgba(0,255,65,0.35);
-  background: rgba(0,255,65,0.08);
+  border: 1px solid rgba(0,255,128,0.35);
+  background: rgba(0,255,128,0.08);
   font-family: 'Inter', sans-serif;
   font-size: 11px; font-weight: 500; letter-spacing: 2px;
   color: var(--green); text-transform: uppercase;
@@ -191,7 +191,7 @@ nav.solid {
   font-weight: 700;
   line-height: 0.92;
   margin-bottom: 28px;
-  text-shadow: 0 0 60px rgba(0,255,65,0.12);
+  text-shadow: 0 0 60px rgba(0,255,128,0.12);
 }
 .home-tagline {
   font-family: 'Inter', sans-serif;
@@ -211,7 +211,7 @@ nav.solid {
   position: relative;
   background: var(--black);
   color: var(--white);
-  border: 1px solid rgba(0,255,65,0.5);
+  border: 1px solid rgba(0,255,128,0.5);
   padding: 14px 36px;
   font-size: 10px;
   letter-spacing: 4px;
@@ -221,12 +221,12 @@ nav.solid {
   cursor: pointer;
   border-radius: 2px;
   transition: all 0.2s;
-  box-shadow: 0 0 20px rgba(0,255,65,0.15), inset 0 0 20px rgba(0,255,65,0.04);
+  box-shadow: 0 0 20px rgba(0,255,128,0.15), inset 0 0 20px rgba(0,255,128,0.04);
 }
 .home-cta-primary:hover {
-  background: rgba(0,255,65,0.08);
+  background: rgba(0,255,128,0.08);
   border-color: var(--green);
-  box-shadow: 0 0 32px rgba(0,255,65,0.3), inset 0 0 20px rgba(0,255,65,0.06);
+  box-shadow: 0 0 32px rgba(0,255,128,0.3), inset 0 0 20px rgba(0,255,128,0.06);
   transform: translateY(-1px);
 }
 .home-cta-secondary {
@@ -323,7 +323,7 @@ nav.solid {
   top: 0; left: 0; right: 0;
   height: 2px;
   background: var(--green);
-  box-shadow: 0 0 12px rgba(0,255,65,0.5);
+  box-shadow: 0 0 12px rgba(0,255,128,0.5);
   transform: scaleX(0);
   transition: transform 0.25s;
   transform-origin: left;
@@ -335,7 +335,7 @@ nav.solid {
   position: absolute; inset: 0; pointer-events: none;
   background: radial-gradient(
     300px circle at var(--cx, 50%) var(--cy, 50%),
-    rgba(0,255,65,0.07),
+    rgba(0,255,128,0.07),
     transparent 60%
   );
   opacity: 0; transition: opacity 0.3s;
@@ -348,7 +348,7 @@ nav.solid {
   font-size: 13px; color: #555; font-weight: 300;
   text-transform: none; line-height: 1.8; margin-bottom: 28px; letter-spacing: 0;
 }
-.feature-stat { font-size: 26px; letter-spacing: -1px; color: var(--green); text-shadow: 0 0 20px rgba(0,255,65,0.25); }
+.feature-stat { font-size: 26px; letter-spacing: -1px; color: var(--green); text-shadow: 0 0 20px rgba(0,255,128,0.25); }
 .feature-stat-label { font-size: 8px; letter-spacing: 3px; color: #2a2a2a; margin-top: 4px; }
 
 /* ── CTA Section ──────────────────────────────────────────────────────────── */
@@ -365,7 +365,7 @@ nav.solid {
   content: '';
   position: absolute; top: 0; left: 50%; transform: translateX(-50%);
   width: 60%; height: 1px;
-  background: linear-gradient(to right, transparent, rgba(0,255,65,0.4), transparent);
+  background: linear-gradient(to right, transparent, rgba(0,255,128,0.4), transparent);
 }
 .cta-title {
   font-size: clamp(28px, 3.5vw, 48px);
@@ -421,7 +421,7 @@ nav.solid {
 }
 .ticker-track:hover { animation-play-state: paused; }
 @keyframes ticker-scroll { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
-.ticker-item { font-size: 11px; letter-spacing: 2px; color: var(--green); padding: 0 32px; text-shadow: 0 0 8px rgba(0,255,65,0.4); white-space: nowrap; }
+.ticker-item { font-size: 11px; letter-spacing: 2px; color: var(--green); padding: 0 32px; text-shadow: 0 0 8px rgba(0,255,128,0.4); white-space: nowrap; }
 .ticker-sep { color: #1a1a1a; font-size: 14px; padding: 0 8px; }
 .toolbar {
   height: 56px;
@@ -484,8 +484,8 @@ nav.solid {
   gap: 16px;
 }
 .g-card2:hover {
-  border-color: rgba(0,230,118,0.45);
-  box-shadow: 0 8px 32px rgba(0,230,118,0.1);
+  border-color: rgba(0,255,128,0.45);
+  box-shadow: 0 8px 32px rgba(0,255,128,0.1);
 }
 .g-status-badge {
   display: inline-flex;
@@ -501,15 +501,15 @@ nav.solid {
   width: fit-content;
 }
 .g-status-badge.live {
-  background: rgba(0,230,118,0.1);
-  border-color: rgba(0,230,118,0.3);
-  color: #00E676;
+  background: rgba(0,255,128,0.1);
+  border-color: rgba(0,255,128,0.3);
+  color: #00FF80;
 }
 .g-live-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #00E676;
+  background: #00FF80;
   animation: blink 1s infinite;
   flex-shrink: 0;
 }
@@ -532,7 +532,7 @@ nav.solid {
 .g-box-link {
   font-size: 10px;
   letter-spacing: 2px;
-  color: #00E676;
+  color: #00FF80;
   font-weight: 600;
 }
 .g-glow-overlay {
@@ -540,7 +540,7 @@ nav.solid {
   inset: 0;
   pointer-events: none;
   border-radius: 12px;
-  background: radial-gradient(circle at var(--cx, 50%) var(--cy, 50%), rgba(0,230,118,0.04) 0%, transparent 70%);
+  background: radial-gradient(circle at var(--cx, 50%) var(--cy, 50%), rgba(0,255,128,0.04) 0%, transparent 70%);
   opacity: 0;
   transition: opacity 0.2s;
 }
@@ -563,7 +563,7 @@ nav.solid {
 .modal-team-name { font-size: 28px; letter-spacing: 2px; line-height: 1; }
 .modal-team-abbr { font-size: 9px; letter-spacing: 3px; color: #444; margin-top: 4px; }
 .modal-score-center { text-align: center; padding: 0 24px; }
-.modal-score-big { font-size: 48px; letter-spacing: 3px; color: var(--green); text-shadow: 0 0 20px rgba(0,255,65,.3); line-height: 1; }
+.modal-score-big { font-size: 48px; letter-spacing: 3px; color: var(--green); text-shadow: 0 0 20px rgba(0,255,128,.3); line-height: 1; }
 .modal-score-vs { font-size: 11px; letter-spacing: 4px; color: #333; }
 .modal-status { font-size: 9px; letter-spacing: 3px; color: var(--green); margin-top: 6px; }
 .modal-close {
@@ -624,13 +624,11 @@ nav.solid {
 .heat-ok    { color: var(--green); }
 .heat-cold  { color: #3a3a3a; }
 @keyframes scan-pulse { 0%,100%{opacity:0.25} 50%{opacity:0.7} }
-@keyframes live-ping  { 0%{box-shadow:0 0 0 0 rgba(0,230,118,0.7)} 100%{box-shadow:0 0 0 6px rgba(0,230,118,0)} }
+@keyframes live-ping  { 0%{box-shadow:0 0 0 0 rgba(0,255,128,0.7)} 100%{box-shadow:0 0 0 6px rgba(0,255,128,0)} }
 .game-card { transition: border-color 0.15s, background 0.15s; }
 .game-card:hover { border-color: rgba(0,255,128,0.45) !important; background: rgba(0,255,128,0.05) !important; }
 
 /* ── PIVOT GLOW SYSTEM ──────────────────────────────────────────────────────── */
-:root { --green: #00FF80; }
-
 /* Force Helvetica Bold everywhere Inter was used */
 .home-badge,.home-tagline,.home-scroll-hint,.features-label,.features-subtitle,
 .feature-desc,.cta-sub,.home-footer,.tb-info,.home-marquee-item,
@@ -789,7 +787,7 @@ function Ticker() {
         <div className="ticker-track">
           {doubled.map((item, i) => (
             <React.Fragment key={i}>
-              <span className="ticker-item" style={item.type === 'score' ? {color:'var(--green)', textShadow:'0 0 8px rgba(0,255,65,0.5)'} : {color:'rgba(255,255,255,0.75)', textShadow:'none', fontWeight:700, letterSpacing:'1.5px'}}>
+              <span className="ticker-item" style={item.type === 'score' ? {color:'var(--green)', textShadow:'0 0 8px rgba(0,255,128,0.5)'} : {color:'rgba(255,255,255,0.75)', textShadow:'none', fontWeight:700, letterSpacing:'1.5px'}}>
                 {item.text}
               </span>
               <span className="ticker-sep">{item.type === 'score' ? '◆' : '·'}</span>
@@ -1061,7 +1059,7 @@ function TeamRow({ team, score, isLive, hasScore }) {
         <div style={{fontSize:10, color:'#555', letterSpacing:1, marginTop:2, textTransform:'uppercase'}}>{team.city}</div>
       </div>
       {hasScore && (
-        <div style={{fontSize:28, fontWeight:700, letterSpacing:1, color: isLive ? '#00E676' : '#fff', minWidth:40, textAlign:'right'}}>
+        <div style={{fontSize:28, fontWeight:700, letterSpacing:1, color: isLive ? '#00FF80' : '#fff', minWidth:40, textAlign:'right'}}>
           {score}
         </div>
       )}
@@ -1424,22 +1422,22 @@ function PlayersCanvas({ dimmed }) {
           const d = Math.sqrt(dx*dx + dy*dy);
           if (d < 145) {
             ctx.beginPath(); ctx.moveTo(pts[i].x, pts[i].y); ctx.lineTo(pts[j].x, pts[j].y);
-            ctx.strokeStyle = `rgba(0,230,118,${0.045*(1-d/145)})`; ctx.lineWidth = 0.6; ctx.stroke();
+            ctx.strokeStyle = `rgba(0,255,128,${0.045*(1-d/145)})`; ctx.lineWidth = 0.6; ctx.stroke();
           }
         }
       }
       pts.forEach(p => {
         ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
-        ctx.fillStyle = 'rgba(0,230,118,0.25)'; ctx.fill();
+        ctx.fillStyle = 'rgba(0,255,128,0.25)'; ctx.fill();
       });
       pulses = pulses.filter(p => p.alpha > 0.015);
       pulses.forEach(p => {
         p.r += 1.4; p.alpha *= 0.964;
         ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
-        ctx.strokeStyle = `rgba(0,230,118,${p.alpha*0.55})`; ctx.lineWidth = 0.9; ctx.stroke();
+        ctx.strokeStyle = `rgba(0,255,128,${p.alpha*0.55})`; ctx.lineWidth = 0.9; ctx.stroke();
         if (p.r < 30) {
           ctx.beginPath(); ctx.arc(p.x, p.y, p.r*0.3, 0, Math.PI*2);
-          ctx.fillStyle = `rgba(0,230,118,${p.alpha*0.15})`; ctx.fill();
+          ctx.fillStyle = `rgba(0,255,128,${p.alpha*0.15})`; ctx.fill();
         }
       });
       animId = requestAnimationFrame(draw);
@@ -1596,12 +1594,12 @@ function Players() {
                   <div key={p.id}
                     onMouseDown={() => { setQuery(`${p.first_name} ${p.last_name}`); setSelectedId(p.id); setShowSugg(false); searchById(p.id); }}
                     style={{padding:'13px 20px', cursor:'pointer', borderBottom: i < suggestions.length-1 ? '1px solid var(--border)' : 'none', display:'flex', justifyContent:'space-between', alignItems:'center', transition:'background 0.1s'}}
-                    onMouseEnter={e => { e.currentTarget.style.background='rgba(0,230,118,0.05)'; }}
+                    onMouseEnter={e => { e.currentTarget.style.background='rgba(0,255,128,0.05)'; }}
                     onMouseLeave={e => { e.currentTarget.style.background=''; }}>
                     <span style={{fontFamily:'Helvetica Neue, sans-serif', fontWeight:700, fontSize:14, letterSpacing:0, textTransform:'none'}}>{p.first_name} {p.last_name}</span>
                     <div style={{display:'flex', alignItems:'center', gap:12}}>
                       <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, color:'var(--text-muted)', fontWeight:700}}>{p.position||'?'}</span>
-                      <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:10, letterSpacing:2, color:'var(--green)', fontWeight:700, background:'rgba(0,230,118,0.08)', border:'1px solid rgba(0,230,118,0.2)', padding:'2px 8px', borderRadius:3}}>{p.team?.abbreviation||'—'}</span>
+                      <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:10, letterSpacing:2, color:'var(--green)', fontWeight:700, background:'rgba(0,255,128,0.08)', border:'1px solid rgba(0,255,128,0.2)', padding:'2px 8px', borderRadius:3}}>{p.team?.abbreviation||'—'}</span>
                     </div>
                   </div>
                 ))}
@@ -1621,7 +1619,7 @@ function Players() {
 
           {/* Hero */}
           <div style={{position:'relative', overflow:'hidden', padding:'72px 40px 56px', textAlign:'center',
-            background:'radial-gradient(ellipse at 50% 0%, rgba(0,230,118,0.04) 0%, transparent 65%)'}}>
+            background:'radial-gradient(ellipse at 50% 0%, rgba(0,255,128,0.04) 0%, transparent 65%)'}}>
             {/* court schematic lines */}
             <div style={{position:'absolute', inset:0, opacity:0.07, backgroundImage:`
               radial-gradient(circle at 50% 85%, transparent 18%, rgba(255,255,255,0.6) 18.5%, transparent 19%),
@@ -1638,7 +1636,7 @@ function Players() {
               <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:'clamp(64px,11vw,140px)', fontWeight:700, letterSpacing:-4, lineHeight:0.88,
                 background:'linear-gradient(180deg, #ffffff 0%, #c0c0c0 40%, #888 100%)',
                 WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text',
-                filter:'drop-shadow(0 0 40px rgba(0,230,118,0.12))', userSelect:'none'}}>
+                filter:'drop-shadow(0 0 40px rgba(0,255,128,0.12))', userSelect:'none'}}>
                 PLAYER<br/>INTEL
               </div>
               <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:14, letterSpacing:1, color:'rgba(255,255,255,0.62)', fontWeight:700, marginTop:20, textTransform:'none'}}>
@@ -1659,12 +1657,12 @@ function Players() {
                 <div key={p.id}
                   onClick={() => { setQuery(p.name); setSelectedId(p.id); searchById(p.id); }}
                   style={{background:'rgba(17,19,24,0.8)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:12, overflow:'hidden', cursor:'pointer', transition:'all 0.2s ease', backdropFilter:'blur(8px)'}}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor='rgba(0,230,118,0.35)'; e.currentTarget.style.transform='translateY(-2px)'; e.currentTarget.style.boxShadow='0 12px 40px rgba(0,230,118,0.08)'; }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor='rgba(0,255,128,0.35)'; e.currentTarget.style.transform='translateY(-2px)'; e.currentTarget.style.boxShadow='0 12px 40px rgba(0,255,128,0.08)'; }}
                   onMouseLeave={e => { e.currentTarget.style.borderColor='rgba(255,255,255,0.07)'; e.currentTarget.style.transform='none'; e.currentTarget.style.boxShadow='none'; }}>
 
                   {/* Headshot area */}
                   <div style={{position:'relative', height:160, background:'linear-gradient(160deg, #0d1117 0%, #111820 100%)', overflow:'hidden'}}>
-                    <div style={{position:'absolute', inset:0, background:'radial-gradient(ellipse at 80% 100%, rgba(0,230,118,0.05) 0%, transparent 65%)'}}/>
+                    <div style={{position:'absolute', inset:0, background:'radial-gradient(ellipse at 80% 100%, rgba(0,255,128,0.05) 0%, transparent 65%)'}}/>
                     <img
                       src={`${API}/headshot/${p.nbaId}`}
                       alt={p.name}
@@ -1689,9 +1687,9 @@ function Players() {
                       ))}
                     </div>
 
-                    <div style={{display:'inline-flex', alignItems:'center', gap:6, background:'rgba(0,230,118,0.06)', border:'1px solid rgba(0,230,118,0.15)', borderRadius:99, padding:'4px 10px'}}>
+                    <div style={{display:'inline-flex', alignItems:'center', gap:6, background:'rgba(0,255,128,0.06)', border:'1px solid rgba(0,255,128,0.15)', borderRadius:99, padding:'4px 10px'}}>
                       <div style={{width:4, height:4, borderRadius:'50%', background:'var(--green)', opacity:0.7}}/>
-                      <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:10, letterSpacing:0.5, color:'rgba(0,230,118,0.7)', fontWeight:700}}>View Analysis →</span>
+                      <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:10, letterSpacing:0.5, color:'rgba(0,255,128,0.7)', fontWeight:700}}>View Analysis →</span>
                     </div>
                   </div>
                 </div>
@@ -1731,11 +1729,11 @@ function Players() {
 
             <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-end', padding:'36px 52px 0', position:'relative', zIndex:1}}>
               <div style={{paddingBottom:32}}>
-                <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:'clamp(36px,5vw,72px)', letterSpacing:-1, lineHeight:1, fontWeight:700, color:'var(--white)', textShadow:'0 0 60px rgba(0,230,118,0.1)'}}>
+                <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:'clamp(36px,5vw,72px)', letterSpacing:-1, lineHeight:1, fontWeight:700, color:'var(--white)', textShadow:'0 0 60px rgba(0,255,128,0.1)'}}>
                   {result.player?.first_name} {result.player?.last_name}
                 </div>
                 <div style={{display:'flex', alignItems:'center', gap:12, marginTop:12, flexWrap:'wrap'}}>
-                  <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:10, letterSpacing:3, fontWeight:700, color:'var(--green)', background:'rgba(0,230,118,0.08)', border:'1px solid rgba(0,230,118,0.25)', padding:'4px 12px', borderRadius:3}}>{teamAbbr||'—'}</span>
+                  <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:10, letterSpacing:3, fontWeight:700, color:'var(--green)', background:'rgba(0,255,128,0.08)', border:'1px solid rgba(0,255,128,0.25)', padding:'4px 12px', borderRadius:3}}>{teamAbbr||'—'}</span>
                   <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:13, color:'rgba(255,255,255,0.5)', fontWeight:700, textTransform:'none', letterSpacing:0}}>{result.player?.team?.full_name||result.player?.team?.name||'—'}</span>
                   <span style={{color:'var(--border-strong)'}}>·</span>
                   <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:13, color:'rgba(255,255,255,0.5)', fontWeight:700, textTransform:'none', letterSpacing:0}}>{result.player?.position||'—'}</span>
@@ -1773,8 +1771,8 @@ function Players() {
                   {val:result.averages.blocks, lbl:'BLK', primary:false},
                 ].map(({val,lbl,primary}) => (
                   <div key={lbl} style={{background:'rgba(22,27,34,0.7)', border:'1px solid var(--border)', borderRadius:10, padding:'20px 24px', backdropFilter:'blur(8px)', position:'relative', overflow:'hidden'}}>
-                    <div style={{position:'absolute', top:0, left:0, right:0, height:2, background: primary ? 'var(--green)' : 'rgba(0,230,118,0.3)', boxShadow: primary ? '0 0 12px rgba(0,230,118,0.4)' : 'none'}}/>
-                    <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:42, letterSpacing:-2, color: primary ? 'var(--green)' : 'var(--white)', fontWeight:700, lineHeight:1, textShadow: primary ? '0 0 30px rgba(0,230,118,0.2)' : 'none'}}>{val}</div>
+                    <div style={{position:'absolute', top:0, left:0, right:0, height:2, background: primary ? 'var(--green)' : 'rgba(0,255,128,0.3)', boxShadow: primary ? '0 0 12px rgba(0,255,128,0.4)' : 'none'}}/>
+                    <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:42, letterSpacing:-2, color: primary ? 'var(--green)' : 'var(--white)', fontWeight:700, lineHeight:1, textShadow: primary ? '0 0 30px rgba(0,255,128,0.2)' : 'none'}}>{val}</div>
                     <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:10, letterSpacing:3, color:'var(--text-muted)', marginTop:8, textTransform:'uppercase', fontWeight:700}}>{lbl}</div>
                   </div>
                 ))}
@@ -1833,7 +1831,7 @@ function Players() {
               {SECTIONS.map((s,i) => (
                 <div key={s.id} style={{borderBottom:i<SECTIONS.length-1?'1px solid var(--border)':'none'}}>
                   <div onClick={() => loadSection(s.id)}
-                    style={{display:'flex', justifyContent:'space-between', alignItems:'center', padding:'18px 24px', cursor:'pointer', background: expandedSection===s.id ? 'rgba(0,230,118,0.04)' : 'rgba(22,27,34,0.5)', transition:'background 0.15s', backdropFilter:'blur(8px)'}}>
+                    style={{display:'flex', justifyContent:'space-between', alignItems:'center', padding:'18px 24px', cursor:'pointer', background: expandedSection===s.id ? 'rgba(0,255,128,0.04)' : 'rgba(22,27,34,0.5)', transition:'background 0.15s', backdropFilter:'blur(8px)'}}>
                     <div style={{display:'flex', alignItems:'center', gap:14}}>
                       <span style={{fontSize:14, opacity:0.6}}>{s.icon}</span>
                       <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:13, letterSpacing:0, fontWeight:700, color: expandedSection===s.id ? 'var(--white)' : 'rgba(255,255,255,0.7)', textTransform:'none'}}>{s.label}</span>
@@ -1875,7 +1873,7 @@ function Players() {
                 {result.player.first_name} {result.player.last_name}
               </div>
               <div style={{display:'flex', alignItems:'center', gap:10}}>
-                <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:10, letterSpacing:3, fontWeight:700, color:'var(--green)', background:'rgba(0,230,118,0.08)', border:'1px solid rgba(0,230,118,0.2)', padding:'3px 10px', borderRadius:3}}>{result.player.team?.abbreviation||'—'}</span>
+                <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:10, letterSpacing:3, fontWeight:700, color:'var(--green)', background:'rgba(0,255,128,0.08)', border:'1px solid rgba(0,255,128,0.2)', padding:'3px 10px', borderRadius:3}}>{result.player.team?.abbreviation||'—'}</span>
                 <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:13, color:'var(--text-muted)', textTransform:'none', letterSpacing:0}}>{result.player.position||'—'}</span>
               </div>
             </div>
@@ -2036,27 +2034,6 @@ function FrontOffice() {
   const panelStyle = {background:'rgba(17,20,26,0.85)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:12, padding:'24px 28px'};
   const colLabel = {fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:4, color:'rgba(0,255,128,0.92)', fontWeight:700, textTransform:'uppercase', marginBottom:18};
 
-  const SeedRow = ({s}) => {
-    const isIn = s.seed <= 6, isPlayin = s.seed === 7 || s.seed === 8, isOut = s.seed >= 9;
-    return (
-      <div onClick={() => runRoster(s.name)}
-        style={{cursor:'pointer', display:'flex', alignItems:'center', gap:8, padding:'5px 8px', borderRadius:4, marginBottom:2,
-          background: isIn ? 'rgba(0,230,118,0.04)' : isPlayin ? 'rgba(251,191,36,0.03)' : 'transparent',
-          border:`1px solid ${isIn ? 'rgba(0,230,118,0.12)' : isPlayin ? 'rgba(251,191,36,0.12)' : 'rgba(255,255,255,0.04)'}`,
-          opacity: isOut ? 0.45 : 1}}
-        onMouseEnter={e=>e.currentTarget.style.opacity='1'}
-        onMouseLeave={e=>e.currentTarget.style.opacity=isOut?'0.45':'1'}>
-        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:10, fontWeight:700, color:isIn?'var(--green)':isPlayin?'#fbbf24':'rgba(255,255,255,0.2)', width:14, textAlign:'right', flexShrink:0}}>{s.seed}</div>
-        <img src={`https://a.espn.com/combiner/i?img=/i/teamlogos/nba/500/${s.team.toLowerCase()}.png&h=20&w=20`} alt={s.team} width={15} height={15} style={{objectFit:'contain',flexShrink:0}} onError={e=>e.target.style.display='none'}/>
-        <div style={{flex:1, fontFamily:'Helvetica Neue, sans-serif', fontSize:11, fontWeight:700, color: isOut ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.82)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{s.name}</div>
-        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:10, color:'rgba(255,255,255,0.82)', flexShrink:0}}>{s.rec}</div>
-        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:7, letterSpacing:1, color:isIn?'rgba(0,230,118,0.5)':isPlayin?'#fbbf24':'rgba(255,255,255,0.15)', flexShrink:0, width:28, textAlign:'right'}}>{isIn?'AUTO':isPlayin?'P-IN':'OUT'}</div>
-      </div>
-    );
-  };
-
-  const EAST = standings ? standings.east : [];
-  const WEST = standings ? standings.west : [];
 
   return (
     <div style={{display:'grid', gridTemplateColumns:'300px 1fr', alignItems:'start'}}>
@@ -2077,7 +2054,7 @@ function FrontOffice() {
             <span style={{position:'absolute', left:10, top:'50%', transform:'translateY(-50%)', color:'rgba(0,255,128,0.82)', fontSize:13, pointerEvents:'none'}}>⌕</span>
             <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search teams..."
               style={{width:'100%', background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:6, padding:'7px 10px 7px 32px', color:'var(--white)', fontFamily:'Helvetica Neue, sans-serif', fontSize:12, outline:'none', textTransform:'none', letterSpacing:0, boxSizing:'border-box'}}
-              onFocus={e=>e.target.style.borderColor='rgba(0,230,118,0.4)'}
+              onFocus={e=>e.target.style.borderColor='rgba(0,255,128,0.4)'}
               onBlur={e=>e.target.style.borderColor='rgba(255,255,255,0.08)'}/>
           </div>
           <div style={{display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:4}}>
@@ -2086,9 +2063,9 @@ function FrontOffice() {
               const tier = capEntry ? getCapTier(capEntry.used) : null;
               return (
                 <button key={t.abbr} onClick={()=>runRoster(t.name)} title={t.name}
-                  style={{background:rosterTeam===t.name?'rgba(0,230,118,0.1)':'rgba(255,255,255,0.02)', border:`1px solid ${rosterTeam===t.name?'rgba(0,230,118,0.4)':'rgba(255,255,255,0.06)'}`, borderRadius:6, padding:'6px 3px', cursor:'pointer', display:'flex', flexDirection:'column', alignItems:'center', gap:2, transition:'all 0.12s', position:'relative'}}
-                  onMouseEnter={e=>{e.currentTarget.style.background='rgba(0,230,118,0.06)';e.currentTarget.style.borderColor='rgba(0,230,118,0.3)';}}
-                  onMouseLeave={e=>{e.currentTarget.style.background=rosterTeam===t.name?'rgba(0,230,118,0.1)':'rgba(255,255,255,0.02)';e.currentTarget.style.borderColor=rosterTeam===t.name?'rgba(0,230,118,0.4)':'rgba(255,255,255,0.06)';}}>
+                  style={{background:rosterTeam===t.name?'rgba(0,255,128,0.1)':'rgba(255,255,255,0.02)', border:`1px solid ${rosterTeam===t.name?'rgba(0,255,128,0.4)':'rgba(255,255,255,0.06)'}`, borderRadius:6, padding:'6px 3px', cursor:'pointer', display:'flex', flexDirection:'column', alignItems:'center', gap:2, transition:'all 0.12s', position:'relative'}}
+                  onMouseEnter={e=>{e.currentTarget.style.background='rgba(0,255,128,0.06)';e.currentTarget.style.borderColor='rgba(0,255,128,0.3)';}}
+                  onMouseLeave={e=>{e.currentTarget.style.background=rosterTeam===t.name?'rgba(0,255,128,0.1)':'rgba(255,255,255,0.02)';e.currentTarget.style.borderColor=rosterTeam===t.name?'rgba(0,255,128,0.4)':'rgba(255,255,255,0.06)';}}>
                   {tier && <div style={{position:'absolute', top:3, right:3, width:4, height:4, borderRadius:'50%', background:tier.color, opacity:0.7}}/>}
                   <img src={`https://a.espn.com/combiner/i?img=/i/teamlogos/nba/500/${t.abbr.toLowerCase()}.png&h=32&w=32`} alt={t.abbr} width={20} height={20} style={{objectFit:'contain'}} onError={e=>e.target.style.display='none'}/>
                   <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:7, letterSpacing:0.5, color:'rgba(255,255,255,0.68)', fontWeight:700}}>{t.abbr}</span>
@@ -2125,7 +2102,7 @@ function FrontOffice() {
             'Several teams exploring amnesty provisions',
           ]).map((h,i) => (
             <div key={i} style={{display:'flex', gap:8, alignItems:'flex-start', padding:'8px 0', borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
-              <div style={{width:3, height:3, borderRadius:'50%', background:'rgba(0,230,118,0.4)', marginTop:6, flexShrink:0}}/>
+              <div style={{width:3, height:3, borderRadius:'50%', background:'rgba(0,255,128,0.4)', marginTop:6, flexShrink:0}}/>
               <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, color:'rgba(255,255,255,0.75)', lineHeight:1.55, textTransform:'none', letterSpacing:0, fontWeight:700}}>{h}</span>
             </div>
           ))}
@@ -2174,7 +2151,7 @@ function FrontOffice() {
                 {val:'$12.8M',label:'Mid-Level Exc.', sub:'Taxpayer MLE'},
               ].map(({val,label,sub}) => (
                 <div key={label} style={{background:'rgba(17,20,26,0.9)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:10, padding:'14px 16px', position:'relative', overflow:'hidden'}}>
-                  <div style={{position:'absolute', top:0, left:0, right:0, height:2, background:'linear-gradient(90deg,rgba(0,230,118,0.4),transparent)'}}/>
+                  <div style={{position:'absolute', top:0, left:0, right:0, height:2, background:'linear-gradient(90deg,rgba(0,255,128,0.4),transparent)'}}/>
                   <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:20, letterSpacing:-0.5, fontWeight:700, color:'var(--green)', lineHeight:1}}>{val}</div>
                   <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:2, color:'rgba(255,255,255,0.72)', marginTop:5, textTransform:'uppercase'}}>{label}</div>
                   <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, color:'rgba(255,255,255,0.52)', marginTop:2, textTransform:'none'}}>{sub}</div>
@@ -2386,7 +2363,7 @@ function FrontOffice() {
               </div>
             ) : injuries && (() => {
               const INJTM = {'Atlanta Hawks':'ATL','Boston Celtics':'BOS','Brooklyn Nets':'BKN','Charlotte Hornets':'CHA','Chicago Bulls':'CHI','Cleveland Cavaliers':'CLE','Dallas Mavericks':'DAL','Denver Nuggets':'DEN','Detroit Pistons':'DET','Golden State Warriors':'GSW','Houston Rockets':'HOU','Indiana Pacers':'IND','LA Clippers':'LAC','Los Angeles Lakers':'LAL','Memphis Grizzlies':'MEM','Miami Heat':'MIA','Milwaukee Bucks':'MIL','Minnesota Timberwolves':'MIN','New Orleans Pelicans':'NOP','New York Knicks':'NYK','Oklahoma City Thunder':'OKC','Orlando Magic':'ORL','Philadelphia 76ers':'PHI','Phoenix Suns':'PHX','Portland Trail Blazers':'POR','Sacramento Kings':'SAC','San Antonio Spurs':'SAS','Toronto Raptors':'TOR','Utah Jazz':'UTA','Washington Wizards':'WAS'};
-              const statusDot = s => { const l = s.toLowerCase(); return l.includes('out') ? '#ef4444' : l.includes('questionable') ? '#f59e0b' : l.includes('day') ? '#fbbf24' : l.includes('probable') ? 'rgba(0,230,118,0.7)' : 'rgba(255,255,255,0.25)'; };
+              const statusDot = s => { const l = s.toLowerCase(); return l.includes('out') ? '#ef4444' : l.includes('questionable') ? '#f59e0b' : l.includes('day') ? '#fbbf24' : l.includes('probable') ? 'rgba(0,255,128,0.7)' : 'rgba(255,255,255,0.25)'; };
               return (
                 <div style={{display:'flex', flexWrap:'wrap', gap:16, padding:'24px 24px 60px', alignItems:'flex-start'}}>
                   {injuries.teams.map(team => {
@@ -2492,7 +2469,7 @@ function FrontOffice() {
 
                 {/* PIVOT Intelligence Report */}
                 <div style={{background:'rgba(17,20,26,0.9)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:12, overflow:'hidden'}}>
-                  <div style={{display:'flex', alignItems:'center', gap:10, padding:'14px 24px', borderBottom:'1px solid rgba(255,255,255,0.07)', background:'rgba(0,230,118,0.03)'}}>
+                  <div style={{display:'flex', alignItems:'center', gap:10, padding:'14px 24px', borderBottom:'1px solid rgba(255,255,255,0.07)', background:'rgba(0,255,128,0.03)'}}>
                     <div style={{width:3, height:16, background:'var(--green)', borderRadius:2, flexShrink:0}}/>
                     <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:10, letterSpacing:2, fontWeight:700, color:'var(--white)', textTransform:'uppercase'}}>PIVOT Intelligence Report</div>
                     <div style={{marginLeft:'auto', display:'flex', alignItems:'center', gap:10}}>
@@ -2543,7 +2520,7 @@ function CourtDiagram({ diagram }) {
   return (
     <svg width={W} height={H} style={{display:'block', background:'#070A0E', borderRadius:3}}>
       <defs>
-        <marker id="arr-cut"  viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#00E676"/></marker>
+        <marker id="arr-cut"  viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#00FF80"/></marker>
         <marker id="arr-ball" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#FFB800"/></marker>
         <marker id="arr-scr"  viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#FFB800"/></marker>
       </defs>
@@ -2604,7 +2581,7 @@ function CourtDiagram({ diagram }) {
         }
         return (
           <path key={i} d={curvedPath(sx, sy, tx2, ty2)}
-            fill="none" stroke="#00E676" strokeWidth={1.5}
+            fill="none" stroke="#00FF80" strokeWidth={1.5}
             markerEnd="url(#arr-cut)"/>
         );
       })}
@@ -2617,16 +2594,16 @@ function CourtDiagram({ diagram }) {
         const nameLabel = p.name ? p.name.split(' ').slice(-1)[0].slice(0, 6).toUpperCase() : null;
         return (
           <g key={p.n}>
-            {isReceiver && <circle cx={px2} cy={py2} r={22} fill="rgba(0,230,118,0.08)"/>}
+            {isReceiver && <circle cx={px2} cy={py2} r={22} fill="rgba(0,255,128,0.08)"/>}
             <circle cx={px2} cy={py2} r={14} fill="#0D1117"
-              stroke={isReceiver ? '#00E676' : 'rgba(0,230,118,0.55)'}
+              stroke={isReceiver ? '#00FF80' : 'rgba(0,255,128,0.55)'}
               strokeWidth={isReceiver ? 2.5 : 1.5}/>
             <text x={px2} y={py2+5} textAnchor="middle"
-              fill={isReceiver ? '#00E676' : 'rgba(0,230,118,0.75)'}
-              fontSize={12} fontWeight="bold" fontFamily="Inter, sans-serif">{p.n}</text>
+              fill={isReceiver ? '#00FF80' : 'rgba(0,255,128,0.75)'}
+              fontSize={12} fontWeight="bold" fontFamily="Helvetica Neue, Helvetica, Arial, sans-serif">{p.n}</text>
             <text x={px2} y={py2+27} textAnchor="middle"
-              fill={isReceiver ? 'rgba(0,230,118,0.9)' : 'rgba(255,255,255,0.4)'}
-              fontSize={8} fontWeight="600" fontFamily="Inter, sans-serif" letterSpacing="1">{nameLabel || posLabel}</text>
+              fill={isReceiver ? 'rgba(0,255,128,0.9)' : 'rgba(255,255,255,0.4)'}
+              fontSize={8} fontWeight="600" fontFamily="Helvetica Neue, Helvetica, Arial, sans-serif" letterSpacing="1">{nameLabel || posLabel}</text>
           </g>
         );
       })}
@@ -2663,7 +2640,7 @@ function CoachGameCard({ g, onSelect }) {
 
       <div className="g-card-footer" style={{marginTop:'auto'}}>
         <span className="g-conf-pill">{[g.home_team?.conference, g.home_team?.division].filter(Boolean).join(' · ')}</span>
-        <div style={{display:'inline-flex', alignItems:'center', gap:6, background:'rgba(0,230,118,0.06)', border:'1px solid rgba(0,230,118,0.2)', borderRadius:3, padding:'7px 14px'}}>
+        <div style={{display:'inline-flex', alignItems:'center', gap:6, background:'rgba(0,255,128,0.06)', border:'1px solid rgba(0,255,128,0.2)', borderRadius:3, padding:'7px 14px'}}>
           <div style={{width:4, height:4, borderRadius:'50%', background:'var(--green)', opacity:0.8}}/>
           <span style={{fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', fontSize:9, letterSpacing:3, fontWeight:700, color:'var(--green)', textTransform:'uppercase'}}>Coach Mode</span>
         </div>
@@ -2785,7 +2762,7 @@ function CoachMode() {
           </button>
 
           {/* Selected game summary */}
-          <div style={{padding:'12px 14px', borderRadius:6, border:'1px solid rgba(0,230,118,0.3)', background:'rgba(0,230,118,0.04)', marginBottom:16}}>
+          <div style={{padding:'12px 14px', borderRadius:6, border:'1px solid rgba(0,255,128,0.3)', background:'rgba(0,255,128,0.04)', marginBottom:16}}>
             {(() => { const {label,type} = parseStatus(selectedGame.status); const isLive = type==='live'; return (
               <>
                 <div style={{display:'flex', alignItems:'center', gap:6, marginBottom:6}}>
@@ -2838,7 +2815,7 @@ function CoachMode() {
               cursor: loading||!myTeam ? 'default' : 'pointer', border:'none', transition:'all 0.15s',
               background: loading ? '#111' : !myTeam ? '#0a0a0a' : 'var(--green)',
               color: loading||!myTeam ? '#2a2a2a' : '#000',
-              boxShadow: (!loading && myTeam) ? '0 0 20px rgba(0,230,118,0.2)' : 'none'}}>
+              boxShadow: (!loading && myTeam) ? '0 0 20px rgba(0,255,128,0.2)' : 'none'}}>
             {loading ? '◌ COMPUTING' : !myTeam ? 'SELECT TEAM' : mode==='adjust' ? 'GET ADJUSTMENTS' : 'DRAW THE PLAY'}
           </button>
         </div>
@@ -2906,13 +2883,13 @@ function CoachMode() {
 
               {/* Scanning pulse */}
               <div style={{display:'flex', alignItems:'center', justifyContent:'center', gap:8, marginTop:24}}>
-                <div style={{width:32, height:1, background:'rgba(0,230,118,0.2)'}}/>
-                <div style={{width:5, height:5, borderRadius:'50%', background:'rgba(0,230,118,0.5)', animation:'scan-pulse 2s ease-in-out infinite'}}/>
-                <div style={{fontSize:7, letterSpacing:4, color:'rgba(0,230,118,0.3)', fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', fontWeight:700, animation:'scan-pulse 2s ease-in-out 0.3s infinite'}}>
+                <div style={{width:32, height:1, background:'rgba(0,255,128,0.2)'}}/>
+                <div style={{width:5, height:5, borderRadius:'50%', background:'rgba(0,255,128,0.5)', animation:'scan-pulse 2s ease-in-out infinite'}}/>
+                <div style={{fontSize:7, letterSpacing:4, color:'rgba(0,255,128,0.3)', fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', fontWeight:700, animation:'scan-pulse 2s ease-in-out 0.3s infinite'}}>
                   SCANNING
                 </div>
-                <div style={{width:5, height:5, borderRadius:'50%', background:'rgba(0,230,118,0.5)', animation:'scan-pulse 2s ease-in-out 0.6s infinite'}}/>
-                <div style={{width:32, height:1, background:'rgba(0,230,118,0.2)'}}/>
+                <div style={{width:5, height:5, borderRadius:'50%', background:'rgba(0,255,128,0.5)', animation:'scan-pulse 2s ease-in-out 0.6s infinite'}}/>
+                <div style={{width:32, height:1, background:'rgba(0,255,128,0.2)'}}/>
               </div>
             </div>
           </div>
@@ -2950,8 +2927,8 @@ function CoachMode() {
 
             {/* Court diagram for timeout plays */}
             {result.mode === 'timeout' && result.diagram && (
-              <div style={{marginBottom:28, borderRadius:4, overflow:'hidden', border:'1px solid rgba(0,230,118,0.1)'}}>
-                <div style={{padding:'8px 12px', background:'rgba(0,0,0,0.6)', borderBottom:'1px solid rgba(0,230,118,0.1)',
+              <div style={{marginBottom:28, borderRadius:4, overflow:'hidden', border:'1px solid rgba(0,255,128,0.1)'}}>
+                <div style={{padding:'8px 12px', background:'rgba(0,0,0,0.6)', borderBottom:'1px solid rgba(0,255,128,0.1)',
                   fontSize:7, letterSpacing:4, color:'rgba(0,255,128,0.82)', fontFamily:'Helvetica Neue, sans-serif'}}>
                   PLAY DIAGRAM  ·  ● OFFENSE  ─ ─ BALL  → CUT
                 </div>
@@ -2971,7 +2948,7 @@ function CoachMode() {
       <div style={{overflowY:'auto', background:'rgba(0,0,0,0.35)'}}>
         {selectedGame && boxScore && (boxScore.total_players || 0) > 0 && (
           <div style={{borderBottom:'1px solid var(--border)'}}>
-            <div style={{padding:'12px 16px', fontSize:7, letterSpacing:5, color:'rgba(0,230,118,0.35)',
+            <div style={{padding:'12px 16px', fontSize:7, letterSpacing:5, color:'rgba(0,255,128,0.35)',
               borderBottom:'1px solid var(--border)', fontFamily:'Helvetica Neue, sans-serif'}}>
               ⬡ LIVE INTEL
             </div>
@@ -2983,7 +2960,7 @@ function CoachMode() {
                 <div key={key} style={{marginBottom:0}}>
                   <div style={{padding:'8px 16px 4px', fontSize:7, letterSpacing:4,
                     color: isMyTeam ? 'var(--green)' : '#444',
-                    background: isMyTeam ? 'rgba(0,230,118,0.03)' : 'transparent',
+                    background: isMyTeam ? 'rgba(0,255,128,0.03)' : 'transparent',
                     fontFamily:'Helvetica Neue, sans-serif', borderBottom:'1px solid rgba(255,255,255,0.03)'}}>
                     {team?.abbreviation} {isMyTeam ? '◎' : ''}
                   </div>
@@ -3029,7 +3006,7 @@ function CoachMode() {
             <div key={i} onClick={() => setResult(h)} style={{padding:'10px 12px', marginBottom:4, cursor:'pointer',
               border:'1px solid rgba(255,255,255,0.04)', background:'rgba(0,0,0,0.3)',
               transition:'border-color 0.1s'}}
-              onMouseEnter={e => e.currentTarget.style.borderColor='rgba(0,230,118,0.2)'}
+              onMouseEnter={e => e.currentTarget.style.borderColor='rgba(0,255,128,0.2)'}
               onMouseLeave={e => e.currentTarget.style.borderColor='rgba(255,255,255,0.04)'}>
               <div style={{display:'flex', justifyContent:'space-between', marginBottom:3}}>
                 <span style={{fontSize:7, letterSpacing:3, color: h.mode==='timeout'?'#FFB800':'var(--green)',
@@ -3057,7 +3034,7 @@ function About() {
 
         {/* ── Masthead ── */}
         <div style={{marginBottom:80}}>
-          <div style={{fontFamily:hv, fontWeight:700, fontSize:10, letterSpacing:6, color:'#00FF55', textTransform:'uppercase', marginBottom:24}}>
+          <div style={{fontFamily:hv, fontWeight:700, fontSize:10, letterSpacing:6, color:'var(--green)', textTransform:'uppercase', marginBottom:24}}>
             PIVOT / INTELLIGENCE ENGINE
           </div>
           <h1 style={{fontFamily:hv, fontWeight:700, fontSize:'clamp(56px,8vw,96px)', letterSpacing:'-4px', lineHeight:0.88, color:'#F0F2F5', textTransform:'uppercase', marginBottom:0}}>
@@ -3107,7 +3084,7 @@ function About() {
           <div style={{marginBottom:64}}>
             <div style={{display:'flex', alignItems:'baseline', gap:20, marginBottom:8, flexWrap:'wrap'}}>
               <span style={{fontFamily:hv, fontWeight:700, fontSize:28, letterSpacing:'-1px', color:'#F0F2F5', textTransform:'uppercase'}}>WILL ERICKSON</span>
-              <span style={{fontFamily:hv, fontWeight:700, fontSize:10, letterSpacing:4, color:'#00FF55', textTransform:'uppercase'}}>LEAD ARCHITECT / CO-FOUNDER</span>
+              <span style={{fontFamily:hv, fontWeight:700, fontSize:10, letterSpacing:4, color:'var(--green)', textTransform:'uppercase'}}>LEAD ARCHITECT / CO-FOUNDER</span>
             </div>
             <p style={{...body}}>
               Will builds the intelligence core. He engineers the AI models, structures the data pipelines, and translates raw basketball signal into systems that perform under real pressure. His work sits at the intersection of statistical complexity and operational clarity: the place where the numbers stop being numbers and start being decisions. Every output PIVOT generates runs through architecture Will designed.
@@ -3118,7 +3095,7 @@ function About() {
           <div style={{marginBottom:64}}>
             <div style={{display:'flex', alignItems:'baseline', gap:20, marginBottom:8, flexWrap:'wrap'}}>
               <span style={{fontFamily:hv, fontWeight:700, fontSize:28, letterSpacing:'-1px', color:'#F0F2F5', textTransform:'uppercase'}}>EVAN JACKSON</span>
-              <span style={{fontFamily:hv, fontWeight:700, fontSize:10, letterSpacing:4, color:'#00FF55', textTransform:'uppercase'}}>CHIEF MARKETING OFFICER / CO-FOUNDER</span>
+              <span style={{fontFamily:hv, fontWeight:700, fontSize:10, letterSpacing:4, color:'var(--green)', textTransform:'uppercase'}}>CHIEF MARKETING OFFICER / CO-FOUNDER</span>
             </div>
             <p style={{...body}}>
               Evan controls how PIVOT reaches the market. He translates the platform's technical depth into positioning that resonates with front offices, coaching staffs, and serious basketball operators. He makes sure the right people understand exactly what they are acquiring before the first conversation begins. His instinct for the game informs the story, and his precision in execution ensures that story lands.
@@ -3129,7 +3106,7 @@ function About() {
           <div style={{marginBottom:0}}>
             <div style={{display:'flex', alignItems:'baseline', gap:20, marginBottom:8, flexWrap:'wrap'}}>
               <span style={{fontFamily:hv, fontWeight:700, fontSize:28, letterSpacing:'-1px', color:'#F0F2F5', textTransform:'uppercase'}}>WORTH McMILLEN</span>
-              <span style={{fontFamily:hv, fontWeight:700, fontSize:10, letterSpacing:4, color:'#00FF55', textTransform:'uppercase'}}>CHIEF FINANCIAL OFFICER / CO-FOUNDER</span>
+              <span style={{fontFamily:hv, fontWeight:700, fontSize:10, letterSpacing:4, color:'var(--green)', textTransform:'uppercase'}}>CHIEF FINANCIAL OFFICER / CO-FOUNDER</span>
             </div>
             <p style={{...body}}>
               Worth manages the financial architecture that makes PIVOT sustainable at scale. From capital allocation and runway strategy to the monetization models that convert enterprise-grade intelligence into recurring revenue, he keeps the business structurally sound and the margins honest. In a market where most analytics companies burn capital on noise, Worth ensures PIVOT builds on signal.
