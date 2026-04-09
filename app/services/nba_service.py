@@ -290,6 +290,19 @@ def _parse_game(raw: dict[str, Any]) -> Game:
     )
 
 
+def _has_real_minutes(m: Any) -> bool:
+    """Return True only when a player actually played (minutes > 0).
+
+    BDL represents DNPs as None, '0', '0:00', or '00' — all map to False.
+    """
+    if not m:
+        return False
+    try:
+        return float(str(m).strip().split(':')[0]) > 0
+    except (ValueError, IndexError):
+        return False
+
+
 def _parse_player(raw: dict[str, Any]) -> Player:
     """
     Hydrate a ``Player`` domain object from a raw BallDontLie player payload.
@@ -811,9 +824,9 @@ async def get_player_stats(player_id: int, season: int = _DEFAULT_SEASON) -> lis
             )
         )
 
-    # Strip DNP entries (minutes null, '0', or '0:00') — including them in averages
-    # produces wildly inaccurate per-game stats (e.g. 3.6 PPG for Tatum).
-    results = [r for r in results if r.minutes and r.minutes not in ('0', '0:00')]
+    # Strip DNP entries — BDL returns '0', '0:00', or '00' for non-playing rows.
+    # Including them collapses averages (e.g. 22 DNP rows drops LeBron from ~23 PPG to 15).
+    results = [r for r in results if _has_real_minutes(r.minutes)]
 
     # Sort ascending by game_id so recent-form slicing (stats[-10:]) is valid.
     results.sort(key=lambda x: x.game_id)
@@ -867,9 +880,7 @@ async def get_recent_stats(player_id: int, season: int = _DEFAULT_SEASON, n: int
                 ft_pct=s.get("ft_pct"),
             )
         )
-    # Strip DNPs
-    results = [r for r in results if r.minutes and r.minutes not in ("0", "0:00")]
-    # Sort descending — most recent first
+    results = [r for r in results if _has_real_minutes(r.minutes)]
     results.sort(key=lambda x: x.game_id, reverse=True)
     return results
 
