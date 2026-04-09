@@ -1832,11 +1832,11 @@ async def predict_game(body: dict[str, Any]) -> dict[str, Any]:
     """
     Return a structured prediction for an upcoming game.
 
-    Accepts the same game object the frontend has (home_team, visitor_team, status).
-    Returns JSON: pick, confidence (int 50-95), key_factor (1 sentence), reasoning (2 sentences).
-    Only valid for upcoming games — returns an error dict for live/final games.
+    Fetches live standings and injury data before calling Claude so the
+    prediction is grounded in actual W-L records and roster availability.
     """
     import json as _json
+    from app.services import standings_service as _standings_svc
 
     home_t  = body.get("home_team") or {}
     away_t  = body.get("visitor_team") or {}
@@ -1850,33 +1850,102 @@ async def predict_game(body: dict[str, Any]) -> dict[str, Any]:
     if "final" in status or any(q in status for q in ["qtr", "half", "in progress"]):
         return {"error": "Predictions only available for upcoming games."}
 
-    cache_key = f"predict_game:{game_id}"
+    cache_key = f"predict_game2:{game_id}"
     cached = analysis_cache.get(cache_key)
     if cached:
         logger.info("predict_game cache hit | game_id=%d", game_id)
         return cached
 
+    # ── Fetch real data in parallel ──────────────────────────────────────────
+    async def _fetch_injuries() -> dict:
+        import httpx
+        try:
+            async with httpx.AsyncClient(timeout=8) as client:
+                r = await client.get(
+                    "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/injuries",
+                    headers={"User-Agent": "Mozilla/5.0"},
+                )
+            raw = r.json()
+            teams = []
+            for tb in raw.get("injuries", []):
+                players = [{"name": i.get("athlete", {}).get("displayName", ""), "status": i.get("status", "")}
+                           for i in tb.get("injuries", [])]
+                if players:
+                    teams.append({"team": tb.get("displayName", ""), "players": players})
+            return {"teams": teams}
+        except Exception:
+            return {"teams": []}
+
+    standings_data, injuries_data = await asyncio.gather(
+        _standings_svc.get_standings(),
+        _fetch_injuries(),
+        return_exceptions=True,
+    )
+
+    # Build standings lookup: abbr -> {wins, losses, pct, seed, conference}
+    standings_lookup: dict[str, dict] = {}
+    if isinstance(standings_data, dict):
+        for team in standings_data.get("east", []) + standings_data.get("west", []):
+            standings_lookup[team.get("abbr", "")] = team
+
+    def _team_record(abbr: str) -> str:
+        t = standings_lookup.get(abbr)
+        if t:
+            conf_seed = f"#{t.get('seed','?')} {t.get('conference','')}"
+            return f"{t.get('wins','?')}-{t.get('losses','?')} ({conf_seed}, {t.get('pct',0):.3f} win%)"
+        return "record unavailable"
+
+    # Build injury lookup: team name -> list of out/questionable players
+    inj_lookup: dict[str, list[str]] = {}
+    if isinstance(injuries_data, dict):
+        for team_block in injuries_data.get("teams", []):
+            tname = team_block.get("team", "")
+            notable = [
+                f"{p['name']} ({p['status']})"
+                for p in team_block.get("players", [])
+                if p.get("status", "").lower() in ("out", "questionable", "doubtful")
+            ]
+            if notable:
+                inj_lookup[tname] = notable
+
+    def _team_injuries(name: str) -> str:
+        injuries = inj_lookup.get(name, [])
+        return ", ".join(injuries[:5]) if injuries else "none reported"
+
+    home_record   = _team_record(home_abbr)
+    away_record   = _team_record(away_abbr)
+    home_injuries = _team_injuries(home_name)
+    away_injuries = _team_injuries(away_name)
+
     prompt = (
-        f"UPCOMING GAME: {away_name} ({away_abbr}) at {home_name} ({home_abbr})\n\n"
-        f"Return a JSON object with exactly these four fields:\n"
+        f"UPCOMING GAME: {away_name} at {home_name} (home)\n\n"
+        f"CURRENT STANDINGS:\n"
+        f"  {home_name} ({home_abbr}): {home_record}\n"
+        f"  {away_name} ({away_abbr}): {away_record}\n\n"
+        f"INJURY REPORT:\n"
+        f"  {home_name}: {home_injuries}\n"
+        f"  {away_name}: {away_injuries}\n\n"
+        f"Using the above real data, return a JSON object with exactly these fields:\n"
         f"  pick: the full team name you pick to win (must be exactly \"{home_name}\" or \"{away_name}\")\n"
-        f"  confidence: integer between 50 and 95 representing your confidence percentage\n"
-        f"  key_factor: one sentence naming the single most important factor that determines this outcome\n"
-        f"  reasoning: exactly two sentences explaining your pick\n\n"
-        f"Return only valid JSON. No markdown, no explanation outside the JSON object."
+        f"  confidence: integer 50-95\n"
+        f"  key_factor: one sentence naming the single most decisive factor\n"
+        f"  reasoning: exactly two sentences grounded in the records and roster data above\n\n"
+        f"Return only valid JSON. No markdown, no extra text."
     )
 
     system = (
-        "You are a sharp NBA predictor. Use your knowledge of these franchises, their current season trajectories, "
-        "home court advantage, and stylistic matchups. Today is April 2026 — the 2025-26 season is in progress. "
-        "Return only a valid JSON object with the exact fields requested. No markdown fences, no extra text."
+        "You are a sharp NBA analyst making game predictions. "
+        "You are given real standings and injury data — use it. "
+        "Your reasoning must reference specific W-L records, seeds, or injured players from the data provided. "
+        "Do not make generic statements about home court or rebuilding teams without grounding them in the numbers. "
+        "Return only a valid JSON object."
     )
 
     result = await claude_service.analyze(
         prompt=prompt,
         system_prompt=system,
         override_model=_FAST_MODEL,
-        override_max_tokens=200,
+        override_max_tokens=250,
         override_temperature=0.2,
     )
 
