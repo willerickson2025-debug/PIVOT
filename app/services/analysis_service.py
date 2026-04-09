@@ -559,7 +559,16 @@ async def _build_player_stat_block(player_id: int, season: int) -> tuple[Any, di
     avg_fg3m = round(float(official.get("fg3m") or 0), 1)
     avg_fg3a = round(float(official.get("fg3a") or 0), 1)   # 3-point attempts per game
     avg_tov  = round(float(official.get("turnover") or 0), 1)
-    avg_min  = round(float(official.get("min")  or 0), 1)
+
+    def _parse_min_str(m: Any) -> float:
+        """Parse BDL min field which can be '35:06' or a plain float/int."""
+        try:
+            parts = str(m or "0").split(":")
+            return float(parts[0]) + (float(parts[1]) / 60 if len(parts) == 2 else 0.0)
+        except Exception:
+            return 0.0
+
+    avg_min  = round(_parse_min_str(official.get("min") or 0), 1)
 
     # Advanced efficiency metrics (require volume data to be meaningful)
     if avg_fga > 0 and avg_pts > 0:
@@ -1945,9 +1954,20 @@ async def compare_players(
         nba_service.get_recent_stats(player_b_id, season, n=10),
     )
 
+    def _parse_bdl_num(v: Any) -> Optional[float]:
+        """Parse a BDL value that is normally a float but can be 'MM:SS' for minutes."""
+        if v is None:
+            return None
+        s = str(v)
+        try:
+            parts = s.split(":")
+            return float(parts[0]) + (float(parts[1]) / 60 if len(parts) == 2 else 0.0)
+        except Exception:
+            return None
+
     def _safe(d: dict, key: str, decimals: int = 1) -> Optional[float]:
-        v = d.get(key)
-        return round(float(v), decimals) if v is not None else None
+        v = _parse_bdl_num(d.get(key))
+        return round(v, decimals) if v is not None else None
 
     def _pct(d: dict, key: str) -> Optional[str]:
         v = d.get(key)
