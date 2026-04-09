@@ -792,7 +792,7 @@ function Ticker() {
     const maxLen = Math.max(scores.length, news.length);
     for (let i = 0; i < maxLen; i++) {
       if (i < scores.length) out.push({ text: scores[i], type: 'score' });
-      if (i < news.length)   out.push({ text: news[i],   type: 'news'  });
+      if (i < news.length)   out.push({ text: news[i].title || news[i], type: 'news' });
     }
     if (!out.length) {
       return [
