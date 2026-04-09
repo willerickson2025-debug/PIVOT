@@ -1545,7 +1545,7 @@ function Players() {
     if (!playerId) return;
     setLoading(true); setError(null); setResult(null); setSectionData({}); setExpandedSection(null); setShowSugg(false);
     try {
-      const resp = await fetch(`${API}/analysis/player/stream?player_id=${playerId}&season=2024`);
+      const resp = await fetch(`${API}/analysis/player/stream?player_id=${playerId}&season=2025`);
       if (!resp.ok) throw new Error(await resp.text());
       const reader = resp.body.getReader();
       const decoder = new TextDecoder();
@@ -1602,7 +1602,7 @@ function Players() {
     const pid = result?.player?.id; if (!pid) return;
     setSectionLoading(prev => ({...prev, [section]: true})); setExpandedSection(section);
     try {
-      const r = await fetch(`${API}/analysis/player/section?player_id=${pid}&season=2024&section=${section}`);
+      const r = await fetch(`${API}/analysis/player/section?player_id=${pid}&season=2025&section=${section}`);
       if (!r.ok) throw new Error(await r.text());
       const data = await r.json();
       setSectionData(prev => ({...prev, [section]: data.analysis}));
@@ -1629,7 +1629,7 @@ function Players() {
   const [featuredLive, setFeaturedLive] = React.useState({});
   React.useEffect(() => {
     const ids = FEATURED_PLAYERS.map(p => p.id);
-    const load = () => fetch(`${API}/nba/bulk-averages?${ids.map(id=>`player_ids=${id}`).join('&')}&season=2024`)
+    const load = () => fetch(`${API}/nba/bulk-averages?${ids.map(id=>`player_ids=${id}`).join('&')}&season=2025`)
       .then(r => r.ok ? r.json() : null)
       .then(d => { if (d?.averages) setFeaturedLive(d.averages); })
       .catch(() => {});
@@ -1720,7 +1720,7 @@ function Players() {
             <div style={{display:'flex', alignItems:'center', gap:16, marginBottom:24}}>
               <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:5, color:'rgba(0,255,128,0.92)', textTransform:'uppercase', fontWeight:700}}>Featured Players</div>
               <div style={{flex:1, height:1, background:'rgba(255,255,255,0.05)'}}/>
-              <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:2, color:'rgba(255,255,255,0.18)', textTransform:'none'}}>2024–25 Season</div>
+              <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:2, color:'rgba(255,255,255,0.18)', textTransform:'none'}}>2025–26 Season</div>
             </div>
             <div style={{display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:16}}>
               {FEATURED_PLAYERS.map(p => (
@@ -1812,7 +1812,7 @@ function Players() {
                   <span style={{color:'var(--border-strong)'}}>·</span>
                   <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:13, color:'rgba(255,255,255,0.5)', fontWeight:700, textTransform:'none', letterSpacing:0}}>{result.player?.position||'—'}</span>
                   <span style={{color:'var(--border-strong)'}}>·</span>
-                  <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:13, color:'rgba(255,255,255,0.72)', fontWeight:700, textTransform:'none', letterSpacing:0}}>2024–25 Season</span>
+                  <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:13, color:'rgba(255,255,255,0.72)', fontWeight:700, textTransform:'none', letterSpacing:0}}>2025–26 Season</span>
                 </div>
                 <div style={{display:'flex', gap:8, alignItems:'center', marginTop:20}}>
                   <button onClick={() => { setResult(null); setQuery(''); setSelectedId(null); setError(null); }}
@@ -2116,7 +2116,7 @@ function FrontOffice() {
   React.useEffect(() => {
     if (dashTab !== 'mvp') return;
     const ids = MVP_PLAYERS.map(p => p.bdlId);
-    const load = () => fetch(`${API}/nba/bulk-averages?${ids.map(id=>`player_ids=${id}`).join('&')}&season=2024`)
+    const load = () => fetch(`${API}/nba/bulk-averages?${ids.map(id=>`player_ids=${id}`).join('&')}&season=2025`)
       .then(r => r.ok ? r.json() : null)
       .then(d => { if (d?.averages) setMvpLive(d.averages); })
       .catch(() => {});
@@ -2128,7 +2128,7 @@ function FrontOffice() {
   React.useEffect(() => {
     if (dashTab !== 'young') return;
     const ids = YOUNG_PLAYERS.map(p => p.bdlId);
-    const load = () => fetch(`${API}/nba/bulk-averages?${ids.map(id=>`player_ids=${id}`).join('&')}&season=2024`)
+    const load = () => fetch(`${API}/nba/bulk-averages?${ids.map(id=>`player_ids=${id}`).join('&')}&season=2025`)
       .then(r => r.ok ? r.json() : null)
       .then(d => { if (d?.averages) setYoungLive(d.averages); })
       .catch(() => {});
@@ -3531,7 +3531,7 @@ function Compare() {
     if (!canCompare) return;
     setLoading(true); setError(null); setResult(null);
     try {
-      const r = await fetch(`${API}/analysis/compare?player_a=${playerA.id}&player_b=${playerB.id}&season=2024`);
+      const r = await fetch(`${API}/analysis/compare?player_a=${playerA.id}&player_b=${playerB.id}&season=2025`);
       if (!r.ok) throw new Error(await r.text());
       const data = await r.json();
       if (data.error) throw new Error(data.error);
@@ -3683,7 +3683,7 @@ function Compare() {
             {/* Stat bars card */}
             <div className="cmp-reveal" style={{animationDelay:'80ms', background:'rgba(10,13,18,0.9)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:14, padding:'28px 32px', marginBottom:20, boxShadow:'0 8px 40px rgba(0,0,0,0.5)'}}>
               <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:22}}>
-                <div style={{fontFamily:BC, fontSize:11, letterSpacing:5, color:'rgba(0,255,128,0.7)', fontWeight:700}}>2024–25 SEASON AVERAGES</div>
+                <div style={{fontFamily:BC, fontSize:11, letterSpacing:5, color:'rgba(0,255,128,0.7)', fontWeight:700}}>2025–26 SEASON AVERAGES</div>
                 <div style={{display:'flex', gap:16}}>
                   <div style={{display:'flex', alignItems:'center', gap:6}}>
                     <div style={{width:8, height:8, borderRadius:'50%', background:'var(--green)', boxShadow:'0 0 6px rgba(0,255,128,0.6)'}}/>

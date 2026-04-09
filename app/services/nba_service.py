@@ -42,7 +42,7 @@ _DEFAULT_PER_PAGE: int = 100
 _REQUEST_TIMEOUT: float = 12.0          # seconds per attempt
 _MAX_RETRIES: int = 3                   # total attempts before raising
 _RETRY_BACKOFF_BASE: float = 0.5        # seconds; multiplied by attempt index
-_DEFAULT_SEASON: int = 2024
+_DEFAULT_SEASON: int = 2025
 _CENTRAL_TZ: str = "America/Chicago"
 
 # NBA.com player ID lookup by full name for headshot CDN URLs.
@@ -793,36 +793,44 @@ async def get_player_stats(player_id: int, season: int = _DEFAULT_SEASON) -> lis
     """
     logger.debug("Fetching player stats | player_id=%d season=%d", player_id, season)
 
-    payload = await _fetch_data(
-        "/stats",
-        params={
+    results: list[PlayerStats] = []
+    cursor: int | None = None
+
+    for _page in range(10):  # safety cap — 82 games / 100 per page = 1 page normally
+        params: dict[str, Any] = {
             "player_ids[]": player_id,
             "seasons[]": season,
             "per_page": _DEFAULT_PER_PAGE,
-        },
-    )
+        }
+        if cursor is not None:
+            params["cursor"] = cursor
 
-    results: list[PlayerStats] = []
+        payload = await _fetch_data("/stats", params=params)
+        page_data = payload.get("data") or []
 
-    for s in payload.get("data") or []:
-        player_raw: dict[str, Any] = s.get("player") or {}
-        game_raw: dict[str, Any] = s.get("game") or {}
-
-        results.append(
-            PlayerStats(
-                player=_parse_player(player_raw),
-                game_id=int(game_raw.get("id") or 0),
-                points=int(s.get("pts") or 0),
-                rebounds=int(s.get("reb") or 0),
-                assists=int(s.get("ast") or 0),
-                steals=int(s.get("stl") or 0),
-                blocks=int(s.get("blk") or 0),
-                minutes=s.get("min"),
-                fg_pct=s.get("fg_pct"),
-                fg3_pct=s.get("fg3_pct"),
-                ft_pct=s.get("ft_pct"),
+        for s in page_data:
+            player_raw: dict[str, Any] = s.get("player") or {}
+            game_raw: dict[str, Any] = s.get("game") or {}
+            results.append(
+                PlayerStats(
+                    player=_parse_player(player_raw),
+                    game_id=int(game_raw.get("id") or 0),
+                    points=int(s.get("pts") or 0),
+                    rebounds=int(s.get("reb") or 0),
+                    assists=int(s.get("ast") or 0),
+                    steals=int(s.get("stl") or 0),
+                    blocks=int(s.get("blk") or 0),
+                    minutes=s.get("min"),
+                    fg_pct=s.get("fg_pct"),
+                    fg3_pct=s.get("fg3_pct"),
+                    ft_pct=s.get("ft_pct"),
+                )
             )
-        )
+
+        next_cursor = (payload.get("meta") or {}).get("next_cursor")
+        if not next_cursor or not page_data:
+            break
+        cursor = next_cursor
 
     # Strip DNP entries — BDL returns '0', '0:00', or '00' for non-playing rows.
     # Including them collapses averages (e.g. 22 DNP rows drops LeBron from ~23 PPG to 15).
