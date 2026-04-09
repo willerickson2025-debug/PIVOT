@@ -921,7 +921,7 @@ async def get_season_averages(player_id: int, season: int = _DEFAULT_SEASON) -> 
     try:
         payload = await _fetch_data(
             "/season_averages",
-            params={"player_ids[]": player_id, "season": season},
+            params={"player_id": player_id, "season": season},
         )
         data: list[dict[str, Any]] = payload.get("data") or []
 

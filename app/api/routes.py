@@ -228,7 +228,24 @@ async def bulk_player_averages(
     async def _fetch_one(pid: int):
         try:
             avgs = await nba_service.get_season_averages(pid, season)
-            return pid, avgs
+            if avgs:
+                return pid, avgs
+            # Fall back to computing from game logs when season_averages endpoint is empty
+            stats = await nba_service.get_player_stats(pid, season)
+            if not stats:
+                return pid, {}
+            def _avg(vals): return round(sum(v for v in vals if v is not None) / len([v for v in vals if v is not None]), 1) if any(v is not None for v in vals) else None
+            return pid, {
+                "pts": _avg([s.points for s in stats]),
+                "reb": _avg([s.rebounds for s in stats]),
+                "ast": _avg([s.assists for s in stats]),
+                "stl": _avg([s.steals for s in stats]),
+                "blk": _avg([s.blocks for s in stats]),
+                "fg_pct": _avg([s.fg_pct for s in stats]),
+                "fg3_pct": _avg([s.fg3_pct for s in stats]),
+                "ft_pct": _avg([s.ft_pct for s in stats]),
+                "games_played": len(stats),
+            }
         except Exception:
             return pid, {}
 
