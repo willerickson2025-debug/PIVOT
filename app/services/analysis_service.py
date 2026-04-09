@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 # Constants
 # ---------------------------------------------------------------------------
 
-_DEFAULT_SEASON: int = 2025
+_DEFAULT_SEASON: int = 2024
 _RECENT_FORM_WINDOW: int = 10   # number of most-recent games used for trend data
 _MAX_TRADE_PLAYERS: int = 4     # max players to fetch live stats for in a trade
 
