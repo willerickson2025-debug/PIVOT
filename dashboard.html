@@ -3458,25 +3458,17 @@ function PlayerSearchBox({ label, onSelect, side }) {
 
       {/* Chosen player preview */}
       {chosen ? (
-        <div style={{marginTop:14, display:'flex', alignItems:'center', gap:12, flexDirection: isRight ? 'row-reverse' : 'row'}}>
-          <div style={{position:'relative', flexShrink:0}}>
-            <img src={`${API}/headshot/${chosen.id}`}
-              style={{width:52, height:52, borderRadius:'50%', objectFit:'cover', border:`2px solid ${accentDim}`, background:'rgba(255,255,255,0.04)', display:'block', boxShadow:`0 0 20px ${accentGlow}`}}
-              onError={e=>e.target.style.display='none'}/>
-          </div>
-          <div style={{textAlign: isRight ? 'right' : 'left'}}>
-            <div style={{fontFamily:BC, fontSize:20, fontWeight:800, color:'var(--white)', letterSpacing:0.5, lineHeight:1.1}}>{chosen.first_name} {chosen.last_name}</div>
-            <div style={{fontFamily:BC, fontSize:11, letterSpacing:3, color:accent, fontWeight:700, marginTop:2}}>{chosen.team?.abbreviation} · {chosen.position}</div>
-          </div>
+        <div style={{marginTop:14, textAlign: isRight ? 'right' : 'left'}}>
+          <div style={{fontFamily:BC, fontSize:13, letterSpacing:4, color:accent, fontWeight:700, marginBottom:4}}>{chosen.team?.abbreviation}</div>
+          <div style={{fontFamily:BC, fontSize:22, fontWeight:800, color:'var(--white)', letterSpacing:0.5, lineHeight:1.1}}>{chosen.first_name} {chosen.last_name}</div>
+          <div style={{fontFamily:BC, fontSize:11, letterSpacing:3, color:'rgba(255,255,255,0.4)', fontWeight:700, marginTop:3}}>{chosen.position}</div>
         </div>
       ) : (
         /* Ghost placeholder */
-        <div style={{marginTop:14, display:'flex', alignItems:'center', gap:12, flexDirection: isRight ? 'row-reverse' : 'row', opacity:0.2}}>
-          <div style={{width:52, height:52, borderRadius:'50%', border:'1.5px dashed rgba(255,255,255,0.3)', flexShrink:0}}/>
-          <div style={{textAlign: isRight ? 'right' : 'left'}}>
-            <div style={{height:16, width:120, background:'rgba(255,255,255,0.12)', borderRadius:4, marginBottom:6}}/>
-            <div style={{height:10, width:70, background:'rgba(255,255,255,0.08)', borderRadius:4}}/>
-          </div>
+        <div style={{marginTop:14, opacity:0.2, textAlign: isRight ? 'right' : 'left'}}>
+          <div style={{height:10, width:50, background:'rgba(255,255,255,0.12)', borderRadius:3, marginBottom:6, marginLeft: isRight ? 'auto' : 0}}/>
+          <div style={{height:18, width:140, background:'rgba(255,255,255,0.12)', borderRadius:4, marginBottom:6, marginLeft: isRight ? 'auto' : 0}}/>
+          <div style={{height:10, width:70, background:'rgba(255,255,255,0.08)', borderRadius:3, marginLeft: isRight ? 'auto' : 0}}/>
         </div>
       )}
     </div>
@@ -3648,27 +3640,17 @@ function Compare() {
               <div style={{position:'absolute', inset:0, background:'linear-gradient(to right, rgba(0,255,128,0.04) 0%, transparent 40%, transparent 60%, rgba(160,120,255,0.04) 100%)', pointerEvents:'none'}}/>
               <div style={{display:'grid', gridTemplateColumns:'1fr auto 1fr', alignItems:'center', gap:24, position:'relative', zIndex:1}}>
                 {/* Player A */}
-                <div style={{display:'flex', alignItems:'center', gap:16}}>
-                  <div style={{position:'relative', flexShrink:0}}>
-                    <div style={{position:'absolute', inset:-3, borderRadius:'50%', background:'rgba(0,255,128,0.15)', filter:'blur(8px)'}}/>
-                    <img src={`${API}/headshot/${a.id}`} style={{width:72, height:72, borderRadius:'50%', objectFit:'cover', border:'2px solid rgba(0,255,128,0.5)', position:'relative', display:'block'}} onError={e=>e.target.style.display='none'}/>
-                  </div>
-                  <div>
-                    <div style={{fontFamily:BC, fontSize:26, fontWeight:800, color:'var(--white)', letterSpacing:0.5, lineHeight:1.05}}>{a.name}</div>
-                    <div style={{fontFamily:BC, fontSize:11, letterSpacing:3, color:'rgba(0,255,128,0.85)', fontWeight:700, marginTop:4}}>{a.team} · {a.position} · {a.games_played} GP</div>
-                  </div>
+                <div>
+                  <div style={{fontFamily:BC, fontSize:13, letterSpacing:4, color:'rgba(0,255,128,0.7)', fontWeight:700, marginBottom:6}}>{a.team}</div>
+                  <div style={{fontFamily:BC, fontSize:32, fontWeight:900, color:'var(--white)', letterSpacing:0.5, lineHeight:1.0}}>{a.name}</div>
+                  <div style={{fontFamily:BC, fontSize:11, letterSpacing:3, color:'rgba(0,255,128,0.6)', fontWeight:700, marginTop:6}}>{a.position} · {a.games_played} GP</div>
                 </div>
                 <div style={{fontFamily:BC, fontSize:14, letterSpacing:5, color:'rgba(255,255,255,0.2)', fontWeight:700, textAlign:'center'}}>VS</div>
                 {/* Player B */}
-                <div style={{display:'flex', alignItems:'center', gap:16, justifyContent:'flex-end', flexDirection:'row-reverse'}}>
-                  <div style={{position:'relative', flexShrink:0}}>
-                    <div style={{position:'absolute', inset:-3, borderRadius:'50%', background:'rgba(160,120,255,0.15)', filter:'blur(8px)'}}/>
-                    <img src={`${API}/headshot/${b.id}`} style={{width:72, height:72, borderRadius:'50%', objectFit:'cover', border:'2px solid rgba(160,120,255,0.5)', position:'relative', display:'block'}} onError={e=>e.target.style.display='none'}/>
-                  </div>
-                  <div style={{textAlign:'right'}}>
-                    <div style={{fontFamily:BC, fontSize:26, fontWeight:800, color:'var(--white)', letterSpacing:0.5, lineHeight:1.05}}>{b.name}</div>
-                    <div style={{fontFamily:BC, fontSize:11, letterSpacing:3, color:'rgba(160,120,255,0.9)', fontWeight:700, marginTop:4}}>{b.team} · {b.position} · {b.games_played} GP</div>
-                  </div>
+                <div style={{textAlign:'right'}}>
+                  <div style={{fontFamily:BC, fontSize:13, letterSpacing:4, color:'rgba(160,120,255,0.8)', fontWeight:700, marginBottom:6}}>{b.team}</div>
+                  <div style={{fontFamily:BC, fontSize:32, fontWeight:900, color:'var(--white)', letterSpacing:0.5, lineHeight:1.0}}>{b.name}</div>
+                  <div style={{fontFamily:BC, fontSize:11, letterSpacing:3, color:'rgba(160,120,255,0.7)', fontWeight:700, marginTop:6}}>{b.position} · {b.games_played} GP</div>
                 </div>
               </div>
             </div>
