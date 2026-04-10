@@ -996,6 +996,11 @@ function GameModal({ game, onClose }) {
       <div className="modal">
         <div className="modal-header">
           <div className="modal-team">
+            {teamLogoUrl(game.visitor_team.abbreviation) && (
+              <img src={teamLogoUrl(game.visitor_team.abbreviation)} alt={game.visitor_team.abbreviation}
+                width={52} height={52} style={{objectFit:'contain',marginBottom:8}}
+                onError={e=>e.currentTarget.style.display='none'}/>
+            )}
             <div className="modal-team-city">{game.visitor_team.city}</div>
             <div className="modal-team-name">{game.visitor_team.name.split(' ').pop()}</div>
             <div className="modal-team-abbr">{game.visitor_team.abbreviation}</div>
@@ -1005,6 +1010,11 @@ function GameModal({ game, onClose }) {
             <div className="modal-status">{type==='live' ? <span className="live-badge">● LIVE</span> : label}</div>
           </div>
           <div className="modal-team home">
+            {teamLogoUrl(game.home_team.abbreviation) && (
+              <img src={teamLogoUrl(game.home_team.abbreviation)} alt={game.home_team.abbreviation}
+                width={52} height={52} style={{objectFit:'contain',marginBottom:8,alignSelf:'flex-end'}}
+                onError={e=>e.currentTarget.style.display='none'}/>
+            )}
             <div className="modal-team-city">{game.home_team.city}</div>
             <div className="modal-team-name">{game.home_team.name.split(' ').pop()}</div>
             <div className="modal-team-abbr">{game.home_team.abbreviation}</div>
@@ -1054,15 +1064,17 @@ function GameModal({ game, onClose }) {
   );
 }
 
-const ESPN_TEAM_IDS = {
-  ATL:1,BOS:2,BKN:17,CHA:30,CHI:4,CLE:5,DAL:6,DEN:7,DET:8,GSW:9,
-  HOU:10,IND:11,LAC:12,LAL:13,MEM:29,MIA:14,MIL:15,MIN:16,NOP:3,
-  NYK:18,OKC:25,ORL:19,PHI:20,PHX:21,POR:22,SAC:23,SAS:24,TOR:28,
-  UTA:26,WAS:27
+// BDL abbreviation → ESPN CDN slug (BDL uses GS/NY/SA/NO; ESPN uses gsw/ny/sas/no)
+const BDL_SLUG = {
+  ATL:'atl',BOS:'bos',BKN:'bkn',BRK:'bkn',CHA:'cha',CHI:'chi',CLE:'cle',DAL:'dal',DEN:'den',
+  DET:'det',GS:'gsw',GSW:'gsw',HOU:'hou',IND:'ind',LAC:'lac',LAL:'lal',MEM:'mem',MIA:'mia',
+  MIL:'mil',MIN:'min',NO:'no',NOP:'no',NY:'ny',NYK:'ny',OKC:'okc',ORL:'orl',PHI:'phi',
+  PHX:'phx',POR:'por',SAC:'sac',SA:'sas',SAS:'sas',TOR:'tor',UTA:'utah',WAS:'was',WSH:'was',
 };
 function teamLogoUrl(abbr) {
-  const id = ESPN_TEAM_IDS[abbr];
-  return id ? `https://a.espn.com/combiner/i?img=/i/teamlogos/nba/500/${abbr.toLowerCase()}.png&h=80&w=80` : null;
+  if (!abbr) return null;
+  const slug = BDL_SLUG[abbr.toUpperCase()];
+  return slug ? `https://a.espncdn.com/i/teamlogos/nba/500/${slug}.png` : null;
 }
 
 function TeamRow({ team, score, isLive, hasScore }) {
@@ -1132,9 +1144,20 @@ function GameAnalysisModal({ game, onClose }) {
         <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', padding:'20px 28px',
           borderBottom:'1px solid var(--border)', position:'sticky', top:0, background:'var(--grey)', zIndex:10}}>
           <div>
-            <div style={{fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', fontWeight:700, fontSize:22,
-              letterSpacing:2, color:'var(--white)', marginBottom:6}}>
-              {game.visitor_team.abbreviation} <span style={{color:'rgba(255,255,255,0.52)'}}>@</span> {game.home_team.abbreviation}
+            <div style={{display:'flex', alignItems:'center', gap:12, marginBottom:6}}>
+              {teamLogoUrl(game.visitor_team.abbreviation) && (
+                <img src={teamLogoUrl(game.visitor_team.abbreviation)} alt={game.visitor_team.abbreviation}
+                  width={32} height={32} style={{objectFit:'contain'}}
+                  onError={e=>e.currentTarget.style.display='none'}/>
+              )}
+              <span style={{fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', fontWeight:700, fontSize:22, letterSpacing:2, color:'var(--white)'}}>
+                {game.visitor_team.abbreviation} <span style={{color:'rgba(255,255,255,0.52)'}}>@</span> {game.home_team.abbreviation}
+              </span>
+              {teamLogoUrl(game.home_team.abbreviation) && (
+                <img src={teamLogoUrl(game.home_team.abbreviation)} alt={game.home_team.abbreviation}
+                  width={32} height={32} style={{objectFit:'contain'}}
+                  onError={e=>e.currentTarget.style.display='none'}/>
+              )}
             </div>
             {result && (
               <div style={{display:'flex', alignItems:'center', gap:12}}>
@@ -2884,6 +2907,445 @@ function CoachGameCard({ g, onSelect }) {
   );
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Coaching Styles — Data + Component
+// ─────────────────────────────────────────────────────────────────────────────
+
+const COACHING_STYLES = {
+  architect: {
+    id:'architect', name:'The Architect', tagline:'System over stars',
+    description:"Data-driven and process-oriented. You build structures that outlast any single player. Every decision traces back to evidence.",
+    color:'#00FF80',
+    metrics:[
+      {label:'System Adherence',value:94},{label:'Role Clarity',value:91},
+      {label:'Decision Speed',value:72},{label:'Player Autonomy',value:48},
+    ],
+    insights:[
+      'Your rotations are defined before tip-off. Variance is the enemy.',
+      "You scout opponents 3 layers deep. You know their backup's tendencies.",
+      "Your offensive sets have names, counters, and counters to the counters.",
+      "You'd rather win with a role player executing perfectly than a star improvising.",
+      'Film sessions run long. You believe in understanding why, not just what.',
+    ],
+    recommendations:[
+      {title:'Exploit Defensive Tendencies',detail:'Run 5-out sets against teams that over-help on drives. Your spacing creates 12% more open 3s in these situations.'},
+      {title:'Optimize Rotation Timing',detail:'Your +4.2 second unit outperforms when deployed at the 6:00 mark rather than 8:00. Earlier deployment compounds your advantage.'},
+      {title:'Press After Missed Free Throws',detail:'Your team ranks 8th in half-court efficiency but 22nd in transition defense. Zone pressure after missed FTs limits easy buckets.'},
+    ],
+    nba_comps:['Gregg Popovich','Erik Spoelstra','Doc Rivers (Boston)'],
+  },
+  motivator: {
+    id:'motivator', name:'The Motivator', tagline:'Belief creates reality',
+    description:"You lead through energy and emotional intelligence. Players run through walls for you because they know you see them as people first.",
+    color:'#FFB800',
+    metrics:[
+      {label:'Player Trust',value:97},{label:'Locker Room Culture',value:95},
+      {label:'Tactical Flexibility',value:65},{label:'Scheme Depth',value:51},
+    ],
+    insights:[
+      "You know every player's motivators — money, legacy, family, respect.",
+      "Your pregame speeches are remembered years later. That's not an accident.",
+      "You'd play a 60% shooter over an 80% shooter if the 60% guy elevates the team.",
+      "Your players finish plays harder in Q4 because they don't want to let you down.",
+      'You adjust your communication style for every personality in the locker room.',
+    ],
+    recommendations:[
+      {title:'Channel Energy Into Shot Selection',detail:"Your team's clutch-time effort rating is top-5, but shot selection drops in Q4. Convert that energy into smarter late-game execution."},
+      {title:'Deploy Momentum Pieces Strategically',detail:'Identify the 2 players whose energy shifts the building. Deploy them after opponent runs to stem the tide before it becomes a run.'},
+      {title:'Build Structured Rest Protocols',detail:'Your relationship capital means stars play through fatigue. Install structured rest protocols before they become injuries.'},
+    ],
+    nba_comps:['Pat Riley','Doc Rivers','Tyronn Lue'],
+  },
+  tactician: {
+    id:'tactician', name:'The Tactician', tagline:'The game is chess, not checkers',
+    description:"A student of the game's deepest mechanics. You see mismatches before they happen and design plays that make defense impossible.",
+    color:'#60A5FA',
+    metrics:[
+      {label:'Scheme Innovation',value:96},{label:'In-Game Adjustments',value:93},
+      {label:'Player Development',value:67},{label:'Locker Room Culture',value:58},
+    ],
+    insights:[
+      "You've drawn up 30+ unique plays this season. You hate running the same thing twice.",
+      'Halftime is when you really coach. Your adjustments have won 8 games this season.',
+      'You spend more time on counters than first options. You expect defenses to adapt.',
+      "You'd trade a 20-ppg scorer for the right 12-ppg fit in your system.",
+      'You watch opponent film on plane flights. Voluntarily.',
+    ],
+    recommendations:[
+      {title:'Install Late Shot Clock Plays',detail:'Your scheme generates open 3s early, but efficiency drops 18% with 7 or fewer seconds on the clock. Install 2 set plays specifically for this scenario.'},
+      {title:'Increase Zone Deployment',detail:"You've used zone 3% of the time. It disrupts rhythm opponents and could add 4+ points per 48 minutes against top-10 offenses."},
+      {title:'Systematize Your Best Lineups',detail:'Your 3-guard lineups have a +6.1 net rating in small sample. Build a specific situational playbook around this personnel group.'},
+    ],
+    nba_comps:['Steve Kerr','Brad Stevens','Quin Snyder'],
+  },
+  players_coach: {
+    id:'players_coach', name:"The Player's Coach", tagline:'Culture is the strategy',
+    description:'Your locker room is the foundation. You build environments where talent maximizes itself through trust, autonomy, and shared ownership.',
+    color:'#F472B6',
+    metrics:[
+      {label:'Player Buy-In',value:96},{label:'Development Focus',value:88},
+      {label:'Tactical Rigidity',value:41},{label:'Scheme Structure',value:44},
+    ],
+    insights:[
+      'Players on your team often have the best offensive years of their careers.',
+      "You give veterans freedom that other coaches would never grant — and they respond.",
+      "Your team's chemistry shows up in the numbers: assists up, turnovers down.",
+      'You know which conversations to have publicly and which ones stay in the room.',
+      'Your players advocate for their teammates. That culture starts with you.',
+    ],
+    recommendations:[
+      {title:'Channel Freedom Into Framework',detail:"Player autonomy works — your assist rate is elite. Add 2 default actions per player so freedom operates within effective structures."},
+      {title:'Quantify Your Culture Advantage',detail:"Your locker room is a free-agent advantage. Player retention and development data are front-office ammunition in trade and recruitment conversations."},
+      {title:'Build a Defensive Identity',detail:"Offensive trust is built. Now establish one defensive principle every player owns. A culture team that defends becomes a contender."},
+    ],
+    nba_comps:['Larry Bird','Nate McMillan','Mike Budenholzer'],
+  },
+  disciplinarian: {
+    id:'disciplinarian', name:'The Disciplinarian', tagline:'Standards are non-negotiable',
+    description:"Accountability is your currency. You build cultures where doing things right isn't praised — it's expected. Excellent execution is the only standard.",
+    color:'#F87171',
+    metrics:[
+      {label:'Execution Consistency',value:95},{label:'Defensive Identity',value:92},
+      {label:'Player Flexibility',value:43},{label:'Star Accommodation',value:38},
+    ],
+    insights:[
+      "You have benched your best player for a defensive mistake. You'd do it again.",
+      'Your team leads the league in taking charges. That does not happen by accident.',
+      'Your rotations are earned, not given. Veteran status means nothing — performance does.',
+      'Opponents know what they are getting against your team: a fight for 48 minutes.',
+      "Your standards travel — players you've coached bring your culture to their next team.",
+    ],
+    recommendations:[
+      {title:'Pair Standards With Recognition',detail:"Accountability is established. Add structured praise for players who meet your standards — recognition from a disciplinarian carries 3x the psychological weight."},
+      {title:'Build Accountability Leaders in Roster',detail:"Identify 2 players who model your standards organically. Empower them to hold peers accountable. Your culture becomes self-sustaining."},
+      {title:'Q4 Defensive Specialist Protocol',detail:"Your best defenders are underutilized in high-leverage moments. Build a specific Q4 defensive lineup and let them close games."},
+    ],
+    nba_comps:['Tom Thibodeau','Larry Brown','Avery Johnson'],
+  },
+  innovator: {
+    id:'innovator', name:'The Innovator', tagline:'The playbook has blank pages',
+    description:'You see the game differently. Where others follow convention, you ask why. Your teams are built around ideas no one else has tried yet.',
+    color:'#A78BFA',
+    metrics:[
+      {label:'Strategic Creativity',value:98},{label:'Opponent Surprise',value:91},
+      {label:'Consistency',value:59},{label:'Player Predictability',value:47},
+    ],
+    insights:[
+      "You've run a play from a different sport's playbook. It worked.",
+      "Your practice drills look nothing like anyone else's. Players hate them. Then they love them.",
+      'You saw the 3-point revolution coming before the numbers caught up.',
+      'Your biggest wins came from doing the thing no one prepared for.',
+      'You experiment in preseason with looks you will run in the playoffs. Nothing is random.',
+    ],
+    recommendations:[
+      {title:'Institutionalize Your Best Innovations',detail:'Your experimental plays have a 34% higher efficiency on first use. Document and systematize them so they work on second use too.'},
+      {title:'Build Constraint-Based Creative Systems',detail:'Your team runs best when plays emerge from principles. Install a 2-option decision tree for players to make creative reads within structure.'},
+      {title:'Target Analytically Undervalued Players',detail:"Your unconventional schemes create value where others see none. The market for positionless players is still inefficient — exploit it."},
+    ],
+    nba_comps:["Mike D'Antoni",'Don Nelson','Stan Van Gundy'],
+  },
+  closer: {
+    id:'closer', name:'The Closer', tagline:'The only moment is now',
+    description:"You are built for pressure. Results are the only language you speak. When the game is on the line, your clarity becomes your team's oxygen.",
+    color:'#FB923C',
+    metrics:[
+      {label:'Clutch Performance',value:96},{label:'Decision Clarity',value:94},
+      {label:'Process Focus',value:54},{label:'Player Patience',value:49},
+    ],
+    insights:[
+      "Your team's Q4 net rating is 7 points better than Q1. You save your best for last.",
+      'You have a clear closer on your roster — and everyone on the team knows it.',
+      'Timeouts in Q4 are surgical. You call them at exactly the right moment.',
+      "You don't manage to avoid losing. You coach to win.",
+      "Your staff knows: in Q4, the room goes quiet and you take over. That's the deal.",
+    ],
+    recommendations:[
+      {title:'Design a Q4-Specific Playbook',detail:'Your closer has 3 preferred actions in late-game. Build 5 inbound and half-court sets that generate those exact looks under defensive pressure.'},
+      {title:'Simulate Pressure in Practice',detail:'Your team performs above average in clutch time. Raise the ceiling: install shot-clock buzzer drills and score-pressure scrimmages every week.'},
+      {title:'Install a Lead-Maintenance Protocol',detail:"Closers shine when trailing, but your team gives up leads in Q3. Establish a specific lead-maintenance mindset: protect the advantage, don't overreach."},
+    ],
+    nba_comps:['Phil Jackson','Rick Carlisle','Billy Donovan'],
+  },
+};
+
+const QUIZ_QUESTIONS = [
+  { q:"You're down 6 with 3 minutes left. What's your first move?", opts:[
+    {text:"Run the specific set I designed for exactly this situation", s:{architect:3,tactician:2}},
+    {text:"Get in my best player's ear — this is his moment", s:{closer:3,motivator:2}},
+    {text:"Call timeout and demand the defense tighten up first", s:{disciplinarian:3,closer:1}},
+    {text:"Give players the freedom to make something happen", s:{players_coach:3,innovator:2}},
+  ]},
+  { q:"A star player comes to you upset about their minutes. How do you handle it?", opts:[
+    {text:"Show them the data — their efficiency numbers speak for themselves", s:{architect:3,tactician:1}},
+    {text:"Listen first, understand what they need, then find a solution together", s:{motivator:3,players_coach:2}},
+    {text:"Remind them that rotations are based on performance, not reputation", s:{disciplinarian:3,closer:1}},
+    {text:"Find a creative way to redefine their role around their actual strengths", s:{innovator:3,players_coach:1}},
+  ]},
+  { q:"What does your ideal practice session look like?", opts:[
+    {text:"Structured drills, timed reps, everything tied to a measurable outcome", s:{architect:3,disciplinarian:2}},
+    {text:"Competitive and high-energy — the ones who want it will show you", s:{motivator:3,closer:2}},
+    {text:"Half scripted plays, half live situations where players problem-solve", s:{tactician:3,innovator:2}},
+    {text:"Players designing some of the drills — ownership builds commitment", s:{players_coach:3,innovator:1}},
+  ]},
+  { q:"Your team just lost three straight. What changes?", opts:[
+    {text:"Film review, identify the specific breakdowns, install corrections", s:{architect:3,tactician:2}},
+    {text:"Nothing structural — the team needs confidence, not more pressure", s:{motivator:3,players_coach:2}},
+    {text:"Standards tighten. Accountability meetings. Non-negotiable", s:{disciplinarian:3,closer:1}},
+    {text:"Shake up the lineup — predictability is the problem", s:{innovator:3,tactician:1}},
+  ]},
+  { q:"How do you approach the trade deadline?", opts:[
+    {text:"Target players who fit the system, regardless of reputation", s:{architect:3,tactician:2}},
+    {text:"Prioritize locker room fit — one wrong personality undoes everything we built", s:{players_coach:3,motivator:2}},
+    {text:"Get the best player available. Elite players figure it out", s:{closer:3,disciplinarian:1}},
+    {text:"Look for players nobody else values correctly — the market is always wrong somewhere", s:{innovator:3,architect:1}},
+  ]},
+  { q:"Halftime, down 8. What does your speech look like?", opts:[
+    {text:"Whiteboard, adjustments, specific plays we're installing in Q3", s:{tactician:3,architect:2}},
+    {text:"Raw. Personal. I remind them who they are and what we built this for", s:{motivator:3,closer:2}},
+    {text:"Short, sharp, expectations reset. We know what to do. Do it", s:{disciplinarian:3,closer:1}},
+    {text:"Turn it over to the players. What do you see? What do we need?", s:{players_coach:3,innovator:1}},
+  ]},
+  { q:"Which metric do you care most about?", opts:[
+    {text:"Defensive rating — everything flows from stopping the other team", s:{disciplinarian:3,tactician:2}},
+    {text:"Net rating differential in the 4th quarter", s:{closer:3,architect:1}},
+    {text:"Assist-to-turnover ratio — the ball movement tells the story", s:{architect:3,players_coach:2}},
+    {text:"The ones that don't exist yet. I make my own", s:{innovator:3,tactician:1}},
+  ]},
+  { q:"A key player violates team rules the night before a playoff game. What do you do?", opts:[
+    {text:"They don't play. Rules are rules. Everyone is watching how I handle this", s:{disciplinarian:3,architect:1}},
+    {text:"They play — I'll deal with it after. Winning this game matters more", s:{closer:3,motivator:1}},
+    {text:"Private conversation, full accountability, and they play if they earn it", s:{motivator:3,players_coach:2}},
+    {text:"Depends entirely on the player, the rule, and the situation", s:{tactician:2,innovator:2,players_coach:1}},
+  ]},
+  { q:"You have a 1st round pick. What matters most?", opts:[
+    {text:"Does his skill set fill an exact gap in our system?", s:{architect:3,tactician:2}},
+    {text:"Does he have the hunger, the character, the will to be great?", s:{motivator:3,disciplinarian:2}},
+    {text:"Does he have one elite skill nobody else on the team has?", s:{closer:2,innovator:2}},
+    {text:"Does he have the ego and late-game presence to take over?", s:{closer:3,players_coach:1}},
+  ]},
+  { q:"Your team is up 15 in Q4. What's your approach?", opts:[
+    {text:"Maintain the system — the lead is a byproduct of execution, nothing changes", s:{architect:3,disciplinarian:2}},
+    {text:"Get the bench guys in, let them feel this — team moments matter", s:{players_coach:3,motivator:2}},
+    {text:"Keep the starters in until the lead is truly safe — I've seen teams blow 20", s:{closer:3,disciplinarian:1}},
+    {text:"Try some new wrinkles — best time to experiment is when the game is won", s:{innovator:3,tactician:2}},
+  ]},
+];
+
+function CoachingStylesView() {
+  const HV = "'Helvetica Neue',Helvetica,Arial,sans-serif";
+  const [phase, setPhase] = React.useState('landing');
+  const [qIdx, setQIdx] = React.useState(0);
+  const [scores, setScores] = React.useState({});
+  const [activeStyleId, setActiveStyleId] = React.useState(null);
+  const [revealStep, setRevealStep] = React.useState(0);
+
+  React.useEffect(() => {
+    try {
+      const saved = localStorage.getItem('pivot_coach_style');
+      if (saved && COACHING_STYLES[saved]) { setActiveStyleId(saved); setPhase('dashboard'); }
+    } catch(_) {}
+  }, []);
+
+  const handleAnswer = (opt) => {
+    const ns = {...scores};
+    Object.entries(opt.s).forEach(([k, v]) => { ns[k] = (ns[k] || 0) + v; });
+    if (qIdx < QUIZ_QUESTIONS.length - 1) {
+      setScores(ns); setQIdx(qIdx + 1);
+    } else {
+      const winner = Object.entries(ns).sort((a,b) => b[1]-a[1])[0][0];
+      setScores(ns); setActiveStyleId(winner); setPhase('result'); setRevealStep(0);
+      setTimeout(() => setRevealStep(1), 500);
+      setTimeout(() => setRevealStep(2), 1100);
+      try { localStorage.setItem('pivot_coach_style', winner); } catch(_) {}
+    }
+  };
+
+  const retake = () => { setPhase('quiz'); setQIdx(0); setScores({}); setRevealStep(0); };
+  const switchStyle = (id) => { setActiveStyleId(id); try { localStorage.setItem('pivot_coach_style', id); } catch(_) {} };
+  const sty = activeStyleId ? COACHING_STYLES[activeStyleId] : null;
+
+  // LANDING
+  if (phase === 'landing') return (
+    <div style={{maxWidth:680, margin:'0 auto', padding:'56px 32px 80px', textAlign:'center'}}>
+      <div style={{fontFamily:HV, fontSize:9, letterSpacing:6, color:'rgba(0,255,128,0.8)', marginBottom:22, fontWeight:700}}>COACHING STYLES</div>
+      <div style={{fontFamily:BC, fontSize:'clamp(40px,6vw,78px)', fontWeight:900, color:'var(--white)', letterSpacing:2, lineHeight:1, marginBottom:24}}>
+        WHAT KIND OF<br/>COACH ARE YOU?
+      </div>
+      <div style={{fontFamily:HV, fontSize:14, lineHeight:1.9, color:'rgba(255,255,255,0.5)', marginBottom:44, fontWeight:500}}>
+        PIVOT identifies 7 distinct coaching archetypes. Discover yours through a 10-question assessment, then get a personalized dashboard built around your leadership philosophy.
+      </div>
+      <button onClick={() => setPhase('quiz')} style={{
+        background:'var(--green)', color:'#000', border:'none', padding:'15px 44px',
+        fontSize:10, letterSpacing:4, fontFamily:HV, fontWeight:700, cursor:'pointer', textTransform:'uppercase',
+      }}
+        onMouseEnter={e=>e.currentTarget.style.opacity='0.85'}
+        onMouseLeave={e=>e.currentTarget.style.opacity='1'}>
+        BEGIN ASSESSMENT
+      </button>
+      <div style={{marginTop:56, display:'flex', flexWrap:'wrap', gap:8, justifyContent:'center'}}>
+        {Object.values(COACHING_STYLES).map(s => (
+          <div key={s.id} style={{
+            padding:'6px 14px', border:`1px solid ${s.color}30`, background:`${s.color}08`,
+            borderRadius:2, fontFamily:HV, fontSize:9, letterSpacing:3, fontWeight:700, color:s.color, textTransform:'uppercase',
+          }}>{s.name}</div>
+        ))}
+      </div>
+    </div>
+  );
+
+  // QUIZ
+  if (phase === 'quiz') {
+    const q = QUIZ_QUESTIONS[qIdx];
+    const pct = ((qIdx + 1) / QUIZ_QUESTIONS.length) * 100;
+    return (
+      <div style={{maxWidth:680, margin:'0 auto', padding:'44px 32px 80px'}}>
+        <div style={{display:'flex', alignItems:'center', gap:16, marginBottom:44}}>
+          <div style={{flex:1, height:2, background:'rgba(255,255,255,0.06)', borderRadius:1, overflow:'hidden'}}>
+            <div style={{height:'100%', width:`${pct}%`, background:'var(--green)', transition:'width 0.4s ease'}}/>
+          </div>
+          <div style={{fontFamily:HV, fontSize:8, letterSpacing:3, color:'rgba(0,255,128,0.7)', fontWeight:700, whiteSpace:'nowrap'}}>{qIdx+1} / {QUIZ_QUESTIONS.length}</div>
+        </div>
+        <div style={{fontFamily:BC, fontSize:'clamp(20px,3.5vw,32px)', fontWeight:800, color:'var(--white)', letterSpacing:0.5, lineHeight:1.25, marginBottom:36}}>{q.q}</div>
+        <div style={{display:'flex', flexDirection:'column', gap:10}}>
+          {q.opts.map((opt, i) => (
+            <button key={i} onClick={() => handleAnswer(opt)} style={{
+              background:'rgba(255,255,255,0.02)', border:'1px solid rgba(255,255,255,0.08)',
+              color:'rgba(255,255,255,0.72)', padding:'17px 20px', textAlign:'left',
+              cursor:'pointer', borderRadius:4, transition:'all 0.15s',
+              fontFamily:HV, fontSize:13, lineHeight:1.6, fontWeight:500, letterSpacing:0.2,
+            }}
+              onMouseEnter={e=>{e.currentTarget.style.background='rgba(0,255,128,0.05)';e.currentTarget.style.borderColor='rgba(0,255,128,0.28)';e.currentTarget.style.color='var(--white)';}}
+              onMouseLeave={e=>{e.currentTarget.style.background='rgba(255,255,255,0.02)';e.currentTarget.style.borderColor='rgba(255,255,255,0.08)';e.currentTarget.style.color='rgba(255,255,255,0.72)';}}>
+              <span style={{fontFamily:HV, fontSize:8, letterSpacing:3, color:'rgba(0,255,128,0.45)', marginRight:12, fontWeight:700}}>{String.fromCharCode(65+i)}</span>
+              {opt.text}
+            </button>
+          ))}
+        </div>
+        {qIdx > 0 && (
+          <button onClick={() => setQIdx(qIdx-1)} style={{
+            marginTop:24, background:'transparent', border:'none', color:'rgba(255,255,255,0.22)',
+            cursor:'pointer', fontFamily:HV, fontSize:9, letterSpacing:3, fontWeight:700, padding:0,
+          }}>← BACK</button>
+        )}
+      </div>
+    );
+  }
+
+  // RESULT
+  if (phase === 'result' && sty) return (
+    <div style={{maxWidth:700, margin:'0 auto', padding:'56px 32px 80px', textAlign:'center'}}>
+      <div style={{fontFamily:HV, fontSize:9, letterSpacing:6, color:'rgba(255,255,255,0.25)', marginBottom:18, fontWeight:700}}>ASSESSMENT COMPLETE</div>
+      <div style={{fontFamily:HV, fontSize:9, letterSpacing:6, color:sty.color, marginBottom:14, fontWeight:700, opacity:revealStep>=1?1:0, transition:'opacity 0.6s ease'}}>YOUR COACHING ARCHETYPE</div>
+      <div style={{
+        fontFamily:BC, fontSize:'clamp(44px,7vw,92px)', fontWeight:900, color:sty.color,
+        letterSpacing:3, lineHeight:0.9, marginBottom:14,
+        opacity:revealStep>=1?1:0, transition:'opacity 0.6s ease 0.15s',
+        textShadow:`0 0 80px ${sty.color}35`,
+      }}>{sty.name.toUpperCase()}</div>
+      <div style={{fontFamily:BC, fontSize:18, fontWeight:700, letterSpacing:3, color:`${sty.color}80`, marginBottom:28, opacity:revealStep>=1?1:0, transition:'opacity 0.6s ease 0.25s'}}>{sty.tagline.toUpperCase()}</div>
+      <div style={{fontFamily:HV, fontSize:14, lineHeight:1.9, color:'rgba(255,255,255,0.55)', marginBottom:44, fontWeight:500, maxWidth:500, margin:'0 auto 44px', opacity:revealStep>=2?1:0, transition:'opacity 0.6s ease'}}>{sty.description}</div>
+      <button onClick={() => setPhase('dashboard')} style={{
+        background:sty.color, color:'#000', border:'none', padding:'15px 44px',
+        fontSize:10, letterSpacing:4, fontFamily:HV, fontWeight:700, cursor:'pointer', textTransform:'uppercase',
+        opacity:revealStep>=2?1:0, transition:'opacity 0.6s ease 0.15s',
+      }}>OPEN MY DASHBOARD</button>
+    </div>
+  );
+
+  // DASHBOARD
+  if (phase === 'dashboard' && sty) return (
+    <div style={{padding:'28px 0 80px', maxWidth:1100, margin:'0 auto'}}>
+
+      {/* Header */}
+      <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:24, marginBottom:36, paddingBottom:28, borderBottom:`1px solid ${sty.color}18`, flexWrap:'wrap'}}>
+        <div>
+          <div style={{fontFamily:HV, fontSize:8, letterSpacing:6, color:sty.color, fontWeight:700, marginBottom:8}}>YOUR COACHING ARCHETYPE</div>
+          <div style={{fontFamily:BC, fontSize:'clamp(30px,5vw,60px)', fontWeight:900, color:'var(--white)', letterSpacing:2, lineHeight:1}}>{sty.name.toUpperCase()}</div>
+          <div style={{fontFamily:BC, fontSize:15, fontWeight:700, letterSpacing:3, color:`${sty.color}80`, marginTop:6}}>{sty.tagline.toUpperCase()}</div>
+          <div style={{fontFamily:HV, fontSize:13, lineHeight:1.85, color:'rgba(255,255,255,0.48)', marginTop:12, maxWidth:460, fontWeight:500}}>{sty.description}</div>
+        </div>
+        <button onClick={retake} style={{
+          background:'transparent', border:'1px solid rgba(255,255,255,0.1)',
+          color:'rgba(255,255,255,0.32)', padding:'9px 16px', cursor:'pointer',
+          fontFamily:HV, fontSize:8, letterSpacing:3, fontWeight:700, transition:'all 0.15s', flexShrink:0,
+        }}
+          onMouseEnter={e=>{e.currentTarget.style.borderColor='rgba(255,255,255,0.28)';e.currentTarget.style.color='var(--white)';}}
+          onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(255,255,255,0.1)';e.currentTarget.style.color='rgba(255,255,255,0.32)';}}>
+          RETAKE ASSESSMENT
+        </button>
+      </div>
+
+      {/* 3-col grid */}
+      <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:16, marginBottom:28}}>
+
+        {/* Metrics */}
+        <div style={{background:'rgba(0,0,0,0.28)', border:`1px solid ${sty.color}14`, borderRadius:4, padding:'20px'}}>
+          <div style={{fontFamily:HV, fontSize:8, letterSpacing:5, color:`${sty.color}70`, fontWeight:700, marginBottom:20}}>PROFILE METRICS</div>
+          {sty.metrics.map((m, i) => (
+            <div key={i} style={{marginBottom:16}}>
+              <div style={{display:'flex', justifyContent:'space-between', marginBottom:6}}>
+                <span style={{fontFamily:HV, fontSize:9, letterSpacing:2, color:'rgba(255,255,255,0.45)', fontWeight:700}}>{m.label.toUpperCase()}</span>
+                <span style={{fontFamily:HV, fontSize:9, letterSpacing:1, color:sty.color, fontWeight:700}}>{m.value}</span>
+              </div>
+              <div style={{height:3, background:'rgba(255,255,255,0.05)', borderRadius:2}}>
+                <div style={{height:'100%', width:`${m.value}%`, background:sty.color, borderRadius:2, opacity:0.82}}/>
+              </div>
+            </div>
+          ))}
+          <div style={{marginTop:22, paddingTop:16, borderTop:`1px solid ${sty.color}12`}}>
+            <div style={{fontFamily:HV, fontSize:8, letterSpacing:4, color:'rgba(255,255,255,0.18)', marginBottom:10, fontWeight:700}}>NBA COMPS</div>
+            {sty.nba_comps.map((c, i) => (
+              <div key={i} style={{fontFamily:HV, fontSize:10, letterSpacing:1, color:'rgba(255,255,255,0.42)', marginBottom:5, fontWeight:500}}>· {c}</div>
+            ))}
+          </div>
+        </div>
+
+        {/* Insights */}
+        <div style={{background:'rgba(0,0,0,0.28)', border:`1px solid ${sty.color}14`, borderRadius:4, padding:'20px'}}>
+          <div style={{fontFamily:HV, fontSize:8, letterSpacing:5, color:`${sty.color}70`, fontWeight:700, marginBottom:20}}>STYLE INSIGHTS</div>
+          {sty.insights.map((ins, i) => (
+            <div key={i} style={{marginBottom:10, padding:'11px 13px', background:`${sty.color}05`, border:`1px solid ${sty.color}10`, borderRadius:3, borderLeft:`2px solid ${sty.color}55`}}>
+              <div style={{fontFamily:HV, fontSize:11, lineHeight:1.75, color:'rgba(255,255,255,0.6)', fontWeight:500, letterSpacing:0.2}}>{ins}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Recommendations */}
+        <div style={{background:'rgba(0,0,0,0.28)', border:`1px solid ${sty.color}14`, borderRadius:4, padding:'20px'}}>
+          <div style={{fontFamily:HV, fontSize:8, letterSpacing:5, color:`${sty.color}70`, fontWeight:700, marginBottom:20}}>RECOMMENDATIONS</div>
+          {sty.recommendations.map((rec, i) => (
+            <div key={i} style={{marginBottom:18, paddingBottom:18, borderBottom: i < 2 ? '1px solid rgba(255,255,255,0.04)' : 'none'}}>
+              <div style={{fontFamily:HV, fontSize:9, letterSpacing:2, color:'var(--white)', fontWeight:700, marginBottom:7}}>{rec.title.toUpperCase()}</div>
+              <div style={{fontFamily:HV, fontSize:11, lineHeight:1.75, color:'rgba(255,255,255,0.42)', fontWeight:500}}>{rec.detail}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Style Switcher */}
+      <div style={{borderTop:'1px solid rgba(255,255,255,0.05)', paddingTop:24}}>
+        <div style={{fontFamily:HV, fontSize:8, letterSpacing:5, color:'rgba(255,255,255,0.18)', marginBottom:14, fontWeight:700}}>EXPLORE OTHER ARCHETYPES</div>
+        <div style={{display:'flex', flexWrap:'wrap', gap:8}}>
+          {Object.values(COACHING_STYLES).map(s => (
+            <button key={s.id} onClick={() => switchStyle(s.id)} style={{
+              padding:'8px 16px', background: s.id===sty.id ? `${s.color}16` : 'transparent',
+              border:`1px solid ${s.id===sty.id ? s.color : 'rgba(255,255,255,0.07)'}`,
+              color: s.id===sty.id ? s.color : 'rgba(255,255,255,0.28)',
+              cursor:'pointer', fontFamily:HV, fontSize:8, letterSpacing:3, fontWeight:700,
+              textTransform:'uppercase', transition:'all 0.15s', borderRadius:2,
+            }}
+              onMouseEnter={e=>{ if(s.id!==sty.id){e.currentTarget.style.borderColor=`${s.color}55`;e.currentTarget.style.color=s.color;}}}
+              onMouseLeave={e=>{ if(s.id!==sty.id){e.currentTarget.style.borderColor='rgba(255,255,255,0.07)';e.currentTarget.style.color='rgba(255,255,255,0.28)';}}}
+            >{s.name}</button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
+  return null;
+}
+
 function CoachMode() {
   const [games, setGames] = React.useState([]);
   const [selectedGame, setSelectedGame] = React.useState(null);
@@ -2894,6 +3356,7 @@ function CoachMode() {
   const [error, setError] = React.useState(null);
   const [history, setHistory] = React.useState([]);
   const [boxScore, setBoxScore] = React.useState(null);
+  const [coachTab, setCoachTab] = React.useState('games');
   const today = localDate();
 
   React.useEffect(() => {
@@ -2963,27 +3426,44 @@ function CoachMode() {
   if (!selectedGame) {
     return (
       <div style={{padding:'40px 32px 80px', maxWidth:1200, margin:'0 auto'}}>
-        <div style={{display:'flex', alignItems:'center', gap:16, marginBottom:32}}>
+        <div style={{display:'flex', alignItems:'center', gap:16, marginBottom:32, flexWrap:'wrap'}}>
           <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:'clamp(28px,4vw,48px)', fontWeight:900, letterSpacing:-1, color:'var(--white)', lineHeight:1}}>COACH MODE</div>
-          <div style={{flex:1, height:1, background:'rgba(255,255,255,0.05)'}}/>
-          <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:4, color:'rgba(0,255,128,0.9)', textTransform:'uppercase', fontWeight:700}}>Select a game to begin</div>
-        </div>
-
-        {games.length === 0 ? (
-          <div style={{textAlign:'center', padding:'80px 0'}}>
-            <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, letterSpacing:4, color:'rgba(255,255,255,0.18)', textTransform:'uppercase', marginBottom:16}}>No games scheduled today</div>
-            <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:12, color:'rgba(255,255,255,0.35)', letterSpacing:0, textTransform:'none', fontWeight:500, lineHeight:1.8}}>
-              Coach Mode uses live box score data to generate adjustments.<br/>
-              It works during live games and for completed games with box scores.<br/>
-              Check back on a game day — select any live or final game to begin.
-            </div>
-          </div>
-        ) : (
-          <div className="g-grid">
-            {games.map(g => (
-              <CoachGameCard key={g.id} g={g} onSelect={g => { setSelectedGame(g); setMyTeam(''); setResult(null); setError(null); }}/>
+          <div style={{flex:1, height:1, background:'rgba(255,255,255,0.05)', minWidth:20}}/>
+          <div style={{display:'flex', gap:4}}>
+            {[['games',"TODAY'S GAMES"],['styles','COACHING STYLES']].map(([id, label]) => (
+              <button key={id} onClick={() => setCoachTab(id)} style={{
+                background: coachTab===id ? 'rgba(0,255,128,0.08)' : 'transparent',
+                border: `1px solid ${coachTab===id ? 'rgba(0,255,128,0.35)' : 'rgba(255,255,255,0.08)'}`,
+                color: coachTab===id ? 'rgba(0,255,128,0.9)' : 'rgba(255,255,255,0.3)',
+                padding:'8px 16px', cursor:'pointer', transition:'all 0.15s',
+                fontFamily:'Helvetica Neue, sans-serif', fontSize:8, letterSpacing:3, fontWeight:700, textTransform:'uppercase',
+              }}
+                onMouseEnter={e=>{ if(coachTab!==id){e.currentTarget.style.borderColor='rgba(255,255,255,0.2)';e.currentTarget.style.color='rgba(255,255,255,0.6)';}}}
+                onMouseLeave={e=>{ if(coachTab!==id){e.currentTarget.style.borderColor='rgba(255,255,255,0.08)';e.currentTarget.style.color='rgba(255,255,255,0.3)';}}}
+              >{label}</button>
             ))}
           </div>
+        </div>
+
+        {coachTab === 'games' ? (
+          games.length === 0 ? (
+            <div style={{textAlign:'center', padding:'80px 0'}}>
+              <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, letterSpacing:4, color:'rgba(255,255,255,0.18)', textTransform:'uppercase', marginBottom:16}}>No games scheduled today</div>
+              <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:12, color:'rgba(255,255,255,0.35)', letterSpacing:0, textTransform:'none', fontWeight:500, lineHeight:1.8}}>
+                Coach Mode uses live box score data to generate adjustments.<br/>
+                It works during live games and for completed games with box scores.<br/>
+                Check back on a game day — select any live or final game to begin.
+              </div>
+            </div>
+          ) : (
+            <div className="g-grid">
+              {games.map(g => (
+                <CoachGameCard key={g.id} g={g} onSelect={g => { setSelectedGame(g); setMyTeam(''); setResult(null); setError(null); }}/>
+              ))}
+            </div>
+          )
+        ) : (
+          <CoachingStylesView />
         )}
       </div>
     );
@@ -3011,8 +3491,12 @@ function CoachMode() {
                   {isLive && <span style={{width:6,height:6,borderRadius:'50%',background:'var(--green)',display:'inline-block',animation:'live-ping 1.2s ease-out infinite'}}/>}
                   <span style={{fontSize:7,letterSpacing:3,color:isLive?'var(--green)':'#555',fontFamily:'Helvetica Neue, sans-serif',fontWeight:700,textTransform:'uppercase'}}>{isLive?'LIVE':label}</span>
                 </div>
-                <div style={{fontSize:15,letterSpacing:1,fontFamily:'Helvetica Neue, sans-serif',fontWeight:700,color:'#fff'}}>
-                  {selectedGame.visitor_team.abbreviation} <span style={{color:'rgba(255,255,255,0.82)'}}>@</span> {selectedGame.home_team.abbreviation}
+                <div style={{display:'flex', alignItems:'center', gap:7, marginBottom:2}}>
+                  {teamLogoUrl(selectedGame.visitor_team.abbreviation) && <img src={teamLogoUrl(selectedGame.visitor_team.abbreviation)} alt={selectedGame.visitor_team.abbreviation} width={22} height={22} style={{objectFit:'contain'}} onError={e=>e.currentTarget.style.display='none'}/>}
+                  <span style={{fontSize:15,letterSpacing:1,fontFamily:'Helvetica Neue, sans-serif',fontWeight:700,color:'#fff'}}>{selectedGame.visitor_team.abbreviation}</span>
+                  <span style={{fontSize:11,color:'rgba(255,255,255,0.4)',fontFamily:'Helvetica Neue, sans-serif'}}>@</span>
+                  <span style={{fontSize:15,letterSpacing:1,fontFamily:'Helvetica Neue, sans-serif',fontWeight:700,color:'#fff'}}>{selectedGame.home_team.abbreviation}</span>
+                  {teamLogoUrl(selectedGame.home_team.abbreviation) && <img src={teamLogoUrl(selectedGame.home_team.abbreviation)} alt={selectedGame.home_team.abbreviation} width={22} height={22} style={{objectFit:'contain'}} onError={e=>e.currentTarget.style.display='none'}/>}
                 </div>
                 {(selectedGame.home_team_score > 0 || selectedGame.visitor_team_score > 0) && (
                   <div style={{fontSize:13,color:'var(--green)',letterSpacing:2,marginTop:4,fontFamily:'Helvetica Neue, sans-serif',fontWeight:800}}>
@@ -3031,7 +3515,13 @@ function CoachMode() {
                   color: myTeam===t.name ? '#000' : '#444',
                   border: `1px solid ${myTeam===t.name ? 'var(--green)' : 'rgba(255,255,255,0.08)'}`,
                   padding:'10px 6px', cursor:'pointer', fontSize:10, letterSpacing:3,
-                  fontFamily:'Helvetica Neue, sans-serif', fontWeight:700, textTransform:'uppercase', transition:'all 0.1s'}}>
+                  fontFamily:'Helvetica Neue, sans-serif', fontWeight:700, textTransform:'uppercase', transition:'all 0.1s',
+                  display:'flex', flexDirection:'column', alignItems:'center', gap:5}}>
+                {teamLogoUrl(t.abbreviation) && (
+                  <img src={teamLogoUrl(t.abbreviation)} alt={t.abbreviation} width={28} height={28}
+                    style={{objectFit:'contain', filter: myTeam===t.name ? 'none' : 'grayscale(0.6) brightness(0.5)'}}
+                    onError={e=>e.currentTarget.style.display='none'}/>
+                )}
                 {t.abbreviation}
               </button>
             ))}
@@ -3200,11 +3690,16 @@ function CoachMode() {
               const isMyTeam = myTeam && team && myTeam.toLowerCase().includes((team.name||'').toLowerCase().split(' ').pop());
               return (
                 <div key={key} style={{marginBottom:0}}>
-                  <div style={{padding:'8px 16px 4px', fontSize:7, letterSpacing:4,
+                  <div style={{padding:'7px 16px 5px', display:'flex', alignItems:'center', gap:7,
                     color: isMyTeam ? 'var(--green)' : '#444',
                     background: isMyTeam ? 'rgba(0,255,128,0.03)' : 'transparent',
-                    fontFamily:'Helvetica Neue, sans-serif', borderBottom:'1px solid rgba(255,255,255,0.03)'}}>
-                    {team?.abbreviation} {isMyTeam ? '◎' : ''}
+                    borderBottom:'1px solid rgba(255,255,255,0.03)'}}>
+                    {teamLogoUrl(team?.abbreviation) && (
+                      <img src={teamLogoUrl(team?.abbreviation)} alt={team?.abbreviation} width={18} height={18}
+                        style={{objectFit:'contain', opacity: isMyTeam ? 1 : 0.35}}
+                        onError={e=>e.currentTarget.style.display='none'}/>
+                    )}
+                    <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:7, letterSpacing:4}}>{team?.abbreviation} {isMyTeam ? '◎' : ''}</span>
                   </div>
                   <div style={{padding:'4px 0 8px'}}>
                     {players.map((p, i) => (
@@ -3459,7 +3954,19 @@ function PlayerSearchBox({ label, onSelect, side }) {
       {/* Chosen player preview */}
       {chosen ? (
         <div style={{marginTop:14, textAlign: isRight ? 'right' : 'left'}}>
-          <div style={{fontFamily:BC, fontSize:13, letterSpacing:4, color:accent, fontWeight:700, marginBottom:4}}>{chosen.team?.abbreviation}</div>
+          <div style={{display:'flex', alignItems:'center', gap:8, justifyContent: isRight ? 'flex-end' : 'flex-start', marginBottom:6}}>
+            {!isRight && teamLogoUrl(chosen.team?.abbreviation) && (
+              <img src={teamLogoUrl(chosen.team?.abbreviation)} alt={chosen.team?.abbreviation}
+                width={32} height={32} style={{objectFit:'contain'}}
+                onError={e=>e.currentTarget.style.display='none'}/>
+            )}
+            <div style={{fontFamily:BC, fontSize:13, letterSpacing:4, color:accent, fontWeight:700}}>{chosen.team?.abbreviation}</div>
+            {isRight && teamLogoUrl(chosen.team?.abbreviation) && (
+              <img src={teamLogoUrl(chosen.team?.abbreviation)} alt={chosen.team?.abbreviation}
+                width={32} height={32} style={{objectFit:'contain'}}
+                onError={e=>e.currentTarget.style.display='none'}/>
+            )}
+          </div>
           <div style={{fontFamily:BC, fontSize:22, fontWeight:800, color:'var(--white)', letterSpacing:0.5, lineHeight:1.1}}>{chosen.first_name} {chosen.last_name}</div>
           <div style={{fontFamily:BC, fontSize:11, letterSpacing:3, color:'rgba(255,255,255,0.4)', fontWeight:700, marginTop:3}}>{chosen.position}</div>
         </div>
@@ -3641,14 +4148,26 @@ function Compare() {
               <div style={{display:'grid', gridTemplateColumns:'1fr auto 1fr', alignItems:'center', gap:24, position:'relative', zIndex:1}}>
                 {/* Player A */}
                 <div>
-                  <div style={{fontFamily:BC, fontSize:13, letterSpacing:4, color:'rgba(0,255,128,0.7)', fontWeight:700, marginBottom:6}}>{a.team}</div>
+                  <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:8}}>
+                    {teamLogoUrl(a.team) && (
+                      <img src={teamLogoUrl(a.team)} alt={a.team} width={36} height={36}
+                        style={{objectFit:'contain'}} onError={e=>e.currentTarget.style.display='none'}/>
+                    )}
+                    <div style={{fontFamily:BC, fontSize:13, letterSpacing:4, color:'rgba(0,255,128,0.7)', fontWeight:700}}>{a.team}</div>
+                  </div>
                   <div style={{fontFamily:BC, fontSize:32, fontWeight:900, color:'var(--white)', letterSpacing:0.5, lineHeight:1.0}}>{a.name}</div>
                   <div style={{fontFamily:BC, fontSize:11, letterSpacing:3, color:'rgba(0,255,128,0.6)', fontWeight:700, marginTop:6}}>{a.position} · {a.games_played} GP</div>
                 </div>
                 <div style={{fontFamily:BC, fontSize:14, letterSpacing:5, color:'rgba(255,255,255,0.2)', fontWeight:700, textAlign:'center'}}>VS</div>
                 {/* Player B */}
                 <div style={{textAlign:'right'}}>
-                  <div style={{fontFamily:BC, fontSize:13, letterSpacing:4, color:'rgba(160,120,255,0.8)', fontWeight:700, marginBottom:6}}>{b.team}</div>
+                  <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:8, justifyContent:'flex-end'}}>
+                    <div style={{fontFamily:BC, fontSize:13, letterSpacing:4, color:'rgba(160,120,255,0.8)', fontWeight:700}}>{b.team}</div>
+                    {teamLogoUrl(b.team) && (
+                      <img src={teamLogoUrl(b.team)} alt={b.team} width={36} height={36}
+                        style={{objectFit:'contain'}} onError={e=>e.currentTarget.style.display='none'}/>
+                    )}
+                  </div>
                   <div style={{fontFamily:BC, fontSize:32, fontWeight:900, color:'var(--white)', letterSpacing:0.5, lineHeight:1.0}}>{b.name}</div>
                   <div style={{fontFamily:BC, fontSize:11, letterSpacing:3, color:'rgba(160,120,255,0.7)', fontWeight:700, marginTop:6}}>{b.position} · {b.games_played} GP</div>
                 </div>
