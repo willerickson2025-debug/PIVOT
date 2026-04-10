@@ -3166,29 +3166,32 @@ function CoachingStylesView() {
 
   // LANDING
   if (phase === 'landing') return (
-    <div style={{maxWidth:680, margin:'0 auto', padding:'56px 32px 80px', textAlign:'center'}}>
-      <div style={{fontFamily:HV, fontSize:9, letterSpacing:6, color:'rgba(0,255,128,0.8)', marginBottom:22, fontWeight:700}}>COACHING STYLES</div>
-      <div style={{fontFamily:BC, fontSize:'clamp(40px,6vw,78px)', fontWeight:900, color:'var(--white)', letterSpacing:2, lineHeight:1, marginBottom:24}}>
-        WHAT KIND OF<br/>COACH ARE YOU?
+    <div style={{maxWidth:720, margin:'0 auto', padding:'56px 32px 80px'}}>
+      <div style={{fontFamily:HV, fontSize:9, letterSpacing:6, color:'rgba(0,255,128,0.8)', marginBottom:20, fontWeight:700}}>COACHING STYLES</div>
+      <div style={{fontFamily:HV, fontSize:'clamp(36px,5.5vw,72px)', fontWeight:900, letterSpacing:'-2px', lineHeight:0.95, color:'var(--white)', marginBottom:28, textTransform:'uppercase'}}>
+        What kind of<br/>coach are you?
       </div>
-      <div style={{fontFamily:HV, fontSize:14, lineHeight:1.9, color:'rgba(255,255,255,0.5)', marginBottom:44, fontWeight:500}}>
+      <div style={{fontFamily:HV, fontSize:14, lineHeight:1.9, color:'rgba(255,255,255,0.48)', marginBottom:40, fontWeight:500, maxWidth:520}}>
         PIVOT identifies 7 distinct coaching archetypes. Discover yours through a 10-question assessment, then get a personalized dashboard built around your leadership philosophy.
       </div>
       <button onClick={() => setPhase('quiz')} style={{
-        background:'var(--green)', color:'#000', border:'none', padding:'15px 44px',
+        background:'var(--green)', color:'#000', border:'none', padding:'14px 40px',
         fontSize:10, letterSpacing:4, fontFamily:HV, fontWeight:700, cursor:'pointer', textTransform:'uppercase',
       }}
         onMouseEnter={e=>e.currentTarget.style.opacity='0.85'}
         onMouseLeave={e=>e.currentTarget.style.opacity='1'}>
         BEGIN ASSESSMENT
       </button>
-      <div style={{marginTop:56, display:'flex', flexWrap:'wrap', gap:8, justifyContent:'center'}}>
-        {Object.values(COACHING_STYLES).map(s => (
-          <div key={s.id} style={{
-            padding:'6px 14px', border:`1px solid ${s.color}30`, background:`${s.color}08`,
-            borderRadius:2, fontFamily:HV, fontSize:9, letterSpacing:3, fontWeight:700, color:s.color, textTransform:'uppercase',
-          }}>{s.name}</div>
-        ))}
+      <div style={{marginTop:64, borderTop:'1px solid rgba(255,255,255,0.05)', paddingTop:32}}>
+        <div style={{fontFamily:HV, fontSize:8, letterSpacing:5, color:'rgba(255,255,255,0.18)', marginBottom:16, fontWeight:700}}>7 ARCHETYPES</div>
+        <div style={{display:'flex', flexWrap:'wrap', gap:8}}>
+          {Object.values(COACHING_STYLES).map(s => (
+            <div key={s.id} style={{
+              padding:'7px 14px', border:`1px solid ${s.color}28`, background:`${s.color}07`,
+              fontFamily:HV, fontSize:9, letterSpacing:3, fontWeight:700, color:s.color, textTransform:'uppercase',
+            }}>{s.name}</div>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -3199,31 +3202,31 @@ function CoachingStylesView() {
     const pct = ((qIdx + 1) / QUIZ_QUESTIONS.length) * 100;
     return (
       <div style={{maxWidth:680, margin:'0 auto', padding:'44px 32px 80px'}}>
-        <div style={{display:'flex', alignItems:'center', gap:16, marginBottom:44}}>
-          <div style={{flex:1, height:2, background:'rgba(255,255,255,0.06)', borderRadius:1, overflow:'hidden'}}>
+        <div style={{display:'flex', alignItems:'center', gap:16, marginBottom:48}}>
+          <div style={{flex:1, height:1, background:'rgba(255,255,255,0.06)', overflow:'hidden'}}>
             <div style={{height:'100%', width:`${pct}%`, background:'var(--green)', transition:'width 0.4s ease'}}/>
           </div>
-          <div style={{fontFamily:HV, fontSize:8, letterSpacing:3, color:'rgba(0,255,128,0.7)', fontWeight:700, whiteSpace:'nowrap'}}>{qIdx+1} / {QUIZ_QUESTIONS.length}</div>
+          <div style={{fontFamily:HV, fontSize:8, letterSpacing:3, color:'rgba(0,255,128,0.6)', fontWeight:700, whiteSpace:'nowrap'}}>{qIdx+1} / {QUIZ_QUESTIONS.length}</div>
         </div>
-        <div style={{fontFamily:BC, fontSize:'clamp(20px,3.5vw,32px)', fontWeight:800, color:'var(--white)', letterSpacing:0.5, lineHeight:1.25, marginBottom:36}}>{q.q}</div>
-        <div style={{display:'flex', flexDirection:'column', gap:10}}>
+        <div style={{fontFamily:HV, fontSize:'clamp(18px,3vw,28px)', fontWeight:900, letterSpacing:'-0.5px', color:'var(--white)', lineHeight:1.2, marginBottom:32}}>{q.q}</div>
+        <div style={{display:'flex', flexDirection:'column', gap:8}}>
           {q.opts.map((opt, i) => (
             <button key={i} onClick={() => handleAnswer(opt)} style={{
-              background:'rgba(255,255,255,0.02)', border:'1px solid rgba(255,255,255,0.08)',
-              color:'rgba(255,255,255,0.72)', padding:'17px 20px', textAlign:'left',
-              cursor:'pointer', borderRadius:4, transition:'all 0.15s',
-              fontFamily:HV, fontSize:13, lineHeight:1.6, fontWeight:500, letterSpacing:0.2,
+              background:'rgba(255,255,255,0.02)', border:'1px solid rgba(255,255,255,0.07)',
+              color:'rgba(255,255,255,0.65)', padding:'16px 20px', textAlign:'left',
+              cursor:'pointer', transition:'all 0.12s',
+              fontFamily:HV, fontSize:13, lineHeight:1.65, fontWeight:500, letterSpacing:0,
             }}
-              onMouseEnter={e=>{e.currentTarget.style.background='rgba(0,255,128,0.05)';e.currentTarget.style.borderColor='rgba(0,255,128,0.28)';e.currentTarget.style.color='var(--white)';}}
-              onMouseLeave={e=>{e.currentTarget.style.background='rgba(255,255,255,0.02)';e.currentTarget.style.borderColor='rgba(255,255,255,0.08)';e.currentTarget.style.color='rgba(255,255,255,0.72)';}}>
-              <span style={{fontFamily:HV, fontSize:8, letterSpacing:3, color:'rgba(0,255,128,0.45)', marginRight:12, fontWeight:700}}>{String.fromCharCode(65+i)}</span>
+              onMouseEnter={e=>{e.currentTarget.style.background='rgba(0,255,128,0.04)';e.currentTarget.style.borderColor='rgba(0,255,128,0.25)';e.currentTarget.style.color='var(--white)';}}
+              onMouseLeave={e=>{e.currentTarget.style.background='rgba(255,255,255,0.02)';e.currentTarget.style.borderColor='rgba(255,255,255,0.07)';e.currentTarget.style.color='rgba(255,255,255,0.65)';}}>
+              <span style={{fontFamily:HV, fontSize:8, letterSpacing:3, color:'rgba(0,255,128,0.4)', marginRight:14, fontWeight:700}}>{String.fromCharCode(65+i)}</span>
               {opt.text}
             </button>
           ))}
         </div>
         {qIdx > 0 && (
           <button onClick={() => setQIdx(qIdx-1)} style={{
-            marginTop:24, background:'transparent', border:'none', color:'rgba(255,255,255,0.22)',
+            marginTop:24, background:'transparent', border:'none', color:'rgba(255,255,255,0.2)',
             cursor:'pointer', fontFamily:HV, fontSize:9, letterSpacing:3, fontWeight:700, padding:0,
           }}>← BACK</button>
         )}
@@ -3233,19 +3236,28 @@ function CoachingStylesView() {
 
   // RESULT
   if (phase === 'result' && sty) return (
-    <div style={{maxWidth:700, margin:'0 auto', padding:'56px 32px 80px', textAlign:'center'}}>
-      <div style={{fontFamily:HV, fontSize:9, letterSpacing:6, color:'rgba(255,255,255,0.25)', marginBottom:18, fontWeight:700}}>ASSESSMENT COMPLETE</div>
-      <div style={{fontFamily:HV, fontSize:9, letterSpacing:6, color:sty.color, marginBottom:14, fontWeight:700, opacity:revealStep>=1?1:0, transition:'opacity 0.6s ease'}}>YOUR COACHING ARCHETYPE</div>
+    <div style={{maxWidth:680, margin:'0 auto', padding:'60px 32px 80px'}}>
+      <div style={{fontFamily:HV, fontSize:8, letterSpacing:6, color:'rgba(255,255,255,0.2)', marginBottom:48, fontWeight:700}}>ASSESSMENT COMPLETE</div>
       <div style={{
-        fontFamily:BC, fontSize:'clamp(44px,7vw,92px)', fontWeight:900, color:sty.color,
-        letterSpacing:3, lineHeight:0.9, marginBottom:14,
+        fontFamily:HV, fontSize:9, letterSpacing:6, color:sty.color, marginBottom:16, fontWeight:700,
+        opacity:revealStep>=1?1:0, transition:'opacity 0.6s ease',
+      }}>YOUR COACHING ARCHETYPE</div>
+      <div style={{
+        fontFamily:HV, fontSize:'clamp(40px,6.5vw,84px)', fontWeight:900, letterSpacing:'-3px',
+        lineHeight:0.9, color:'var(--white)', marginBottom:20, textTransform:'uppercase',
         opacity:revealStep>=1?1:0, transition:'opacity 0.6s ease 0.15s',
-        textShadow:`0 0 80px ${sty.color}35`,
-      }}>{sty.name.toUpperCase()}</div>
-      <div style={{fontFamily:BC, fontSize:18, fontWeight:700, letterSpacing:3, color:`${sty.color}80`, marginBottom:28, opacity:revealStep>=1?1:0, transition:'opacity 0.6s ease 0.25s'}}>{sty.tagline.toUpperCase()}</div>
-      <div style={{fontFamily:HV, fontSize:14, lineHeight:1.9, color:'rgba(255,255,255,0.55)', marginBottom:44, fontWeight:500, maxWidth:500, margin:'0 auto 44px', opacity:revealStep>=2?1:0, transition:'opacity 0.6s ease'}}>{sty.description}</div>
+      }}>{sty.name}</div>
+      <div style={{
+        fontFamily:HV, fontSize:11, letterSpacing:5, color:sty.color, fontWeight:700, marginBottom:28, textTransform:'uppercase',
+        opacity:revealStep>=1?1:0, transition:'opacity 0.6s ease 0.25s',
+      }}>{sty.tagline}</div>
+      <div style={{
+        fontFamily:HV, fontSize:14, lineHeight:1.9, color:'rgba(255,255,255,0.52)', marginBottom:48,
+        fontWeight:500, maxWidth:480,
+        opacity:revealStep>=2?1:0, transition:'opacity 0.6s ease',
+      }}>{sty.description}</div>
       <button onClick={() => setPhase('dashboard')} style={{
-        background:sty.color, color:'#000', border:'none', padding:'15px 44px',
+        background:sty.color, color:'#000', border:'none', padding:'14px 40px',
         fontSize:10, letterSpacing:4, fontFamily:HV, fontWeight:700, cursor:'pointer', textTransform:'uppercase',
         opacity:revealStep>=2?1:0, transition:'opacity 0.6s ease 0.15s',
       }}>OPEN MY DASHBOARD</button>
@@ -3257,20 +3269,20 @@ function CoachingStylesView() {
     <div style={{padding:'28px 0 80px', maxWidth:1100, margin:'0 auto'}}>
 
       {/* Header */}
-      <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:24, marginBottom:36, paddingBottom:28, borderBottom:`1px solid ${sty.color}18`, flexWrap:'wrap'}}>
+      <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:24, marginBottom:36, paddingBottom:28, borderBottom:`1px solid rgba(255,255,255,0.06)`, flexWrap:'wrap'}}>
         <div>
-          <div style={{fontFamily:HV, fontSize:8, letterSpacing:6, color:sty.color, fontWeight:700, marginBottom:8}}>YOUR COACHING ARCHETYPE</div>
-          <div style={{fontFamily:BC, fontSize:'clamp(30px,5vw,60px)', fontWeight:900, color:'var(--white)', letterSpacing:2, lineHeight:1}}>{sty.name.toUpperCase()}</div>
-          <div style={{fontFamily:BC, fontSize:15, fontWeight:700, letterSpacing:3, color:`${sty.color}80`, marginTop:6}}>{sty.tagline.toUpperCase()}</div>
-          <div style={{fontFamily:HV, fontSize:13, lineHeight:1.85, color:'rgba(255,255,255,0.48)', marginTop:12, maxWidth:460, fontWeight:500}}>{sty.description}</div>
+          <div style={{fontFamily:HV, fontSize:8, letterSpacing:6, color:sty.color, fontWeight:700, marginBottom:10}}>YOUR COACHING ARCHETYPE</div>
+          <div style={{fontFamily:HV, fontSize:'clamp(28px,4.5vw,56px)', fontWeight:900, letterSpacing:'-2px', lineHeight:0.95, color:'var(--white)', textTransform:'uppercase'}}>{sty.name}</div>
+          <div style={{fontFamily:HV, fontSize:9, letterSpacing:5, fontWeight:700, color:`${sty.color}90`, marginTop:10, textTransform:'uppercase'}}>{sty.tagline}</div>
+          <div style={{fontFamily:HV, fontSize:13, lineHeight:1.85, color:'rgba(255,255,255,0.45)', marginTop:12, maxWidth:460, fontWeight:500}}>{sty.description}</div>
         </div>
         <button onClick={retake} style={{
           background:'transparent', border:'1px solid rgba(255,255,255,0.1)',
-          color:'rgba(255,255,255,0.32)', padding:'9px 16px', cursor:'pointer',
+          color:'rgba(255,255,255,0.3)', padding:'9px 16px', cursor:'pointer',
           fontFamily:HV, fontSize:8, letterSpacing:3, fontWeight:700, transition:'all 0.15s', flexShrink:0,
         }}
           onMouseEnter={e=>{e.currentTarget.style.borderColor='rgba(255,255,255,0.28)';e.currentTarget.style.color='var(--white)';}}
-          onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(255,255,255,0.1)';e.currentTarget.style.color='rgba(255,255,255,0.32)';}}>
+          onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(255,255,255,0.1)';e.currentTarget.style.color='rgba(255,255,255,0.3)';}}>
           RETAKE ASSESSMENT
         </button>
       </div>
