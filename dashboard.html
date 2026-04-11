@@ -1528,29 +1528,43 @@ function Games() {
         {showCal && (
           <div onClick={e=>e.stopPropagation()} style={{
             position:'absolute', top:52, left:0, zIndex:100,
-            background:'#0e1117', border:'1px solid var(--border-strong)',
-            boxShadow:'0 12px 40px rgba(0,0,0,0.7)', padding:'20px', width:280,
+            background:'#0d1017', border:'1px solid rgba(255,255,255,0.12)',
+            boxShadow:'0 16px 48px rgba(0,0,0,0.8)', padding:'16px', width:310,
           }}>
+            {/* Date search input */}
+            <div style={{marginBottom:14}}>
+              <input
+                type="date" max={today}
+                defaultValue={activeDate}
+                onChange={e => { if (e.target.value && e.target.value <= today) fetch_(e.target.value); }}
+                style={{
+                  width:'100%', background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.12)',
+                  color:'var(--white)', fontFamily:HV, fontSize:12, fontWeight:700, padding:'9px 12px',
+                  outline:'none', cursor:'pointer', boxSizing:'border-box',
+                  colorScheme:'dark',
+                }}
+              />
+            </div>
             {/* Month nav */}
-            <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16}}>
+            <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10}}>
               <button onClick={() => setCalMonth(({y,m}) => m===0 ? {y:y-1,m:11} : {y,m:m-1})}
-                style={{background:'transparent',border:'none',color:'rgba(255,255,255,0.4)',cursor:'pointer',fontFamily:HV,fontSize:16,fontWeight:700,padding:'4px 8px'}}
-                onMouseEnter={e=>e.currentTarget.style.color='var(--white)'}
-                onMouseLeave={e=>e.currentTarget.style.color='rgba(255,255,255,0.4)'}>‹</button>
-              <span style={{fontFamily:HV, fontSize:11, letterSpacing:3, fontWeight:700, color:'var(--white)'}}>{MONTHS[calMonth.m]} {calMonth.y}</span>
+                style={{background:'rgba(255,255,255,0.06)',border:'none',color:'rgba(255,255,255,0.7)',cursor:'pointer',fontFamily:HV,fontSize:15,fontWeight:700,padding:'5px 12px',transition:'all 0.1s'}}
+                onMouseEnter={e=>{e.currentTarget.style.background='rgba(255,255,255,0.12)';e.currentTarget.style.color='var(--white)';}}
+                onMouseLeave={e=>{e.currentTarget.style.background='rgba(255,255,255,0.06)';e.currentTarget.style.color='rgba(255,255,255,0.7)';}}>‹</button>
+              <span style={{fontFamily:HV, fontSize:12, letterSpacing:2, fontWeight:700, color:'var(--white)'}}>{MONTHS[calMonth.m]} {calMonth.y}</span>
               <button onClick={() => setCalMonth(({y,m}) => m===11 ? {y:y+1,m:0} : {y,m:m+1})}
-                style={{background:'transparent',border:'none',color:'rgba(255,255,255,0.4)',cursor:'pointer',fontFamily:HV,fontSize:16,fontWeight:700,padding:'4px 8px'}}
-                onMouseEnter={e=>e.currentTarget.style.color='var(--white)'}
-                onMouseLeave={e=>e.currentTarget.style.color='rgba(255,255,255,0.4)'}>›</button>
+                style={{background:'rgba(255,255,255,0.06)',border:'none',color:'rgba(255,255,255,0.7)',cursor:'pointer',fontFamily:HV,fontSize:15,fontWeight:700,padding:'5px 12px',transition:'all 0.1s'}}
+                onMouseEnter={e=>{e.currentTarget.style.background='rgba(255,255,255,0.12)';e.currentTarget.style.color='var(--white)';}}
+                onMouseLeave={e=>{e.currentTarget.style.background='rgba(255,255,255,0.06)';e.currentTarget.style.color='rgba(255,255,255,0.7)';}}>›</button>
             </div>
             {/* Day headers */}
-            <div style={{display:'grid', gridTemplateColumns:'repeat(7,1fr)', marginBottom:6}}>
-              {['S','M','T','W','T','F','S'].map((d,i) => (
-                <div key={i} style={{textAlign:'center', fontFamily:HV, fontSize:8, letterSpacing:2, color:'rgba(255,255,255,0.25)', fontWeight:700, padding:'4px 0'}}>{d}</div>
+            <div style={{display:'grid', gridTemplateColumns:'repeat(7,1fr)', marginBottom:4}}>
+              {['Su','Mo','Tu','We','Th','Fr','Sa'].map((d,i) => (
+                <div key={i} style={{textAlign:'center', fontFamily:HV, fontSize:8, letterSpacing:1, color:'rgba(255,255,255,0.28)', fontWeight:700, padding:'3px 0'}}>{d}</div>
               ))}
             </div>
             {/* Day cells */}
-            <div style={{display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:2}}>
+            <div style={{display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:3}}>
               {calDays().map((d, i) => {
                 if (!d) return <div key={i}/>;
                 const ds = calDateStr(d);
@@ -1560,33 +1574,33 @@ function Games() {
                 return (
                   <button key={i} onClick={() => !future && fetch_(ds)} disabled={future}
                     style={{
-                      background: isActive ? 'var(--green)' : isToday ? 'rgba(0,255,128,0.1)' : 'transparent',
-                      border: isToday && !isActive ? '1px solid rgba(0,255,128,0.3)' : '1px solid transparent',
-                      color: isActive ? '#000' : future ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.6)',
+                      background: isActive ? 'var(--green)' : isToday ? 'rgba(0,255,128,0.12)' : 'transparent',
+                      border: isActive ? 'none' : isToday ? '1px solid rgba(0,255,128,0.4)' : '1px solid transparent',
+                      color: isActive ? '#000' : future ? 'rgba(255,255,255,0.1)' : isToday ? 'var(--green)' : 'rgba(255,255,255,0.7)',
                       cursor: future ? 'default' : 'pointer',
-                      fontFamily:HV, fontSize:11, fontWeight: isActive||isToday ? 700 : 500,
-                      padding:'6px 0', textAlign:'center', transition:'all 0.1s',
+                      fontFamily:HV, fontSize:12, fontWeight: isActive||isToday ? 700 : 400,
+                      padding:'8px 0', textAlign:'center', transition:'all 0.1s', borderRadius:2,
                     }}
-                    onMouseEnter={e=>{ if(!future&&!isActive) e.currentTarget.style.background='rgba(255,255,255,0.06)'; }}
-                    onMouseLeave={e=>{ if(!future&&!isActive) e.currentTarget.style.background= isToday?'rgba(0,255,128,0.1)':'transparent'; }}>
+                    onMouseEnter={e=>{ if(!future&&!isActive) { e.currentTarget.style.background='rgba(255,255,255,0.08)'; e.currentTarget.style.color='var(--white)'; }}}
+                    onMouseLeave={e=>{ if(!future&&!isActive) { e.currentTarget.style.background=isToday?'rgba(0,255,128,0.12)':'transparent'; e.currentTarget.style.color=isToday?'var(--green)':'rgba(255,255,255,0.7)'; }}}>
                     {d}
                   </button>
                 );
               })}
             </div>
-            <div style={{marginTop:14, borderTop:'1px solid rgba(255,255,255,0.06)', paddingTop:12, display:'flex', justifyContent:'space-between', gap:8}}>
+            <div style={{marginTop:12, borderTop:'1px solid rgba(255,255,255,0.06)', paddingTop:12, display:'flex', gap:8}}>
               <button onClick={() => fetch_(getYesterday())}
-                style={{flex:1, background:'transparent', border:'1px solid rgba(255,255,255,0.08)', color:'rgba(255,255,255,0.4)',
-                  cursor:'pointer', fontFamily:HV, fontSize:8, letterSpacing:3, fontWeight:700, padding:'7px 0', transition:'all 0.1s'}}
-                onMouseEnter={e=>{e.currentTarget.style.borderColor='rgba(255,255,255,0.2)';e.currentTarget.style.color='var(--white)';}}
-                onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(255,255,255,0.08)';e.currentTarget.style.color='rgba(255,255,255,0.4)';}}>
+                style={{flex:1, background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.1)', color:'rgba(255,255,255,0.6)',
+                  cursor:'pointer', fontFamily:HV, fontSize:8, letterSpacing:3, fontWeight:700, padding:'9px 0', transition:'all 0.1s'}}
+                onMouseEnter={e=>{e.currentTarget.style.background='rgba(255,255,255,0.1)';e.currentTarget.style.color='var(--white)';}}
+                onMouseLeave={e=>{e.currentTarget.style.background='rgba(255,255,255,0.05)';e.currentTarget.style.color='rgba(255,255,255,0.6)';}}>
                 YESTERDAY
               </button>
               <button onClick={() => fetch_(today)}
-                style={{flex:1, background:'rgba(0,255,128,0.07)', border:'1px solid rgba(0,255,128,0.25)', color:'var(--green)',
-                  cursor:'pointer', fontFamily:HV, fontSize:8, letterSpacing:3, fontWeight:700, padding:'7px 0', transition:'all 0.1s'}}
-                onMouseEnter={e=>e.currentTarget.style.background='rgba(0,255,128,0.14)'}
-                onMouseLeave={e=>e.currentTarget.style.background='rgba(0,255,128,0.07)'}>
+                style={{flex:1, background:'var(--green)', border:'none', color:'#000',
+                  cursor:'pointer', fontFamily:HV, fontSize:8, letterSpacing:3, fontWeight:700, padding:'9px 0', transition:'opacity 0.1s'}}
+                onMouseEnter={e=>e.currentTarget.style.opacity='0.85'}
+                onMouseLeave={e=>e.currentTarget.style.opacity='1'}>
                 TODAY
               </button>
             </div>
@@ -3593,6 +3607,7 @@ function CoachMode() {
   const [history, setHistory] = React.useState([]);
   const [boxScore, setBoxScore] = React.useState(null);
   const [coachTab, setCoachTab] = React.useState('games');
+  const [nextGameDate, setNextGameDate] = React.useState(null);
   const today = localDate();
 
   React.useEffect(() => {
@@ -3602,6 +3617,24 @@ function CoachMode() {
     const iv = setInterval(load, 15000);
     return () => clearInterval(iv);
   }, []);
+
+  // When today has no games, find the next day that does (up to 14 days out)
+  React.useEffect(() => {
+    if (games.length > 0) { setNextGameDate(null); return; }
+    let cancelled = false;
+    (async () => {
+      for (let i = 1; i <= 14; i++) {
+        if (cancelled) return;
+        const d = shiftDate(today, i);
+        try {
+          const r = await fetch(`${API}/nba/games?date=${d}`);
+          const data = r.ok ? await r.json() : null;
+          if (data?.games?.length > 0) { if (!cancelled) setNextGameDate(d); return; }
+        } catch(_) {}
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [games.length]);
 
   React.useEffect(() => {
     if (!selectedGame) return;
@@ -3683,13 +3716,25 @@ function CoachMode() {
 
         {coachTab === 'games' ? (
           games.length === 0 ? (
-            <div style={{textAlign:'center', padding:'80px 0'}}>
-              <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, letterSpacing:4, color:'rgba(255,255,255,0.18)', textTransform:'uppercase', marginBottom:16}}>No games scheduled today</div>
-              <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:12, color:'rgba(255,255,255,0.35)', letterSpacing:0, textTransform:'none', fontWeight:500, lineHeight:1.8}}>
-                Coach Mode uses live box score data to generate adjustments.<br/>
-                It works during live games and for completed games with box scores.<br/>
-                Check back on a game day — select any live or final game to begin.
-              </div>
+            <div style={{textAlign:'center', padding:'80px 32px'}}>
+              <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, letterSpacing:4, color:'rgba(255,255,255,0.18)', textTransform:'uppercase', marginBottom:12}}>No games today</div>
+              {nextGameDate ? (
+                <>
+                  <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:13, color:'rgba(255,255,255,0.35)', fontWeight:500, marginBottom:6}}>
+                    Next games scheduled
+                  </div>
+                  <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:22, fontWeight:700, color:'var(--green)', letterSpacing:-0.5, marginBottom:4}}>
+                    {fmtDateLabel(nextGameDate)}
+                  </div>
+                  <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, color:'rgba(255,255,255,0.22)', letterSpacing:1, marginBottom:0}}>
+                    {nextGameDate}
+                  </div>
+                </>
+              ) : (
+                <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:12, color:'rgba(255,255,255,0.28)', fontWeight:500}}>
+                  Check back later
+                </div>
+              )}
             </div>
           ) : (
             <div className="g-grid">
