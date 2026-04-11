@@ -49,9 +49,16 @@ _FAST_MODEL: str = "claude-haiku-4-5-20251001"
 # System Prompts
 # ---------------------------------------------------------------------------
 
-NBA_ANALYST_SYSTEM_PROMPT: str = """You are the highest-paid NBA analyst in the country. Your clients are GMs, bettors, and executives who pay premium money for your edge. They don't want summaries. They want what you actually think.
+def _today_context() -> str:
+    """Return a live date string for injection into system prompts."""
+    now = datetime.datetime.now(ZoneInfo("America/Chicago"))
+    return now.strftime("%B %-d, %Y")
 
-CRITICAL CONTEXT: Today is April 2026. The 2025-26 NBA season is actively in progress right now. Do not say the season "has not yet occurred" or treat it as a future event. It is happening. Stats provided are live 2025-26 season data.
+
+def _nba_analyst_system_prompt() -> str:
+    return f"""You are the highest-paid NBA analyst in the country. Your clients are GMs, bettors, and executives who pay premium money for your edge. They don't want summaries. They want what you actually think.
+
+CRITICAL CONTEXT: Today is {_today_context()}. The 2025-26 NBA season is actively in progress right now. Do not say the season "has not yet occurred" or treat it as a future event. It is happening. Stats provided are live 2025-26 season data.
 
 STRICT DATA GROUNDING — NON-NEGOTIABLE:
 The data payload in this prompt is the only reality. It completely overrides anything from your training about current rosters, trades, or player team assignments. If the data says a player is on a specific team, that is absolute fact — do not contradict it with pre-training knowledge. Before writing any team or player analysis, silently verify which players and teams are actually present in the provided data, then analyze only those.
@@ -99,9 +106,10 @@ FORMATTING — NON-NEGOTIABLE:
 Plain prose only. No markdown. No asterisks, no pound signs, no dashes used as bullets, no numbered lists, no bold, no italics, no horizontal rules, no headers. Paragraphs separated by one blank line. Write like a column in The Athletic or a Sharp report — dense, confident, readable."""
 
 
-FRONT_OFFICE_SYSTEM_PROMPT: str = """You are a senior NBA front-office analyst. Your clients are GMs who pay for direct, actionable intelligence — not hedged commentary.
+def _front_office_system_prompt() -> str:
+    return f"""You are a senior NBA front-office analyst. Your clients are GMs who pay for direct, actionable intelligence — not hedged commentary.
 
-CRITICAL CONTEXT: Today is April 2026. The 2025-26 NBA season is actively in progress. You have full knowledge of this season's rosters, contracts, and standings from your training data plus any context provided in the prompt.
+CRITICAL CONTEXT: Today is {_today_context()}. The 2025-26 NBA season is actively in progress. You have full knowledge of this season's rosters, contracts, and standings from your training data plus any context provided in the prompt.
 
 ABSOLUTE PROHIBITIONS — violating any of these is a failure:
 - Never say you lack access to data, stats, rosters, contracts, or salary figures.
@@ -119,9 +127,10 @@ When evaluating a trade: one sentence on who wins and why — then build every s
 Plain prose only. No markdown, no bullets, no numbered lists, no headers, no asterisks. Paragraphs separated by one blank line. Dense, confident, readable — like a Sharp memo."""
 
 
-GAME_ANALYST_SYSTEM_PROMPT: str = """You are a precision NBA game analyst. Your only job is to translate the provided game data into clean, factual observations.
+def _game_analyst_system_prompt() -> str:
+    return f"""You are a precision NBA game analyst. Your only job is to translate the provided game data into clean, factual observations.
 
-CRITICAL CONTEXT: Today is April 2026. The 2025-26 NBA season is in progress.
+CRITICAL CONTEXT: Today is {_today_context()}. The 2025-26 NBA season is in progress.
 
 STRICT DATA GROUNDING — ABSOLUTE RULES:
 1. The data in this prompt is the only source of truth. Do not invent events, plays, momentum shifts, or individual moments that are not present in the provided stats.
@@ -750,7 +759,7 @@ async def analyze_today_games(target_date: Optional[str] = None) -> GameAnalysis
 
     result = await claude_service.analyze(
         prompt=prompt,
-        system_prompt=NBA_ANALYST_SYSTEM_PROMPT,
+        system_prompt=_nba_analyst_system_prompt(),
         override_model=_FAST_MODEL,
         override_max_tokens=900,
     )
@@ -832,7 +841,7 @@ async def analyze_player(
 
     result = await claude_service.analyze(
         prompt=prompt,
-        system_prompt=NBA_ANALYST_SYSTEM_PROMPT,
+        system_prompt=_nba_analyst_system_prompt(),
         override_model=_FAST_MODEL,
         override_max_tokens=800,
     )
@@ -937,7 +946,7 @@ async def analyze_player_section(
 
     result = await claude_service.analyze(
         prompt=prompt,
-        system_prompt=NBA_ANALYST_SYSTEM_PROMPT,
+        system_prompt=_nba_analyst_system_prompt(),
         override_model=_FAST_MODEL,
         override_max_tokens=900,
     )
@@ -1022,7 +1031,7 @@ async def analyze_player_stream(
         prompt = f"Analyze this player's {season} NBA season:\n\n{stat_block}"
 
     full_text = []
-    async for chunk in claude_service.analyze_stream(prompt, system_prompt=NBA_ANALYST_SYSTEM_PROMPT, override_model=_FAST_MODEL, override_max_tokens=1000):
+    async for chunk in claude_service.analyze_stream(prompt, system_prompt=_nba_analyst_system_prompt(), override_model=_FAST_MODEL, override_max_tokens=1000):
         full_text.append(chunk)
         yield {"type": "chunk", "text": chunk}
 
@@ -1140,7 +1149,7 @@ async def analyze_trade(body: dict[str, Any]) -> dict[str, Any]:
 
     result = await claude_service.analyze(
         prompt=prompt,
-        system_prompt=FRONT_OFFICE_SYSTEM_PROMPT,
+        system_prompt=_front_office_system_prompt(),
     )
 
     logger.info("Trade analysis complete | tokens=%d", result.tokens_used)
@@ -1268,7 +1277,7 @@ async def analyze_roster(team_name: str) -> dict[str, Any]:
 
     result = await claude_service.analyze(
         prompt=prompt,
-        system_prompt=FRONT_OFFICE_SYSTEM_PROMPT,
+        system_prompt=_front_office_system_prompt(),
         override_max_tokens=1200,
     )
 
@@ -1511,7 +1520,7 @@ async def analyze_game(body: dict[str, Any]) -> dict[str, Any]:
 
     result = await claude_service.analyze(
         prompt=prompt,
-        system_prompt=GAME_ANALYST_SYSTEM_PROMPT,
+        system_prompt=_game_analyst_system_prompt(),
         override_model=_FAST_MODEL,
         override_max_tokens=1400,
         override_temperature=0.1,
@@ -2263,4 +2272,64 @@ async def analyze_team_dna(team_name: str) -> dict[str, Any]:
     }
     analysis_cache.set(cache_key, response, ttl=21600)  # 6-hour cache — team identity is stable
     logger.info("team_dna complete | team=%s tokens=%d", team_name, result.tokens_used)
+    return response
+
+
+async def scout_note(
+    name: str,
+    team: str,
+    pts: float,
+    reb: float,
+    ast: float,
+    context: str = "general",
+    age: Optional[int] = None,
+    pos: Optional[str] = None,
+) -> dict[str, Any]:
+    """
+    Generate a live 1-2 sentence scout note for a single player.
+    context: 'mvp' | 'young-star' | 'general'
+    """
+    cache_key = f"scout_note:{name.lower()}:{context}:{pts}:{reb}:{ast}"
+    cached = analysis_cache.get(cache_key)
+    if cached:
+        return cached
+
+    meta_parts = [f"{name} ({team})"]
+    if pos:
+        meta_parts.append(pos)
+    if age is not None:
+        meta_parts.append(f"Age {age}")
+    meta = " · ".join(meta_parts)
+
+    if context == "mvp":
+        instruction = (
+            "Write exactly 1-2 sentences on why this player is or isn't an MVP contender right now. "
+            "Lead with the sharpest insight. Cite specific numbers. No hedging."
+        )
+    elif context == "young-star":
+        instruction = (
+            "Write exactly 1-2 sentences on what makes this young player's development trajectory "
+            "noteworthy. Focus on what's emerging or what the ceiling looks like. Cite numbers."
+        )
+    else:
+        instruction = (
+            "Write exactly 1-2 sentences evaluating this player's current impact. Be specific."
+        )
+
+    prompt = (
+        f"PLAYER: {meta}\n"
+        f"STATS: {pts} PPG · {reb} RPG · {ast} APG\n\n"
+        f"{instruction}"
+    )
+
+    result = await claude_service.analyze(
+        prompt=prompt,
+        system_prompt=_nba_analyst_system_prompt(),
+        override_max_tokens=120,
+        override_temperature=0.3,
+        override_model=_FAST_MODEL,
+    )
+
+    response = {"note": result.analysis.strip(), "model": result.model}
+    analysis_cache.set(cache_key, response, ttl=3600)  # 1-hour cache per stat snapshot
     return response

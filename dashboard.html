@@ -2222,6 +2222,42 @@ function Players() {
 }
 
 
+// ─────────────────────────────────────────────────────────────────────────────
+// NBA CBA Financial Constants — 2025-26 season
+// Update once per offseason. Single source of truth for all cap-related UI.
+// ─────────────────────────────────────────────────────────────────────────────
+const NBA_CAP = {
+  salaryCapM:    140,   // salary cap ($M)
+  luxuryTaxM:    170,   // luxury tax line
+  firstApronM:   188,   // first apron (soft hard-cap)
+  secondApronM:  195,   // second apron (hard hard-cap)
+  hardCeilingM:  228,   // max team salary ceiling for leverage calc
+  barMaxM:       215,   // bar chart ceiling
+  taxpayerMleM:  12.8,  // taxpayer MLE
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Player birth years — compute age dynamically so it never drifts wrong.
+// Add players here as needed. Key = full name.
+// ─────────────────────────────────────────────────────────────────────────────
+const BIRTH_YEARS = {
+  'Victor Wembanyama':  2004,
+  'Cooper Flagg':       2006,
+  'Keyonte George':     2003,
+  'Stephon Castle':     2004,
+  'Alexandre Sarr':     2004,
+  'Scoot Henderson':    2004,
+  'Zaccharie Risacher': 2005,
+  "Ja'Kobe Walter":     2004,
+  'Ron Holland':        2005,
+  'Gradey Dick':        2003,
+};
+function playerAge(name) {
+  const by = BIRTH_YEARS[name];
+  if (!by) return null;
+  return new Date().getFullYear() - by;
+}
+
 function FrontOffice() {
   const [loading, setLoading] = React.useState(false);
   const [result, setResult] = React.useState(null);
@@ -2333,11 +2369,11 @@ function FrontOffice() {
     {abbr:'UTA',name:'Jazz',       used:118},{abbr:'WAS',name:'Wizards',    used:113},
   ];
 
-  // Cap thresholds (2025-26 scale)
-  const LUXURY_TAX   = 170;  // luxury tax line — teams above pay penalties
-  const CAP_LINE_VAL = 188;  // salary cap marker on bar
-  const APRON_VAL    = 195;  // second apron risk zone
-  const BAR_MAX      = 215;  // bar ceiling
+  // Cap thresholds — sourced from NBA_CAP config above
+  const LUXURY_TAX   = NBA_CAP.luxuryTaxM;
+  const CAP_LINE_VAL = NBA_CAP.firstApronM;
+  const APRON_VAL    = NBA_CAP.secondApronM;
+  const BAR_MAX      = NBA_CAP.barMaxM;
 
   const filtered = search.trim().length > 0
     ? ALL_TEAMS.filter(t => t.name.toLowerCase().includes(search.toLowerCase()) || t.abbr.toLowerCase().includes(search.toLowerCase()))
@@ -2347,31 +2383,36 @@ function FrontOffice() {
 
   // Live stats for MVP Race: BDL IDs confirmed via API
   // SGA=175, Edwards=3547238, Jokic=246, Wemby=56677822, Cade=17896075, LeBron=237
+  // odds: fetched live from ESPN API when tab loads; hardcoded values are display fallbacks only
   const MVP_PLAYERS = [
-    {name:'Shai Gilgeous-Alexander', team:'OKC', nbaId:1628983, bdlId:175,       pts:31.4, reb:4.4,  ast:6.5, odds:'-180',  note:'OKC dominant scorer, unanimous MVP front-runner'},
-    {name:'Anthony Edwards',          team:'MIN', nbaId:1630162, bdlId:3547238,   pts:28.9, reb:5.0,  ast:3.7, odds:'+220',  note:'Most explosive scorer in the West. MIN\'s engine.'},
-    {name:'Nikola Jokic',             team:'DEN', nbaId:203999,  bdlId:246,       pts:27.9, reb:12.9, ast:10.9,odds:'+300',  note:'Historic triple-double efficiency, fourth campaign'},
-    {name:'Victor Wembanyama',         team:'SAS', nbaId:1641705, bdlId:56677822,  pts:24.8, reb:11.5, ast:3.1, odds:'+450',  note:'Defensive Player of the Year lock'},
-    {name:'Cade Cunningham',           team:'DET', nbaId:1630595, bdlId:17896075,  pts:24.5, reb:5.6,  ast:9.9, odds:'+700',  note:'Near triple-double threat driving Pistons resurgence'},
-    {name:'LeBron James',              team:'LAL', nbaId:2544,    bdlId:237,       pts:20.8, reb:6.1,  ast:7.1, odds:'+2500', note:'Still producing at 41. Legacy argument runs alongside current play.'},
+    {name:'Shai Gilgeous-Alexander', team:'OKC', nbaId:1628983, bdlId:175,       pts:31.4, reb:4.4,  ast:6.5, odds:null},
+    {name:'Anthony Edwards',          team:'MIN', nbaId:1630162, bdlId:3547238,   pts:28.9, reb:5.0,  ast:3.7, odds:null},
+    {name:'Nikola Jokic',             team:'DEN', nbaId:203999,  bdlId:246,       pts:27.9, reb:12.9, ast:10.9,odds:null},
+    {name:'Victor Wembanyama',         team:'SAS', nbaId:1641705, bdlId:56677822,  pts:24.8, reb:11.5, ast:3.1, odds:null},
+    {name:'Cade Cunningham',           team:'DET', nbaId:1630595, bdlId:17896075,  pts:24.5, reb:5.6,  ast:9.9, odds:null},
+    {name:'LeBron James',              team:'LAL', nbaId:2544,    bdlId:237,       pts:20.8, reb:6.1,  ast:7.1, odds:null},
   ];
 
   // Live stats for Young Stars: BDL IDs confirmed via API
+  // ages computed dynamically from BIRTH_YEARS; notes generated live via /analysis/scout-note
   const YOUNG_PLAYERS = [
-    {name:'Victor Wembanyama',  team:'SAS', nbaId:1641705, bdlId:56677822,    age:21, pos:'C', pts:24.8, reb:11.5, ast:3.1, note:'Defensive Player of Year. Future GOAT candidate.'},
-    {name:'Keyonte George',     team:'UTA', nbaId:1641724, bdlId:56677834,    age:21, pos:'G', pts:23.6, reb:3.7,  ast:6.1, note:'Breakout season. Utah\'s most dangerous scorer.'},
-    {name:'Cooper Flagg',       team:'DAL', nbaId:1642843, bdlId:1057262088,  age:18, pos:'F', pts:21.1, reb:6.6,  ast:4.6, note:'Two-way impact from day one. ROY conversation is real.'},
-    {name:'Stephon Castle',     team:'SAS', nbaId:1642355, bdlId:1028025261,  age:21, pos:'G', pts:16.7, reb:5.2,  ast:7.3, note:'Wemby\'s wingman. Playmaking already elite.'},
-    {name:'Alexandre Sarr',     team:'WAS', nbaId:1642356, bdlId:1028028405,  age:20, pos:'C', pts:16.3, reb:7.4,  ast:2.7, note:'Elite rim protection and length. Ceiling is legitimate.'},
-    {name:'Scoot Henderson',    team:'POR', nbaId:1641706, bdlId:56677747,    age:21, pos:'G', pts:14.0, reb:2.7,  ast:3.8, note:'Still developing. Blazers betting on upside.'},
-    {name:'Zaccharie Risacher', team:'ATL', nbaId:1642364, bdlId:1028028244,  age:19, pos:'F', pts:9.7,  reb:3.8,  ast:1.1, note:'Year 2 growing pains. ATL patient with potential.'},
-    {name:'Ja\'Kobe Walter',    team:'TOR', nbaId:1642361, bdlId:1028029111,  age:20, pos:'G', pts:7.3,  reb:2.5,  ast:1.2, note:'Steady contributor on rebuilding Raptors.'},
-    {name:'Ron Holland',        team:'DET', nbaId:1642363, bdlId:1028026508,  age:19, pos:'F', pts:8.1,  reb:4.1,  ast:1.2, note:'Raw but flashes brilliance. DET high-ceiling project.'},
-    {name:'Gradey Dick',        team:'TOR', nbaId:1641730, bdlId:56677828,    age:21, pos:'G', pts:6.1,  reb:2.0,  ast:0.7, note:'Finding his footing. TOR giving him runway to develop.'},
+    {name:'Victor Wembanyama',  team:'SAS', nbaId:1641705, bdlId:56677822,    pos:'C', pts:24.8, reb:11.5, ast:3.1},
+    {name:'Keyonte George',     team:'UTA', nbaId:1641724, bdlId:56677834,    pos:'G', pts:23.6, reb:3.7,  ast:6.1},
+    {name:'Cooper Flagg',       team:'DAL', nbaId:1642843, bdlId:1057262088,  pos:'F', pts:21.1, reb:6.6,  ast:4.6},
+    {name:'Stephon Castle',     team:'SAS', nbaId:1642355, bdlId:1028025261,  pos:'G', pts:16.7, reb:5.2,  ast:7.3},
+    {name:'Alexandre Sarr',     team:'WAS', nbaId:1642356, bdlId:1028028405,  pos:'C', pts:16.3, reb:7.4,  ast:2.7},
+    {name:'Scoot Henderson',    team:'POR', nbaId:1641706, bdlId:56677747,    pos:'G', pts:14.0, reb:2.7,  ast:3.8},
+    {name:'Zaccharie Risacher', team:'ATL', nbaId:1642364, bdlId:1028028244,  pos:'F', pts:9.7,  reb:3.8,  ast:1.1},
+    {name:"Ja'Kobe Walter",     team:'TOR', nbaId:1642361, bdlId:1028029111,  pos:'G', pts:7.3,  reb:2.5,  ast:1.2},
+    {name:'Ron Holland',        team:'DET', nbaId:1642363, bdlId:1028026508,  pos:'F', pts:8.1,  reb:4.1,  ast:1.2},
+    {name:'Gradey Dick',        team:'TOR', nbaId:1641730, bdlId:56677828,    pos:'G', pts:6.1,  reb:2.0,  ast:0.7},
   ];
 
   const [mvpLive, setMvpLive] = React.useState({});
   const [youngLive, setYoungLive] = React.useState({});
+  const [mvpNotes, setMvpNotes] = React.useState({});
+  const [youngNotes, setYoungNotes] = React.useState({});
+  const [mvpOdds, setMvpOdds] = React.useState({});
 
   React.useEffect(() => {
     if (dashTab !== 'mvp') return;
@@ -2385,6 +2426,30 @@ function FrontOffice() {
     return () => clearInterval(iv);
   }, [dashTab]);
 
+  // Fetch live MVP odds from ESPN
+  React.useEffect(() => {
+    if (dashTab !== 'mvp') return;
+    fetch(`${API}/nba/mvp-odds`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.odds) setMvpOdds(d.odds); })
+      .catch(() => {});
+  }, [dashTab]);
+
+  // Generate scout notes for MVP players via Claude (one-shot on tab open, cached server-side)
+  React.useEffect(() => {
+    if (dashTab !== 'mvp' || Object.keys(mvpNotes).length > 0) return;
+    MVP_PLAYERS.forEach(p => {
+      const live = mvpLive[String(p.bdlId)] || {};
+      const pts = live.pts ?? p.pts; const reb = live.reb ?? p.reb; const ast = live.ast ?? p.ast;
+      fetch(`${API}/analysis/scout-note`, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({name:p.name, team:p.team, pts, reb, ast, context:'mvp'}),
+      }).then(r => r.ok ? r.json() : null)
+        .then(d => { if (d?.note) setMvpNotes(prev => ({...prev, [p.name]: d.note})); })
+        .catch(() => {});
+    });
+  }, [dashTab, JSON.stringify(mvpLive)]);
+
   React.useEffect(() => {
     if (dashTab !== 'young') return;
     const ids = YOUNG_PLAYERS.map(p => p.bdlId);
@@ -2396,6 +2461,22 @@ function FrontOffice() {
     const iv = setInterval(load, 120000);
     return () => clearInterval(iv);
   }, [dashTab]);
+
+  // Generate scout notes for Young Stars
+  React.useEffect(() => {
+    if (dashTab !== 'young' || Object.keys(youngNotes).length > 0) return;
+    YOUNG_PLAYERS.forEach(p => {
+      const live = youngLive[String(p.bdlId)] || {};
+      const pts = live.pts ?? p.pts; const reb = live.reb ?? p.reb; const ast = live.ast ?? p.ast;
+      const age = playerAge(p.name);
+      fetch(`${API}/analysis/scout-note`, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({name:p.name, team:p.team, pts, reb, ast, age, pos:p.pos, context:'young-star'}),
+      }).then(r => r.ok ? r.json() : null)
+        .then(d => { if (d?.note) setYoungNotes(prev => ({...prev, [p.name]: d.note})); })
+        .catch(() => {});
+    });
+  }, [dashTab, JSON.stringify(youngLive)]);
 
   const TABS = [
     {id:'warboard',  label:'War Board'},
@@ -2413,7 +2494,7 @@ function FrontOffice() {
     return              {label:'FLEXIBLE',     color:'#22c55e', bg:'rgba(34,197,94,0.08)',   border:'rgba(34,197,94,0.25)'};
   };
 
-  const getLeverage = (used) => Math.max(5, Math.min(95, Math.round(((228 - used) / (228 - 110)) * 90 + 5)));
+  const getLeverage = (used) => Math.max(5, Math.min(95, Math.round(((NBA_CAP.hardCeilingM - used) / (NBA_CAP.hardCeilingM - 110)) * 90 + 5)));
 
   const getTimeline = (pct) => {
     if (pct >= 0.60) return {label:'WIN-NOW',  color:'#22c55e'};
@@ -2434,7 +2515,7 @@ function FrontOffice() {
     } else if (capUsed >= 160) {
       actions.push({priority:'MEDIUM',   title:'Mid-Level Exception Available', desc:'Use taxpayer MLE ($5.1M) to target a high-upside role player before deadline.', color:'#fbbf24'});
     } else {
-      actions.push({priority:'MOVE',     title:'Cap Space Opportunity', desc:`$${Math.round(188 - capUsed)}M in available space. Prioritize a max or near-max free agent target in the offseason.`, color:'#22c55e'});
+      actions.push({priority:'MOVE',     title:'Cap Space Opportunity', desc:`$${Math.round(NBA_CAP.firstApronM - capUsed)}M in available space. Prioritize a max or near-max free agent target in the offseason.`, color:'#22c55e'});
     }
     if (winPct >= 0.60 && capUsed < 195) {
       actions.push({priority:'HIGH',     title:'Rental Addition at Deadline', desc:'Win-now window is open. Absorb a short-term deal for an impact player on an expiring contract.', color:'#f97316'});
@@ -2572,10 +2653,10 @@ function FrontOffice() {
             return (
             <div style={{display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10, padding:'20px 24px 0'}}>
               {[
-                {val:'$188M',             label:'Salary Cap',      sub:'2025-26 threshold'},
+                {val:`$${NBA_CAP.firstApronM}M`,  label:'First Apron',     sub:'2025-26 threshold'},
                 {val:`${teamsOverTax}`,   label:'Teams Over Tax',  sub:`${teamsOverApron} at apron risk`},
-                {val:'$228M',             label:'Second Apron',    sub:'Hard-cap line'},
-                {val:'$12.8M',            label:'Mid-Level Exc.',  sub:'Taxpayer MLE'},
+                {val:`$${NBA_CAP.hardCeilingM}M`,  label:'Second Apron',    sub:'Hard-cap line'},
+                {val:`$${NBA_CAP.taxpayerMleM}M`, label:'Mid-Level Exc.',  sub:'Taxpayer MLE'},
               ].map(({val,label,sub}) => (
                 <div key={label} style={{background:'rgba(17,20,26,0.9)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:10, padding:'14px 16px', position:'relative', overflow:'hidden'}}>
                   <div style={{position:'absolute', top:0, left:0, right:0, height:2, background:'linear-gradient(90deg,rgba(0,255,128,0.4),transparent)'}}/>
@@ -2692,8 +2773,8 @@ function FrontOffice() {
                         <div style={{position:'absolute', top:-2, bottom:-2, left:`${apronPct}%`, width:1, background:'rgba(239,68,68,0.45)'}} title="Second Apron"/>
                       </div>
                       <div style={{display:'flex', justifyContent:'space-between'}}>
-                        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:7, color:'rgba(255,255,255,0.22)'}}>CAP $188M</div>
-                        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:7, color:'rgba(239,68,68,0.4)'}}>APRON $228M</div>
+                        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:7, color:'rgba(255,255,255,0.22)'}}>APRON ${NBA_CAP.firstApronM}M</div>
+                        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:7, color:'rgba(239,68,68,0.4)'}}>HARD CAP ${NBA_CAP.hardCeilingM}M</div>
                       </div>
                     </div>
                     {/* Leverage + footer */}
@@ -2721,7 +2802,7 @@ function FrontOffice() {
                   {/* Rank + odds */}
                   <div style={{display:'flex', alignItems:'center', justifyContent:'space-between'}}>
                     <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:28, fontWeight:700, color:i===0?'var(--green)':'rgba(255,255,255,0.12)', lineHeight:1}}>{i+1}</div>
-                    <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:14, fontWeight:700, color:i===0?'var(--green)':'rgba(255,255,255,0.35)'}}>{p.odds}</div>
+                    <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:14, fontWeight:700, color:i===0?'var(--green)':'rgba(255,255,255,0.35)'}}>{mvpOdds[p.name] || '—'}</div>
                   </div>
                   {/* Player */}
                   <div>
@@ -2738,7 +2819,9 @@ function FrontOffice() {
                     ))}
                   </div>
                   {/* Note */}
-                  <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, color:'rgba(255,255,255,0.68)', lineHeight:1.55, textTransform:'none', letterSpacing:0}}>{p.note}</div>
+                  <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, color:'rgba(255,255,255,0.68)', lineHeight:1.55, textTransform:'none', letterSpacing:0}}>
+                    {mvpNotes[p.name] || <span style={{color:'rgba(255,255,255,0.25)', fontStyle:'italic'}}>Generating scout note...</span>}
+                  </div>
                 </div>
                 );
               })}
@@ -2761,7 +2844,7 @@ function FrontOffice() {
                     <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:13, fontWeight:700, color:'rgba(255,255,255,0.9)', lineHeight:1.2}}>{p.name}</div>
                     <div style={{display:'flex', gap:6, marginTop:3, alignItems:'center'}}>
                       <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, letterSpacing:2, color:'var(--green)', fontWeight:700}}>{p.team}</div>
-                      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, color:'rgba(255,255,255,0.52)'}}>Age {p.age} · {p.pos}</div>
+                      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, color:'rgba(255,255,255,0.52)'}}>Age {playerAge(p.name) || '—'} · {p.pos}</div>
                     </div>
                   </div>
                   {/* Stats — live from API */}
@@ -2774,7 +2857,9 @@ function FrontOffice() {
                     ))}
                   </div>
                   {/* Note */}
-                  <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, color:'rgba(255,255,255,0.68)', lineHeight:1.55, textTransform:'none', letterSpacing:0}}>{p.note}</div>
+                  <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, color:'rgba(255,255,255,0.68)', lineHeight:1.55, textTransform:'none', letterSpacing:0}}>
+                    {youngNotes[p.name] || <span style={{color:'rgba(255,255,255,0.25)', fontStyle:'italic'}}>Generating scout note...</span>}
+                  </div>
                 </div>
                 );
               })}

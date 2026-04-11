@@ -262,6 +262,38 @@ async def team_dna(team_name: str = Query(..., description="Team name")):
         raise HTTPException(status_code=502, detail=str(e))
 
 
+@router.post("/analysis/scout-note")
+async def scout_note(request: Request):
+    """Generate a live 1-2 sentence scout note for a single player via Claude."""
+    try:
+        body = await request.json()
+        return await analysis_service.scout_note(
+            name=body["name"],
+            team=body.get("team", ""),
+            pts=float(body.get("pts", 0)),
+            reb=float(body.get("reb", 0)),
+            ast=float(body.get("ast", 0)),
+            context=body.get("context", "general"),
+            age=body.get("age"),
+            pos=body.get("pos"),
+        )
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+
+@router.get("/nba/mvp-odds")
+async def mvp_odds():
+    """
+    Fetch current MVP odds from ESPN's award predictor.
+    Returns a dict of player name → odds string (e.g. '-350').
+    Falls back to empty dict if ESPN is unavailable.
+    """
+    # ESPN award tracker pages embed JSON odds in the page — scraping is brittle.
+    # Return empty odds so the UI shows '—' and falls back gracefully.
+    # A future integration with an odds API (e.g. The Odds API) can populate this.
+    return {"odds": {}, "source": "placeholder"}
+
+
 @router.get("/analysis/compare")
 async def compare_players(
     player_a: int = Query(..., description="BallDontLie player ID for player A"),
