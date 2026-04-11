@@ -2710,12 +2710,9 @@ function FrontOffice() {
                     <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:14, fontWeight:700, color:i===0?'var(--green)':'rgba(255,255,255,0.35)'}}>{p.odds}</div>
                   </div>
                   {/* Player */}
-                  <div style={{display:'flex', alignItems:'center', gap:12}}>
-                    <PlayerAvatar nbaId={p.nbaId} name={p.name} size={44}/>
-                    <div>
-                      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:14, fontWeight:700, color:'rgba(255,255,255,0.9)', lineHeight:1.2}}>{p.name}</div>
-                      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:2, color:'var(--green)', fontWeight:700, marginTop:3}}>{p.team}</div>
-                    </div>
+                  <div>
+                    <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:14, fontWeight:700, color:'rgba(255,255,255,0.9)', lineHeight:1.2}}>{p.name}</div>
+                    <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:2, color:'var(--green)', fontWeight:700, marginTop:3}}>{p.team}</div>
                   </div>
                   {/* Stats — live from API */}
                   <div style={{display:'flex', gap:0, borderTop:'1px solid rgba(255,255,255,0.06)', paddingTop:14}}>
@@ -2746,14 +2743,11 @@ function FrontOffice() {
                 <div key={p.name} className="g-card2" style={{width:260, padding:20, gap:14}}>
                   <div className="g-glow-overlay"/>
                   {/* Player identity */}
-                  <div style={{display:'flex', alignItems:'center', gap:12}}>
-                    <PlayerAvatar nbaId={p.nbaId} name={p.name} size={44}/>
-                    <div style={{flex:1, minWidth:0}}>
-                      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:13, fontWeight:700, color:'rgba(255,255,255,0.9)', lineHeight:1.2}}>{p.name}</div>
-                      <div style={{display:'flex', gap:6, marginTop:3, alignItems:'center'}}>
-                        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, letterSpacing:2, color:'var(--green)', fontWeight:700}}>{p.team}</div>
-                        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, color:'rgba(255,255,255,0.52)'}}>Age {p.age} · {p.pos}</div>
-                      </div>
+                  <div>
+                    <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:13, fontWeight:700, color:'rgba(255,255,255,0.9)', lineHeight:1.2}}>{p.name}</div>
+                    <div style={{display:'flex', gap:6, marginTop:3, alignItems:'center'}}>
+                      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, letterSpacing:2, color:'var(--green)', fontWeight:700}}>{p.team}</div>
+                      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, color:'rgba(255,255,255,0.52)'}}>Age {p.age} · {p.pos}</div>
                     </div>
                   </div>
                   {/* Stats — live from API */}
