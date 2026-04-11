@@ -1936,7 +1936,7 @@ async def predict_game(body: dict[str, Any]) -> dict[str, Any]:
         f"  {away_name}: {away_injuries}\n\n"
         f"Using the above real data, return a JSON object with exactly these fields:\n"
         f"  pick: the full team name you pick to win (must be exactly \"{home_name}\" or \"{away_name}\")\n"
-        f"  confidence: integer 50-95\n"
+        f"  confidence: integer 55-95. Express your genuine certainty — if the matchup is a true toss-up, return 55-60. Do NOT default to 60 when uncertain; use a lower number to signal low conviction.\n"
         f"  key_factor: one sentence naming the single most decisive factor\n"
         f"  reasoning: exactly two sentences grounded in the records and roster data above\n\n"
         f"Return only valid JSON. No markdown, no extra text."
@@ -1947,6 +1947,8 @@ async def predict_game(body: dict[str, Any]) -> dict[str, Any]:
         "You are given real standings and injury data — use it. "
         "Your reasoning must reference specific W-L records, seeds, or injured players from the data provided. "
         "Do not make generic statements about home court or rebuilding teams without grounding them in the numbers. "
+        "Confidence calibration: 90-95 = strong lean with clear edge, 75-89 = solid lean, 60-74 = moderate lean, 55-59 = toss-up with slight lean. "
+        "Never artificially inflate confidence. A 55 is a valid, honest answer. "
         "Return only a valid JSON object."
     )
 
@@ -1968,8 +1970,15 @@ async def predict_game(body: dict[str, Any]) -> dict[str, Any]:
 
     try:
         parsed = _json.loads(raw)
-        pick       = str(parsed.get("pick", home_name))
-        confidence = max(50, min(95, int(parsed.get("confidence", 60))))
+        pick           = str(parsed.get("pick", home_name))
+        raw_confidence = int(parsed.get("confidence", 95))
+        if raw_confidence < 50:
+            logger.warning(
+                "predict_game low_confidence_before_clamp | game_id=%d raw=%d pick=%s "
+                "— model expressed genuine uncertainty; training signal captured",
+                game_id, raw_confidence, pick,
+            )
+        confidence = max(55, min(95, raw_confidence))
         key_factor = str(parsed.get("key_factor", ""))
         reasoning  = str(parsed.get("reasoning", ""))
     except Exception:

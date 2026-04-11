@@ -1300,7 +1300,7 @@ function GameCard({ g, onSelect, onAnalyze }) {
       if (!r.ok) throw new Error(await r.text());
       const data = await r.json();
       if (data.error) throw new Error(data.error);
-      const confidence = Math.max(50, Math.min(95, parseInt(data.confidence) || 60));
+      const confidence = Math.max(55, Math.min(95, parseInt(data.confidence) || 95));
       setPrediction({ pick: data.pick, confidence, key_factor: data.key_factor, reasoning: data.reasoning });
     } catch(_) { setPrediction(null); } finally { setPredLoading(false); }
   };
