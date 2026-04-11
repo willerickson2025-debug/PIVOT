@@ -27,7 +27,7 @@ from zoneinfo import ZoneInfo
 from app.core.cache import analysis_cache
 from app.services import claude_service, nba_service
 from app.services.analysis_service import (
-    NBA_ANALYST_SYSTEM_PROMPT,
+    _nba_analyst_system_prompt,
     _build_player_stat_block,
     _format_games_for_prompt,
     _render_stat_block,
@@ -107,7 +107,7 @@ async def run_pregame_agent(target_date: str | None = None) -> dict[str, Any]:
     try:
         result = await claude_service.analyze(
             prompt=enriched_prompt,
-            system_prompt=NBA_ANALYST_SYSTEM_PROMPT,
+            system_prompt=_nba_analyst_system_prompt(),
             override_max_tokens=2048,
         )
 
@@ -210,7 +210,7 @@ async def run_quality_pass(target_date: str | None = None) -> dict[str, Any]:
     try:
         result = await claude_service.analyze(
             prompt=quality_prompt,
-            system_prompt=NBA_ANALYST_SYSTEM_PROMPT,
+            system_prompt=_nba_analyst_system_prompt(),
             override_max_tokens=2048,
         )
 
@@ -291,7 +291,7 @@ async def _warm_player(player_name: str) -> None:
         stat_block = _render_stat_block(player, _DEFAULT_SEASON, agg)
         result = await claude_service.analyze(
             prompt=f"Analyze this player's {_DEFAULT_SEASON} NBA season:\n\n{stat_block}",
-            system_prompt=NBA_ANALYST_SYSTEM_PROMPT,
+            system_prompt=_nba_analyst_system_prompt(),
             override_max_tokens=1500,
         )
         payload = {
