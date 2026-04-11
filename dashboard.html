@@ -732,6 +732,20 @@ function localDate(offset = 0) {
 }
 function getYesterday() { return localDate(-1); }
 function getTomorrow()  { return localDate(1); }
+function shiftDate(dateStr, delta) {
+  const d = new Date(dateStr + 'T12:00:00');
+  d.setDate(d.getDate() + delta);
+  const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+function fmtDateLabel(dateStr) {
+  const today = localDate(), yesterday = getYesterday(), tomorrow = getTomorrow();
+  if (dateStr === today) return 'Today';
+  if (dateStr === yesterday) return 'Yesterday';
+  if (dateStr === tomorrow) return 'Tomorrow';
+  const d = new Date(dateStr + 'T12:00:00');
+  return d.toLocaleDateString([], {weekday:'short', month:'short', day:'numeric'});
+}
 
 function Loader({ label = 'LOADING' }) {
   return <div className="loader"><div className="loader-bar"/>{label}</div>;
@@ -1354,11 +1368,17 @@ function Games() {
   const [selectedGame, setSelectedGame] = React.useState(null);
   const [analysisGame, setAnalysisGame] = React.useState(null);
   const [activeDate, setActiveDate] = React.useState(localDate());
+  const [showCal, setShowCal] = React.useState(false);
+  const [calMonth, setCalMonth] = React.useState(() => {
+    const d = new Date(); return { y: d.getFullYear(), m: d.getMonth() };
+  });
   const today = localDate();
+  const HV = "'Helvetica Neue',Helvetica,Arial,sans-serif";
 
   const fetch_ = async (d) => {
     const date = d || today;
     setActiveDate(date);
+    setShowCal(false);
     setLoading(true); setError(null);
     try {
       const r = await fetch(`${API}/nba/games?date=${date}&_=${Date.now()}`);
@@ -1368,10 +1388,7 @@ function Games() {
     } catch(e) { setError(friendlyError(e.message)); } finally { setLoading(false); }
   };
 
-  // Auto-refresh only when viewing today and there are live games
-  React.useEffect(() => {
-    fetch_();
-  }, []);
+  React.useEffect(() => { fetch_(); }, []);
 
   const hasLive = games.some(g => { const l = g.status?.toLowerCase()||''; return l.includes('qtr')||l.includes('half')||l==='in progress'; });
 
@@ -1381,18 +1398,187 @@ function Games() {
     return () => clearInterval(iv);
   }, [hasLive, activeDate]);
 
+  // Calendar grid helpers
+  const calDays = () => {
+    const { y, m } = calMonth;
+    const first = new Date(y, m, 1).getDay();
+    const daysInMonth = new Date(y, m + 1, 0).getDate();
+    const cells = [];
+    for (let i = 0; i < first; i++) cells.push(null);
+    for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+    return cells;
+  };
+  const calDateStr = (d) => {
+    const { y, m } = calMonth;
+    return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+  };
+  const isFuture = (d) => calDateStr(d) > today;
+  const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+  const isTodayDate = activeDate === today;
+  const canGoForward = activeDate < today; // no future dates
+  const dateLabel = fmtDateLabel(activeDate);
+
   return (
     <div>
-      <div className="toolbar">
-        <button className="tb-btn" onClick={() => fetch_(today)} style={{color: activeDate===today ? 'var(--white)' : ''}}>Today</button>
-        <button className="tb-btn" onClick={() => fetch_(getYesterday())} style={{color: activeDate===getYesterday() ? 'var(--white)' : ''}}>Yesterday</button>
-        <button className="tb-btn" onClick={() => fetch_(getTomorrow())} style={{color: activeDate===getTomorrow() ? 'var(--white)' : ''}}>Tomorrow</button>
-        {games.length > 0 && <div className="tb-info">{games.length} Games{hasLive?' · LIVE':''}</div>}
-        {hasLive && activeDate===today && <div className="tb-info" style={{color:'var(--green)', animation:'blink 1.5s infinite'}}>AUTO-REFRESH ON</div>}
+      {/* Date Nav Bar */}
+      <div style={{borderBottom:'1px solid var(--border)', background:'rgba(0,0,0,0.3)', display:'flex', alignItems:'center', gap:0, height:52, position:'relative', paddingLeft:8}}>
+
+        {/* Prev */}
+        <button onClick={() => fetch_(shiftDate(activeDate, -1))}
+          style={{background:'transparent', border:'none', color:'rgba(255,255,255,0.35)', cursor:'pointer',
+            fontFamily:HV, fontSize:18, fontWeight:700, padding:'0 12px', height:'100%', transition:'color 0.1s',
+            lineHeight:1}}
+          onMouseEnter={e=>e.currentTarget.style.color='var(--white)'}
+          onMouseLeave={e=>e.currentTarget.style.color='rgba(255,255,255,0.35)'}>‹</button>
+
+        {/* Date label + calendar toggle */}
+        <button onClick={() => setShowCal(v => !v)}
+          style={{background:'transparent', border:'none', cursor:'pointer', height:'100%', padding:'0 14px',
+            display:'flex', alignItems:'center', gap:8, transition:'background 0.1s'}}
+          onMouseEnter={e=>e.currentTarget.style.background='rgba(255,255,255,0.04)'}
+          onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+          <span style={{fontFamily:HV, fontSize:13, fontWeight:700, letterSpacing:0, color:'var(--white)'}}>{dateLabel}</span>
+          {activeDate !== today && <span style={{fontFamily:HV, fontSize:9, letterSpacing:2, color:'rgba(255,255,255,0.28)', fontWeight:700}}>{activeDate}</span>}
+          <span style={{fontFamily:HV, fontSize:9, color:'rgba(255,255,255,0.3)', marginLeft:2}}>▾</span>
+        </button>
+
+        {/* Next */}
+        <button onClick={() => canGoForward && fetch_(shiftDate(activeDate, 1))}
+          style={{background:'transparent', border:'none', color: canGoForward ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.1)',
+            cursor: canGoForward ? 'pointer' : 'default',
+            fontFamily:HV, fontSize:18, fontWeight:700, padding:'0 12px', height:'100%', transition:'color 0.1s', lineHeight:1}}
+          onMouseEnter={e=>{ if(canGoForward) e.currentTarget.style.color='var(--white)'; }}
+          onMouseLeave={e=>{ if(canGoForward) e.currentTarget.style.color='rgba(255,255,255,0.35)'; }}>›</button>
+
+        {/* Today pill */}
+        {!isTodayDate && (
+          <button onClick={() => fetch_(today)}
+            style={{background:'rgba(0,255,128,0.07)', border:'1px solid rgba(0,255,128,0.25)', color:'var(--green)',
+              cursor:'pointer', fontFamily:HV, fontSize:8, letterSpacing:3, fontWeight:700,
+              padding:'5px 12px', marginLeft:8, transition:'all 0.1s'}}
+            onMouseEnter={e=>{e.currentTarget.style.background='rgba(0,255,128,0.14)';}}
+            onMouseLeave={e=>{e.currentTarget.style.background='rgba(0,255,128,0.07)';}}>
+            TODAY
+          </button>
+        )}
+
+        <div style={{flex:1}}/>
+
+        {/* Game count / live badge */}
+        {games.length > 0 && (
+          <div style={{fontFamily:HV, fontSize:9, letterSpacing:3, color:'rgba(255,255,255,0.35)', fontWeight:700, paddingRight:16}}>
+            {games.length} GAMES{hasLive ? <span style={{color:'var(--green)', marginLeft:8}}>· LIVE</span> : ''}
+          </div>
+        )}
+        {hasLive && activeDate === today && (
+          <div style={{fontFamily:HV, fontSize:8, letterSpacing:3, color:'var(--green)', fontWeight:700, paddingRight:20, animation:'blink 1.5s infinite'}}>AUTO-REFRESH</div>
+        )}
+
+        {/* Calendar dropdown */}
+        {showCal && (
+          <div onClick={e=>e.stopPropagation()} style={{
+            position:'absolute', top:52, left:0, zIndex:100,
+            background:'#0e1117', border:'1px solid var(--border-strong)',
+            boxShadow:'0 12px 40px rgba(0,0,0,0.7)', padding:'20px', width:280,
+          }}>
+            {/* Month nav */}
+            <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16}}>
+              <button onClick={() => setCalMonth(({y,m}) => m===0 ? {y:y-1,m:11} : {y,m:m-1})}
+                style={{background:'transparent',border:'none',color:'rgba(255,255,255,0.4)',cursor:'pointer',fontFamily:HV,fontSize:16,fontWeight:700,padding:'4px 8px'}}
+                onMouseEnter={e=>e.currentTarget.style.color='var(--white)'}
+                onMouseLeave={e=>e.currentTarget.style.color='rgba(255,255,255,0.4)'}>‹</button>
+              <span style={{fontFamily:HV, fontSize:11, letterSpacing:3, fontWeight:700, color:'var(--white)'}}>{MONTHS[calMonth.m]} {calMonth.y}</span>
+              <button onClick={() => setCalMonth(({y,m}) => m===11 ? {y:y+1,m:0} : {y,m:m+1})}
+                style={{background:'transparent',border:'none',color:'rgba(255,255,255,0.4)',cursor:'pointer',fontFamily:HV,fontSize:16,fontWeight:700,padding:'4px 8px'}}
+                onMouseEnter={e=>e.currentTarget.style.color='var(--white)'}
+                onMouseLeave={e=>e.currentTarget.style.color='rgba(255,255,255,0.4)'}>›</button>
+            </div>
+            {/* Day headers */}
+            <div style={{display:'grid', gridTemplateColumns:'repeat(7,1fr)', marginBottom:6}}>
+              {['S','M','T','W','T','F','S'].map((d,i) => (
+                <div key={i} style={{textAlign:'center', fontFamily:HV, fontSize:8, letterSpacing:2, color:'rgba(255,255,255,0.25)', fontWeight:700, padding:'4px 0'}}>{d}</div>
+              ))}
+            </div>
+            {/* Day cells */}
+            <div style={{display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:2}}>
+              {calDays().map((d, i) => {
+                if (!d) return <div key={i}/>;
+                const ds = calDateStr(d);
+                const isActive = ds === activeDate;
+                const isToday = ds === today;
+                const future = isFuture(d);
+                return (
+                  <button key={i} onClick={() => !future && fetch_(ds)} disabled={future}
+                    style={{
+                      background: isActive ? 'var(--green)' : isToday ? 'rgba(0,255,128,0.1)' : 'transparent',
+                      border: isToday && !isActive ? '1px solid rgba(0,255,128,0.3)' : '1px solid transparent',
+                      color: isActive ? '#000' : future ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.6)',
+                      cursor: future ? 'default' : 'pointer',
+                      fontFamily:HV, fontSize:11, fontWeight: isActive||isToday ? 700 : 500,
+                      padding:'6px 0', textAlign:'center', transition:'all 0.1s',
+                    }}
+                    onMouseEnter={e=>{ if(!future&&!isActive) e.currentTarget.style.background='rgba(255,255,255,0.06)'; }}
+                    onMouseLeave={e=>{ if(!future&&!isActive) e.currentTarget.style.background= isToday?'rgba(0,255,128,0.1)':'transparent'; }}>
+                    {d}
+                  </button>
+                );
+              })}
+            </div>
+            <div style={{marginTop:14, borderTop:'1px solid rgba(255,255,255,0.06)', paddingTop:12, display:'flex', justifyContent:'space-between', gap:8}}>
+              <button onClick={() => fetch_(getYesterday())}
+                style={{flex:1, background:'transparent', border:'1px solid rgba(255,255,255,0.08)', color:'rgba(255,255,255,0.4)',
+                  cursor:'pointer', fontFamily:HV, fontSize:8, letterSpacing:3, fontWeight:700, padding:'7px 0', transition:'all 0.1s'}}
+                onMouseEnter={e=>{e.currentTarget.style.borderColor='rgba(255,255,255,0.2)';e.currentTarget.style.color='var(--white)';}}
+                onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(255,255,255,0.08)';e.currentTarget.style.color='rgba(255,255,255,0.4)';}}>
+                YESTERDAY
+              </button>
+              <button onClick={() => fetch_(today)}
+                style={{flex:1, background:'rgba(0,255,128,0.07)', border:'1px solid rgba(0,255,128,0.25)', color:'var(--green)',
+                  cursor:'pointer', fontFamily:HV, fontSize:8, letterSpacing:3, fontWeight:700, padding:'7px 0', transition:'all 0.1s'}}
+                onMouseEnter={e=>e.currentTarget.style.background='rgba(0,255,128,0.14)'}
+                onMouseLeave={e=>e.currentTarget.style.background='rgba(0,255,128,0.07)'}>
+                TODAY
+              </button>
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Click-outside to close calendar */}
+      {showCal && <div onClick={() => setShowCal(false)} style={{position:'fixed',inset:0,zIndex:99}}/>}
+
       {error && <div className="err">{error}</div>}
       {loading && games.length === 0 && <Loader label="PIVOT COMPUTING"/>}
-      {!loading && games.length === 0 && !error && <div className="empty">No Games Found</div>}
+
+      {/* Empty state */}
+      {!loading && games.length === 0 && !error && (
+        <div style={{textAlign:'center', padding:'80px 32px'}}>
+          <div style={{fontFamily:HV, fontSize:11, letterSpacing:4, color:'rgba(255,255,255,0.18)', textTransform:'uppercase', marginBottom:10}}>No games scheduled</div>
+          <div style={{fontFamily:HV, fontSize:13, color:'rgba(255,255,255,0.3)', fontWeight:500, marginBottom:40}}>{dateLabel}</div>
+          <div style={{display:'flex', gap:10, justifyContent:'center', flexWrap:'wrap'}}>
+            <button onClick={() => fetch_(shiftDate(activeDate, -1))}
+              style={{background:'transparent', border:'1px solid rgba(255,255,255,0.1)', color:'rgba(255,255,255,0.5)',
+                cursor:'pointer', fontFamily:HV, fontSize:9, letterSpacing:3, fontWeight:700,
+                padding:'11px 24px', transition:'all 0.15s'}}
+              onMouseEnter={e=>{e.currentTarget.style.borderColor='rgba(255,255,255,0.3)';e.currentTarget.style.color='var(--white)';}}
+              onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(255,255,255,0.1)';e.currentTarget.style.color='rgba(255,255,255,0.5)';}}>
+              ← {fmtDateLabel(shiftDate(activeDate, -1))}
+            </button>
+            {canGoForward && (
+              <button onClick={() => fetch_(shiftDate(activeDate, 1))}
+                style={{background:'transparent', border:'1px solid rgba(255,255,255,0.1)', color:'rgba(255,255,255,0.5)',
+                  cursor:'pointer', fontFamily:HV, fontSize:9, letterSpacing:3, fontWeight:700,
+                  padding:'11px 24px', transition:'all 0.15s'}}
+                onMouseEnter={e=>{e.currentTarget.style.borderColor='rgba(255,255,255,0.3)';e.currentTarget.style.color='var(--white)';}}
+                onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(255,255,255,0.1)';e.currentTarget.style.color='rgba(255,255,255,0.5)';}}>
+                {fmtDateLabel(shiftDate(activeDate, 1))} →
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="g-grid">
         {games.map(g => (
           <GameCard key={g.id} g={g} onSelect={setSelectedGame} onAnalyze={setAnalysisGame}/>
