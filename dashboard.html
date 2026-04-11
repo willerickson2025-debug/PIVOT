@@ -1091,6 +1091,55 @@ function teamLogoUrl(abbr) {
   return slug ? `https://a.espncdn.com/i/teamlogos/nba/500/${slug}.png` : null;
 }
 
+// Circular headshot with initials fallback — used wherever we show a small player avatar.
+function PlayerAvatar({ nbaId, name, size = 44 }) {
+  const [err, setErr] = React.useState(false);
+  const initials = (name || '?').split(' ').filter(Boolean).map(w => w[0]).slice(0, 2).join('').toUpperCase();
+  const hue = (name || '').split('').reduce((a, c) => a + c.charCodeAt(0), 0) % 360;
+  if (!nbaId || err) {
+    return (
+      <div style={{
+        width:size, height:size, borderRadius:'50%', flexShrink:0,
+        background:`hsl(${hue},30%,18%)`, border:'1px solid rgba(255,255,255,0.1)',
+        display:'flex', alignItems:'center', justifyContent:'center',
+        fontFamily:"'Helvetica Neue',Helvetica,Arial,sans-serif",
+        fontSize: Math.round(size * 0.33), fontWeight:700, color:`hsl(${hue},60%,65%)`, letterSpacing:1,
+      }}>{initials}</div>
+    );
+  }
+  return (
+    <img src={`${API}/headshot/${nbaId}`} alt={name} width={size} height={size}
+      style={{objectFit:'cover', borderRadius:'50%', flexShrink:0, background:'rgba(255,255,255,0.04)'}}
+      onError={() => setErr(true)}/>
+  );
+}
+
+// Full-body cutout for the featured player cards (tall, no border-radius).
+function HeadshotCutout({ nbaId, name }) {
+  const [err, setErr] = React.useState(false);
+  const initials = (name || '?').split(' ').filter(Boolean).map(w => w[0]).slice(0, 2).join('').toUpperCase();
+  const hue = (name || '').split('').reduce((a, c) => a + c.charCodeAt(0), 0) % 360;
+  if (!nbaId || err) {
+    return (
+      <div style={{position:'absolute', bottom:0, right:0, width:100, height:140,
+        display:'flex', alignItems:'flex-end', justifyContent:'center', paddingBottom:12}}>
+        <div style={{
+          width:64, height:64, borderRadius:'50%',
+          background:`hsl(${hue},30%,18%)`, border:'1px solid rgba(255,255,255,0.08)',
+          display:'flex', alignItems:'center', justifyContent:'center',
+          fontFamily:"'Helvetica Neue',Helvetica,Arial,sans-serif",
+          fontSize:22, fontWeight:700, color:`hsl(${hue},60%,65%)`,
+        }}>{initials}</div>
+      </div>
+    );
+  }
+  return (
+    <img src={`${API}/headshot/${nbaId}`} alt={name}
+      style={{position:'absolute', bottom:0, right:0, height:'155px', objectFit:'contain', objectPosition:'bottom right'}}
+      onError={() => setErr(true)}/>
+  );
+}
+
 function TeamRow({ team, score, isLive, hasScore }) {
   const [logoErr, setLogoErr] = React.useState(false);
   const logoUrl = teamLogoUrl(team.abbreviation);
@@ -1935,12 +1984,7 @@ function Players() {
                   {/* Headshot area */}
                   <div style={{position:'relative', height:160, background:'linear-gradient(160deg, #0d1117 0%, #111820 100%)', overflow:'hidden'}}>
                     <div style={{position:'absolute', inset:0, background:'radial-gradient(ellipse at 80% 100%, rgba(0,255,128,0.05) 0%, transparent 65%)'}}/>
-                    <img
-                      src={`${API}/headshot/${p.nbaId}`}
-                      alt={p.name}
-                      style={{position:'absolute', bottom:0, right:0, height:'155px', objectFit:'contain', objectPosition:'bottom right'}}
-                      onError={e => { e.target.style.display='none'; }}
-                    />
+                    <HeadshotCutout nbaId={p.nbaId} name={p.name}/>
                     <div style={{position:'absolute', top:10, left:12, fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:3, fontWeight:700, color:'var(--green)', opacity:0.8}}>{p.team}</div>
                     <div style={{position:'absolute', bottom:10, left:12, fontFamily:'Helvetica Neue, sans-serif', fontSize:8, letterSpacing:2, fontWeight:700, color:'rgba(255,255,255,0.82)'}}>{p.position}</div>
                   </div>
@@ -2667,7 +2711,7 @@ function FrontOffice() {
                   </div>
                   {/* Player */}
                   <div style={{display:'flex', alignItems:'center', gap:12}}>
-                    <img src={`${API}/headshot/${p.nbaId}`} alt={p.name} width={44} height={44} style={{objectFit:'cover', borderRadius:22, flexShrink:0, background:'rgba(255,255,255,0.05)'}} onError={e=>e.target.style.display='none'}/>
+                    <PlayerAvatar nbaId={p.nbaId} name={p.name} size={44}/>
                     <div>
                       <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:14, fontWeight:700, color:'rgba(255,255,255,0.9)', lineHeight:1.2}}>{p.name}</div>
                       <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:2, color:'var(--green)', fontWeight:700, marginTop:3}}>{p.team}</div>
@@ -2703,7 +2747,7 @@ function FrontOffice() {
                   <div className="g-glow-overlay"/>
                   {/* Player identity */}
                   <div style={{display:'flex', alignItems:'center', gap:12}}>
-                    <img src={`${API}/headshot/${p.nbaId}`} alt={p.name} width={44} height={44} style={{objectFit:'cover', borderRadius:22, flexShrink:0, background:'rgba(255,255,255,0.05)'}} onError={e=>e.target.style.display='none'}/>
+                    <PlayerAvatar nbaId={p.nbaId} name={p.name} size={44}/>
                     <div style={{flex:1, minWidth:0}}>
                       <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:13, fontWeight:700, color:'rgba(255,255,255,0.9)', lineHeight:1.2}}>{p.name}</div>
                       <div style={{display:'flex', gap:6, marginTop:3, alignItems:'center'}}>
