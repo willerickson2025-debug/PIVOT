@@ -1695,9 +1695,13 @@ function Games() {
         {/* Calendar dropdown */}
         {showCal && (
           <div onClick={e=>e.stopPropagation()} style={{
-            position:'absolute', top:52, left:0, zIndex:100,
-            background:'#0d1017', border:'1px solid rgba(255,255,255,0.12)',
-            boxShadow:'0 16px 48px rgba(0,0,0,0.8)', padding:'16px', width:310,
+            position:'absolute', top:'calc(100% + 8px)', left:'50%', transform:'translateX(-50%)',
+            zIndex:100, width:320,
+            background:'rgba(10,13,20,0.82)',
+            backdropFilter:'blur(24px)', WebkitBackdropFilter:'blur(24px)',
+            border:'1px solid rgba(255,255,255,0.13)',
+            boxShadow:'0 24px 64px rgba(0,0,0,0.75), inset 0 1px 0 rgba(255,255,255,0.07)',
+            borderRadius:12, padding:'18px',
           }}>
             {/* Date search input */}
             <div style={{marginBottom:14}}>
