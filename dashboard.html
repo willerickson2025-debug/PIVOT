@@ -1622,87 +1622,89 @@ function Games() {
 
   return (
     <div>
-      {/* Date Nav Bar */}
-      <div style={{borderBottom:'1px solid var(--border)', background:'rgba(0,0,0,0.3)', display:'flex', alignItems:'center', gap:0, height:52, position:'relative', paddingLeft:8}}>
+      {/* Date Nav — centered glass pill */}
+      <div style={{display:'flex', flexDirection:'column', alignItems:'center', padding:'28px 16px 0', position:'relative'}}>
 
-        {/* Prev */}
-        <button onClick={() => fetch_(shiftDate(activeDate, -1))}
-          style={{background:'var(--glass-bg)', border:'1px solid var(--glass-border)', boxShadow:'var(--glass-hi)', color:'rgba(255,255,255,0.55)', cursor:'pointer',
-            fontFamily:HV, fontSize:18, fontWeight:700, padding:'0 12px', height:'100%', transition:'color 0.1s',
-            lineHeight:1}}
-          onMouseEnter={e=>e.currentTarget.style.color='var(--white)'}
-          onMouseLeave={e=>e.currentTarget.style.color='rgba(255,255,255,0.35)'}>‹</button>
+        {/* Glass pill row */}
+        <div style={{
+          display:'flex', alignItems:'center', gap:2,
+          background:'rgba(255,255,255,0.055)',
+          backdropFilter:'blur(20px)', WebkitBackdropFilter:'blur(20px)',
+          border:'1px solid rgba(255,255,255,0.13)',
+          borderRadius:12,
+          boxShadow:'inset 0 1px 0 rgba(255,255,255,0.09), 0 8px 32px rgba(0,0,0,0.4)',
+          padding:'6px 8px', position:'relative',
+        }}>
 
-        {/* Date label + calendar toggle */}
-        <button onClick={() => setShowCal(v => !v)}
-          style={{background:'transparent', border:'none', cursor:'pointer', height:'100%', padding:'0 14px',
-            display:'flex', alignItems:'center', gap:8, transition:'background 0.1s'}}
-          onMouseEnter={e=>e.currentTarget.style.background='rgba(255,255,255,0.04)'}
-          onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
-          <span style={{fontFamily:HV, fontSize:13, fontWeight:700, letterSpacing:0, color:'var(--white)'}}>{dateLabel}</span>
-          {activeDate !== today && <span style={{fontFamily:HV, fontSize:9, letterSpacing:2, color:'rgba(255,255,255,0.28)', fontWeight:700}}>{activeDate}</span>}
-          <span style={{fontFamily:HV, fontSize:9, color:'rgba(255,255,255,0.3)', marginLeft:2}}>▾</span>
-        </button>
+          {/* Prev */}
+          <button onClick={() => fetch_(shiftDate(activeDate, -1))}
+            style={{background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.1)', color:'rgba(255,255,255,0.6)',
+              cursor:'pointer', fontFamily:HV, fontSize:18, fontWeight:700, padding:'6px 14px',
+              borderRadius:8, lineHeight:1, transition:'all 0.15s'}}
+            onMouseEnter={e=>{e.currentTarget.style.background='rgba(255,255,255,0.12)';e.currentTarget.style.color='var(--white)';}}
+            onMouseLeave={e=>{e.currentTarget.style.background='rgba(255,255,255,0.06)';e.currentTarget.style.color='rgba(255,255,255,0.6)';}}>‹</button>
 
-        {/* Next */}
-        <button onClick={() => canGoForward && fetch_(shiftDate(activeDate, 1))}
-          style={{background: canGoForward ? 'var(--glass-bg)' : 'transparent', border: canGoForward ? '1px solid var(--glass-border)' : '1px solid transparent',
-            boxShadow: canGoForward ? 'var(--glass-hi)' : 'none',
-            color: canGoForward ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.12)',
-            cursor: canGoForward ? 'pointer' : 'default',
-            fontFamily:HV, fontSize:18, fontWeight:700, padding:'0 12px', height:'100%', transition:'color 0.1s', lineHeight:1}}
-          onMouseEnter={e=>{ if(canGoForward) e.currentTarget.style.color='var(--white)'; }}
-          onMouseLeave={e=>{ if(canGoForward) e.currentTarget.style.color='rgba(255,255,255,0.55)'; }}>›</button>
-
-        {/* Today pill */}
-        {!isTodayDate && (
-          <button onClick={() => fetch_(today)}
-            style={{background:'rgba(0,255,128,0.07)', border:'1px solid rgba(0,255,128,0.38)',
-              boxShadow:'inset 0 1px 0 rgba(0,255,128,0.14), 0 0 12px rgba(0,255,128,0.07)',
-              color:'var(--green)', cursor:'pointer', fontFamily:HV, fontSize:8, letterSpacing:3, fontWeight:700,
-              padding:'5px 12px', marginLeft:8, transition:'all 0.15s'}}
-            onMouseEnter={e=>{e.currentTarget.style.background='rgba(0,255,128,0.14)';e.currentTarget.style.boxShadow='inset 0 1px 0 rgba(0,255,128,0.22), 0 0 18px rgba(0,255,128,0.14)';}}
-            onMouseLeave={e=>{e.currentTarget.style.background='rgba(0,255,128,0.07)';e.currentTarget.style.boxShadow='inset 0 1px 0 rgba(0,255,128,0.14), 0 0 12px rgba(0,255,128,0.07)';}}>
-            TODAY
+          {/* Date label + calendar toggle */}
+          <button onClick={() => setShowCal(v => !v)}
+            style={{background:'transparent', border:'none', cursor:'pointer', padding:'6px 16px',
+              display:'flex', alignItems:'center', gap:8, borderRadius:8, transition:'background 0.1s'}}
+            onMouseEnter={e=>e.currentTarget.style.background='rgba(255,255,255,0.06)'}
+            onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+            <span style={{fontFamily:HV, fontSize:14, fontWeight:700, letterSpacing:0, color:'var(--white)'}}>{dateLabel}</span>
+            {activeDate !== today && activeDate !== tomorrow && <span style={{fontFamily:HV, fontSize:9, letterSpacing:2, color:'rgba(255,255,255,0.28)', fontWeight:700}}>{activeDate}</span>}
+            <span style={{fontFamily:HV, fontSize:9, color:'rgba(255,255,255,0.3)'}}>▾</span>
           </button>
-        )}
 
-        {/* Tomorrow pill */}
-        {!isTomorrowDate && (
-          <button onClick={() => fetch_(tomorrow)}
-            style={{background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.12)',
-              boxShadow:'inset 0 1px 0 rgba(255,255,255,0.06)',
-              color:'rgba(255,255,255,0.55)', cursor:'pointer', fontFamily:HV, fontSize:8, letterSpacing:3, fontWeight:700,
-              padding:'5px 12px', marginLeft:6, transition:'all 0.15s'}}
-            onMouseEnter={e=>{e.currentTarget.style.background='rgba(255,255,255,0.09)';e.currentTarget.style.color='var(--white)';}}
-            onMouseLeave={e=>{e.currentTarget.style.background='rgba(255,255,255,0.04)';e.currentTarget.style.color='rgba(255,255,255,0.55)';}}>
-            TOMORROW
-          </button>
-        )}
+          {/* Next */}
+          <button onClick={() => canGoForward && fetch_(shiftDate(activeDate, 1))}
+            style={{background: canGoForward ? 'rgba(255,255,255,0.06)' : 'transparent',
+              border: canGoForward ? '1px solid rgba(255,255,255,0.1)' : '1px solid transparent',
+              color: canGoForward ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.12)',
+              cursor: canGoForward ? 'pointer' : 'default',
+              fontFamily:HV, fontSize:18, fontWeight:700, padding:'6px 14px',
+              borderRadius:8, lineHeight:1, transition:'all 0.15s'}}
+            onMouseEnter={e=>{ if(canGoForward){e.currentTarget.style.background='rgba(255,255,255,0.12)';e.currentTarget.style.color='var(--white)';} }}
+            onMouseLeave={e=>{ if(canGoForward){e.currentTarget.style.background='rgba(255,255,255,0.06)';e.currentTarget.style.color='rgba(255,255,255,0.6)';} }}>›</button>
 
-        <div style={{flex:1}}/>
+          {/* Divider */}
+          {(!isTodayDate || !isTomorrowDate) && <div style={{width:1, height:22, background:'rgba(255,255,255,0.1)', margin:'0 4px', flexShrink:0}}/>}
 
-        {/* Game count / live badge */}
-        {games.length > 0 && (
-          <div style={{fontFamily:HV, fontSize:9, letterSpacing:3, color:'rgba(255,255,255,0.35)', fontWeight:700, paddingRight:16}}>
-            {games.length} GAMES{hasLive ? <span style={{color:'var(--green)', marginLeft:8}}>· LIVE</span> : ''}
-          </div>
-        )}
-        {hasLive && activeDate === today && (
-          <div style={{fontFamily:HV, fontSize:8, letterSpacing:3, color:'var(--green)', fontWeight:700, paddingRight:20, animation:'blink 1.5s infinite'}}>AUTO-REFRESH</div>
-        )}
+          {/* Today pill */}
+          {!isTodayDate && (
+            <button onClick={() => fetch_(today)}
+              style={{background:'rgba(0,255,128,0.08)', border:'1px solid rgba(0,255,128,0.35)',
+                boxShadow:'inset 0 1px 0 rgba(0,255,128,0.14)',
+                color:'var(--green)', cursor:'pointer', fontFamily:HV, fontSize:8, letterSpacing:3, fontWeight:700,
+                padding:'6px 12px', borderRadius:8, transition:'all 0.15s'}}
+              onMouseEnter={e=>{e.currentTarget.style.background='rgba(0,255,128,0.16)';}}
+              onMouseLeave={e=>{e.currentTarget.style.background='rgba(0,255,128,0.08)';}}>
+              TODAY
+            </button>
+          )}
 
-        {/* Calendar dropdown */}
-        {showCal && (
-          <div onClick={e=>e.stopPropagation()} style={{
-            position:'absolute', top:'calc(100% + 8px)', left:'50%', transform:'translateX(-50%)',
-            zIndex:100, width:320,
-            background:'rgba(10,13,20,0.82)',
-            backdropFilter:'blur(24px)', WebkitBackdropFilter:'blur(24px)',
-            border:'1px solid rgba(255,255,255,0.13)',
-            boxShadow:'0 24px 64px rgba(0,0,0,0.75), inset 0 1px 0 rgba(255,255,255,0.07)',
-            borderRadius:12, padding:'18px',
-          }}>
+          {/* Tomorrow pill */}
+          {!isTomorrowDate && (
+            <button onClick={() => fetch_(tomorrow)}
+              style={{background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.12)',
+                color:'rgba(255,255,255,0.55)', cursor:'pointer', fontFamily:HV, fontSize:8, letterSpacing:3, fontWeight:700,
+                padding:'6px 12px', borderRadius:8, transition:'all 0.15s'}}
+              onMouseEnter={e=>{e.currentTarget.style.background='rgba(255,255,255,0.1)';e.currentTarget.style.color='var(--white)';}}
+              onMouseLeave={e=>{e.currentTarget.style.background='rgba(255,255,255,0.05)';e.currentTarget.style.color='rgba(255,255,255,0.55)';}}>
+              TOMORROW
+            </button>
+          )}
+
+          {/* Calendar dropdown */}
+          {showCal && (
+            <div onClick={e=>e.stopPropagation()} style={{
+              position:'absolute', top:'calc(100% + 10px)', left:'50%', transform:'translateX(-50%)',
+              zIndex:100, width:320,
+              background:'rgba(10,13,20,0.82)',
+              backdropFilter:'blur(24px)', WebkitBackdropFilter:'blur(24px)',
+              border:'1px solid rgba(255,255,255,0.13)',
+              boxShadow:'0 24px 64px rgba(0,0,0,0.75), inset 0 1px 0 rgba(255,255,255,0.07)',
+              borderRadius:12, padding:'18px',
+            }}>
             {/* Date search input */}
             <div style={{marginBottom:14}}>
               <input
@@ -1786,7 +1788,16 @@ function Games() {
             </div>
           </div>
         )}
-      </div>
+        </div>{/* end glass pill */}
+
+        {/* Game count / live badge */}
+        {games.length > 0 && (
+          <div style={{marginTop:12, fontFamily:HV, fontSize:9, letterSpacing:3, color:'rgba(255,255,255,0.35)', fontWeight:700, textAlign:'center'}}>
+            {games.length} GAMES{hasLive ? <span style={{color:'var(--green)', marginLeft:8}}>· LIVE</span> : ''}
+            {hasLive && activeDate === today && <span style={{color:'var(--green)', marginLeft:12, animation:'blink 1.5s infinite'}}>· AUTO-REFRESH</span>}
+          </div>
+        )}
+      </div>{/* end centering wrapper */}
 
       {/* Click-outside to close calendar */}
       {showCal && <div onClick={() => setShowCal(false)} style={{position:'fixed',inset:0,zIndex:99}}/>}
