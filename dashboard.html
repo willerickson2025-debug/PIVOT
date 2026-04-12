@@ -40,6 +40,17 @@ body::before {
   --text-subtle: #374151;
   --shadow: 0 4px 24px rgba(0,0,0,0.4);
   --shadow-lg: 0 8px 40px rgba(0,0,0,0.6);
+  /* ── Glass system ── */
+  --glass-bg:           rgba(255,255,255,0.055);
+  --glass-bg-hover:     rgba(255,255,255,0.095);
+  --glass-border:       rgba(255,255,255,0.16);
+  --glass-border-hover: rgba(255,255,255,0.30);
+  --glass-hi:           inset 0 1px 0 rgba(255,255,255,0.10);
+  --glass-hi-hover:     inset 0 1px 0 rgba(255,255,255,0.18);
+  --glass-blur:         blur(12px);
+  --glass-green-bg:     rgba(0,255,128,0.07);
+  --glass-green-border: rgba(0,255,128,0.38);
+  --glass-green-hi:     inset 0 1px 0 rgba(0,255,128,0.14), 0 0 18px rgba(0,255,128,0.09);
 }
 html, body {
   background: var(--black);
@@ -77,6 +88,11 @@ nav.solid {
 }
 .nav-logo:hover { color: var(--green); }
 .nav-tabs { display: flex; align-items: stretch; height: 70px; }
+/* ── Global glass base for all buttons ──────────────────────────────────── */
+button {
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+}
 .nav-tab {
   display: flex;
   align-items: center;
@@ -104,9 +120,9 @@ nav.solid {
   box-shadow: 0 0 10px var(--green);
 }
 .nav-cta {
-  background: var(--green);
-  color: var(--black);
-  border: none;
+  background: var(--glass-green-bg);
+  color: var(--green);
+  border: 1px solid var(--glass-green-border);
   padding: 10px 24px;
   font-size: 10px;
   letter-spacing: 3px;
@@ -114,10 +130,17 @@ nav.solid {
   font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
   text-transform: uppercase;
   cursor: pointer;
-  transition: opacity 0.15s;
+  transition: all 0.2s;
   border-radius: 2px;
+  box-shadow: var(--glass-green-hi);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
 }
-.nav-cta:hover { opacity: 0.85; }
+.nav-cta:hover {
+  background: rgba(0,255,128,0.14);
+  border-color: rgba(0,255,128,0.65);
+  box-shadow: inset 0 1px 0 rgba(0,255,128,0.22), 0 0 28px rgba(0,255,128,0.18);
+}
 @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.2} }
 @keyframes pulse-dot { 0%,80%,100%{opacity:0.15;transform:scale(0.7)} 40%{opacity:1;transform:scale(1)} }
 /* ── Home / Landing ──────────────────────────────────────────────────────── */
@@ -209,9 +232,9 @@ nav.solid {
 /* glowing primary button */
 .home-cta-primary {
   position: relative;
-  background: var(--black);
+  background: var(--glass-green-bg);
   color: var(--white);
-  border: 1px solid rgba(0,255,128,0.5);
+  border: 1px solid var(--glass-green-border);
   padding: 14px 36px;
   font-size: 10px;
   letter-spacing: 4px;
@@ -221,18 +244,20 @@ nav.solid {
   cursor: pointer;
   border-radius: 2px;
   transition: all 0.2s;
-  box-shadow: 0 0 20px rgba(0,255,128,0.15), inset 0 0 20px rgba(0,255,128,0.04);
+  box-shadow: var(--glass-green-hi);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
 }
 .home-cta-primary:hover {
-  background: rgba(0,255,128,0.08);
-  border-color: var(--green);
-  box-shadow: 0 0 32px rgba(0,255,128,0.3), inset 0 0 20px rgba(0,255,128,0.06);
+  background: rgba(0,255,128,0.12);
+  border-color: rgba(0,255,128,0.65);
+  box-shadow: inset 0 1px 0 rgba(0,255,128,0.25), 0 0 40px rgba(0,255,128,0.22);
   transform: translateY(-1px);
 }
 .home-cta-secondary {
-  background: rgba(255,255,255,0.04);
+  background: var(--glass-bg);
   color: var(--white);
-  border: 1px solid rgba(255,255,255,0.12);
+  border: 1px solid var(--glass-border);
   padding: 14px 36px;
   font-size: 10px;
   letter-spacing: 4px;
@@ -242,8 +267,16 @@ nav.solid {
   cursor: pointer;
   border-radius: 2px;
   transition: all 0.2s;
+  box-shadow: var(--glass-hi);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
 }
-.home-cta-secondary:hover { border-color: rgba(255,255,255,0.3); background: rgba(255,255,255,0.08); }
+.home-cta-secondary:hover {
+  background: var(--glass-bg-hover);
+  border-color: var(--glass-border-hover);
+  box-shadow: var(--glass-hi-hover);
+  transform: translateY(-1px);
+}
 .home-scroll-hint {
   position: absolute; bottom: 48px; left: 50%; transform: translateX(-50%); z-index: 3;
   font-family: 'Inter', sans-serif;
@@ -431,16 +464,24 @@ nav.solid {
   background: var(--grey);
 }
 .tb-btn {
-  background: transparent; border: none;
-  border-right: 1px solid var(--border);
+  background: var(--glass-bg); border: none;
+  border-right: 1px solid var(--glass-border);
+  box-shadow: var(--glass-hi);
   color: var(--text-muted);
   font-size: 10px; letter-spacing: 3px; font-weight: 700;
   font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
   text-transform: uppercase; padding: 0 24px;
   cursor: pointer; transition: all 0.15s; white-space: nowrap;
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
 }
-.tb-btn:hover { background: var(--grey2); color: var(--white); }
-.tb-btn:disabled { color: #2a2a2a; cursor: not-allowed; }
+.tb-btn:hover {
+  background: var(--glass-bg-hover);
+  border-right-color: var(--glass-border-hover);
+  box-shadow: var(--glass-hi-hover);
+  color: var(--white);
+}
+.tb-btn:disabled { color: #2a2a2a; cursor: not-allowed; background: transparent; }
 .tb-input {
   background: transparent; border: none;
   border-right: 1px solid var(--border);
@@ -567,23 +608,36 @@ nav.solid {
 .modal-score-vs { font-size: 11px; letter-spacing: 4px; color: #333; }
 .modal-status { font-size: 9px; letter-spacing: 3px; color: var(--green); margin-top: 6px; }
 .modal-close {
-  background: none; border: 1px solid var(--border);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-hi);
   color: var(--white); font-size: 16px; width: 32px; height: 32px;
   cursor: pointer; display: flex; align-items: center; justify-content: center;
-  transition: all 0.1s; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: 700;
+  transition: all 0.15s; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-weight: 700;
   margin-left: 16px; flex-shrink: 0; align-self: center;
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-radius: 4px;
 }
-.modal-close:hover { background: var(--white); color: var(--black); }
+.modal-close:hover {
+  background: var(--glass-bg-hover);
+  border-color: var(--glass-border-hover);
+  box-shadow: var(--glass-hi-hover);
+}
 .modal-tabs { display: flex; border-bottom: 1px solid var(--border); }
 .modal-tab {
   padding: 14px 28px; font-size: 10px; letter-spacing: 3px; color: #555;
-  cursor: pointer; border: none; background: none;
-  border-right: 1px solid var(--border); border-bottom: 2px solid transparent;
-  transition: all 0.1s; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  cursor: pointer; border: none;
+  background: var(--glass-bg);
+  box-shadow: var(--glass-hi);
+  border-right: 1px solid var(--glass-border); border-bottom: 2px solid transparent;
+  transition: all 0.15s; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
   font-weight: 700; text-transform: uppercase;
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
 }
-.modal-tab:hover { color: var(--white); }
-.modal-tab.active { color: var(--green); border-bottom-color: var(--green); }
+.modal-tab:hover { color: var(--white); background: var(--glass-bg-hover); border-right-color: var(--glass-border-hover); }
+.modal-tab.active { color: var(--green); border-bottom-color: var(--green); background: rgba(0,255,128,0.05); }
 .box-score { padding: 24px 32px; }
 .box-team-label { font-size: 9px; letter-spacing: 4px; color: var(--green); margin-bottom: 12px; margin-top: 24px; }
 .box-table { width: 100%; border-collapse: collapse; }
@@ -663,11 +717,11 @@ nav.solid {
 .home-pivot-text { text-shadow: 0 0 80px rgba(0,255,128,0.2), 0 0 160px rgba(0,255,128,0.1) !important; }
 .home-badge { box-shadow: 0 0 24px rgba(0,255,128,0.14); border-color: rgba(0,255,128,0.5) !important; }
 .home-cta-primary {
-  box-shadow: 0 0 30px rgba(0,255,128,0.22), inset 0 0 24px rgba(0,255,128,0.06) !important;
-  border-color: rgba(0,255,128,0.55) !important;
+  box-shadow: inset 0 1px 0 rgba(0,255,128,0.18), 0 0 28px rgba(0,255,128,0.15), 0 0 0 1px rgba(0,255,128,0.12) !important;
+  border-color: rgba(0,255,128,0.5) !important;
 }
 .home-cta-primary:hover {
-  box-shadow: 0 0 48px rgba(0,255,128,0.4), inset 0 0 28px rgba(0,255,128,0.1) !important;
+  box-shadow: inset 0 1px 0 rgba(0,255,128,0.28), 0 0 48px rgba(0,255,128,0.28), 0 0 0 1px rgba(0,255,128,0.22) !important;
 }
 .features-label { text-shadow: 0 0 16px rgba(0,255,128,0.5); }
 .feature-card:hover .feature-card-glow { opacity: 1; }
@@ -675,12 +729,14 @@ nav.solid {
 
 /* Shiny cards */
 .g-card2 {
-  border-color: rgba(255,255,255,0.14) !important;
-  box-shadow: 0 2px 24px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,255,128,0.05) !important;
+  border-color: rgba(255,255,255,0.13) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.07), 0 2px 24px rgba(0,0,0,0.55), 0 0 0 1px rgba(0,255,128,0.04) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
 }
 .g-card2:hover {
-  border-color: rgba(0,255,128,0.65) !important;
-  box-shadow: 0 0 0 1px rgba(0,255,128,0.25), 0 14px 52px rgba(0,255,128,0.18), 0 0 80px rgba(0,255,128,0.09) !important;
+  border-color: rgba(0,255,128,0.55) !important;
+  box-shadow: inset 0 1px 0 rgba(0,255,128,0.12), 0 0 0 1px rgba(0,255,128,0.22), 0 14px 52px rgba(0,255,128,0.15), 0 0 80px rgba(0,255,128,0.08) !important;
 }
 .g-glow-overlay {
   background: radial-gradient(circle at var(--cx, 50%) var(--cy, 50%), rgba(0,255,128,0.11) 0%, transparent 62%) !important;
@@ -1385,8 +1441,9 @@ function GameCard({ g, onSelect, onAnalyze }) {
             <button
               onClick={handlePredict}
               disabled={predLoading}
-              style={{background:'none', color: predLoading ? 'rgba(0,255,128,0.4)' : 'var(--green)',
-                border:'1px solid rgba(0,255,128,0.45)', padding:'7px 14px',
+              style={{background:'rgba(0,255,128,0.07)', color: predLoading ? 'rgba(0,255,128,0.4)' : 'var(--green)',
+                border:'1px solid rgba(0,255,128,0.38)', padding:'7px 14px',
+                boxShadow:'inset 0 1px 0 rgba(0,255,128,0.14), 0 0 14px rgba(0,255,128,0.07)',
                 fontSize:9, letterSpacing:3, fontWeight:700,
                 fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif',
                 textTransform:'uppercase', cursor: predLoading ? 'default' : 'pointer',
@@ -1396,10 +1453,11 @@ function GameCard({ g, onSelect, onAnalyze }) {
           )}
           <button
             onClick={e => { e.stopPropagation(); onAnalyze(g); }}
-            style={{background:'var(--green)', color:'var(--black-deep)', border:'none', padding:'7px 14px',
+            style={{background:'rgba(0,255,128,0.1)', color:'var(--green)', border:'1px solid rgba(0,255,128,0.55)', padding:'7px 14px',
+              boxShadow:'inset 0 1px 0 rgba(0,255,128,0.22), 0 0 18px rgba(0,255,128,0.12)',
               fontSize:9, letterSpacing:3, fontWeight:700,
               fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif',
-              textTransform:'uppercase', cursor:'pointer', borderRadius:3, transition:'opacity 0.15s',
+              textTransform:'uppercase', cursor:'pointer', borderRadius:3, transition:'all 0.15s',
               flexShrink:0}}>
             ANALYZE
           </button>
@@ -1475,7 +1533,7 @@ function Games() {
 
         {/* Prev */}
         <button onClick={() => fetch_(shiftDate(activeDate, -1))}
-          style={{background:'transparent', border:'none', color:'rgba(255,255,255,0.35)', cursor:'pointer',
+          style={{background:'var(--glass-bg)', border:'1px solid var(--glass-border)', boxShadow:'var(--glass-hi)', color:'rgba(255,255,255,0.55)', cursor:'pointer',
             fontFamily:HV, fontSize:18, fontWeight:700, padding:'0 12px', height:'100%', transition:'color 0.1s',
             lineHeight:1}}
           onMouseEnter={e=>e.currentTarget.style.color='var(--white)'}
@@ -1494,20 +1552,23 @@ function Games() {
 
         {/* Next */}
         <button onClick={() => canGoForward && fetch_(shiftDate(activeDate, 1))}
-          style={{background:'transparent', border:'none', color: canGoForward ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.1)',
+          style={{background: canGoForward ? 'var(--glass-bg)' : 'transparent', border: canGoForward ? '1px solid var(--glass-border)' : '1px solid transparent',
+            boxShadow: canGoForward ? 'var(--glass-hi)' : 'none',
+            color: canGoForward ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.12)',
             cursor: canGoForward ? 'pointer' : 'default',
             fontFamily:HV, fontSize:18, fontWeight:700, padding:'0 12px', height:'100%', transition:'color 0.1s', lineHeight:1}}
           onMouseEnter={e=>{ if(canGoForward) e.currentTarget.style.color='var(--white)'; }}
-          onMouseLeave={e=>{ if(canGoForward) e.currentTarget.style.color='rgba(255,255,255,0.35)'; }}>›</button>
+          onMouseLeave={e=>{ if(canGoForward) e.currentTarget.style.color='rgba(255,255,255,0.55)'; }}>›</button>
 
         {/* Today pill */}
         {!isTodayDate && (
           <button onClick={() => fetch_(today)}
-            style={{background:'rgba(0,255,128,0.07)', border:'1px solid rgba(0,255,128,0.25)', color:'var(--green)',
-              cursor:'pointer', fontFamily:HV, fontSize:8, letterSpacing:3, fontWeight:700,
-              padding:'5px 12px', marginLeft:8, transition:'all 0.1s'}}
-            onMouseEnter={e=>{e.currentTarget.style.background='rgba(0,255,128,0.14)';}}
-            onMouseLeave={e=>{e.currentTarget.style.background='rgba(0,255,128,0.07)';}}>
+            style={{background:'rgba(0,255,128,0.07)', border:'1px solid rgba(0,255,128,0.38)',
+              boxShadow:'inset 0 1px 0 rgba(0,255,128,0.14), 0 0 12px rgba(0,255,128,0.07)',
+              color:'var(--green)', cursor:'pointer', fontFamily:HV, fontSize:8, letterSpacing:3, fontWeight:700,
+              padding:'5px 12px', marginLeft:8, transition:'all 0.15s'}}
+            onMouseEnter={e=>{e.currentTarget.style.background='rgba(0,255,128,0.14)';e.currentTarget.style.boxShadow='inset 0 1px 0 rgba(0,255,128,0.22), 0 0 18px rgba(0,255,128,0.14)';}}
+            onMouseLeave={e=>{e.currentTarget.style.background='rgba(0,255,128,0.07)';e.currentTarget.style.boxShadow='inset 0 1px 0 rgba(0,255,128,0.14), 0 0 12px rgba(0,255,128,0.07)';}}>
             TODAY
           </button>
         )}
@@ -1548,14 +1609,14 @@ function Games() {
             {/* Month nav */}
             <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10}}>
               <button onClick={() => setCalMonth(({y,m}) => m===0 ? {y:y-1,m:11} : {y,m:m-1})}
-                style={{background:'rgba(255,255,255,0.06)',border:'none',color:'rgba(255,255,255,0.7)',cursor:'pointer',fontFamily:HV,fontSize:15,fontWeight:700,padding:'5px 12px',transition:'all 0.1s'}}
-                onMouseEnter={e=>{e.currentTarget.style.background='rgba(255,255,255,0.12)';e.currentTarget.style.color='var(--white)';}}
-                onMouseLeave={e=>{e.currentTarget.style.background='rgba(255,255,255,0.06)';e.currentTarget.style.color='rgba(255,255,255,0.7)';}}>‹</button>
+                style={{background:'var(--glass-bg)',border:'1px solid var(--glass-border)',boxShadow:'var(--glass-hi)',color:'rgba(255,255,255,0.7)',cursor:'pointer',fontFamily:HV,fontSize:15,fontWeight:700,padding:'5px 12px',transition:'all 0.15s',borderRadius:3}}
+                onMouseEnter={e=>{e.currentTarget.style.background='var(--glass-bg-hover)';e.currentTarget.style.borderColor='var(--glass-border-hover)';e.currentTarget.style.color='var(--white)';}}
+                onMouseLeave={e=>{e.currentTarget.style.background='var(--glass-bg)';e.currentTarget.style.borderColor='var(--glass-border)';e.currentTarget.style.color='rgba(255,255,255,0.7)';}}>‹</button>
               <span style={{fontFamily:HV, fontSize:12, letterSpacing:2, fontWeight:700, color:'var(--white)'}}>{MONTHS[calMonth.m]} {calMonth.y}</span>
               <button onClick={() => setCalMonth(({y,m}) => m===11 ? {y:y+1,m:0} : {y,m:m+1})}
-                style={{background:'rgba(255,255,255,0.06)',border:'none',color:'rgba(255,255,255,0.7)',cursor:'pointer',fontFamily:HV,fontSize:15,fontWeight:700,padding:'5px 12px',transition:'all 0.1s'}}
-                onMouseEnter={e=>{e.currentTarget.style.background='rgba(255,255,255,0.12)';e.currentTarget.style.color='var(--white)';}}
-                onMouseLeave={e=>{e.currentTarget.style.background='rgba(255,255,255,0.06)';e.currentTarget.style.color='rgba(255,255,255,0.7)';}}>›</button>
+                style={{background:'var(--glass-bg)',border:'1px solid var(--glass-border)',boxShadow:'var(--glass-hi)',color:'rgba(255,255,255,0.7)',cursor:'pointer',fontFamily:HV,fontSize:15,fontWeight:700,padding:'5px 12px',transition:'all 0.15s',borderRadius:3}}
+                onMouseEnter={e=>{e.currentTarget.style.background='var(--glass-bg-hover)';e.currentTarget.style.borderColor='var(--glass-border-hover)';e.currentTarget.style.color='var(--white)';}}
+                onMouseLeave={e=>{e.currentTarget.style.background='var(--glass-bg)';e.currentTarget.style.borderColor='var(--glass-border)';e.currentTarget.style.color='rgba(255,255,255,0.7)';}}>›</button>
             </div>
             {/* Day headers */}
             <div style={{display:'grid', gridTemplateColumns:'repeat(7,1fr)', marginBottom:4}}>
@@ -1574,9 +1635,10 @@ function Games() {
                 return (
                   <button key={i} onClick={() => !future && fetch_(ds)} disabled={future}
                     style={{
-                      background: isActive ? 'var(--green)' : isToday ? 'rgba(0,255,128,0.12)' : 'transparent',
-                      border: isActive ? 'none' : isToday ? '1px solid rgba(0,255,128,0.4)' : '1px solid transparent',
-                      color: isActive ? '#000' : future ? 'rgba(255,255,255,0.1)' : isToday ? 'var(--green)' : 'rgba(255,255,255,0.7)',
+                      background: isActive ? 'rgba(0,255,128,0.18)' : isToday ? 'rgba(0,255,128,0.09)' : 'var(--glass-bg)',
+                      border: isActive ? '1px solid rgba(0,255,128,0.75)' : isToday ? '1px solid rgba(0,255,128,0.45)' : '1px solid var(--glass-border)',
+                      boxShadow: isActive ? 'inset 0 1px 0 rgba(0,255,128,0.3), 0 0 14px rgba(0,255,128,0.15)' : isToday ? 'inset 0 1px 0 rgba(0,255,128,0.12)' : 'var(--glass-hi)',
+                      color: isActive ? 'var(--green)' : future ? 'rgba(255,255,255,0.1)' : isToday ? 'var(--green)' : 'rgba(255,255,255,0.7)',
                       cursor: future ? 'default' : 'pointer',
                       fontFamily:HV, fontSize:12, fontWeight: isActive||isToday ? 700 : 400,
                       padding:'8px 0', textAlign:'center', transition:'all 0.1s', borderRadius:2,
@@ -1694,9 +1756,9 @@ function Analysis() {
             <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:12, letterSpacing:0, color:'var(--text-muted)', fontWeight:700, textTransform:'none'}}>
               <span style={{color:'var(--green)', fontWeight:700}}>{result.game_count} Games</span> · {new Date().toLocaleDateString([],{month:'short',day:'numeric',year:'numeric'})}
             </div>
-            <button onClick={() => window.print()} style={{background:'none', border:'1px solid var(--border)', color:'var(--text-muted)', fontFamily:'Helvetica Neue, sans-serif', fontWeight:700, fontSize:9, letterSpacing:3, textTransform:'uppercase', padding:'8px 16px', cursor:'pointer', borderRadius:4, transition:'all 0.15s'}}
-              onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--green)';e.currentTarget.style.color='var(--green)';}}
-              onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border)';e.currentTarget.style.color='var(--text-muted)';}}>
+            <button onClick={() => window.print()} style={{background:'var(--glass-bg)', border:'1px solid var(--glass-border)', boxShadow:'var(--glass-hi)', color:'rgba(255,255,255,0.55)', fontFamily:'Helvetica Neue, sans-serif', fontWeight:700, fontSize:9, letterSpacing:3, textTransform:'uppercase', padding:'8px 16px', cursor:'pointer', borderRadius:4, transition:'all 0.15s'}}
+              onMouseEnter={e=>{e.currentTarget.style.background='var(--glass-green-bg)';e.currentTarget.style.borderColor='var(--glass-green-border)';e.currentTarget.style.color='var(--green)';}}
+              onMouseLeave={e=>{e.currentTarget.style.background='var(--glass-bg)';e.currentTarget.style.borderColor='var(--glass-border)';e.currentTarget.style.color='rgba(255,255,255,0.55)';}}>
               Export PDF →
             </button>
           </div>
@@ -2622,7 +2684,13 @@ function FrontOffice() {
           <div style={{position:'sticky', top:70, zIndex:20, borderBottom:'1px solid rgba(255,255,255,0.07)', background:'rgba(9,12,16,0.96)', display:'flex', alignItems:'stretch', overflowX:'auto', padding:'0 24px'}}>
             {!result && TABS.map(tab => (
               <button key={tab.id} onClick={()=>setDashTab(tab.id)}
-                style={{background:'none', border:'none', padding:'0 18px', height:46, cursor:'pointer', fontFamily:'Helvetica Neue, sans-serif', fontSize:10, fontWeight:700, letterSpacing:2, textTransform:'uppercase', color:dashTab===tab.id?'var(--white)':'rgba(255,255,255,0.3)', borderBottom:dashTab===tab.id?'2px solid var(--green)':'2px solid transparent', transition:'color 0.15s', whiteSpace:'nowrap', flexShrink:0}}>
+                style={{background: dashTab===tab.id ? 'rgba(0,255,128,0.05)' : 'var(--glass-bg)',
+                  border:'none', borderBottom: dashTab===tab.id ? '2px solid var(--green)' : '2px solid transparent',
+                  boxShadow: dashTab===tab.id ? 'inset 0 1px 0 rgba(0,255,128,0.1)' : 'var(--glass-hi)',
+                  padding:'0 18px', height:46, cursor:'pointer', fontFamily:'Helvetica Neue, sans-serif',
+                  fontSize:10, fontWeight:700, letterSpacing:2, textTransform:'uppercase',
+                  color:dashTab===tab.id?'var(--white)':'rgba(255,255,255,0.4)',
+                  transition:'all 0.15s', whiteSpace:'nowrap', flexShrink:0}}>
                 {tab.label}
               </button>
             ))}
@@ -2633,9 +2701,11 @@ function FrontOffice() {
                 <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, letterSpacing:2, color:'rgba(0,255,128,0.9)', fontWeight:700, textTransform:'uppercase'}}>War Room</div>
                 <div style={{flex:1}}/>
                 <button onClick={()=>{setResult(null);setRosterTeam('');}}
-                  style={{fontFamily:'Helvetica Neue, sans-serif', fontWeight:700, fontSize:11, padding:'7px 14px', background:'transparent', border:'1px solid rgba(255,255,255,0.1)', color:'rgba(255,255,255,0.72)', cursor:'pointer', borderRadius:5, transition:'all 0.15s', textTransform:'none', letterSpacing:0}}
-                  onMouseEnter={e=>{e.currentTarget.style.borderColor='rgba(255,255,255,0.3)';e.currentTarget.style.color='var(--white)';}}
-                  onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(255,255,255,0.1)';e.currentTarget.style.color='rgba(255,255,255,0.4)';}}>
+                  style={{fontFamily:'Helvetica Neue, sans-serif', fontWeight:700, fontSize:11, padding:'7px 14px',
+                    background:'var(--glass-bg)', border:'1px solid var(--glass-border)', boxShadow:'var(--glass-hi)',
+                    color:'rgba(255,255,255,0.72)', cursor:'pointer', borderRadius:5, transition:'all 0.15s', textTransform:'none', letterSpacing:0}}
+                  onMouseEnter={e=>{e.currentTarget.style.background='var(--glass-bg-hover)';e.currentTarget.style.borderColor='var(--glass-border-hover)';e.currentTarget.style.color='var(--white)';}}
+                  onMouseLeave={e=>{e.currentTarget.style.background='var(--glass-bg)';e.currentTarget.style.borderColor='var(--glass-border)';e.currentTarget.style.color='rgba(255,255,255,0.72)';}}>
                   ← All Teams
                 </button>
               </div>
@@ -2954,7 +3024,7 @@ function FrontOffice() {
                       <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:24, fontWeight:700, letterSpacing:-0.5, color:'rgba(255,255,255,0.92)'}}>{dnaResult.team}</div>
                       {dnaResult.standing && <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:10, color:'rgba(255,255,255,0.52)', marginTop:4, letterSpacing:1}}>{dnaResult.standing}</div>}
                     </div>
-                    <button onClick={()=>{setDnaResult(null);setDnaError(null);setDnaTeam('');}} style={{marginLeft:'auto', background:'none', border:'1px solid rgba(255,255,255,0.12)', borderRadius:4, color:'rgba(255,255,255,0.52)', fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:2, padding:'6px 12px', cursor:'pointer', textTransform:'uppercase'}}>
+                    <button onClick={()=>{setDnaResult(null);setDnaError(null);setDnaTeam('');}} style={{marginLeft:'auto', background:'var(--glass-bg)', border:'1px solid var(--glass-border)', boxShadow:'var(--glass-hi)', borderRadius:4, color:'rgba(255,255,255,0.55)', fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:2, padding:'6px 12px', cursor:'pointer', textTransform:'uppercase', transition:'all 0.15s'}}>
                       Change Team
                     </button>
                   </div>
@@ -3498,11 +3568,12 @@ function CoachingStylesView() {
         PIVOT identifies 7 distinct coaching archetypes. Discover yours through a 10-question assessment, then get a personalized dashboard built around your leadership philosophy.
       </div>
       <button onClick={() => setPhase('quiz')} style={{
-        background:'var(--green)', color:'#000', border:'none', padding:'14px 40px',
-        fontSize:10, letterSpacing:4, fontFamily:HV, fontWeight:700, cursor:'pointer', textTransform:'uppercase',
+        background:'rgba(0,255,128,0.1)', color:'var(--green)', border:'1px solid rgba(0,255,128,0.5)',
+        boxShadow:'inset 0 1px 0 rgba(0,255,128,0.2), 0 0 28px rgba(0,255,128,0.12)',
+        padding:'14px 40px', fontSize:10, letterSpacing:4, fontFamily:HV, fontWeight:700, cursor:'pointer', textTransform:'uppercase', transition:'all 0.2s',
       }}
-        onMouseEnter={e=>e.currentTarget.style.opacity='0.85'}
-        onMouseLeave={e=>e.currentTarget.style.opacity='1'}>
+        onMouseEnter={e=>{e.currentTarget.style.background='rgba(0,255,128,0.17)';e.currentTarget.style.boxShadow='inset 0 1px 0 rgba(0,255,128,0.3), 0 0 40px rgba(0,255,128,0.2)';}}
+        onMouseLeave={e=>{e.currentTarget.style.background='rgba(0,255,128,0.1)';e.currentTarget.style.boxShadow='inset 0 1px 0 rgba(0,255,128,0.2), 0 0 28px rgba(0,255,128,0.12)';}}>
         BEGIN ASSESSMENT
       </button>
       <div style={{marginTop:64, borderTop:'1px solid rgba(255,255,255,0.05)', paddingTop:32}}>
@@ -3535,13 +3606,14 @@ function CoachingStylesView() {
         <div style={{display:'flex', flexDirection:'column', gap:8}}>
           {q.opts.map((opt, i) => (
             <button key={i} onClick={() => handleAnswer(opt)} style={{
-              background:'rgba(255,255,255,0.02)', border:'1px solid rgba(255,255,255,0.07)',
+              background:'var(--glass-bg)', border:'1px solid var(--glass-border)',
+              boxShadow:'var(--glass-hi)',
               color:'rgba(255,255,255,0.65)', padding:'16px 20px', textAlign:'left',
-              cursor:'pointer', transition:'all 0.12s',
+              cursor:'pointer', transition:'all 0.15s',
               fontFamily:HV, fontSize:13, lineHeight:1.65, fontWeight:500, letterSpacing:0,
             }}
-              onMouseEnter={e=>{e.currentTarget.style.background='rgba(0,255,128,0.04)';e.currentTarget.style.borderColor='rgba(0,255,128,0.25)';e.currentTarget.style.color='var(--white)';}}
-              onMouseLeave={e=>{e.currentTarget.style.background='rgba(255,255,255,0.02)';e.currentTarget.style.borderColor='rgba(255,255,255,0.07)';e.currentTarget.style.color='rgba(255,255,255,0.65)';}}>
+              onMouseEnter={e=>{e.currentTarget.style.background='rgba(0,255,128,0.06)';e.currentTarget.style.borderColor='rgba(0,255,128,0.35)';e.currentTarget.style.boxShadow='inset 0 1px 0 rgba(0,255,128,0.12)';e.currentTarget.style.color='var(--white)';}}
+              onMouseLeave={e=>{e.currentTarget.style.background='var(--glass-bg)';e.currentTarget.style.borderColor='var(--glass-border)';e.currentTarget.style.boxShadow='var(--glass-hi)';e.currentTarget.style.color='rgba(255,255,255,0.65)';}}>
               <span style={{fontFamily:HV, fontSize:8, letterSpacing:3, color:'rgba(0,255,128,0.4)', marginRight:14, fontWeight:700}}>{String.fromCharCode(65+i)}</span>
               {opt.text}
             </button>
@@ -3580,8 +3652,9 @@ function CoachingStylesView() {
         opacity:revealStep>=2?1:0, transition:'opacity 0.6s ease',
       }}>{sty.description}</div>
       <button onClick={() => setPhase('dashboard')} style={{
-        background:sty.color, color:'#000', border:'none', padding:'14px 40px',
-        fontSize:10, letterSpacing:4, fontFamily:HV, fontWeight:700, cursor:'pointer', textTransform:'uppercase',
+        background:`${sty.color}14`, color:sty.color, border:`1px solid ${sty.color}55`,
+        boxShadow:`inset 0 1px 0 ${sty.color}22, 0 0 24px ${sty.color}12`,
+        padding:'14px 40px', fontSize:10, letterSpacing:4, fontFamily:HV, fontWeight:700, cursor:'pointer', textTransform:'uppercase',
         opacity:revealStep>=2?1:0, transition:'opacity 0.6s ease 0.15s',
       }}>OPEN MY DASHBOARD</button>
     </div>
@@ -3600,12 +3673,12 @@ function CoachingStylesView() {
           <div style={{fontFamily:HV, fontSize:13, lineHeight:1.85, color:'rgba(255,255,255,0.45)', marginTop:12, maxWidth:460, fontWeight:500}}>{sty.description}</div>
         </div>
         <button onClick={retake} style={{
-          background:'transparent', border:'1px solid rgba(255,255,255,0.1)',
-          color:'rgba(255,255,255,0.3)', padding:'9px 16px', cursor:'pointer',
+          background:'var(--glass-bg)', border:'1px solid var(--glass-border)', boxShadow:'var(--glass-hi)',
+          color:'rgba(255,255,255,0.45)', padding:'9px 16px', cursor:'pointer',
           fontFamily:HV, fontSize:8, letterSpacing:3, fontWeight:700, transition:'all 0.15s', flexShrink:0,
         }}
-          onMouseEnter={e=>{e.currentTarget.style.borderColor='rgba(255,255,255,0.28)';e.currentTarget.style.color='var(--white)';}}
-          onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(255,255,255,0.1)';e.currentTarget.style.color='rgba(255,255,255,0.3)';}}>
+          onMouseEnter={e=>{e.currentTarget.style.background='var(--glass-bg-hover)';e.currentTarget.style.borderColor='var(--glass-border-hover)';e.currentTarget.style.color='var(--white)';}}
+          onMouseLeave={e=>{e.currentTarget.style.background='var(--glass-bg)';e.currentTarget.style.borderColor='var(--glass-border)';e.currentTarget.style.color='rgba(255,255,255,0.45)';}}>
           RETAKE ASSESSMENT
         </button>
       </div>
@@ -3663,14 +3736,16 @@ function CoachingStylesView() {
         <div style={{display:'flex', flexWrap:'wrap', gap:8}}>
           {Object.values(COACHING_STYLES).map(s => (
             <button key={s.id} onClick={() => switchStyle(s.id)} style={{
-              padding:'8px 16px', background: s.id===sty.id ? `${s.color}16` : 'transparent',
-              border:`1px solid ${s.id===sty.id ? s.color : 'rgba(255,255,255,0.07)'}`,
-              color: s.id===sty.id ? s.color : 'rgba(255,255,255,0.28)',
+              padding:'8px 16px',
+              background: s.id===sty.id ? `${s.color}12` : 'var(--glass-bg)',
+              border:`1px solid ${s.id===sty.id ? `${s.color}65` : 'var(--glass-border)'}`,
+              boxShadow: s.id===sty.id ? `inset 0 1px 0 ${s.color}18, 0 0 12px ${s.color}0a` : 'var(--glass-hi)',
+              color: s.id===sty.id ? s.color : 'rgba(255,255,255,0.38)',
               cursor:'pointer', fontFamily:HV, fontSize:8, letterSpacing:3, fontWeight:700,
               textTransform:'uppercase', transition:'all 0.15s', borderRadius:2,
             }}
-              onMouseEnter={e=>{ if(s.id!==sty.id){e.currentTarget.style.borderColor=`${s.color}55`;e.currentTarget.style.color=s.color;}}}
-              onMouseLeave={e=>{ if(s.id!==sty.id){e.currentTarget.style.borderColor='rgba(255,255,255,0.07)';e.currentTarget.style.color='rgba(255,255,255,0.28)';}}}
+              onMouseEnter={e=>{ if(s.id!==sty.id){e.currentTarget.style.background=`${s.color}08`;e.currentTarget.style.borderColor=`${s.color}45`;e.currentTarget.style.color=s.color;}}}
+              onMouseLeave={e=>{ if(s.id!==sty.id){e.currentTarget.style.background='var(--glass-bg)';e.currentTarget.style.borderColor='var(--glass-border)';e.currentTarget.style.color='rgba(255,255,255,0.38)';}}}
             >{s.name}</button>
           ))}
         </div>
@@ -3786,14 +3861,15 @@ function CoachMode() {
           <div style={{display:'flex', gap:4}}>
             {[['games',"TODAY'S GAMES"],['styles','COACHING STYLES']].map(([id, label]) => (
               <button key={id} onClick={() => setCoachTab(id)} style={{
-                background: coachTab===id ? 'rgba(0,255,128,0.08)' : 'transparent',
-                border: `1px solid ${coachTab===id ? 'rgba(0,255,128,0.35)' : 'rgba(255,255,255,0.08)'}`,
-                color: coachTab===id ? 'rgba(0,255,128,0.9)' : 'rgba(255,255,255,0.3)',
+                background: coachTab===id ? 'rgba(0,255,128,0.08)' : 'var(--glass-bg)',
+                border: `1px solid ${coachTab===id ? 'rgba(0,255,128,0.45)' : 'var(--glass-border)'}`,
+                boxShadow: coachTab===id ? 'inset 0 1px 0 rgba(0,255,128,0.16), 0 0 14px rgba(0,255,128,0.07)' : 'var(--glass-hi)',
+                color: coachTab===id ? 'rgba(0,255,128,0.9)' : 'rgba(255,255,255,0.4)',
                 padding:'8px 16px', cursor:'pointer', transition:'all 0.15s',
                 fontFamily:'Helvetica Neue, sans-serif', fontSize:8, letterSpacing:3, fontWeight:700, textTransform:'uppercase',
               }}
-                onMouseEnter={e=>{ if(coachTab!==id){e.currentTarget.style.borderColor='rgba(255,255,255,0.2)';e.currentTarget.style.color='rgba(255,255,255,0.6)';}}}
-                onMouseLeave={e=>{ if(coachTab!==id){e.currentTarget.style.borderColor='rgba(255,255,255,0.08)';e.currentTarget.style.color='rgba(255,255,255,0.3)';}}}
+                onMouseEnter={e=>{ if(coachTab!==id){e.currentTarget.style.background='var(--glass-bg-hover)';e.currentTarget.style.borderColor='var(--glass-border-hover)';e.currentTarget.style.color='rgba(255,255,255,0.7)';}}}
+                onMouseLeave={e=>{ if(coachTab!==id){e.currentTarget.style.background='var(--glass-bg)';e.currentTarget.style.borderColor='var(--glass-border)';e.currentTarget.style.color='rgba(255,255,255,0.4)';}}}
               >{label}</button>
             ))}
           </div>
