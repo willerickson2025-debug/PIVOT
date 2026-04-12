@@ -1273,7 +1273,7 @@ function HeadshotCutout({ nbaId, name }) {
   );
 }
 
-function TeamRow({ team, score, isLive, hasScore }) {
+function TeamRow({ team, score, isLive, hasScore, record }) {
   const [logoErr, setLogoErr] = React.useState(false);
   const logoUrl = teamLogoUrl(team.abbreviation);
   return (
@@ -1291,7 +1291,10 @@ function TeamRow({ team, score, isLive, hasScore }) {
       </div>
       <div style={{flex:1, minWidth:0}}>
         <div style={{fontSize:22, fontWeight:700, letterSpacing:1, lineHeight:1}}>{team.abbreviation}</div>
-        <div style={{fontSize:10, color:'#555', letterSpacing:1, marginTop:2, textTransform:'uppercase'}}>{team.city}</div>
+        <div style={{display:'flex', alignItems:'center', gap:8, marginTop:2}}>
+          <div style={{fontSize:10, color:'#555', letterSpacing:1, textTransform:'uppercase'}}>{team.city}</div>
+          {record && <div style={{fontSize:9, fontWeight:700, letterSpacing:1, color:'rgba(0,255,128,0.65)', background:'rgba(0,255,128,0.06)', border:'1px solid rgba(0,255,128,0.18)', borderRadius:3, padding:'1px 6px'}}>{record}</div>}
+        </div>
       </div>
       {hasScore && (
         <div style={{fontSize:28, fontWeight:700, letterSpacing:1, color: isLive ? '#00FF80' : '#fff', minWidth:40, textAlign:'right'}}>
@@ -1389,7 +1392,7 @@ function GameAnalysisModal({ game, onClose }) {
   );
 }
 
-function GameCard({ g, onSelect, onAnalyze }) {
+function GameCard({ g, onSelect, onAnalyze, records = {} }) {
   const { label, type } = parseStatus(g.status);
   const hasScore = g.home_team_score > 0 || g.visitor_team_score > 0;
   const isLive = type === 'live';
@@ -1457,9 +1460,9 @@ function GameCard({ g, onSelect, onAnalyze }) {
 
       {/* Teams */}
       <div>
-        <TeamRow team={g.visitor_team} score={g.visitor_team_score} isLive={isLive} hasScore={hasScore}/>
+        <TeamRow team={g.visitor_team} score={g.visitor_team_score} isLive={isLive} hasScore={hasScore} record={records[g.visitor_team.abbreviation]}/>
         <div className="g-team-sep"/>
-        <TeamRow team={g.home_team} score={g.home_team_score} isLive={isLive} hasScore={hasScore}/>
+        <TeamRow team={g.home_team} score={g.home_team_score} isLive={isLive} hasScore={hasScore} record={records[g.home_team.abbreviation]}/>
       </div>
 
       {/* Top Performers */}
@@ -1556,8 +1559,21 @@ function Games() {
   const [calMonth, setCalMonth] = React.useState(() => {
     const d = new Date(); return { y: d.getFullYear(), m: d.getMonth() };
   });
+  const [recordMap, setRecordMap] = React.useState({});
   const today = localDate();
+  const tomorrow = getTomorrow();
   const HV = "'Helvetica Neue',Helvetica,Arial,sans-serif";
+
+  React.useEffect(() => {
+    fetch(`${API}/standings`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (!data?.league) return;
+        const map = {};
+        data.league.forEach(t => { map[t.abbr] = t.rec || `${t.wins}-${t.losses}`; });
+        setRecordMap(map);
+      }).catch(() => {});
+  }, []);
 
   const fetch_ = async (d) => {
     const date = d || today;
@@ -1596,11 +1612,12 @@ function Games() {
     const { y, m } = calMonth;
     return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
   };
-  const isFuture = (d) => calDateStr(d) > today;
+  const isFuture = (d) => calDateStr(d) > tomorrow;
   const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
   const isTodayDate = activeDate === today;
-  const canGoForward = activeDate < today; // no future dates
+  const isTomorrowDate = activeDate === tomorrow;
+  const canGoForward = activeDate < tomorrow; // allow up to tomorrow
   const dateLabel = fmtDateLabel(activeDate);
 
   return (
@@ -1650,6 +1667,19 @@ function Games() {
           </button>
         )}
 
+        {/* Tomorrow pill */}
+        {!isTomorrowDate && (
+          <button onClick={() => fetch_(tomorrow)}
+            style={{background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.12)',
+              boxShadow:'inset 0 1px 0 rgba(255,255,255,0.06)',
+              color:'rgba(255,255,255,0.55)', cursor:'pointer', fontFamily:HV, fontSize:8, letterSpacing:3, fontWeight:700,
+              padding:'5px 12px', marginLeft:6, transition:'all 0.15s'}}
+            onMouseEnter={e=>{e.currentTarget.style.background='rgba(255,255,255,0.09)';e.currentTarget.style.color='var(--white)';}}
+            onMouseLeave={e=>{e.currentTarget.style.background='rgba(255,255,255,0.04)';e.currentTarget.style.color='rgba(255,255,255,0.55)';}}>
+            TOMORROW
+          </button>
+        )}
+
         <div style={{flex:1}}/>
 
         {/* Game count / live badge */}
@@ -1672,9 +1702,9 @@ function Games() {
             {/* Date search input */}
             <div style={{marginBottom:14}}>
               <input
-                type="date" max={today}
+                type="date" max={tomorrow}
                 defaultValue={activeDate}
-                onChange={e => { if (e.target.value && e.target.value <= today) fetch_(e.target.value); }}
+                onChange={e => { if (e.target.value && e.target.value <= tomorrow) fetch_(e.target.value); }}
                 style={{
                   width:'100%', background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.12)',
                   color:'var(--white)', fontFamily:HV, fontSize:12, fontWeight:700, padding:'9px 12px',
@@ -1742,6 +1772,13 @@ function Games() {
                 onMouseLeave={e=>e.currentTarget.style.opacity='1'}>
                 TODAY
               </button>
+              <button onClick={() => fetch_(tomorrow)}
+                style={{flex:1, background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.1)', color:'rgba(255,255,255,0.6)',
+                  cursor:'pointer', fontFamily:HV, fontSize:8, letterSpacing:3, fontWeight:700, padding:'9px 0', transition:'all 0.1s'}}
+                onMouseEnter={e=>{e.currentTarget.style.background='rgba(255,255,255,0.1)';e.currentTarget.style.color='var(--white)';}}
+                onMouseLeave={e=>{e.currentTarget.style.background='rgba(255,255,255,0.05)';e.currentTarget.style.color='rgba(255,255,255,0.6)';}}>
+                TOMORROW
+              </button>
             </div>
           </div>
         )}
@@ -1783,7 +1820,7 @@ function Games() {
 
       <div className="g-grid">
         {games.map(g => (
-          <GameCard key={g.id} g={g} onSelect={setSelectedGame} onAnalyze={setAnalysisGame}/>
+          <GameCard key={g.id} g={g} onSelect={setSelectedGame} onAnalyze={setAnalysisGame} records={recordMap}/>
         ))}
       </div>
       {selectedGame && <GameModal game={selectedGame} onClose={() => setSelectedGame(null)}/>}
@@ -3346,7 +3383,7 @@ function CourtDiagram({ diagram }) {
   );
 }
 
-function CoachGameCard({ g, onSelect }) {
+function CoachGameCard({ g, onSelect, records = {} }) {
   const { label, type } = parseStatus(g.status);
   const hasScore = g.home_team_score > 0 || g.visitor_team_score > 0;
   const isLive = type === 'live';
@@ -3368,9 +3405,9 @@ function CoachGameCard({ g, onSelect }) {
       </div>
 
       <div>
-        <TeamRow team={g.visitor_team} score={g.visitor_team_score} isLive={isLive} hasScore={hasScore}/>
+        <TeamRow team={g.visitor_team} score={g.visitor_team_score} isLive={isLive} hasScore={hasScore} record={records[g.visitor_team.abbreviation]}/>
         <div className="g-team-sep"/>
-        <TeamRow team={g.home_team} score={g.home_team_score} isLive={isLive} hasScore={hasScore}/>
+        <TeamRow team={g.home_team} score={g.home_team_score} isLive={isLive} hasScore={hasScore} record={records[g.home_team.abbreviation]}/>
       </div>
 
       <div className="g-card-footer" style={{marginTop:'auto'}}>
@@ -3858,7 +3895,19 @@ function CoachMode() {
   const [boxScore, setBoxScore] = React.useState(null);
   const [coachTab, setCoachTab] = React.useState('games');
   const [nextGameDate, setNextGameDate] = React.useState(null);
+  const [recordMap, setRecordMap] = React.useState({});
   const today = localDate();
+
+  React.useEffect(() => {
+    fetch(`${API}/standings`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (!data?.league) return;
+        const map = {};
+        data.league.forEach(t => { map[t.abbr] = t.rec || `${t.wins}-${t.losses}`; });
+        setRecordMap(map);
+      }).catch(() => {});
+  }, []);
 
   React.useEffect(() => {
     const load = () => fetch(`${API}/nba/games?date=${today}&_=${Date.now()}`)
@@ -3990,7 +4039,7 @@ function CoachMode() {
           ) : (
             <div className="g-grid">
               {games.map(g => (
-                <CoachGameCard key={g.id} g={g} onSelect={g => { setSelectedGame(g); setMyTeam(''); setResult(null); setError(null); }}/>
+                <CoachGameCard key={g.id} g={g} onSelect={g => { setSelectedGame(g); setMyTeam(''); setResult(null); setError(null); }} records={recordMap}/>
               ))}
             </div>
           )
