@@ -2157,38 +2157,70 @@ async def compare_players(
     block_b, payload_b = _build_block(name_b, player_b, avg_b, recent_b_raw)
 
     # ── Step 4: prompt using only real data ───────────────────────────────
-    COMPARE_SYSTEM = """You are an NBA analyst. You will be given real API data for two players. Your job is to compare them directly.
+    COMPARE_SYSTEM = """You are a basketball analytics assistant for PIVOT, used by coaches who need defensible, data-driven insights.
 
-RULES:
-- Only reference stats that appear in the data block. Never invent or estimate missing numbers.
-- If a stat is marked "not yet available", skip that category entirely.
-- If a player's recent MPG is flagged as significantly lower, note it as a minutes story, not a decline.
-- Use short section headers: SCORING, REBOUNDING, PLAYMAKING, DEFENSE, RECENT FORM.
-- End each section with one line declaring who has the edge and why.
-- Close with a 2-3 sentence verdict. No bullet points, no hedging, no both-sides equivocation.
-- Plain prose only. No markdown, no asterisks, no numbered lists."""
+STRICT RULES:
+- Use ONLY the data provided in the input. Never invent stats or assumptions.
+- If data is missing or insufficient, say "insufficient data" — do not estimate.
+- Prioritize accuracy over fluency. Be concise and decisive.
+- Do not access the internet or rely on memory between calls.
+- You are interpreting structured data, not deciding facts.
+
+INPUT: You will receive a JSON object containing player stats, derived metrics (pre-computed by the backend), and team context.
+
+TASK: Compare the players using ONLY the provided data.
+
+Return JSON only, in this exact format:
+{
+  "key_differences": [],
+  "better_player": "",
+  "reasoning": "",
+  "limitation": ""
+}
+
+Keep reasoning under 120 words. Base every claim strictly on the provided metrics."""
 
     prompt = (
         f"HEAD-TO-HEAD: {name_a} vs {name_b} — {season} Season\n\n"
         f"PLAYER A — {block_a}\n\n"
         f"PLAYER B — {block_b}\n\n"
         f"Compare these two players using only the stats above. "
-        f"Cover SCORING, REBOUNDING, PLAYMAKING, DEFENSE, and RECENT FORM. "
-        f"After each section, declare the edge. Close with a 2-3 sentence verdict."
+        f"Return JSON only with key_differences (array of short strings), better_player (name), reasoning (under 120 words), and limitation (what data is missing or inconclusive)."
     )
 
     result = await claude_service.analyze(
         prompt=prompt,
         system_prompt=COMPARE_SYSTEM,
         override_model=_FAST_MODEL,
-        override_max_tokens=900,
+        override_max_tokens=600,
         override_temperature=0.1,
     )
+
+    # Parse structured JSON response
+    import json as _json
+    raw_text = result.analysis.strip()
+    # Strip markdown code fences if present
+    if raw_text.startswith("```"):
+        raw_text = raw_text.split("```")[1]
+        if raw_text.startswith("json"):
+            raw_text = raw_text[4:]
+        raw_text = raw_text.strip()
+    try:
+        structured = _json.loads(raw_text)
+    except Exception:
+        # Fallback: wrap prose in structured format
+        structured = {
+            "key_differences": [],
+            "better_player": "",
+            "reasoning": raw_text[:500],
+            "limitation": "Response could not be parsed as structured JSON.",
+        }
 
     response = {
         "player_a": payload_a,
         "player_b": payload_b,
         "analysis": result.analysis,
+        "structured": structured,
         "model": result.model,
         "tokens_used": result.tokens_used,
         "season": season,

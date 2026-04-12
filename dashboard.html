@@ -4673,7 +4673,7 @@ function Compare() {
         recent_ast: p.recent_ast != null ? p.recent_ast.toFixed(1) : '-',
         nba_id: p.nba_id,
       });
-      setResult({ a: mapPlayer(data.player_a), b: mapPlayer(data.player_b), analysis: data.analysis });
+      setResult({ a: mapPlayer(data.player_a), b: mapPlayer(data.player_b), analysis: data.analysis, structured: data.structured || null });
     } catch(e) { setError(friendlyError(e.message)); } finally { setLoading(false); }
   };
 
@@ -4833,19 +4833,60 @@ function Compare() {
 
             {/* AI Analysis card */}
             <div className="cmp-reveal" style={{animationDelay:'160ms', background:'rgba(8,10,16,0.95)', border:'1px solid rgba(0,255,128,0.18)', borderRadius:14, padding:'28px 32px', boxShadow:'0 0 60px rgba(0,255,128,0.06), 0 8px 40px rgba(0,0,0,0.6)', position:'relative', overflow:'hidden'}}>
-              {/* Subtle gradient top strip */}
               <div style={{position:'absolute', top:0, left:0, right:0, height:1, background:'linear-gradient(to right, transparent, rgba(0,255,128,0.4), transparent)'}}/>
-              <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:20}}>
+              <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:22}}>
                 <div style={{fontFamily:BC, fontSize:16, color:'rgba(0,255,128,0.9)', lineHeight:1}}>✦</div>
                 <div style={{fontFamily:BC, fontSize:11, letterSpacing:5, color:'rgba(0,255,128,0.85)', fontWeight:700, textTransform:'uppercase'}}>PIVOT Matchup Analysis</div>
               </div>
-              <div style={{display:'flex', flexDirection:'column', gap:18}}>
-                {paras.map((p,i)=>(
-                  <p key={i} style={{margin:0, fontFamily:'Helvetica Neue, sans-serif', fontSize:14, lineHeight:1.9,
-                    color: i===paras.length-1 ? 'var(--white)' : 'rgba(255,255,255,0.8)',
-                    fontWeight: i===paras.length-1 ? 700 : 400}}>{p}</p>
-                ))}
-              </div>
+
+              {result.structured ? (() => {
+                const s = result.structured;
+                return (
+                  <div style={{display:'flex', flexDirection:'column', gap:20}}>
+
+                    {/* Key Differences */}
+                    {s.key_differences?.length > 0 && (
+                      <div>
+                        <div style={{fontFamily:BC, fontSize:9, letterSpacing:4, color:'rgba(0,255,128,0.6)', fontWeight:700, textTransform:'uppercase', marginBottom:12}}>Key Differences</div>
+                        <div style={{display:'flex', flexDirection:'column', gap:8}}>
+                          {s.key_differences.map((diff, i) => (
+                            <div key={i} style={{display:'flex', alignItems:'flex-start', gap:10}}>
+                              <div style={{width:4, height:4, borderRadius:'50%', background:'rgba(0,255,128,0.5)', marginTop:6, flexShrink:0}}/>
+                              <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:13, lineHeight:1.7, color:'rgba(255,255,255,0.8)', fontWeight:400}}>{diff}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Better Player + Reasoning */}
+                    {s.better_player && (
+                      <div style={{background:'rgba(0,255,128,0.05)', border:'1px solid rgba(0,255,128,0.15)', borderRadius:10, padding:'16px 20px'}}>
+                        <div style={{fontFamily:BC, fontSize:9, letterSpacing:4, color:'rgba(0,255,128,0.6)', fontWeight:700, textTransform:'uppercase', marginBottom:8}}>Edge</div>
+                        <div style={{fontFamily:BC, fontSize:18, fontWeight:900, color:'var(--green)', letterSpacing:0.5, marginBottom:10}}>{s.better_player}</div>
+                        {s.reasoning && <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:13, lineHeight:1.75, color:'rgba(255,255,255,0.82)', fontWeight:400}}>{s.reasoning}</div>}
+                      </div>
+                    )}
+
+                    {/* Limitation */}
+                    {s.limitation && (
+                      <div style={{display:'flex', alignItems:'flex-start', gap:10, opacity:0.65}}>
+                        <div style={{fontFamily:BC, fontSize:9, letterSpacing:3, color:'rgba(255,255,255,0.4)', fontWeight:700, textTransform:'uppercase', flexShrink:0, paddingTop:1}}>Note</div>
+                        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, lineHeight:1.6, color:'rgba(255,255,255,0.5)', fontWeight:400}}>{s.limitation}</div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })() : (
+                <div style={{display:'flex', flexDirection:'column', gap:18}}>
+                  {paras.map((p,i)=>(
+                    <p key={i} style={{margin:0, fontFamily:'Helvetica Neue, sans-serif', fontSize:14, lineHeight:1.9,
+                      color: i===paras.length-1 ? 'var(--white)' : 'rgba(255,255,255,0.8)',
+                      fontWeight: i===paras.length-1 ? 700 : 400}}>{p}</p>
+                  ))}
+                </div>
+              )}
+
               <div style={{marginTop:24, display:'flex', alignItems:'center', justifyContent:'space-between'}}>
                 <div style={{fontFamily:BC, fontSize:10, letterSpacing:3, color:'rgba(255,255,255,0.18)', fontWeight:700}}>POWERED BY CLAUDE AI</div>
                 <button onClick={runCompare}
