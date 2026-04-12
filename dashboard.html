@@ -162,7 +162,6 @@ button {
     radial-gradient(ellipse 80vw 60vw at 10% 90%, rgba(0,255,128,0.032) 0%, transparent 65%),
     radial-gradient(ellipse 50vw 70vw at 90% 10%, rgba(0,255,128,0.025) 0%, transparent 60%);
   animation: orb-c 44s ease-in-out infinite;
-  will-change: transform;
 }
 .home-video {
   position: absolute; inset: 0; width: 100%; height: 100%;
@@ -806,13 +805,11 @@ button {
 body::after {
   content: '';
   position: fixed; inset: 0; z-index: 0; pointer-events: none;
-  /* three orbs via layered radial-gradients */
   background:
     radial-gradient(ellipse 55vw 55vw at 15% 20%,  rgba(0,255,128,0.028) 0%, transparent 70%),
     radial-gradient(ellipse 70vw 50vw at 85% 75%,  rgba(0,255,128,0.022) 0%, transparent 65%),
     radial-gradient(ellipse 45vw 60vw at 60% 15%,  rgba(255,255,255,0.012) 0%, transparent 70%);
   animation: orb-a 28s ease-in-out infinite;
-  will-change: transform;
 }
 
 /* Second orb layer with independent timing */
@@ -823,11 +820,10 @@ html::after {
     radial-gradient(ellipse 60vw 40vw at 80% 30%,  rgba(0,255,128,0.018) 0%, transparent 65%),
     radial-gradient(ellipse 40vw 55vw at 20% 80%,  rgba(0,255,128,0.024) 0%, transparent 70%);
   animation: orb-b 38s ease-in-out infinite;
-  will-change: transform;
 }
 
 /* Ensure all page content sits above the orb layers */
-nav, #root > * { position: relative; z-index: 1; }
+nav, #root > *, #ticker-root { position: relative; z-index: 1; }
 
 /* Subtle moving dot grid for dashboard app sections */
 .pivot-bg-grid {
@@ -844,6 +840,7 @@ nav, #root > * { position: relative; z-index: 1; }
 </head>
 <body>
 <div id="root"></div>
+<div id="ticker-root"></div>
 <script type="text/babel">
 const API = "https://web-production-5f6e1.up.railway.app/api/v1";
 
@@ -954,7 +951,9 @@ function Ticker() {
 
   const doubled = [...interleaved, ...interleaved];
 
-  return (
+  const el = React.useMemo(() => document.getElementById('ticker-root'), []);
+
+  return ReactDOM.createPortal(
     <div className="ticker">
       <div className="ticker-label">LIVE WIRE</div>
       <div className="ticker-track-wrap">
@@ -969,7 +968,8 @@ function Ticker() {
           ))}
         </div>
       </div>
-    </div>
+    </div>,
+    el
   );
 }
 
