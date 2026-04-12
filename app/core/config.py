@@ -1,3 +1,4 @@
+from typing import Optional
 from pydantic_settings import BaseSettings
 from functools import lru_cache
 
@@ -11,6 +12,9 @@ class Settings(BaseSettings):
     claude_max_tokens: int = 1024
     balldontlie_api_key: str
     balldontlie_base_url: str = "https://api.balldontlie.io/v1"
+    # Set PIVOT_API_KEY in Railway env to enforce key-based auth on analysis routes.
+    # When unset, analysis routes are publicly accessible (rate limits still apply).
+    pivot_api_key: Optional[str] = None
 
     class Config:
         env_file = ".env"

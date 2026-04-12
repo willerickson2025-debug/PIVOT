@@ -3,7 +3,7 @@ import json
 import xml.etree.ElementTree as ET
 
 import httpx
-from fastapi import APIRouter, HTTPException, Query, Body, Response, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Body, Response, Request
 from fastapi.responses import StreamingResponse
 from typing import Optional, List
 
@@ -15,8 +15,16 @@ from app.models.schemas import (
     GameAnalysisResponse,
 )
 from app.utils.helpers import validate_date_string
+from app.core.limiter import limiter
+from app.core.security import verify_api_key
 
 router = APIRouter()
+
+# ── Rate limit tiers ──────────────────────────────────────────────────────────
+# Claude-backed endpoints: 30 req/min per IP — prevents bill-burning abuse
+_CLAUDE_LIMIT = "30/minute"
+# Data-only endpoints: 120 req/min per IP — generous for polling frontends
+_DATA_LIMIT = "120/minute"
 
 
 # ── Headshot proxy ───────────────────────────────────────────────────────────
@@ -48,7 +56,8 @@ async def health():
 # ── NBA ───────────────────────────────────────────────────────────────────────
 
 @router.get("/nba/games")
-async def get_games(response: Response, date: Optional[str] = Query(None, description="Format: YYYY-MM-DD")):
+@limiter.limit(_DATA_LIMIT)
+async def get_games(request: Request, response: Response, date: Optional[str] = Query(None, description="Format: YYYY-MM-DD")):
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
     if date and not validate_date_string(date):
         raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD.")
@@ -188,7 +197,8 @@ async def nba_news():
 # ── Claude ────────────────────────────────────────────────────────────────────
 
 @router.post("/claude/analyze", response_model=AnalysisResponse)
-async def claude_analyze(body: AnalysisRequest):
+@limiter.limit(_CLAUDE_LIMIT)
+async def claude_analyze(request: Request, body: AnalysisRequest, _key: str = Depends(verify_api_key)):
     try:
         result = await claude_service.analyze(
             prompt=body.prompt,
@@ -202,7 +212,8 @@ async def claude_analyze(body: AnalysisRequest):
 # ── Analysis (Combined) ───────────────────────────────────────────────────────
 
 @router.post("/analysis/game")
-async def game_analysis(request: Request):
+@limiter.limit(_CLAUDE_LIMIT)
+async def game_analysis(request: Request, _key: str = Depends(verify_api_key)):
     try:
         body = await request.json()
         return await analysis_service.analyze_game(body)
@@ -211,7 +222,8 @@ async def game_analysis(request: Request):
 
 
 @router.post("/analysis/predict-game")
-async def predict_game(request: Request):
+@limiter.limit(_CLAUDE_LIMIT)
+async def predict_game(request: Request, _key: str = Depends(verify_api_key)):
     try:
         body = await request.json()
         return await analysis_service.predict_game(body)
@@ -254,7 +266,8 @@ async def bulk_player_averages(
 
 
 @router.get("/analysis/team-dna")
-async def team_dna(team_name: str = Query(..., description="Team name")):
+@limiter.limit(_CLAUDE_LIMIT)
+async def team_dna(request: Request, team_name: str = Query(..., description="Team name"), _key: str = Depends(verify_api_key)):
     """Deep tactical identity breakdown: offense, defense, pace, shot diet, vulnerabilities."""
     try:
         return await analysis_service.analyze_team_dna(team_name)
@@ -263,7 +276,8 @@ async def team_dna(team_name: str = Query(..., description="Team name")):
 
 
 @router.post("/analysis/scout-note")
-async def scout_note(request: Request):
+@limiter.limit(_CLAUDE_LIMIT)
+async def scout_note(request: Request, _key: str = Depends(verify_api_key)):
     """Generate a live 1-2 sentence scout note for a single player via Claude."""
     try:
         body = await request.json()
@@ -295,10 +309,13 @@ async def mvp_odds():
 
 
 @router.get("/analysis/compare")
+@limiter.limit(_CLAUDE_LIMIT)
 async def compare_players(
+    request: Request,
     player_a: int = Query(..., description="BallDontLie player ID for player A"),
     player_b: int = Query(..., description="BallDontLie player ID for player B"),
     season: int = Query(2025, description="NBA season year"),
+    _key: str = Depends(verify_api_key),
 ):
     try:
         return await analysis_service.compare_players(player_a, player_b, season)
@@ -307,7 +324,8 @@ async def compare_players(
 
 
 @router.get("/analysis/today-games", response_model=GameAnalysisResponse)
-async def today_games_analysis(date: Optional[str] = Query(None, description="Format: YYYY-MM-DD")):
+@limiter.limit(_CLAUDE_LIMIT)
+async def today_games_analysis(request: Request, date: Optional[str] = Query(None, description="Format: YYYY-MM-DD"), _key: str = Depends(verify_api_key)):
     if date and not validate_date_string(date):
         raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD.")
     try:
@@ -317,9 +335,12 @@ async def today_games_analysis(date: Optional[str] = Query(None, description="Fo
 
 
 @router.get("/analysis/player")
+@limiter.limit(_CLAUDE_LIMIT)
 async def player_analysis(
+    request: Request,
     player_id: int = Query(..., description="BallDontLie player ID"),
     season: int = Query(2025, description="NBA season year"),
+    _key: str = Depends(verify_api_key),
 ):
     try:
         return await analysis_service.analyze_player(player_id, season)
@@ -328,9 +349,12 @@ async def player_analysis(
 
 
 @router.get("/analysis/player/stream")
+@limiter.limit(_CLAUDE_LIMIT)
 async def player_analysis_stream(
+    request: Request,
     player_id: int = Query(..., description="BallDontLie player ID"),
     season: int = Query(2025, description="NBA season year"),
+    _key: str = Depends(verify_api_key),
 ):
     """Stream player analysis as Server-Sent Events."""
     async def generate():
@@ -345,10 +369,13 @@ async def player_analysis_stream(
 
 
 @router.get("/analysis/player/section")
+@limiter.limit(_CLAUDE_LIMIT)
 async def player_section_analysis(
+    request: Request,
     player_id: int = Query(..., description="BallDontLie player ID"),
     season: int = Query(2025, description="NBA season year"),
     section: str = Query(..., description="Section: offense|defense|off_the_court|injuries|financials"),
+    _key: str = Depends(verify_api_key),
 ):
     try:
         return await analysis_service.analyze_player_section(player_id, season, section)
@@ -359,7 +386,8 @@ async def player_section_analysis(
 # ── Front Office ──────────────────────────────────────────────────────────────
 
 @router.get("/frontoffice/roster")
-async def get_roster_analysis(team_name: str = Query(..., description="Team name")):
+@limiter.limit(_CLAUDE_LIMIT)
+async def get_roster_analysis(request: Request, team_name: str = Query(..., description="Team name"), _key: str = Depends(verify_api_key)):
     """Get roster breakdown and financial analysis for a team."""
     try:
         return await analysis_service.analyze_roster(team_name)
@@ -370,7 +398,8 @@ async def get_roster_analysis(team_name: str = Query(..., description="Team name
 # ── Coach Mode ────────────────────────────────────────────────────────────────
 
 @router.post("/coach/adjust")
-async def coach_adjustment(body: dict = Body(...)):
+@limiter.limit(_CLAUDE_LIMIT)
+async def coach_adjustment(request: Request, body: dict = Body(...), _key: str = Depends(verify_api_key)):
     """
     Real-time coaching adjustment. Reads live box score automatically.
     Expects: { "game_id": 12345, "my_team": "Lakers" }
@@ -382,7 +411,8 @@ async def coach_adjustment(body: dict = Body(...)):
 
 
 @router.post("/coach/timeout")
-async def timeout_play(body: dict = Body(...)):
+@limiter.limit(_CLAUDE_LIMIT)
+async def timeout_play(request: Request, body: dict = Body(...), _key: str = Depends(verify_api_key)):
     """
     Generate a timeout play. Derives all game context from live box score.
     Expects: { "game_id": 12345, "my_team": "Lakers" }
