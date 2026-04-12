@@ -154,6 +154,16 @@ button {
   align-items: center;
   justify-content: center;
 }
+/* Extra slow orb just for the landing page, layered behind video */
+.home-wrap::after {
+  content: '';
+  position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse 80vw 60vw at 10% 90%, rgba(0,255,128,0.032) 0%, transparent 65%),
+    radial-gradient(ellipse 50vw 70vw at 90% 10%, rgba(0,255,128,0.025) 0%, transparent 60%);
+  animation: orb-c 44s ease-in-out infinite;
+  will-change: transform;
+}
 .home-video {
   position: absolute; inset: 0; width: 100%; height: 100%;
   object-fit: cover; z-index: 0; opacity: 0.28;
@@ -763,6 +773,73 @@ button {
 }
 .cmp-reveal { animation: cmp-fade-up 0.55s cubic-bezier(0.22,1,0.36,1) both; }
 .cmp-vs-text { animation: cmp-pulse-vs 3s ease-in-out infinite; }
+
+/* ── Ambient background orbs ─────────────────────────────────────────────── */
+@keyframes orb-a {
+  0%   { transform: translate(0px,    0px)    scale(1);    }
+  25%  { transform: translate(120px, -80px)   scale(1.08); }
+  50%  { transform: translate(60px,  -180px)  scale(0.95); }
+  75%  { transform: translate(-90px, -60px)   scale(1.04); }
+  100% { transform: translate(0px,    0px)    scale(1);    }
+}
+@keyframes orb-b {
+  0%   { transform: translate(0px,   0px)    scale(1);    }
+  33%  { transform: translate(-140px, 100px) scale(1.06); }
+  66%  { transform: translate(80px,  150px)  scale(0.97); }
+  100% { transform: translate(0px,   0px)    scale(1);    }
+}
+@keyframes orb-c {
+  0%   { transform: translate(0px,  0px)   scale(1);    }
+  40%  { transform: translate(160px, 90px) scale(1.05); }
+  70%  { transform: translate(-60px, 180px) scale(0.96);}
+  100% { transform: translate(0px,  0px)   scale(1);    }
+}
+@keyframes grain-drift {
+  0%,100% { transform: translate(0,0); }
+  20%     { transform: translate(-2px, 2px); }
+  40%     { transform: translate(2px, -2px); }
+  60%     { transform: translate(-1px, 3px); }
+  80%     { transform: translate(3px, -1px); }
+}
+
+/* Fixed orb layer — sits behind everything, above #0F1115 base */
+body::after {
+  content: '';
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  /* three orbs via layered radial-gradients */
+  background:
+    radial-gradient(ellipse 55vw 55vw at 15% 20%,  rgba(0,255,128,0.028) 0%, transparent 70%),
+    radial-gradient(ellipse 70vw 50vw at 85% 75%,  rgba(0,255,128,0.022) 0%, transparent 65%),
+    radial-gradient(ellipse 45vw 60vw at 60% 15%,  rgba(255,255,255,0.012) 0%, transparent 70%);
+  animation: orb-a 28s ease-in-out infinite;
+  will-change: transform;
+}
+
+/* Second orb layer with independent timing */
+html::after {
+  content: '';
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse 60vw 40vw at 80% 30%,  rgba(0,255,128,0.018) 0%, transparent 65%),
+    radial-gradient(ellipse 40vw 55vw at 20% 80%,  rgba(0,255,128,0.024) 0%, transparent 70%);
+  animation: orb-b 38s ease-in-out infinite;
+  will-change: transform;
+}
+
+/* Ensure all page content sits above the orb layers */
+nav, #root > * { position: relative; z-index: 1; }
+
+/* Subtle moving dot grid for dashboard app sections */
+.pivot-bg-grid {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image:
+    radial-gradient(circle, rgba(255,255,255,0.055) 1px, transparent 1px);
+  background-size: 36px 36px;
+  animation: grain-drift 14s ease-in-out infinite;
+  -webkit-mask-image: radial-gradient(ellipse 100% 100% at 50% 50%, black 40%, transparent 80%);
+  mask-image: radial-gradient(ellipse 100% 100% at 50% 50%, black 40%, transparent 80%);
+  opacity: 0.45;
+}
 </style>
 </head>
 <body>
@@ -4695,6 +4772,8 @@ function App() {
 
   return (
     <>
+      {/* Ambient dot grid — visible on all non-home pages */}
+      {!isHome && <div className="pivot-bg-grid"/>}
       <nav className={scrolled || !isHome ? 'solid' : ''}>
         <div className="nav-logo" onClick={() => setTab('home')}>PIVOT</div>
         <div className="nav-tabs">
