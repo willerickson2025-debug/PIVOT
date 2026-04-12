@@ -2046,7 +2046,7 @@ function Players() {
   const hasResult = !loading && result && !result.error;
 
   return (
-    <div style={{position:'relative', minHeight:'calc(100vh - 96px)'}}>
+    <div style={{position:'relative', minHeight:'calc(100vh - 136px)'}}>
       <PlayersCanvas dimmed={hasResult || loading} />
 
       {/* ── Search Bar ── */}
@@ -2681,7 +2681,7 @@ function FrontOffice() {
     <div style={{display:'grid', gridTemplateColumns:'300px 1fr', alignItems:'start'}}>
 
       {/* ── Left Sidebar ── */}
-      <div style={{position:'sticky', top:70, height:'calc(100vh - 70px)', overflowY:'auto', borderRight:'1px solid rgba(255,255,255,0.07)', display:'flex', flexDirection:'column', background:'rgba(9,12,16,0.97)'}}>
+      <div style={{position:'sticky', top:70, height:'calc(100vh - 110px)', overflowY:'auto', borderRight:'1px solid rgba(255,255,255,0.07)', display:'flex', flexDirection:'column', background:'rgba(9,12,16,0.97)'}}>
 
         <div style={{padding:'20px 20px 14px', borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
           <div style={{display:'flex', alignItems:'baseline', gap:8, marginBottom:3}}>
@@ -2754,7 +2754,7 @@ function FrontOffice() {
       </div>
 
       {/* ── Right Panel ── */}
-      <div style={{minWidth:0, background:'rgba(8,10,14,0.95)', minHeight:'calc(100vh - 70px)'}}>
+      <div style={{minWidth:0, background:'rgba(8,10,14,0.95)', minHeight:'calc(100vh - 110px)'}}>
 
         {/* Tab bar — sticky, always visible */}
         {!loading && (
@@ -3989,7 +3989,7 @@ function CoachMode() {
   }
 
   return (
-    <div className="war-room war-room-grid" style={{display:'grid', gridTemplateColumns:'22% 1fr 22%', minHeight:'calc(100vh - 56px)'}}>
+    <div className="war-room war-room-grid" style={{display:'grid', gridTemplateColumns:'22% 1fr 22%', minHeight:'calc(100vh - 110px)'}}>
 
       {/* ── Left: Command Panel ── */}
       <div style={{borderRight:'1px solid var(--border)', background:'rgba(0,0,0,0.4)', display:'flex', flexDirection:'column', overflowY:'auto'}}>
@@ -4093,7 +4093,7 @@ function CoachMode() {
 
         {/* Tactical Board Standby HUD */}
         {!result && !loading && !error && (
-          <div style={{position:'relative', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'calc(100vh - 96px)', overflow:'hidden'}}>
+          <div style={{position:'relative', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'calc(100vh - 136px)', overflow:'hidden'}}>
 
             {/* Ghosted wireframe court SVG background */}
             <svg style={{position:'absolute', width:'72%', maxWidth:520, opacity:0.055, pointerEvents:'none'}} viewBox="0 0 380 320" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -4783,7 +4783,7 @@ function App() {
         </div>
         <button className="nav-cta" onClick={() => setTab('players')}>Try Free</button>
       </nav>
-      <div style={{paddingTop: isHome ? 0 : 70, paddingBottom: 40}}>
+      <div style={{paddingTop: isHome ? 0 : 70, paddingBottom: isHome ? 0 : 48}}>
         {tab === 'home'        && <Home onNavigate={setTab}/>}
         {tab === 'games'       && <Games/>}
         {tab === 'players'     && <Players/>}
