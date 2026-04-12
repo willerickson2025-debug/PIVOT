@@ -2821,36 +2821,26 @@ function FrontOffice() {
       {/* ── Right Panel ── */}
       <div style={{minWidth:0, background:'rgba(8,10,14,0.95)', minHeight:'calc(100vh - 110px)'}}>
 
-        {/* Tab bar — centered glass pill */}
+        {/* Tab nav — inline row flush with sidebar, no floating pill */}
         {!loading && !result && (
-          <div style={{display:'flex', justifyContent:'center', padding:'24px 16px 0'}}>
-            <div style={{
-              display:'flex', alignItems:'center', gap:3,
-              background:'rgba(255,255,255,0.045)',
-              backdropFilter:'blur(20px)', WebkitBackdropFilter:'blur(20px)',
-              border:'1px solid rgba(255,255,255,0.11)',
-              borderRadius:12,
-              boxShadow:'inset 0 1px 0 rgba(255,255,255,0.08), 0 8px 32px rgba(0,0,0,0.4)',
-              padding:'5px 6px', flexWrap:'wrap',
-            }}>
-              {TABS.map(tab => (
-                <button key={tab.id} onClick={()=>setDashTab(tab.id)}
-                  style={{
-                    background: dashTab===tab.id ? 'rgba(0,255,128,0.12)' : 'transparent',
-                    border: dashTab===tab.id ? '1px solid rgba(0,255,128,0.35)' : '1px solid transparent',
-                    boxShadow: dashTab===tab.id ? 'inset 0 1px 0 rgba(0,255,128,0.18)' : 'none',
-                    padding:'8px 16px', cursor:'pointer', borderRadius:8,
-                    fontFamily:'Helvetica Neue, sans-serif', fontSize:10, fontWeight:700,
-                    letterSpacing:2, textTransform:'uppercase', whiteSpace:'nowrap',
-                    color: dashTab===tab.id ? 'var(--green)' : 'rgba(255,255,255,0.45)',
-                    transition:'all 0.15s',
-                  }}
-                  onMouseEnter={e=>{ if(dashTab!==tab.id){e.currentTarget.style.background='rgba(255,255,255,0.07)';e.currentTarget.style.color='rgba(255,255,255,0.85)';} }}
-                  onMouseLeave={e=>{ if(dashTab!==tab.id){e.currentTarget.style.background='transparent';e.currentTarget.style.color='rgba(255,255,255,0.45)';} }}>
-                  {tab.label}
-                </button>
-              ))}
-            </div>
+          <div style={{display:'flex', alignItems:'center', gap:0, borderBottom:'1px solid rgba(255,255,255,0.07)', overflowX:'auto', padding:'0 16px'}}>
+            {TABS.map(tab => (
+              <button key={tab.id} onClick={()=>setDashTab(tab.id)}
+                style={{
+                  background:'transparent',
+                  border:'none',
+                  borderBottom: dashTab===tab.id ? '2px solid var(--green)' : '2px solid transparent',
+                  padding:'14px 14px', cursor:'pointer', borderRadius:0,
+                  fontFamily:'Helvetica Neue, sans-serif', fontSize:9, fontWeight:700,
+                  letterSpacing:2, textTransform:'uppercase', whiteSpace:'nowrap',
+                  color: dashTab===tab.id ? 'var(--green)' : 'rgba(255,255,255,0.35)',
+                  transition:'color 0.15s, border-color 0.15s', flexShrink:0,
+                }}
+                onMouseEnter={e=>{ if(dashTab!==tab.id) e.currentTarget.style.color='rgba(255,255,255,0.7)'; }}
+                onMouseLeave={e=>{ if(dashTab!==tab.id) e.currentTarget.style.color='rgba(255,255,255,0.35)'; }}>
+                {tab.label}
+              </button>
+            ))}
           </div>
         )}
 
