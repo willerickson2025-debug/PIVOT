@@ -2756,6 +2756,30 @@ function FrontOffice() {
           <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:10, color:'rgba(255,255,255,0.82)', fontWeight:700, letterSpacing:0, textTransform:'none', lineHeight:1.5}}>Select a franchise to open its war room.</div>
         </div>
 
+        {/* Tabs — vertical list in sidebar */}
+        {!result && (
+          <div style={{borderBottom:'1px solid rgba(255,255,255,0.06)', padding:'8px 12px'}}>
+            {TABS.map(tab => (
+              <button key={tab.id} onClick={()=>setDashTab(tab.id)}
+                style={{
+                  display:'block', width:'100%', textAlign:'left',
+                  background: dashTab===tab.id ? 'rgba(0,255,128,0.07)' : 'transparent',
+                  border:'none',
+                  borderLeft: dashTab===tab.id ? '2px solid var(--green)' : '2px solid transparent',
+                  padding:'8px 12px', cursor:'pointer', borderRadius:'0 6px 6px 0',
+                  fontFamily:'Helvetica Neue, sans-serif', fontSize:10, fontWeight:700,
+                  letterSpacing:2, textTransform:'uppercase',
+                  color: dashTab===tab.id ? 'var(--green)' : 'rgba(255,255,255,0.38)',
+                  transition:'all 0.12s', marginBottom:1,
+                }}
+                onMouseEnter={e=>{ if(dashTab!==tab.id){e.currentTarget.style.color='rgba(255,255,255,0.72)';e.currentTarget.style.background='rgba(255,255,255,0.04)';} }}
+                onMouseLeave={e=>{ if(dashTab!==tab.id){e.currentTarget.style.color='rgba(255,255,255,0.38)';e.currentTarget.style.background='transparent';} }}>
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        )}
+
         <div style={{padding:'12px 16px 10px', borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
           <div style={{position:'relative', marginBottom:10}}>
             <span style={{position:'absolute', left:10, top:'50%', transform:'translateY(-50%)', color:'rgba(0,255,128,0.82)', fontSize:13, pointerEvents:'none'}}>⌕</span>
@@ -2821,28 +2845,6 @@ function FrontOffice() {
       {/* ── Right Panel ── */}
       <div style={{minWidth:0, background:'rgba(8,10,14,0.95)', minHeight:'calc(100vh - 110px)'}}>
 
-        {/* Tab nav — inline row flush with sidebar, no floating pill */}
-        {!loading && !result && (
-          <div style={{display:'flex', alignItems:'center', gap:0, borderBottom:'1px solid rgba(255,255,255,0.07)', overflowX:'auto', padding:'0 16px'}}>
-            {TABS.map(tab => (
-              <button key={tab.id} onClick={()=>setDashTab(tab.id)}
-                style={{
-                  background:'transparent',
-                  border:'none',
-                  borderBottom: dashTab===tab.id ? '2px solid var(--green)' : '2px solid transparent',
-                  padding:'14px 14px', cursor:'pointer', borderRadius:0,
-                  fontFamily:'Helvetica Neue, sans-serif', fontSize:9, fontWeight:700,
-                  letterSpacing:2, textTransform:'uppercase', whiteSpace:'nowrap',
-                  color: dashTab===tab.id ? 'var(--green)' : 'rgba(255,255,255,0.35)',
-                  transition:'color 0.15s, border-color 0.15s', flexShrink:0,
-                }}
-                onMouseEnter={e=>{ if(dashTab!==tab.id) e.currentTarget.style.color='rgba(255,255,255,0.7)'; }}
-                onMouseLeave={e=>{ if(dashTab!==tab.id) e.currentTarget.style.color='rgba(255,255,255,0.35)'; }}>
-                {tab.label}
-              </button>
-            ))}
-          </div>
-        )}
 
         {/* War room back header */}
         {!loading && result && (
