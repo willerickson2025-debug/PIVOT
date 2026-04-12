@@ -2049,50 +2049,12 @@ function Players() {
     <div style={{position:'relative', minHeight:'calc(100vh - 136px)'}}>
       <PlayersCanvas dimmed={hasResult || loading} />
 
-      {/* ── Search Bar ── */}
-      <div style={{position:'sticky', top:70, zIndex:100, background:'rgba(8,10,14,0.82)', backdropFilter:'blur(20px)', borderBottom:'1px solid var(--border)'}}>
-        <div style={{display:'flex', alignItems:'stretch', height:60}}>
-          <div style={{display:'flex', alignItems:'center', padding:'0 20px', color:'rgba(0,255,128,0.9)', fontSize:18, flexShrink:0}}>⌕</div>
-          <div style={{flex:1, position:'relative'}}>
-            <input
-              style={{width:'100%', height:'100%', background:'transparent', border:'none', outline:'none', color:'var(--white)', fontFamily:'Helvetica Neue, sans-serif', fontWeight:700, fontSize:15, letterSpacing:0, padding:'0 16px', textTransform:'none'}}
-              placeholder="Search any NBA player…"
-              value={query}
-              onChange={e => { setQuery(e.target.value); setSelectedId(null); fetchSuggestions(e.target.value); setShowSugg(true); }}
-              onKeyDown={e => { if(e.key==='Enter'){setShowSugg(false);searchByName();} if(e.key==='Escape')setShowSugg(false); }}
-              onBlur={() => setTimeout(() => setShowSugg(false), 150)}
-            />
-            {showSugg && suggestions.length > 0 && (
-              <div style={{position:'absolute', top:'100%', left:0, right:0, background:'rgba(22,27,34,0.97)', backdropFilter:'blur(20px)', border:'1px solid var(--border-strong)', borderTop:'none', zIndex:9999, borderRadius:'0 0 8px 8px', overflow:'hidden', boxShadow:'0 20px 60px rgba(0,0,0,0.7)'}}>
-                {suggestions.map((p,i) => (
-                  <div key={p.id}
-                    onMouseDown={() => { setQuery(`${p.first_name} ${p.last_name}`); setSelectedId(p.id); setShowSugg(false); searchById(p.id); }}
-                    style={{padding:'13px 20px', cursor:'pointer', borderBottom: i < suggestions.length-1 ? '1px solid var(--border)' : 'none', display:'flex', justifyContent:'space-between', alignItems:'center', transition:'background 0.1s'}}
-                    onMouseEnter={e => { e.currentTarget.style.background='rgba(0,255,128,0.05)'; }}
-                    onMouseLeave={e => { e.currentTarget.style.background=''; }}>
-                    <span style={{fontFamily:'Helvetica Neue, sans-serif', fontWeight:700, fontSize:14, letterSpacing:0, textTransform:'none'}}>{p.first_name} {p.last_name}</span>
-                    <div style={{display:'flex', alignItems:'center', gap:12}}>
-                      <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, color:'var(--text-muted)', fontWeight:700}}>{p.position||'?'}</span>
-                      <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:10, letterSpacing:2, color:'var(--green)', fontWeight:700, background:'rgba(0,255,128,0.08)', border:'1px solid rgba(0,255,128,0.2)', padding:'2px 8px', borderRadius:3}}>{p.team?.abbreviation||'—'}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-          <button onClick={() => { setShowSugg(false); searchByName(); }} disabled={loading || !query.trim()}
-            style={{background: loading ? 'transparent' : 'var(--green)', border:'none', borderLeft: loading ? '1px solid var(--border)' : 'none', color: loading ? 'var(--text-muted)' : 'var(--black-deep)', fontFamily:'Helvetica Neue, sans-serif', fontWeight:700, fontSize:10, letterSpacing:3, textTransform:'uppercase', padding:'0 28px', cursor: !query.trim() ? 'default' : 'pointer', transition:'all 0.2s', flexShrink:0, opacity: !query.trim() ? 0.3 : 1}}>
-            {loading ? '…' : 'Analyze'}
-          </button>
-        </div>
-      </div>
-
       {/* ── Empty State ── */}
       {!loading && !result && !error && (
         <div style={{position:'relative', zIndex:1}}>
 
           {/* Hero */}
-          <div style={{position:'relative', overflow:'hidden', padding:'72px 40px 56px', textAlign:'center',
+          <div style={{position:'relative', overflow:'hidden', padding:'72px 40px 40px', textAlign:'center',
             background:'radial-gradient(ellipse at 50% 0%, rgba(0,255,128,0.04) 0%, transparent 65%)'}}>
             {/* court schematic lines */}
             <div style={{position:'absolute', inset:0, opacity:0.07, backgroundImage:`
@@ -2113,9 +2075,60 @@ function Players() {
                 filter:'drop-shadow(0 0 40px rgba(0,255,128,0.12))', userSelect:'none'}}>
                 PLAYER<br/>INTEL
               </div>
-              <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:14, letterSpacing:1, color:'rgba(255,255,255,0.62)', fontWeight:700, marginTop:20, textTransform:'none'}}>
-                Select any player below or search above
+
+              {/* ── Centered glass search bar ── */}
+              <div style={{maxWidth:600, margin:'36px auto 0', position:'relative'}}>
+                <div style={{
+                  display:'flex', alignItems:'stretch', height:56,
+                  background:'rgba(255,255,255,0.055)',
+                  backdropFilter:'blur(20px)', WebkitBackdropFilter:'blur(20px)',
+                  border:'1px solid rgba(255,255,255,0.18)',
+                  borderRadius:10,
+                  boxShadow:'inset 0 1px 0 rgba(255,255,255,0.10), 0 8px 40px rgba(0,0,0,0.45), 0 0 0 1px rgba(0,255,128,0.06)',
+                }}>
+                  <div style={{display:'flex', alignItems:'center', padding:'0 18px', color:'rgba(0,255,128,0.8)', fontSize:20, flexShrink:0}}>⌕</div>
+                  <div style={{flex:1, position:'relative'}}>
+                    <input
+                      style={{width:'100%', height:'100%', background:'transparent', border:'none', outline:'none', color:'var(--white)', fontFamily:'Helvetica Neue, sans-serif', fontWeight:700, fontSize:15, letterSpacing:0, padding:'0 12px', textTransform:'none'}}
+                      placeholder="Search any NBA player…"
+                      value={query}
+                      onChange={e => { setQuery(e.target.value); setSelectedId(null); fetchSuggestions(e.target.value); setShowSugg(true); }}
+                      onKeyDown={e => { if(e.key==='Enter'){setShowSugg(false);searchByName();} if(e.key==='Escape')setShowSugg(false); }}
+                      onBlur={() => setTimeout(() => setShowSugg(false), 150)}
+                    />
+                    {showSugg && suggestions.length > 0 && (
+                      <div style={{position:'absolute', top:'calc(100% + 6px)', left:0, right:0, background:'rgba(14,17,23,0.97)', backdropFilter:'blur(20px)', WebkitBackdropFilter:'blur(20px)', border:'1px solid rgba(255,255,255,0.14)', zIndex:9999, borderRadius:8, overflow:'hidden', boxShadow:'0 20px 60px rgba(0,0,0,0.7)'}}>
+                        {suggestions.map((p,i) => (
+                          <div key={p.id}
+                            onMouseDown={() => { setQuery(`${p.first_name} ${p.last_name}`); setSelectedId(p.id); setShowSugg(false); searchById(p.id); }}
+                            style={{padding:'13px 20px', cursor:'pointer', borderBottom: i < suggestions.length-1 ? '1px solid rgba(255,255,255,0.06)' : 'none', display:'flex', justifyContent:'space-between', alignItems:'center', transition:'background 0.1s'}}
+                            onMouseEnter={e => { e.currentTarget.style.background='rgba(0,255,128,0.06)'; }}
+                            onMouseLeave={e => { e.currentTarget.style.background=''; }}>
+                            <span style={{fontFamily:'Helvetica Neue, sans-serif', fontWeight:700, fontSize:14, letterSpacing:0, textTransform:'none'}}>{p.first_name} {p.last_name}</span>
+                            <div style={{display:'flex', alignItems:'center', gap:12}}>
+                              <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, color:'var(--text-muted)', fontWeight:700}}>{p.position||'?'}</span>
+                              <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:10, letterSpacing:2, color:'var(--green)', fontWeight:700, background:'rgba(0,255,128,0.08)', border:'1px solid rgba(0,255,128,0.2)', padding:'2px 8px', borderRadius:3}}>{p.team?.abbreviation||'—'}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <button onClick={() => { setShowSugg(false); searchByName(); }} disabled={loading || !query.trim()}
+                    style={{
+                      background: !query.trim() ? 'transparent' : 'rgba(0,255,128,0.12)',
+                      border:'none', borderLeft:'1px solid rgba(255,255,255,0.1)',
+                      color: !query.trim() ? 'rgba(255,255,255,0.2)' : 'var(--green)',
+                      fontFamily:'Helvetica Neue, sans-serif', fontWeight:700, fontSize:10, letterSpacing:3,
+                      textTransform:'uppercase', padding:'0 24px', cursor: !query.trim() ? 'default' : 'pointer',
+                      transition:'all 0.2s', flexShrink:0, borderRadius:'0 9px 9px 0',
+                      boxShadow: query.trim() ? 'inset 0 1px 0 rgba(0,255,128,0.14)' : 'none',
+                    }}>
+                    {loading ? '…' : 'Analyze'}
+                  </button>
+                </div>
               </div>
+
             </div>
           </div>
 
