@@ -518,7 +518,7 @@ button {
   padding: 40px 20px;
 }
 .g-card2 {
-  width: 420px;
+  width: 300px;
   flex-shrink: 0;
   background: #111318;
   border: 1px solid rgba(255,255,255,0.07);
@@ -1228,9 +1228,19 @@ function GameModal({ game, onClose }) {
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
         <div>
-          <div className="modal-tabs">
+          {/* Green action buttons */}
+          <div style={{display:'flex', gap:10, padding:'18px 28px', borderBottom:'1px solid var(--border)', flexWrap:'wrap'}}>
             {tabs.map(t => (
-              <button key={t.id} className={`modal-tab ${activeTab===t.id?'active':''}`} onClick={() => setActiveTab(t.id)}>{t.label}</button>
+              <button key={t.id} onClick={() => setActiveTab(t.id)} style={{
+                background: activeTab===t.id ? 'rgba(0,255,128,0.14)' : 'rgba(0,255,128,0.05)',
+                color: activeTab===t.id ? 'var(--green)' : 'rgba(0,255,128,0.55)',
+                border: activeTab===t.id ? '1px solid rgba(0,255,128,0.55)' : '1px solid rgba(0,255,128,0.2)',
+                padding:'9px 20px', borderRadius:6,
+                fontSize:9, letterSpacing:3, fontWeight:700,
+                fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif',
+                textTransform:'uppercase', cursor:'pointer', transition:'all 0.15s',
+                boxShadow: activeTab===t.id ? 'inset 0 1px 0 rgba(0,255,128,0.18), 0 0 18px rgba(0,255,128,0.1)' : 'none',
+              }}>{t.label}</button>
             ))}
           </div>
 
@@ -1540,54 +1550,10 @@ function GameAnalysisModal({ game, onClose }) {
   );
 }
 
-function GameCard({ g, onSelect, onAnalyze, records = {} }) {
+function GameCard({ g, onSelect, records = {} }) {
   const { label, type } = parseStatus(g.status);
   const hasScore = g.home_team_score > 0 || g.visitor_team_score > 0;
   const isLive = type === 'live';
-  const isUpcoming = !hasScore && type !== 'final';
-  const [performers, setPerformers] = React.useState([]);
-  const [prediction, setPrediction] = React.useState(null);
-  const [predLoading, setPredLoading] = React.useState(false);
-
-  React.useEffect(() => {
-    if (!hasScore) return;
-    const load = () => fetch(`${API}/nba/games/${g.id}/boxscore`)
-      .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        if (!data || data.total_players === 0) return;
-        const all = [...(data.away_players||[]), ...(data.home_players||[])];
-        const top = all
-          .filter(p => p.pts > 0)
-          .sort((a,b) => (b.pts + b.reb*0.5 + b.ast*0.5) - (a.pts + a.reb*0.5 + a.ast*0.5))
-          .slice(0, 3)
-          .map(p => ({
-            name: p.player.split(' ').slice(-1)[0],
-            full: p.player,
-            pts: p.pts, reb: p.reb, ast: p.ast,
-            team: all.indexOf(p) < (data.away_players||[]).length ? g.visitor_team.abbreviation : g.home_team.abbreviation,
-          }));
-        setPerformers(top);
-      }).catch(() => {});
-    load();
-    if (isLive) { const iv = setInterval(load, 20000); return () => clearInterval(iv); }
-  }, [g.id, hasScore, isLive]);
-
-  const handlePredict = async (e) => {
-    e.stopPropagation();
-    if (prediction || predLoading) return;
-    setPredLoading(true);
-    try {
-      const r = await fetch(`${API}/analysis/predict-game`, {
-        method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify(g)
-      });
-      if (!r.ok) throw new Error(await r.text());
-      const data = await r.json();
-      if (data.error) throw new Error(data.error);
-      const confidence = Math.max(55, Math.min(95, parseInt(data.confidence) || 95));
-      setPrediction({ pick: data.pick, confidence, key_factor: data.key_factor, reasoning: data.reasoning });
-    } catch(_) { setPrediction(null); } finally { setPredLoading(false); }
-  };
 
   const handleMouseMove = (e) => {
     const card = e.currentTarget;
@@ -1613,84 +1579,16 @@ function GameCard({ g, onSelect, onAnalyze, records = {} }) {
         <TeamRow team={g.home_team} score={g.home_team_score} isLive={isLive} hasScore={hasScore} record={records[g.home_team.abbreviation]}/>
       </div>
 
-      {/* Top Performers */}
-      {performers.length > 0 && (
-        <div style={{borderTop:'1px solid rgba(255,255,255,0.05)', paddingTop:14}}>
-          <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, letterSpacing:3, color:'rgba(0,255,128,0.86)', textTransform:'uppercase', fontWeight:700, marginBottom:10}}>Top Performers</div>
-          <div style={{display:'flex', flexDirection:'column', gap:8}}>
-            {performers.map((p, i) => (
-              <div key={i} style={{display:'flex', alignItems:'center', justifyContent:'space-between'}}>
-                <div style={{display:'flex', alignItems:'center', gap:8, minWidth:0}}>
-                  <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:2, fontWeight:700, color:'rgba(255,255,255,0.82)', width:14}}>{i+1}</div>
-                  <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:13, fontWeight:700, color:'rgba(255,255,255,0.88)', letterSpacing:0, textTransform:'none', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{p.full}</div>
-                  <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, letterSpacing:2, color:'rgba(0,255,128,0.82)', fontWeight:700, flexShrink:0}}>{p.team}</div>
-                </div>
-                <div style={{display:'flex', gap:10, flexShrink:0, marginLeft:8}}>
-                  <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:12, fontWeight:700, color:'var(--green)'}}>{p.pts}<span style={{fontSize:8, letterSpacing:1, color:'rgba(0,255,128,0.86)', fontWeight:700, marginLeft:2}}>PTS</span></span>
-                  <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:12, fontWeight:700, color:'rgba(255,255,255,0.68)'}}>{p.reb}<span style={{fontSize:8, letterSpacing:1, color:'rgba(255,255,255,0.52)', marginLeft:2}}>REB</span></span>
-                  <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:12, fontWeight:700, color:'rgba(255,255,255,0.68)'}}>{p.ast}<span style={{fontSize:8, letterSpacing:1, color:'rgba(255,255,255,0.52)', marginLeft:2}}>AST</span></span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Prediction strip — upcoming games only */}
-      {isUpcoming && prediction && (
-        <div style={{borderTop:'1px solid rgba(0,255,128,0.15)', paddingTop:14, marginTop:4}}>
-          <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10}}>
-            <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, letterSpacing:3, color:'rgba(0,255,128,0.86)', textTransform:'uppercase', fontWeight:700}}>PIVOT PICK</div>
-            <div style={{display:'flex', alignItems:'center', gap:8}}>
-              <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:13, fontWeight:700, color:'var(--green)', letterSpacing:0, textTransform:'none', textShadow:'0 0 18px rgba(0,255,128,0.7)'}}>{prediction.pick}</div>
-              <div style={{background:'rgba(0,255,128,0.12)', border:'1px solid rgba(0,255,128,0.3)', borderRadius:3, padding:'3px 8px', fontFamily:'Helvetica Neue, sans-serif', fontSize:9, fontWeight:700, color:'var(--green)', letterSpacing:2}}>{prediction.confidence}%</div>
-            </div>
-          </div>
-          {/* Confidence bar */}
-          <div style={{height:3, background:'rgba(255,255,255,0.06)', borderRadius:2, marginBottom:10, overflow:'hidden'}}>
-            <div style={{height:'100%', width:`${prediction.confidence}%`, background:'linear-gradient(90deg, rgba(0,255,128,0.5), var(--green))', borderRadius:2, transition:'width 0.6s ease'}}/>
-          </div>
-          <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, fontWeight:700, color:'rgba(255,255,255,0.82)', letterSpacing:0, textTransform:'none', lineHeight:1.6, marginBottom:6}}>{prediction.key_factor}</div>
-          <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:10, fontWeight:700, color:'rgba(255,255,255,0.52)', letterSpacing:0, textTransform:'none', lineHeight:1.6}}>{prediction.reasoning}</div>
-        </div>
-      )}
-
       {/* Footer */}
       <div className="g-card-footer" style={{marginTop:'auto'}}>
         <span className="g-conf-pill">{(() => {
           const hc = g.home_team?.conference, ac = g.visitor_team?.conference;
           const hd = g.home_team?.division,   ad = g.visitor_team?.division;
-          if (hd && hd === ad) return `${hd} · DIVISION`;
-          if (hc && hc !== ac) return `${hc} vs ${ac} · CROSS-CONF`;
+          if (hd && hd === ad) return `${hd} · DIV`;
+          if (hc && hc !== ac) return `${hc} vs ${ac}`;
           return [hc, hd].filter(Boolean).join(' · ');
         })()}</span>
-        <div style={{display:'flex', gap:10, alignItems:'center'}}>
-          {isUpcoming && !prediction && (
-            <button
-              onClick={handlePredict}
-              disabled={predLoading}
-              style={{background:'rgba(0,255,128,0.07)', color: predLoading ? 'rgba(0,255,128,0.4)' : 'var(--green)',
-                border:'1px solid rgba(0,255,128,0.38)', padding:'7px 14px',
-                boxShadow:'inset 0 1px 0 rgba(0,255,128,0.14), 0 0 14px rgba(0,255,128,0.07)',
-                fontSize:9, letterSpacing:3, fontWeight:700,
-                fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif',
-                textTransform:'uppercase', cursor: predLoading ? 'default' : 'pointer',
-                borderRadius:3, transition:'all 0.15s', flexShrink:0}}>
-              {predLoading ? 'COMPUTING...' : 'PREDICT'}
-            </button>
-          )}
-          <button
-            onClick={e => { e.stopPropagation(); onAnalyze(g); }}
-            style={{background:'rgba(0,255,128,0.1)', color:'var(--green)', border:'1px solid rgba(0,255,128,0.55)', padding:'7px 14px',
-              boxShadow:'inset 0 1px 0 rgba(0,255,128,0.22), 0 0 18px rgba(0,255,128,0.12)',
-              fontSize:9, letterSpacing:3, fontWeight:700,
-              fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif',
-              textTransform:'uppercase', cursor:'pointer', borderRadius:3, transition:'all 0.15s',
-              flexShrink:0}}>
-            ANALYZE
-          </button>
-          <span className="g-box-link">Box Score →</span>
-        </div>
+        <span className="g-box-link">Open →</span>
       </div>
     </div>
   );
@@ -1701,7 +1599,6 @@ function Games() {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState(null);
   const [selectedGame, setSelectedGame] = React.useState(null);
-  const [analysisGame, setAnalysisGame] = React.useState(null);
   const [activeDate, setActiveDate] = React.useState(localDate());
   const [showCal, setShowCal] = React.useState(false);
   const [calMonth, setCalMonth] = React.useState(() => {
@@ -1983,11 +1880,10 @@ function Games() {
 
       <div className="g-grid">
         {games.map(g => (
-          <GameCard key={g.id} g={g} onSelect={setSelectedGame} onAnalyze={setAnalysisGame} records={recordMap}/>
+          <GameCard key={g.id} g={g} onSelect={setSelectedGame} records={recordMap}/>
         ))}
       </div>
       {selectedGame && <GameModal game={selectedGame} onClose={() => setSelectedGame(null)}/>}
-      {analysisGame && <GameAnalysisModal game={analysisGame} onClose={() => setAnalysisGame(null)}/>}
     </div>
   );
 }
