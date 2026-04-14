@@ -23,8 +23,29 @@ from typing import Any, AsyncGenerator, Optional
 from zoneinfo import ZoneInfo
 
 from app.core.cache import analysis_cache
+from app.core.http_client import GlobalHTTPClient
 from app.models.schemas import Game, GameAnalysisResponse
 from app.services import claude_service, nba_service
+
+# ---------------------------------------------------------------------------
+# Shared ESPN injury cache — 90s TTL so all call sites share one response
+# ---------------------------------------------------------------------------
+_ESPN_INJURY_URL = "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/injuries"
+_ESPN_INJURY_CACHE_TTL = 90  # seconds
+
+async def _fetch_espn_injuries_raw() -> dict:
+    """Fetch raw ESPN injury JSON, cached for 90s across all callers."""
+    cached = analysis_cache.get("espn_injuries_raw")
+    if cached is not None:
+        return cached
+    try:
+        client = GlobalHTTPClient.get_client()
+        r = await client.get(_ESPN_INJURY_URL, headers={"User-Agent": "Mozilla/5.0"})
+        data = r.json()
+        analysis_cache.set("espn_injuries_raw", data, ttl=_ESPN_INJURY_CACHE_TTL)
+        return data
+    except Exception:
+        return {}
 
 # ---------------------------------------------------------------------------
 # Module-level logger
@@ -1204,7 +1225,6 @@ async def analyze_roster(team_name: str) -> dict[str, Any]:
 
     # ── Enrich with live standings + injury report ────────────────────────────
     from app.services import standings_service as _standings_svc
-    import httpx as _httpx
 
     async def _get_team_standing():
         try:
@@ -1226,12 +1246,7 @@ async def analyze_roster(team_name: str) -> dict[str, Any]:
 
     async def _get_team_injuries():
         try:
-            async with _httpx.AsyncClient(timeout=6) as client:
-                r = await client.get(
-                    "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/injuries",
-                    headers={"User-Agent": "Mozilla/5.0"},
-                )
-            raw = r.json()
+            raw = await _fetch_espn_injuries_raw()
             team_kw = (matched_team.name if matched_team else team_name).split()[-1].lower()
             for tb in raw.get("injuries", []):
                 tname = tb.get("displayName", "").lower()
@@ -1390,16 +1405,9 @@ async def analyze_game(body: dict[str, Any]) -> dict[str, Any]:
         return cached
 
     # ── Injury context for all game types ────────────────────────────────────
-    import httpx as _httpx
-
-    async def _fetch_injury_for_game():
+    async def _fetch_injury_for_game() -> str:
         try:
-            async with _httpx.AsyncClient(timeout=6) as client:
-                r = await client.get(
-                    "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/injuries",
-                    headers={"User-Agent": "Mozilla/5.0"},
-                )
-            raw = r.json()
+            raw = await _fetch_espn_injuries_raw()
             inj_map: dict[str, list[str]] = {}
             for tb in raw.get("injuries", []):
                 tname = tb.get("displayName", "")
@@ -1471,10 +1479,10 @@ async def analyze_game(body: dict[str, Any]) -> dict[str, Any]:
             "Be specific. Use the actual numbers. No hedging."
         )
     else:
-        # ── Upcoming: enrich with live standings + pre-fetched injury report ──
+        # ── Upcoming: enrich with live standings (parallel with injury already fetched) ──
         from app.services import standings_service as _standings_svc
 
-        async def _fetch_standings_ctx():
+        async def _fetch_standings_ctx() -> str:
             try:
                 data = await _standings_svc.get_standings()
                 by_abbr = {t["abbr"]: t for t in data.get("league", [])}
@@ -1497,7 +1505,7 @@ async def analyze_game(body: dict[str, Any]) -> dict[str, Any]:
             except Exception:
                 return ""
 
-        standings_ctx = await _fetch_standings_ctx()
+        standings_ctx = await _fetch_standings_ctx()  # standings has own 6h cache; fast after warmup
 
         context_block = ""
         if standings_ctx:
@@ -1867,14 +1875,8 @@ async def predict_game(body: dict[str, Any]) -> dict[str, Any]:
 
     # ── Fetch real data in parallel ──────────────────────────────────────────
     async def _fetch_injuries() -> dict:
-        import httpx
         try:
-            async with httpx.AsyncClient(timeout=8) as client:
-                r = await client.get(
-                    "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/injuries",
-                    headers={"User-Agent": "Mozilla/5.0"},
-                )
-            raw = r.json()
+            raw = await _fetch_espn_injuries_raw()
             teams = []
             for tb in raw.get("injuries", []):
                 players = []
