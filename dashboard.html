@@ -1088,22 +1088,74 @@ function Home({ onNavigate }) {
 
 function GameModal({ game, onClose }) {
   const [boxScore, setBoxScore] = React.useState(null);
-  const [loading, setLoading] = React.useState(true);
-  const [activeTab, setActiveTab] = React.useState('boxscore');
+  const [bsLoading, setBsLoading] = React.useState(true);
   const { label, type } = parseStatus(game.status);
   const hasScore = game.home_team_score > 0 || game.visitor_team_score > 0;
+  const isUpcoming = !hasScore && type === 'sched';
 
+  // Default to 'analysis' for upcoming games (no box score), 'boxscore' otherwise
+  const [activeTab, setActiveTab] = React.useState(isUpcoming ? 'analysis' : 'boxscore');
+
+  // Analysis tab state
+  const [analysisResult, setAnalysisResult] = React.useState(null);
+  const [analysisLoading, setAnalysisLoading] = React.useState(false);
+  const [analysisError, setAnalysisError] = React.useState(null);
+  const analysisFetchedRef = React.useRef(false);
+
+  // Predict tab state (upcoming only)
+  const [prediction, setPrediction] = React.useState(null);
+  const [predLoading, setPredLoading] = React.useState(false);
+  const [predError, setPredError] = React.useState(null);
+  const predFetchedRef = React.useRef(false);
+
+  // Box score fetch
   React.useEffect(() => {
     const load = async () => {
-      setLoading(true);
+      setBsLoading(true);
       try {
         const r = await fetch(`${API}/nba/games/${game.id}/boxscore`);
         if (r.ok) setBoxScore(await r.json());
-      } catch(e) {} finally { setLoading(false); }
+      } catch(e) {} finally { setBsLoading(false); }
     };
     load();
     if (type === 'live') { const iv = setInterval(load, 10000); return () => clearInterval(iv); }
   }, [game.id]);
+
+  // Lazy-fetch analysis when tab is first activated
+  React.useEffect(() => {
+    if (activeTab !== 'analysis' || analysisFetchedRef.current) return;
+    analysisFetchedRef.current = true;
+    setAnalysisLoading(true);
+    const doLoad = () => fetch(`${API}/analysis/game`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(game),
+    })
+      .then(r => r.ok ? r.json() : r.json().then(e => { throw new Error(e.detail || 'Analysis unavailable'); }))
+      .then(data => { setAnalysisResult(data); setAnalysisLoading(false); })
+      .catch(e => { setAnalysisError(friendlyError(e.message)); setAnalysisLoading(false); });
+    doLoad();
+    if (type === 'live') { const iv = setInterval(doLoad, 60000); return () => clearInterval(iv); }
+  }, [activeTab]);
+
+  // Lazy-fetch prediction when tab is first activated
+  React.useEffect(() => {
+    if (activeTab !== 'predict' || predFetchedRef.current) return;
+    predFetchedRef.current = true;
+    setPredLoading(true);
+    fetch(`${API}/analysis/predict-game`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(game),
+    })
+      .then(r => r.ok ? r.json() : r.json().then(e => { throw new Error(e.detail || 'Prediction unavailable'); }))
+      .then(data => {
+        if (data.error) throw new Error(data.error);
+        const confidence = Math.max(55, Math.min(95, parseInt(data.confidence) || 70));
+        setPrediction({ pick: data.pick, confidence, key_factor: data.key_factor, reasoning: data.reasoning });
+        setPredLoading(false);
+      })
+      .catch(e => { setPredError(friendlyError(e.message)); setPredLoading(false); });
+  }, [activeTab]);
 
   React.useEffect(() => {
     const h = (e) => { if (e.key === 'Escape') onClose(); };
@@ -1138,6 +1190,13 @@ function GameModal({ game, onClose }) {
     </div>
   );
 
+  const tabs = [
+    ...(isUpcoming ? [] : [{ id: 'boxscore', label: 'Box Score' }]),
+    { id: 'analysis', label: 'Analysis' },
+    ...(isUpcoming ? [{ id: 'predict', label: 'Predict' }] : []),
+    { id: 'info', label: 'Game Info' },
+  ];
+
   return (
     <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal">
@@ -1170,16 +1229,19 @@ function GameModal({ game, onClose }) {
         </div>
         <div>
           <div className="modal-tabs">
-            <button className={`modal-tab ${activeTab==='boxscore'?'active':''}`} onClick={() => setActiveTab('boxscore')}>Box Score</button>
-            <button className={`modal-tab ${activeTab==='info'?'active':''}`} onClick={() => setActiveTab('info')}>Game Info</button>
+            {tabs.map(t => (
+              <button key={t.id} className={`modal-tab ${activeTab===t.id?'active':''}`} onClick={() => setActiveTab(t.id)}>{t.label}</button>
+            ))}
           </div>
+
+          {/* BOX SCORE */}
           {activeTab === 'boxscore' && (
             <div className="box-score">
-              {loading && <Loader label="PIVOT COMPUTING"/>}
-              {!loading && (!boxScore || boxScore.total_players === 0) && (
+              {bsLoading && <Loader label="PIVOT COMPUTING"/>}
+              {!bsLoading && (!boxScore || boxScore.total_players === 0) && (
                 <div style={{padding:'40px', fontSize:10, letterSpacing:4, color:'#333', textAlign:'center'}}>Box Score Not Available</div>
               )}
-              {!loading && boxScore && boxScore.total_players > 0 && (
+              {!bsLoading && boxScore && boxScore.total_players > 0 && (
                 <>
                   <StatTable players={boxScore.away_players||[]} teamName={`${game.visitor_team.city} ${game.visitor_team.name} (Away)`}/>
                   <StatTable players={boxScore.home_players||[]} teamName={`${game.home_team.city} ${game.home_team.name} (Home)`}/>
@@ -1187,6 +1249,85 @@ function GameModal({ game, onClose }) {
               )}
             </div>
           )}
+
+          {/* ANALYSIS */}
+          {activeTab === 'analysis' && (
+            <div style={{padding:'28px 36px', minHeight:200}}>
+              {analysisLoading && <Loader label="PIVOT COMPUTING"/>}
+              {analysisError && <div className="err">{analysisError}</div>}
+              {!analysisLoading && analysisResult && (
+                <div style={{display:'flex', flexDirection:'column', gap:20}}>
+                  {analysisResult.score_line && (
+                    <div style={{display:'flex', alignItems:'center', gap:12, paddingBottom:14, borderBottom:'1px solid var(--border)'}}>
+                      <span style={{fontSize:9, letterSpacing:3, color:'var(--green)', fontWeight:700, textTransform:'uppercase'}}>
+                        {analysisResult.game_type || (type==='live'?'LIVE':type==='final'?'FINAL':'PREVIEW')}
+                      </span>
+                      <span style={{fontSize:13, color:'rgba(255,255,255,0.75)', fontWeight:700, letterSpacing:1}}>
+                        {analysisResult.score_line}
+                      </span>
+                    </div>
+                  )}
+                  {(analysisResult.analysis || '').split(/\n{2,}/).filter(Boolean).map((para, i, arr) => (
+                    <p key={i} style={{margin:0, fontFamily:'Helvetica Neue, sans-serif', fontSize:14, lineHeight:1.9,
+                      letterSpacing:0, textTransform:'none',
+                      color: i === arr.length - 1 ? 'var(--white)' : 'rgba(255,255,255,0.82)',
+                      fontWeight: i === arr.length - 1 ? 600 : 400}}>
+                      {para}
+                    </p>
+                  ))}
+                  {type === 'live' && (
+                    <div style={{fontSize:8, letterSpacing:3, color:'rgba(0,255,128,0.45)', fontWeight:700}}>AUTO-REFRESHING · 60s</div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* PREDICT (upcoming only) */}
+          {activeTab === 'predict' && (
+            <div style={{padding:'28px 36px', minHeight:200}}>
+              {predLoading && <Loader label="PIVOT COMPUTING"/>}
+              {predError && <div className="err">{predError}</div>}
+              {!predLoading && prediction && (
+                <div style={{display:'flex', flexDirection:'column', gap:20}}>
+                  {/* Pick */}
+                  <div style={{display:'flex', flexDirection:'column', alignItems:'center', gap:6, padding:'24px 0 20px',
+                    borderBottom:'1px solid var(--border)'}}>
+                    <div style={{fontSize:9, letterSpacing:4, color:'rgba(255,255,255,0.35)', fontWeight:700}}>PIVOT PICK</div>
+                    <div style={{fontSize:28, fontWeight:900, letterSpacing:3, color:'var(--white)'}}>{prediction.pick}</div>
+                    <div style={{display:'flex', alignItems:'center', gap:8}}>
+                      <div style={{width:120, height:4, borderRadius:2, background:'rgba(255,255,255,0.08)', overflow:'hidden'}}>
+                        <div style={{height:'100%', width:`${prediction.confidence}%`,
+                          background:`linear-gradient(90deg, var(--green), rgba(0,255,128,0.5))`,
+                          borderRadius:2, transition:'width 0.8s ease'}}/>
+                      </div>
+                      <span style={{fontSize:10, letterSpacing:2, color:'var(--green)', fontWeight:700}}>{prediction.confidence}%</span>
+                    </div>
+                  </div>
+                  {/* Key factor */}
+                  {prediction.key_factor && (
+                    <div style={{padding:'12px 16px', background:'rgba(0,255,128,0.04)',
+                      border:'1px solid rgba(0,255,128,0.12)', borderRadius:6}}>
+                      <div style={{fontSize:8, letterSpacing:3, color:'var(--green)', fontWeight:700, marginBottom:6}}>KEY FACTOR</div>
+                      <div style={{fontSize:13, color:'rgba(255,255,255,0.82)', lineHeight:1.6}}>{prediction.key_factor}</div>
+                    </div>
+                  )}
+                  {/* Reasoning */}
+                  {prediction.reasoning && (
+                    <div>
+                      <div style={{fontSize:8, letterSpacing:3, color:'rgba(255,255,255,0.3)', fontWeight:700, marginBottom:10}}>REASONING</div>
+                      <p style={{margin:0, fontSize:13, lineHeight:1.8, color:'rgba(255,255,255,0.72)', fontWeight:400}}>{prediction.reasoning}</p>
+                    </div>
+                  )}
+                  <div style={{fontSize:8, letterSpacing:3, color:'rgba(255,255,255,0.18)', fontWeight:700}}>
+                    PIVOT PREDICTION · NOT FINANCIAL ADVICE
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* GAME INFO */}
           {activeTab === 'info' && (
             <div style={{padding:'32px 40px'}}>
               {[

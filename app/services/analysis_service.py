@@ -1601,7 +1601,7 @@ async def analyze_game(body: dict[str, Any]) -> dict[str, Any]:
         prompt=prompt,
         system_prompt=_game_analyst_system_prompt(),
         override_model=_FAST_MODEL,
-        override_max_tokens=1400,
+        override_max_tokens=2200,
         override_temperature=0.1,
     )
 
