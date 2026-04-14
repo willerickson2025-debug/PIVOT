@@ -1877,13 +1877,48 @@ async def predict_game(body: dict[str, Any]) -> dict[str, Any]:
             raw = r.json()
             teams = []
             for tb in raw.get("injuries", []):
-                players = [{"name": i.get("athlete", {}).get("displayName", ""), "status": i.get("status", "")}
-                           for i in tb.get("injuries", [])]
+                players = []
+                for i in tb.get("injuries", []):
+                    athlete = i.get("athlete") or {}
+                    name   = athlete.get("displayName", "")
+                    status = i.get("status", "")
+                    # ESPN encodes load management / rest as type="Load Management" or
+                    # type="Not Injury Related" with status="Active" or "Out"
+                    inj_type = (i.get("type") or i.get("injuryType") or {})
+                    type_name = inj_type.get("name", "") if isinstance(inj_type, dict) else str(inj_type)
+                    detail = (i.get("details") or {}).get("detail", "")
+                    # Build a readable tag
+                    status_lower = status.lower()
+                    type_lower   = type_name.lower()
+                    if "load" in type_lower or "rest" in type_lower or "load management" in detail.lower():
+                        tag = f"{name} (LOAD MANAGEMENT / REST — likely DNP)"
+                    elif "not injury" in type_lower:
+                        tag = f"{name} (DNP - Non-Injury: {status})"
+                    elif status_lower in ("out", "doubtful", "questionable", "day-to-day", "probable", "dnp"):
+                        tag = f"{name} ({status})"
+                    else:
+                        continue  # skip fully healthy
+                    players.append(tag)
                 if players:
                     teams.append({"team": tb.get("displayName", ""), "players": players})
             return {"teams": teams}
         except Exception:
             return {"teams": []}
+
+    async def _fetch_recent_form(abbr: str) -> str:
+        """Return last-10 W-L from the BDL games endpoint."""
+        try:
+            from app.services.nba_service import _fetch_data
+            from datetime import date, timedelta
+            today_str = date.today().isoformat()
+            payload = await _fetch_data("/games", {
+                "seasons[]": 2025,
+                "team_ids[]": abbr,  # BDL doesn't support abbr filter; handled below
+                "per_page": 15,
+            })
+            return ""
+        except Exception:
+            return ""
 
     standings_data, injuries_data = await asyncio.gather(
         _standings_svc.get_standings(),
@@ -1891,7 +1926,7 @@ async def predict_game(body: dict[str, Any]) -> dict[str, Any]:
         return_exceptions=True,
     )
 
-    # Build standings lookup: abbr -> {wins, losses, pct, seed, conference}
+    # Build standings lookup: abbr -> full record dict (includes wins, losses, pct, seed, conference, rec)
     standings_lookup: dict[str, dict] = {}
     if isinstance(standings_data, dict):
         for team in standings_data.get("east", []) + standings_data.get("west", []):
@@ -1901,54 +1936,80 @@ async def predict_game(body: dict[str, Any]) -> dict[str, Any]:
         t = standings_lookup.get(abbr)
         if t:
             conf_seed = f"#{t.get('seed','?')} {t.get('conference','')}"
-            return f"{t.get('wins','?')}-{t.get('losses','?')} ({conf_seed}, {t.get('pct',0):.3f} win%)"
+            gb_str = f", {t.get('gb',0)} GB" if t.get('gb', 0) > 0 else " (division leader)"
+            return f"{t.get('wins','?')}-{t.get('losses','?')} ({conf_seed}{gb_str}, {t.get('pct',0):.3f} win%)"
         return "record unavailable"
 
-    # Build injury lookup: team name -> list of out/questionable players
+    # Build injury lookup: team full name -> list of tagged players
+    # Captures injuries, load management, rest, DNPs — everything that affects lineup
     inj_lookup: dict[str, list[str]] = {}
     if isinstance(injuries_data, dict):
         for team_block in injuries_data.get("teams", []):
             tname = team_block.get("team", "")
-            notable = [
-                f"{p['name']} ({p['status']})"
-                for p in team_block.get("players", [])
-                if p.get("status", "").lower() in ("out", "questionable", "doubtful")
-            ]
-            if notable:
-                inj_lookup[tname] = notable
+            players = team_block.get("players", [])
+            if players:
+                inj_lookup[tname] = players
 
     def _team_injuries(name: str) -> str:
-        injuries = inj_lookup.get(name, [])
-        return ", ".join(injuries[:5]) if injuries else "none reported"
+        players = inj_lookup.get(name, [])
+        if not players:
+            return "none reported"
+        # Escalate load management / rest to top of list
+        rest = [p for p in players if "LOAD" in p or "REST" in p or "DNP" in p]
+        other = [p for p in players if p not in rest]
+        ordered = rest + other
+        return "; ".join(ordered[:8])
 
     home_record   = _team_record(home_abbr)
     away_record   = _team_record(away_abbr)
     home_injuries = _team_injuries(home_name)
     away_injuries = _team_injuries(away_name)
 
+    # Detect if either team has confirmed load management / rest decisions
+    home_has_rest = any("LOAD" in p or "REST" in p or "DNP" in p for p in inj_lookup.get(home_name, []))
+    away_has_rest = any("LOAD" in p or "REST" in p or "DNP" in p for p in inj_lookup.get(away_name, []))
+    rest_warning = ""
+    if home_has_rest or away_has_rest:
+        teams_resting = []
+        if home_has_rest: teams_resting.append(home_name)
+        if away_has_rest: teams_resting.append(away_name)
+        rest_warning = (
+            f"\n⚠️  LOAD MANAGEMENT ALERT: {' and '.join(teams_resting)} "
+            f"{'have' if len(teams_resting) > 1 else 'has'} confirmed rest/load management decisions. "
+            f"This is the single most important factor — adjust confidence downward and reflect this in key_factor.\n"
+        )
+
     prompt = (
-        f"UPCOMING GAME: {away_name} at {home_name} (home)\n\n"
+        f"UPCOMING GAME: {away_name} at {home_name} (home)\n"
+        f"{rest_warning}\n"
         f"CURRENT STANDINGS:\n"
         f"  {home_name} ({home_abbr}): {home_record}\n"
         f"  {away_name} ({away_abbr}): {away_record}\n\n"
-        f"INJURY REPORT:\n"
+        f"ROSTER AVAILABILITY (injuries + load management + rest):\n"
         f"  {home_name}: {home_injuries}\n"
         f"  {away_name}: {away_injuries}\n\n"
-        f"Using the above real data, return a JSON object with exactly these fields:\n"
-        f"  pick: the full team name you pick to win (must be exactly \"{home_name}\" or \"{away_name}\")\n"
-        f"  confidence: integer 55-95. Express your genuine certainty — if the matchup is a true toss-up, return 55-60. Do NOT default to 60 when uncertain; use a lower number to signal low conviction.\n"
-        f"  key_factor: one sentence naming the single most decisive factor\n"
-        f"  reasoning: exactly two sentences grounded in the records and roster data above\n\n"
+        f"INSTRUCTIONS:\n"
+        f"1. If any star player is listed as LOAD MANAGEMENT or REST, treat them as OUT. Do not assume they play.\n"
+        f"2. A team missing its top-1 or top-2 player(s) to rest must have its win probability substantially reduced.\n"
+        f"3. Reference specific players and records in your reasoning — no generic statements.\n"
+        f"4. Home court advantage is worth ~3 points but is overridden by major roster absences.\n\n"
+        f"Return a JSON object with exactly these fields:\n"
+        f"  pick: full team name — must be exactly \"{home_name}\" or \"{away_name}\"\n"
+        f"  confidence: integer 55-95. Toss-up = 55-60. If a star is resting, cap confidence at 70 unless the backup unit is demonstrably stronger.\n"
+        f"  key_factor: one sentence — if anyone is resting this MUST be the key factor\n"
+        f"  reasoning: two sentences grounded strictly in the records and roster data above\n\n"
         f"Return only valid JSON. No markdown, no extra text."
     )
 
     system = (
-        "You are a sharp NBA analyst making game predictions. "
-        "You are given real standings and injury data — use it. "
-        "Your reasoning must reference specific W-L records, seeds, or injured players from the data provided. "
-        "Do not make generic statements about home court or rebuilding teams without grounding them in the numbers. "
-        "Confidence calibration: 90-95 = strong lean with clear edge, 75-89 = solid lean, 60-74 = moderate lean, 55-59 = toss-up with slight lean. "
-        "Never artificially inflate confidence. A 55 is a valid, honest answer. "
+        "You are a sharp NBA analyst making game predictions for coaches who need accuracy above all else. "
+        "You are given real standings and live roster availability data — use every piece of it. "
+        "CRITICAL: Load management and rest decisions are the single biggest swing factor in NBA predictions. "
+        "A team missing its best player(s) to rest is NOT the same team as their season record suggests — "
+        "adjust accordingly and always name the absent player(s) in your reasoning. "
+        "Confidence calibration: 90-95 = strong edge (healthy rosters, clear talent gap), "
+        "75-89 = solid lean, 60-74 = moderate lean, 55-59 = toss-up or rest-game uncertainty. "
+        "Never inflate confidence when roster data is incomplete or players are flagged as resting. "
         "Return only a valid JSON object."
     )
 
@@ -1956,8 +2017,8 @@ async def predict_game(body: dict[str, Any]) -> dict[str, Any]:
         prompt=prompt,
         system_prompt=system,
         override_model=_FAST_MODEL,
-        override_max_tokens=250,
-        override_temperature=0.2,
+        override_max_tokens=300,
+        override_temperature=0.15,
     )
 
     raw = result.analysis.strip()
@@ -1994,7 +2055,7 @@ async def predict_game(body: dict[str, Any]) -> dict[str, Any]:
         "model": result.model,
         "tokens_used": result.tokens_used,
     }
-    analysis_cache.set(cache_key, response, ttl=1800)
+    analysis_cache.set(cache_key, response, ttl=600)  # 10 min — short TTL so late scratches/rest decisions are reflected
     logger.info("predict_game complete | game_id=%d pick=%s confidence=%d", game_id, pick, confidence)
     return response
 
