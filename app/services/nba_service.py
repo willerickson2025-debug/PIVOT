@@ -523,6 +523,25 @@ async def search_players(
     return players
 
 
+async def get_team_roster_last_names(team_id: int) -> set[str]:
+    """
+    Return the set of lowercased last names for all players on a team's
+    current BDL roster.  Used to validate ESPN injury report entries so
+    stale/traded players are not included in predictions.
+    """
+    try:
+        payload = await _fetch_data("/players", params={"team_ids[]": team_id, "per_page": 100})
+        names: set[str] = set()
+        for p in payload.get("data") or []:
+            ln = (p.get("last_name") or "").strip().lower()
+            if ln:
+                names.add(ln)
+        logger.debug("Roster last names for team_id=%d: %d players", team_id, len(names))
+        return names
+    except Exception:
+        return set()
+
+
 # ---------------------------------------------------------------------------
 # Contracts, Advanced Stats, Lineups
 # ---------------------------------------------------------------------------

@@ -47,6 +47,77 @@ async def _fetch_espn_injuries_raw() -> dict:
     except Exception:
         return {}
 
+
+async def _get_roster_last_names(team_id: int) -> set[str]:
+    """Cached BDL roster last names for a team — 6h TTL."""
+    cache_key = f"roster_lastnames:{team_id}"
+    cached = analysis_cache.get(cache_key)
+    if cached is not None:
+        return cached
+    names = await nba_service.get_team_roster_last_names(team_id)
+    if names:  # only cache non-empty results
+        analysis_cache.set(cache_key, names, ttl=21600)  # 6 hours
+    return names
+
+
+async def _validated_injury_tags(
+    team_display_name: str,
+    team_id: int | None,
+    espn_raw: dict,
+    include_statuses: tuple[str, ...] = ("out", "doubtful", "questionable", "day-to-day", "probable"),
+) -> list[str]:
+    """
+    Return injury tags for a team, filtered to players actually on the
+    current BDL roster.  Eliminates traded/released players that ESPN still
+    lists, e.g. Damian Lillard showing as a Portland injury after his trade.
+
+    Falls back to unvalidated list if BDL roster fetch fails (empty set).
+    """
+    # Fetch BDL roster for validation (non-blocking — uses cache after first call)
+    roster_lastnames: set[str] = set()
+    if team_id:
+        roster_lastnames = await _get_roster_last_names(team_id)
+
+    team_kw = team_display_name.split()[-1].lower()
+    tags: list[str] = []
+
+    for tb in espn_raw.get("injuries", []):
+        tname = tb.get("displayName", "").lower()
+        if team_kw not in tname:
+            continue
+        for inj in tb.get("injuries", []):
+            athlete = inj.get("athlete") or {}
+            name = athlete.get("displayName", "")
+            last_name = (athlete.get("lastName") or name.split()[-1] if name else "").strip().lower()
+            status = inj.get("status", "")
+            inj_type = inj.get("type") or inj.get("injuryType") or {}
+            type_name = inj_type.get("name", "") if isinstance(inj_type, dict) else str(inj_type)
+            type_lower = type_name.lower()
+            comment = (inj.get("details") or {}).get("detail", "") or inj.get("shortComment", "")
+
+            # Validate: skip if we have a roster and this player isn't on it
+            if roster_lastnames and last_name and last_name not in roster_lastnames:
+                logger.info(
+                    "Injury validation: skipping %r (%s) — not on current %s roster",
+                    name, status, team_display_name,
+                )
+                continue
+
+            # Tag the player
+            if "load" in type_lower or "rest" in type_lower or "load management" in comment.lower():
+                tags.append(f"{name} (LOAD MANAGEMENT / REST — likely DNP)")
+            elif "not injury" in type_lower:
+                tags.append(f"{name} (DNP - Non-Injury: {status})")
+            elif status.lower() in include_statuses:
+                entry = f"{name} ({status}"
+                if comment:
+                    entry += f" — {comment}"
+                entry += ")"
+                tags.append(entry)
+        break  # matched team, done
+
+    return tags
+
 # ---------------------------------------------------------------------------
 # Module-level logger
 # ---------------------------------------------------------------------------
@@ -1855,12 +1926,14 @@ async def predict_game(body: dict[str, Any]) -> dict[str, Any]:
     import json as _json
     from app.services import standings_service as _standings_svc
 
-    home_t  = body.get("home_team") or {}
-    away_t  = body.get("visitor_team") or {}
+    home_t    = body.get("home_team") or {}
+    away_t    = body.get("visitor_team") or {}
     home_name = home_t.get("full_name") or home_t.get("name") or "Home"
     away_name = away_t.get("full_name") or away_t.get("name") or "Away"
     home_abbr = home_t.get("abbreviation") or home_name
     away_abbr = away_t.get("abbreviation") or away_name
+    home_id   = home_t.get("id")   # BDL team ID — used for roster validation
+    away_id   = away_t.get("id")
     game_id   = int(body.get("id") or 0)
     status    = (body.get("status") or "").lower()
 
@@ -1873,58 +1946,15 @@ async def predict_game(body: dict[str, Any]) -> dict[str, Any]:
         logger.info("predict_game cache hit | game_id=%d", game_id)
         return cached
 
-    # ── Fetch real data in parallel ──────────────────────────────────────────
-    async def _fetch_injuries() -> dict:
-        try:
-            raw = await _fetch_espn_injuries_raw()
-            teams = []
-            for tb in raw.get("injuries", []):
-                players = []
-                for i in tb.get("injuries", []):
-                    athlete = i.get("athlete") or {}
-                    name   = athlete.get("displayName", "")
-                    status = i.get("status", "")
-                    # ESPN encodes load management / rest as type="Load Management" or
-                    # type="Not Injury Related" with status="Active" or "Out"
-                    inj_type = (i.get("type") or i.get("injuryType") or {})
-                    type_name = inj_type.get("name", "") if isinstance(inj_type, dict) else str(inj_type)
-                    detail = (i.get("details") or {}).get("detail", "")
-                    # Build a readable tag
-                    status_lower = status.lower()
-                    type_lower   = type_name.lower()
-                    if "load" in type_lower or "rest" in type_lower or "load management" in detail.lower():
-                        tag = f"{name} (LOAD MANAGEMENT / REST — likely DNP)"
-                    elif "not injury" in type_lower:
-                        tag = f"{name} (DNP - Non-Injury: {status})"
-                    elif status_lower in ("out", "doubtful", "questionable", "day-to-day", "probable", "dnp"):
-                        tag = f"{name} ({status})"
-                    else:
-                        continue  # skip fully healthy
-                    players.append(tag)
-                if players:
-                    teams.append({"team": tb.get("displayName", ""), "players": players})
-            return {"teams": teams}
-        except Exception:
-            return {"teams": []}
-
-    async def _fetch_recent_form(abbr: str) -> str:
-        """Return last-10 W-L from the BDL games endpoint."""
-        try:
-            from app.services.nba_service import _fetch_data
-            from datetime import date, timedelta
-            today_str = date.today().isoformat()
-            payload = await _fetch_data("/games", {
-                "seasons[]": 2025,
-                "team_ids[]": abbr,  # BDL doesn't support abbr filter; handled below
-                "per_page": 15,
-            })
-            return ""
-        except Exception:
-            return ""
-
-    standings_data, injuries_data = await asyncio.gather(
+    # ── Fetch standings + validated injury lists in parallel ─────────────────
+    # _validated_injury_tags checks each ESPN-listed player against the team's
+    # current BDL roster, filtering out traded/released players (e.g. Lillard
+    # still listed under Portland after his trade to Milwaukee).
+    espn_raw = await _fetch_espn_injuries_raw()  # shared; cached after first call
+    standings_data, home_inj_tags, away_inj_tags = await asyncio.gather(
         _standings_svc.get_standings(),
-        _fetch_injuries(),
+        _validated_injury_tags(home_name, home_id, espn_raw),
+        _validated_injury_tags(away_name, away_id, espn_raw),
         return_exceptions=True,
     )
 
@@ -1942,34 +1972,26 @@ async def predict_game(body: dict[str, Any]) -> dict[str, Any]:
             return f"{t.get('wins','?')}-{t.get('losses','?')} ({conf_seed}{gb_str}, {t.get('pct',0):.3f} win%)"
         return "record unavailable"
 
-    # Build injury lookup: team full name -> list of tagged players
-    # Captures injuries, load management, rest, DNPs — everything that affects lineup
-    inj_lookup: dict[str, list[str]] = {}
-    if isinstance(injuries_data, dict):
-        for team_block in injuries_data.get("teams", []):
-            tname = team_block.get("team", "")
-            players = team_block.get("players", [])
-            if players:
-                inj_lookup[tname] = players
+    # home_inj_tags / away_inj_tags are already validated against BDL roster —
+    # traded/released players have been stripped out.
+    _home_tags = home_inj_tags if isinstance(home_inj_tags, list) else []
+    _away_tags = away_inj_tags if isinstance(away_inj_tags, list) else []
 
-    def _team_injuries(name: str) -> str:
-        players = inj_lookup.get(name, [])
-        if not players:
+    def _fmt_tags(tags: list[str]) -> str:
+        if not tags:
             return "none reported"
-        # Escalate load management / rest to top of list
-        rest = [p for p in players if "LOAD" in p or "REST" in p or "DNP" in p]
-        other = [p for p in players if p not in rest]
-        ordered = rest + other
-        return "; ".join(ordered[:8])
+        rest  = [p for p in tags if "LOAD" in p or "REST" in p or "DNP" in p]
+        other = [p for p in tags if p not in rest]
+        return "; ".join((rest + other)[:8])
 
     home_record   = _team_record(home_abbr)
     away_record   = _team_record(away_abbr)
-    home_injuries = _team_injuries(home_name)
-    away_injuries = _team_injuries(away_name)
+    home_injuries = _fmt_tags(_home_tags)
+    away_injuries = _fmt_tags(_away_tags)
 
-    # Detect if either team has confirmed load management / rest decisions
-    home_has_rest = any("LOAD" in p or "REST" in p or "DNP" in p for p in inj_lookup.get(home_name, []))
-    away_has_rest = any("LOAD" in p or "REST" in p or "DNP" in p for p in inj_lookup.get(away_name, []))
+    # Detect confirmed rest/load management on either side
+    home_has_rest = any("LOAD" in p or "REST" in p or "DNP" in p for p in _home_tags)
+    away_has_rest = any("LOAD" in p or "REST" in p or "DNP" in p for p in _away_tags)
     rest_warning = ""
     if home_has_rest or away_has_rest:
         teams_resting = []
