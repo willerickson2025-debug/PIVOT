@@ -2020,8 +2020,9 @@ async def predict_game(body: dict[str, Any]) -> dict[str, Any]:
         f"Return a JSON object with exactly these fields:\n"
         f"  pick: full team name — must be exactly \"{home_name}\" or \"{away_name}\"\n"
         f"  confidence: integer 55-95. Toss-up = 55-60. If a star is resting, cap confidence at 70 unless the backup unit is demonstrably stronger.\n"
-        f"  key_factor: one sentence — if anyone is resting this MUST be the key factor\n"
-        f"  reasoning: two sentences grounded strictly in the records and roster data above\n\n"
+        f"  key_factor: one crisp sentence — if anyone is resting this MUST be the key factor\n"
+        f"  reasoning: 4-6 sentences. Cover: (1) how each team's record and current form sets the stage, (2) the roster availability impact and which absences matter most, (3) home court context, (4) your confident prediction rationale. Name specific players.\n"
+        f"  breakdown: 2-3 sentences on the stylistic matchup — pace, defensive scheme, or specific player battles that will decide this game.\n\n"
         f"Return only valid JSON. No markdown, no extra text."
     )
 
@@ -2041,7 +2042,7 @@ async def predict_game(body: dict[str, Any]) -> dict[str, Any]:
         prompt=prompt,
         system_prompt=system,
         override_model=_FAST_MODEL,
-        override_max_tokens=300,
+        override_max_tokens=650,
         override_temperature=0.15,
     )
 
@@ -2066,6 +2067,7 @@ async def predict_game(body: dict[str, Any]) -> dict[str, Any]:
         confidence = max(55, min(95, raw_confidence))
         key_factor = str(parsed.get("key_factor", ""))
         reasoning  = str(parsed.get("reasoning", ""))
+        breakdown  = str(parsed.get("breakdown", ""))
     except Exception:
         logger.warning("predict_game JSON parse failed | raw=%r", raw[:200])
         return {"error": "Could not parse prediction."}
@@ -2076,6 +2078,7 @@ async def predict_game(body: dict[str, Any]) -> dict[str, Any]:
         "confidence": confidence,
         "key_factor": key_factor,
         "reasoning": reasoning,
+        "breakdown": breakdown,
         "model": result.model,
         "tokens_used": result.tokens_used,
     }

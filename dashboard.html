@@ -1151,7 +1151,7 @@ function GameModal({ game, onClose }) {
       .then(data => {
         if (data.error) throw new Error(data.error);
         const confidence = Math.max(55, Math.min(95, parseInt(data.confidence) || 70));
-        setPrediction({ pick: data.pick, confidence, key_factor: data.key_factor, reasoning: data.reasoning });
+        setPrediction({ pick: data.pick, confidence, key_factor: data.key_factor, reasoning: data.reasoning, breakdown: data.breakdown });
         setPredLoading(false);
       })
       .catch(e => { setPredError(friendlyError(e.message)); setPredLoading(false); });
@@ -1310,6 +1310,13 @@ function GameModal({ game, onClose }) {
                       border:'1px solid rgba(0,255,128,0.12)', borderRadius:6}}>
                       <div style={{fontSize:8, letterSpacing:3, color:'var(--green)', fontWeight:700, marginBottom:6}}>KEY FACTOR</div>
                       <div style={{fontSize:13, color:'rgba(255,255,255,0.82)', lineHeight:1.6}}>{prediction.key_factor}</div>
+                    </div>
+                  )}
+                  {/* Breakdown */}
+                  {prediction.breakdown && (
+                    <div>
+                      <div style={{fontSize:8, letterSpacing:3, color:'rgba(255,255,255,0.3)', fontWeight:700, marginBottom:10}}>MATCHUP BREAKDOWN</div>
+                      <p style={{margin:0, fontSize:13, lineHeight:1.8, color:'rgba(255,255,255,0.72)', fontWeight:400}}>{prediction.breakdown}</p>
                     </div>
                   )}
                   {/* Reasoning */}
