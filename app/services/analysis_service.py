@@ -2012,44 +2012,52 @@ async def predict_game(body: dict[str, Any]) -> dict[str, Any]:
         f"ROSTER AVAILABILITY (injuries + load management + rest):\n"
         f"  {home_name}: {home_injuries}\n"
         f"  {away_name}: {away_injuries}\n\n"
-        f"INSTRUCTIONS:\n"
-        f"1. If any star player is listed as LOAD MANAGEMENT or REST, treat them as OUT. Do not assume they play.\n"
-        f"2. A team missing its top-1 or top-2 player(s) to rest must have its win probability substantially reduced.\n"
-        f"3. Reference specific players and records — no generic statements ever.\n"
-        f"4. Home court advantage is worth ~3 points but is overridden by major roster absences.\n"
-        f"5. Write like a scout who watched both teams this week. Be direct, analytical, confident.\n\n"
-        f"Return a JSON object with exactly these fields:\n"
+        f"CRITICAL RULES:\n"
+        f"1. LOAD MANAGEMENT / REST players are OUT — never assume they play.\n"
+        f"2. Missing a top-2 player drastically reduces win probability — quantify this explicitly.\n"
+        f"3. Name specific players in every section. Zero generic statements.\n"
+        f"4. Home court = ~3 point advantage unless overridden by major absences.\n"
+        f"5. Write as a scout who watched both teams play this week.\n\n"
+        f"Return a JSON object with EXACTLY these fields. Each section must meet its minimum sentence requirement:\n\n"
         f"  pick: full team name — must be exactly \"{home_name}\" or \"{away_name}\"\n"
         f"  confidence: integer 55-95\n"
-        f"  key_factor: one punchy sentence — the single biggest swing factor; if anyone is resting this MUST name them\n"
-        f"  reasoning: 7-9 sentences of dense analysis. Required sections in order — "
-        f"(1) each team's record and what it actually means right now (seeding, streak, momentum), "
-        f"(2) the full injury/availability picture and exactly how it reshapes each team's rotation, "
-        f"(3) how the missing pieces alter the offensive and defensive systems specifically, "
-        f"(4) home court context and how this crowd/arena historically affects this matchup, "
-        f"(5) the two or three individual player matchups that will decide the outcome, "
-        f"(6) your confident final call with a specific game-script prediction. Name players throughout.\n"
-        f"  breakdown: 3-4 sentences — stylistic clash analysis: pace differential, defensive scheme conflict, "
-        f"specific positional mismatches, and which team's identity is harder to replicate short-handed.\n"
-        f"  outlook: 1-2 sentences — projected final score range and the most likely path to that result.\n\n"
-        f"Return only valid JSON. No markdown, no extra text."
+        f"  key_factor: 1 sentence — the single swing factor; must name any resting stars\n"
+        f"  form_analysis: 4-5 sentences — what each team's record actually signals right now: "
+        f"current seeding position, recent win/loss streak, whether the record over- or understates their quality, "
+        f"playoff implications, and which team is playing with more urgency.\n"
+        f"  injury_impact: 4-5 sentences — go player by player through every listed absence: "
+        f"what role they fill, who replaces them, how the rotation changes in minutes and scheme, "
+        f"which injuries are truly game-altering vs minor, and the net health advantage for one side.\n"
+        f"  matchup_breakdown: 4-5 sentences — the tactical clash: pace each team prefers and which side wins "
+        f"that battle, defensive scheme matchup (zone vs man, switch-heavy vs drop coverage), "
+        f"the specific positional mismatches (e.g. who guards who at each position), "
+        f"and which team's system survives best when short-handed.\n"
+        f"  player_battles: 3-4 sentences — name the 2-3 specific 1v1 matchups that will decide this game, "
+        f"who has the edge in each, and how those battles connect to the final outcome.\n"
+        f"  prediction_rationale: 4-5 sentences — your final call: synthesize everything above into a "
+        f"confident directional argument, describe the most likely game script (lead changes, 4th quarter dynamics), "
+        f"state what would have to go wrong for your pick to lose, and give one sharp closing sentence.\n"
+        f"  outlook: 2 sentences — projected final score range (e.g. 'PHX wins 112-104') and "
+        f"the specific sequence of events most likely to produce it.\n\n"
+        f"Return only valid JSON. No markdown fences, no text outside the JSON object."
     )
 
     system = (
-        "You are an elite NBA scout writing a pre-game prediction report for head coaches. "
-        "Every word must be grounded in the data provided — no filler, no hedging, no generic takes. "
+        "You are an elite NBA scout writing a detailed pre-game prediction report for head coaches. "
+        "This report will be read by coaches making real decisions — every section must be substantive, specific, and grounded in the data given. "
+        "NEVER write generic filler like 'both teams are competitive' or 'this will be a close game.' "
         "CRITICAL: Load management and rest decisions are the single biggest swing factor in NBA predictions. "
-        "A team missing its best player(s) is fundamentally a different team — recompute everything accordingly. "
-        "Write with the authority of someone who has watched every game this week. "
+        "A team missing its best player(s) is a fundamentally different team — model this explicitly in every section. "
         "Confidence calibration: 90-95 = decisive edge, 75-89 = solid lean, 60-74 = moderate lean, 55-59 = genuine toss-up. "
-        "Never inflate confidence. Return only a valid JSON object — no prose outside the JSON."
+        "Each JSON field must meet its minimum sentence count. Do not truncate. "
+        "Return only a valid JSON object with no prose outside it."
     )
 
     result = await claude_service.analyze(
         prompt=prompt,
         system_prompt=system,
         override_model=_FAST_MODEL,
-        override_max_tokens=1100,
+        override_max_tokens=1800,
         override_temperature=0.15,
     )
 
@@ -2072,10 +2080,16 @@ async def predict_game(body: dict[str, Any]) -> dict[str, Any]:
                 game_id, raw_confidence, pick,
             )
         confidence = max(55, min(95, raw_confidence))
-        key_factor = str(parsed.get("key_factor", ""))
-        reasoning  = str(parsed.get("reasoning", ""))
-        breakdown  = str(parsed.get("breakdown", ""))
-        outlook    = str(parsed.get("outlook", ""))
+        key_factor           = str(parsed.get("key_factor", ""))
+        form_analysis        = str(parsed.get("form_analysis", ""))
+        injury_impact        = str(parsed.get("injury_impact", ""))
+        matchup_breakdown    = str(parsed.get("matchup_breakdown", ""))
+        player_battles       = str(parsed.get("player_battles", ""))
+        prediction_rationale = str(parsed.get("prediction_rationale", ""))
+        outlook              = str(parsed.get("outlook", ""))
+        # legacy field kept for compatibility
+        reasoning  = str(parsed.get("reasoning", prediction_rationale))
+        breakdown  = str(parsed.get("breakdown", matchup_breakdown))
     except Exception:
         logger.warning("predict_game JSON parse failed | raw=%r", raw[:200])
         return {"error": "Could not parse prediction."}
@@ -2085,6 +2099,11 @@ async def predict_game(body: dict[str, Any]) -> dict[str, Any]:
         "pick": pick,
         "confidence": confidence,
         "key_factor": key_factor,
+        "form_analysis": form_analysis,
+        "injury_impact": injury_impact,
+        "matchup_breakdown": matchup_breakdown,
+        "player_battles": player_battles,
+        "prediction_rationale": prediction_rationale,
         "reasoning": reasoning,
         "breakdown": breakdown,
         "outlook": outlook,
