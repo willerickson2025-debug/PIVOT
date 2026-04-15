@@ -1529,10 +1529,22 @@ async def analyze_game(body: dict[str, Any]) -> dict[str, Any]:
         "    {\"stat\": \"Turnovers\",     \"home_val\": 0, \"away_val\": 0, \"edge\": \"home|away|even\", \"note\": \"\"},\n"
         "    {\"stat\": \"3-Pointers\",    \"home_val\": 0, \"away_val\": 0, \"edge\": \"home|away|even\", \"note\": \"\"},\n"
         "    {\"stat\": \"FG%\",           \"home_val\": 0.0, \"away_val\": 0.0, \"edge\": \"home|away|even\", \"note\": \"\"}\n"
+        "  ],\n"
+        "  \"defensive_schemes\": [\n"
+        "    {\"team\": \"team name\", \"scheme\": \"coverage name or style\", \"vulnerability\": \"how opponents attack it\", \"key_player\": \"player name\"}\n"
+        "    // one object per team — describe their primary defensive identity, any unique coverages, and the specific exploit\n"
+        "  ],\n"
+        "  \"offensive_actions\": [\n"
+        "    {\"team\": \"team name\", \"action\": \"name the play type or action\", \"detail\": \"who runs it, how, and why it works or is being stopped\"}\n"
+        "    // 2-3 entries per team — dribble handoffs, screen types, spacing sets, pick-and-roll reads, etc.\n"
+        "  ],\n"
+        "  \"lineup_dependencies\": [\n"
+        "    {\"team\": \"team name\", \"pairing\": \"Player A + Player B (or unit description)\", \"effect\": \"what this pairing enables tactically\", \"risk\": \"what breaks if one is unavailable\"}\n"
+        "    // 1-2 key pairings or units per team — starters, bench anchors, or closing lineups\n"
         "  ]\n"
         "}\n"
-        "For final/live games: lineup_matchup = actual players who played most minutes; stat_predictions = actual team totals.\n"
-        "For upcoming games: lineup_matchup = projected starters accounting for injuries; stat_predictions = projected totals.\n"
+        "For final/live games: lineup_matchup = actual players; stat_predictions = actual/pace-projected totals; tactical sections = what was observed in this game.\n"
+        "For upcoming games: lineup_matchup = projected starters accounting for injuries; stat_predictions = projected totals; tactical sections = what to expect based on season tendencies.\n"
         "No markdown, no text outside the JSON."
     )
 
@@ -1552,8 +1564,11 @@ async def analyze_game(body: dict[str, Any]) -> dict[str, Any]:
             "2. TURNING POINT — the specific moment(s) that decided the outcome\n"
             "3. WHAT WON IT — the tactical or individual factor the winner executed\n"
             "4. WHAT LOST IT — where the losing team broke down\n"
-            "5. INJURY IMPACT — how any absences shaped the game\n"
-            "6. IMPLICATIONS — what this result means for both franchises\n"
+            "5. DEFENSIVE SCHEMES — what coverages each team ran, how the opponent attacked them, and which vulnerabilities were exposed\n"
+            "6. OFFENSIVE ACTIONS — the specific play types and actions each team leaned on (handoffs, screen types, spacing sets, pick-and-roll reads)\n"
+            "7. LINEUP DEPENDENCIES — which pairings drove efficiency and what broke down when they weren't on the floor\n"
+            "8. INJURY IMPACT — how any absences shaped the game\n"
+            "9. IMPLICATIONS — what this result means for both franchises\n"
             "Be specific. Name players, plays, quarters. No filler."
         )
         prompt += _JSON_SUFFIX
@@ -1572,8 +1587,10 @@ async def analyze_game(body: dict[str, Any]) -> dict[str, Any]:
             "1. CURRENT STATE — who is winning and why, what the differential reflects\n"
             "2. KEY PERFORMERS — who is dominating right now and how\n"
             "3. TROUBLE SPOTS — who is struggling, in foul trouble, shooting cold\n"
-            "4. IN-GAME STAT PROJECTIONS — at current pace, project final team totals\n"
-            "5. THE CLOSE — who has the edge to close this out and why\n"
+            "4. DEFENSIVE SCHEMES — what coverages are working or breaking down live\n"
+            "5. OFFENSIVE ACTIONS — the specific sets and actions each team is running successfully right now\n"
+            "6. LINEUP DEPENDENCIES — which units are winning their minutes and who needs to be on the floor\n"
+            "7. THE CLOSE — who has the edge to close this out and why\n"
             "Use the actual numbers. No hedging."
         )
         prompt += _JSON_SUFFIX
@@ -1618,32 +1635,33 @@ async def analyze_game(body: dict[str, Any]) -> dict[str, Any]:
             f"{context_block}\n\n"
             "Write a complete game preview covering:\n"
             "1. FORM & STAKES — what each team's record means, playoff implications\n"
-            "2. STYLISTIC CLASH — how these teams play and where styles conflict\n"
-            "3. KEY BATTLES — individual matchups that decide this game; project each starting lineup\n"
-            "4. INJURY IMPACT — how the injury report changes the calculus\n"
-            "5. PRE-GAME STAT PROJECTIONS — projected team totals based on season averages and injuries\n"
-            "6. PREDICTION — confident call with specific reasoning\n"
+            "2. DEFENSIVE SCHEMES — each team's primary coverage identity, unique wrinkles, and how the opponent will try to exploit them\n"
+            "3. OFFENSIVE ACTIONS — the specific sets, handoffs, screen types, and spacing actions each team deploys; name the plays and players\n"
+            "4. LINEUP DEPENDENCIES — the key pairings and units that drive each team's efficiency; what happens when they're disrupted by injury or foul trouble\n"
+            "5. KEY BATTLES — the individual matchups that decide this game\n"
+            "6. INJURY IMPACT — how the injury report changes the tactical calculus\n"
+            "7. PREDICTION — confident call with specific reasoning\n"
             "Name players, name schemes. No generic takes."
         )
         prompt += _JSON_SUFFIX
 
     _ANALYSIS_SYSTEM = (
-        "You are an elite NBA analyst writing game reports for coaches. "
+        "You are an elite NBA analyst writing game reports for coaches who make real tactical decisions. "
         "Always return a single valid JSON object as specified — no text outside it. "
-        "The 'analysis' field contains your full prose. "
+        "The 'analysis' field is your full prose narrative. "
         "lineup_matchup must list all 5 positions. "
         "stat_predictions must have exactly 6 entries. "
-        "For live games, stat_predictions are pace-projected final totals. "
-        "For final games, stat_predictions are actual team totals from the box score. "
-        "For upcoming games, stat_predictions are your best projection given season averages and injuries. "
-        "Be specific. Name players. No filler."
+        "defensive_schemes: one entry per team — name the specific coverage (e.g. drop coverage, ICE, switch-everything, zone, sag-and-pack) and the concrete vulnerability opponents exploit. "
+        "offensive_actions: 2-3 entries per team — name the exact action (dribble handoff, flare screen, ghost screen, horns set, Spain PnR, etc.) and which players execute it. "
+        "lineup_dependencies: 1-2 entries per team — name the pairing or unit, what it enables tactically, and what the risk is if a key player is out. "
+        "Never use generic descriptions. Name players, name actions, name coverages. No filler."
     )
 
     result = await claude_service.analyze(
         prompt=prompt,
         system_prompt=_ANALYSIS_SYSTEM,
         override_model=_FAST_MODEL,
-        override_max_tokens=2800,
+        override_max_tokens=3400,
         override_temperature=0.1,
     )
 
@@ -1654,6 +1672,9 @@ async def analyze_game(body: dict[str, Any]) -> dict[str, Any]:
     analysis_text = result.analysis
     lineup_matchup: list = []
     stat_predictions: list = []
+    defensive_schemes: list = []
+    offensive_actions: list = []
+    lineup_dependencies: list = []
     try:
         raw = result.analysis.strip()
         if raw.startswith("```"):
@@ -1662,9 +1683,12 @@ async def analyze_game(body: dict[str, Any]) -> dict[str, Any]:
                 raw = raw[4:]
             raw = raw.strip()
         parsed = _json.loads(raw)
-        analysis_text   = str(parsed.get("analysis", result.analysis))
-        lineup_matchup  = parsed.get("lineup_matchup") or []
-        stat_predictions = parsed.get("stat_predictions") or []
+        analysis_text       = str(parsed.get("analysis", result.analysis))
+        lineup_matchup      = parsed.get("lineup_matchup") or []
+        stat_predictions    = parsed.get("stat_predictions") or []
+        defensive_schemes   = parsed.get("defensive_schemes") or []
+        offensive_actions   = parsed.get("offensive_actions") or []
+        lineup_dependencies = parsed.get("lineup_dependencies") or []
     except Exception:
         logger.warning("analyze_game JSON parse failed, falling back to raw text | game_id=%d", game_id)
 
@@ -1677,6 +1701,9 @@ async def analyze_game(body: dict[str, Any]) -> dict[str, Any]:
         "analysis": analysis_text,
         "lineup_matchup": lineup_matchup,
         "stat_predictions": stat_predictions,
+        "defensive_schemes": defensive_schemes,
+        "offensive_actions": offensive_actions,
+        "lineup_dependencies": lineup_dependencies,
         "model": result.model,
         "tokens_used": result.tokens_used,
     }
@@ -2108,7 +2135,15 @@ async def predict_game(body: dict[str, Any]) -> dict[str, Any]:
         f"  stat_predictions: array of 6 objects — projected team totals for this game:\n"
         f"    [{{\"stat\":\"Team Points\",\"home_val\":0,\"away_val\":0,\"edge\":\"home|away|even\",\"note\":\"brief context\"}}, ...]\n"
         f"    Include: Team Points, Rebounds, Assists, Turnovers, 3-Pointers, FG%\n"
-        f"    Base projections on season averages adjusted for tonight's injuries/rest decisions.\n\n"
+        f"    Base projections on season averages adjusted for tonight's injuries/rest decisions.\n"
+        f"  defensive_schemes: array — one entry per team:\n"
+        f"    [{{\"team\":\"team name\",\"scheme\":\"specific coverage name\",\"vulnerability\":\"how opponent attacks it\",\"key_player\":\"player name\"}}]\n"
+        f"    Name the exact coverage (drop, ICE, switch-everything, zone, etc.) and the specific exploit.\n"
+        f"  offensive_actions: array — 2-3 entries per team:\n"
+        f"    [{{\"team\":\"team name\",\"action\":\"play type name\",\"detail\":\"who runs it and why it works or fails tonight\"}}]\n"
+        f"    Name specific actions: dribble handoffs, flare screens, horns sets, Spain PnR, ghost screens, etc.\n"
+        f"  lineup_dependencies: array — 1-2 entries per team:\n"
+        f"    [{{\"team\":\"team name\",\"pairing\":\"Player A + Player B or unit\",\"effect\":\"what it enables tactically\",\"risk\":\"what breaks without them\"}}]\n\n"
         f"Return only valid JSON. No markdown fences, no text outside the JSON object."
     )
 
@@ -2157,8 +2192,11 @@ async def predict_game(body: dict[str, Any]) -> dict[str, Any]:
         player_battles       = str(parsed.get("player_battles", ""))
         prediction_rationale = str(parsed.get("prediction_rationale", ""))
         outlook              = str(parsed.get("outlook", ""))
-        lineup_matchup_p   = parsed.get("lineup_matchup") or []
-        stat_predictions_p = parsed.get("stat_predictions") or []
+        lineup_matchup_p      = parsed.get("lineup_matchup") or []
+        stat_predictions_p    = parsed.get("stat_predictions") or []
+        defensive_schemes_p   = parsed.get("defensive_schemes") or []
+        offensive_actions_p   = parsed.get("offensive_actions") or []
+        lineup_dependencies_p = parsed.get("lineup_dependencies") or []
         # legacy fields kept for compatibility
         reasoning  = str(parsed.get("reasoning", prediction_rationale))
         breakdown  = str(parsed.get("breakdown", matchup_breakdown))
@@ -2166,6 +2204,9 @@ async def predict_game(body: dict[str, Any]) -> dict[str, Any]:
         logger.warning("predict_game JSON parse failed | raw=%r", raw[:200])
         lineup_matchup_p = []
         stat_predictions_p = []
+        defensive_schemes_p = []
+        offensive_actions_p = []
+        lineup_dependencies_p = []
         return {"error": "Could not parse prediction."}
 
     response = {
@@ -2183,6 +2224,9 @@ async def predict_game(body: dict[str, Any]) -> dict[str, Any]:
         "outlook": outlook,
         "lineup_matchup": lineup_matchup_p,
         "stat_predictions": stat_predictions_p,
+        "defensive_schemes": defensive_schemes_p,
+        "offensive_actions": offensive_actions_p,
+        "lineup_dependencies": lineup_dependencies_p,
         "model": result.model,
         "tokens_used": result.tokens_used,
     }
