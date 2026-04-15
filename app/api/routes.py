@@ -403,6 +403,27 @@ async def player_section_analysis(
         raise HTTPException(status_code=502, detail=str(e))
 
 
+@router.get("/analysis/player/section/stream")
+@limiter.limit(_CLAUDE_LIMIT)
+async def player_section_analysis_stream(
+    request: Request,
+    player_id: int = Query(..., description="BallDontLie player ID"),
+    season: int = Query(2025, description="NBA season year"),
+    section: str = Query(..., description="Section: offense|defense|off_the_court|injuries|financials|on_off"),
+    _key: str = Depends(verify_api_key),
+):
+    """Stream player section analysis as Server-Sent Events."""
+    async def generate():
+        try:
+            async for event in analysis_service.analyze_player_section_stream(player_id, season, section):
+                yield f"data: {json.dumps(event)}\n\n"
+        except Exception as e:
+            yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+
+    return StreamingResponse(generate(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
 # ── Front Office ──────────────────────────────────────────────────────────────
 
 @router.get("/frontoffice/roster")

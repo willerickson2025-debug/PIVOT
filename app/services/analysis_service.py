@@ -1040,7 +1040,7 @@ async def analyze_player_section(
         prompt=prompt,
         system_prompt=_nba_analyst_system_prompt(),
         override_model=_FAST_MODEL,
-        override_max_tokens=900,
+        override_max_tokens=1600,
     )
 
     logger.info(
@@ -1059,6 +1059,60 @@ async def analyze_player_section(
         "model": result.model,
         "tokens_used": result.tokens_used,
     }
+
+
+async def analyze_player_section_stream(
+    player_id: int,
+    season: int,
+    section: str,
+) -> AsyncGenerator[dict, None]:
+    """
+    Streaming version of analyze_player_section.
+
+    Yields dicts:
+      {"type": "start", "player": ..., "section": "..."}
+      {"type": "chunk", "text": "..."}
+      {"type": "done"}
+    """
+    if section not in SECTION_PROMPTS:
+        valid_sections = ", ".join(sorted(SECTION_PROMPTS.keys()))
+        yield {"type": "error", "message": f"Unknown section '{section}'. Valid sections: {valid_sections}"}
+        return
+
+    try:
+        player, agg = await _build_player_stat_block(player_id, season)
+    except Exception as exc:
+        yield {"type": "error", "message": str(exc)}
+        return
+
+    section_directive = SECTION_PROMPTS[section]
+
+    if agg["total_games"] > 0:
+        stat_context = f"Player data:\n{_render_stat_block(player, season, agg)}"
+    else:
+        stat_context = (
+            f"Player: {player.first_name} {player.last_name} — "
+            f"their {season} season data is still being added to our system. "
+            f"Analyze based on career profile and what you know about this player."
+        )
+
+    prompt = (
+        f"{section_directive}\n\n"
+        f"{stat_context}\n\n"
+        f"Go deep. Use your basketball knowledge beyond just the raw stats provided."
+    )
+
+    yield {"type": "start", "player": player.model_dump(), "section": section}
+
+    async for chunk in claude_service.analyze_stream(
+        prompt,
+        system_prompt=_nba_analyst_system_prompt(),
+        override_model=_FAST_MODEL,
+        override_max_tokens=1600,
+    ):
+        yield {"type": "chunk", "text": chunk}
+
+    yield {"type": "done"}
 
 
 async def analyze_player_stream(
