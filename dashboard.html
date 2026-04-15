@@ -1241,6 +1241,10 @@ function GameModal({ game, onClose }) {
           </div>
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
+        {/* Live state banner — quarter scores, clock, momentum, foul trouble */}
+        {type === 'live' && (
+          <LiveStateBanner gameId={game.id} homeAbbr={game.home_team.abbreviation} awayAbbr={game.visitor_team.abbreviation}/>
+        )}
         <div>
           {/* Green action buttons */}
           <div style={{display:'flex', gap:10, padding:'18px 28px', borderBottom:'1px solid var(--border)', flexWrap:'wrap'}}>
@@ -1422,6 +1426,85 @@ function GameModal({ game, onClose }) {
 }
 
 // ── Shared game-data components used in both Analysis and Predict tabs ─────
+
+// ── Live State Banner — shown in GameModal for live games ──────────────────
+function LiveStateBanner({ gameId, homeAbbr, awayAbbr }) {
+  const [state, setState] = React.useState(null);
+  React.useEffect(() => {
+    if (!gameId) return;
+    const load = () => fetch(`${API}/nba/games/${gameId}/live-state`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d) setState(d); })
+      .catch(() => {});
+    load();
+    const iv = setInterval(load, 15000);
+    return () => clearInterval(iv);
+  }, [gameId]);
+  if (!state) return null;
+
+  const qs = state.quarter_summary || [];
+  const labels = ['Q1','Q2','Q3','Q4','OT1','OT2','OT3'];
+
+  return (
+    <div style={{borderBottom:'1px solid var(--border)', background:'rgba(0,0,0,0.35)', padding:'14px 28px'}}>
+      {/* Score grid */}
+      <div style={{overflowX:'auto'}}>
+        <table style={{width:'100%', borderCollapse:'collapse', fontFamily:'Helvetica Neue, sans-serif', fontSize:11, letterSpacing:1}}>
+          <thead>
+            <tr style={{color:'rgba(255,255,255,0.3)', fontSize:8, letterSpacing:3}}>
+              <th style={{textAlign:'left', padding:'4px 8px 4px 0', minWidth:60}}>TEAM</th>
+              {qs.map(q => <th key={q.period} style={{textAlign:'center', padding:'4px 10px', color: q.period === state.period_label ? 'var(--green)' : 'rgba(255,255,255,0.3)'}}>{q.period}</th>)}
+              {state.is_live && <th style={{textAlign:'center', padding:'4px 10px', color:'var(--green)'}}>{state.period_label}</th>}
+              <th style={{textAlign:'center', padding:'4px 0 4px 10px', color:'rgba(255,255,255,0.55)', minWidth:36}}>T</th>
+            </tr>
+          </thead>
+          <tbody>
+            {[
+              { abbr: awayAbbr, name: state.away_team?.name, score: state.away_score, qs: qs.map(q => q.away), timeouts: state.away_timeouts, bonus: state.away_in_bonus },
+              { abbr: homeAbbr, name: state.home_team?.name, score: state.home_score, qs: qs.map(q => q.home), timeouts: state.home_timeouts, bonus: state.home_in_bonus },
+            ].map(row => (
+              <tr key={row.abbr}>
+                <td style={{padding:'6px 8px 6px 0', fontWeight:700, color:'rgba(255,255,255,0.82)', fontSize:12}}>{row.abbr}</td>
+                {row.qs.map((v, i) => (
+                  <td key={i} style={{textAlign:'center', padding:'6px 10px',
+                    color: v > (i < qs.length ? (row.abbr === awayAbbr ? qs[i].home : qs[i].away) : 0) ? 'rgba(0,255,128,0.9)' : 'rgba(255,255,255,0.5)',
+                    fontSize:12, fontWeight:600}}>{v}</td>
+                ))}
+                {state.is_live && <td style={{textAlign:'center', padding:'6px 10px', color:'rgba(255,255,255,0.25)', fontSize:11}}>—</td>}
+                <td style={{textAlign:'center', padding:'6px 0 6px 10px', fontWeight:900, fontSize:14, color:'var(--white)'}}>{row.score}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Clock + flags row */}
+      <div style={{display:'flex', flexWrap:'wrap', gap:12, marginTop:10, alignItems:'center'}}>
+        <div style={{display:'flex', alignItems:'center', gap:8}}>
+          <span style={{width:6, height:6, borderRadius:'50%', background:'var(--green)', display:'inline-block', animation:'live-ping 1.2s ease-out infinite'}}/>
+          <span style={{fontSize:10, letterSpacing:3, color:'var(--green)', fontWeight:700}}>{state.period_label}</span>
+          {state.clock && state.clock !== 'Final' && <span style={{fontSize:12, color:'rgba(255,255,255,0.75)', fontWeight:700, letterSpacing:1}}>{state.clock}</span>}
+        </div>
+        {state.momentum !== 'even' && (
+          <span style={{fontSize:8, letterSpacing:2, color:'rgba(0,255,128,0.7)', fontWeight:700, background:'rgba(0,255,128,0.06)', border:'1px solid rgba(0,255,128,0.18)', borderRadius:3, padding:'2px 8px'}}>
+            {state.momentum === 'home' ? homeAbbr : awayAbbr} MOMENTUM
+          </span>
+        )}
+        {state.current_run?.team && (
+          <span style={{fontSize:8, letterSpacing:2, color:'rgba(255,180,60,0.85)', fontWeight:700, background:'rgba(255,180,60,0.06)', border:'1px solid rgba(255,180,60,0.2)', borderRadius:3, padding:'2px 8px'}}>
+            {state.current_run.team.split(' ').pop().toUpperCase()} RUN · {state.current_run.points}-{state.current_run.opponent_points} IN {state.current_run.period}
+          </span>
+        )}
+        {state.foul_trouble?.map(f => (
+          <span key={f.player} style={{fontSize:8, letterSpacing:2, color:'rgba(255,80,80,0.8)', fontWeight:700, background:'rgba(255,80,80,0.05)', border:'1px solid rgba(255,80,80,0.18)', borderRadius:3, padding:'2px 8px'}}>
+            {f.player.split(' ').pop()} {f.pf} PF
+          </span>
+        ))}
+        <span style={{marginLeft:'auto', fontSize:8, letterSpacing:3, color:'rgba(0,255,128,0.35)', fontWeight:700}}>AUTO-REFRESH 15s</span>
+      </div>
+    </div>
+  );
+}
 
 function TacticalSection({ title, items, renderRow }) {
   if (!items || items.length === 0) return null;
@@ -4227,7 +4310,9 @@ function CoachMode() {
   const run = async () => {
     setLoading(true); setError(null);
     try {
-      const endpoint = mode === 'adjust' ? '/coach/adjust' : '/coach/timeout';
+      const endpoint = mode === 'live'
+        ? '/analysis/coach-live'
+        : mode === 'adjust' ? '/coach/adjust' : '/coach/timeout';
       const r = await fetch(`${API}${endpoint}`, {
         method: 'POST', headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ game_id: selectedGame?.id, my_team: myTeam }),
@@ -4389,8 +4474,8 @@ function CoachMode() {
           </div>
 
           <div style={{fontSize:8, letterSpacing:5, color:'rgba(0,255,128,0.82)', marginBottom:10, fontFamily:'Helvetica Neue, sans-serif'}}>⬡ MODE</div>
-          <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:4, marginBottom:24}}>
-            {[['adjust','ADJUST'],['timeout','DRAW PLAY']].map(([id, lbl]) => (
+          <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:4, marginBottom:24}}>
+            {[['live','LIVE INTEL'],['adjust','ADJUST'],['timeout','DRAW PLAY']].map(([id, lbl]) => (
               <button key={id} onClick={() => setMode(id)}
                 style={{background: mode===id ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.5)',
                   color: mode===id ? '#000' : '#333',
@@ -4409,7 +4494,7 @@ function CoachMode() {
               background: loading ? '#111' : !myTeam ? '#0a0a0a' : 'var(--green)',
               color: loading||!myTeam ? '#2a2a2a' : '#000',
               boxShadow: (!loading && myTeam) ? '0 0 20px rgba(0,255,128,0.2)' : 'none'}}>
-            {loading ? '◌ COMPUTING' : !myTeam ? 'SELECT TEAM' : mode==='adjust' ? 'GET ADJUSTMENTS' : 'DRAW THE PLAY'}
+            {loading ? '◌ COMPUTING' : !myTeam ? 'SELECT TEAM' : mode==='live' ? 'GET LIVE INTEL' : mode==='adjust' ? 'GET ADJUSTMENTS' : 'DRAW THE PLAY'}
           </button>
         </div>
       </div>
@@ -4498,7 +4583,7 @@ function CoachMode() {
               ))}
             </div>
             <div style={{fontSize:8, letterSpacing:6, color:'rgba(0,255,128,0.9)', fontFamily:'Helvetica Neue, sans-serif'}}>
-              {mode === 'timeout' ? 'DRAWING PLAY' : 'COMPUTING ADJUSTMENTS'}
+              {mode === 'live' ? 'READING LIVE STATE' : mode === 'timeout' ? 'DRAWING PLAY' : 'COMPUTING ADJUSTMENTS'}
             </div>
           </div>
         )}
@@ -4508,15 +4593,88 @@ function CoachMode() {
         {/* Result */}
         {!loading && result && (
           <div style={{padding:'32px 40px'}}>
-            <div style={{display:'flex', gap:16, alignItems:'center', marginBottom:24}}>
+            <div style={{display:'flex', gap:16, alignItems:'center', marginBottom:24, flexWrap:'wrap'}}>
               <div style={{fontSize:8, letterSpacing:4, color:'var(--green)', fontFamily:'Helvetica Neue, sans-serif'}}>
-                {result.mode === 'timeout' ? '⊙ PLAY DRAWN' : '⊙ ADJUSTMENTS READY'}
+                {result.mode === 'live' ? '⊙ LIVE INTEL' : result.mode === 'timeout' ? '⊙ PLAY DRAWN' : '⊙ ADJUSTMENTS READY'}
               </div>
               <div style={{fontSize:8, letterSpacing:2, color:'#333', fontFamily:'Helvetica Neue, sans-serif'}}>{result.my_team?.toUpperCase()}</div>
-              {result.time_remaining && <div style={{fontSize:8, letterSpacing:2, color:'#333', fontFamily:'Helvetica Neue, sans-serif'}}>
-                Q{result.quarter} · {result.time_remaining}
-              </div>}
+              {result.game_state?.period && (
+                <div style={{fontSize:8, letterSpacing:2, color:'rgba(0,255,128,0.5)', fontFamily:'Helvetica Neue, sans-serif'}}>
+                  {result.game_state.period} · {result.game_state.clock} · {result.game_state.diff}
+                </div>
+              )}
             </div>
+
+            {/* ── LIVE INTEL structured display ── */}
+            {result.mode === 'live' && result.adjustment && (() => {
+              const adj = result.adjustment;
+              const urgencyColor = {low:'rgba(255,255,255,0.4)', medium:'rgba(255,200,50,0.8)', high:'rgba(255,120,40,0.9)', critical:'rgba(255,50,50,1)'}[adj.urgency] || 'var(--green)';
+              const sections = [
+                { key:'priority_adjustment', label:'PRIORITY ADJUSTMENT', color:'var(--green)' },
+                { key:'run_response',         label:'RUN RESPONSE',        color:'rgba(255,180,60,0.9)' },
+                { key:'defensive_call',       label:'DEFENSIVE CALL',      color:'rgba(100,180,255,0.9)' },
+                { key:'offensive_call',       label:'OFFENSIVE CALL',      color:'rgba(0,255,128,0.7)' },
+                { key:'clock_management',     label:'CLOCK MANAGEMENT',    color:'rgba(200,160,255,0.9)' },
+                { key:'foul_management',      label:'FOUL MANAGEMENT',     color:'rgba(255,80,80,0.8)' },
+                { key:'lineup_change',        label:'LINEUP CHANGE',       color:'rgba(255,255,255,0.6)' },
+              ];
+              return (
+                <div style={{display:'flex', flexDirection:'column', gap:16}}>
+                  {/* Urgency + momentum */}
+                  <div style={{display:'flex', gap:12, alignItems:'center', paddingBottom:14, borderBottom:'1px solid var(--border)'}}>
+                    <span style={{fontSize:9, letterSpacing:3, color:urgencyColor, fontWeight:700, background:'rgba(255,255,255,0.04)', border:`1px solid ${urgencyColor}44`, borderRadius:4, padding:'4px 10px'}}>
+                      {(adj.urgency || 'medium').toUpperCase()}
+                    </span>
+                    {adj.momentum_read && <span style={{fontSize:12, color:'rgba(255,255,255,0.6)', lineHeight:1.4}}>{adj.momentum_read}</span>}
+                  </div>
+
+                  {/* Quarter summary with run flags */}
+                  {result.quarter_summary?.length > 0 && (
+                    <div>
+                      <div style={{fontSize:8, letterSpacing:3, color:'rgba(255,255,255,0.3)', fontWeight:700, marginBottom:8}}>QUARTER BREAKDOWN</div>
+                      <div style={{display:'flex', gap:8, flexWrap:'wrap'}}>
+                        {result.quarter_summary.map((q, i) => {
+                          const myPts = result.my_team?.toLowerCase().includes(result.game_state?.score?.split(' ')[0]?.toLowerCase()) ? q.home : q.away;
+                          const oppPts = myPts === q.home ? q.away : q.home;
+                          const isRun = Math.abs(q.home - q.away) >= 8;
+                          return (
+                            <div key={i} style={{padding:'6px 12px', borderRadius:5, background: isRun ? 'rgba(255,180,60,0.08)' : 'rgba(255,255,255,0.03)', border:`1px solid ${isRun ? 'rgba(255,180,60,0.25)' : 'rgba(255,255,255,0.06)'}`, textAlign:'center', minWidth:52}}>
+                              <div style={{fontSize:8, letterSpacing:2, color:'rgba(255,255,255,0.35)', fontWeight:700, marginBottom:4}}>{q.period}</div>
+                              <div style={{fontSize:12, fontWeight:700, color: q.home > q.away ? 'rgba(0,255,128,0.85)' : 'rgba(255,255,255,0.55)'}}>{q.home}–{q.away}</div>
+                              {isRun && <div style={{fontSize:7, letterSpacing:1, color:'rgba(255,180,60,0.8)', fontWeight:700, marginTop:2}}>RUN</div>}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Action sections */}
+                  {sections.map(({ key, label, color }) => adj[key] && adj[key] !== 'null' && adj[key] !== null ? (
+                    <div key={key} style={{padding:'14px 16px', background:'rgba(255,255,255,0.025)', border:'1px solid rgba(255,255,255,0.06)', borderLeft:`3px solid ${color}`, borderRadius:'0 6px 6px 0'}}>
+                      <div style={{fontSize:8, letterSpacing:3, color, fontWeight:700, marginBottom:6}}>{label}</div>
+                      <div style={{fontSize:13, lineHeight:1.75, color:'rgba(255,255,255,0.82)', textTransform:'none', letterSpacing:0}}>{adj[key]}</div>
+                    </div>
+                  ) : null)}
+
+                  {/* Hot/cold flags */}
+                  {(result.hot_shooters?.length > 0 || result.cold_shooters?.length > 0) && (
+                    <div style={{display:'flex', flexWrap:'wrap', gap:8, paddingTop:8, borderTop:'1px solid var(--border)'}}>
+                      {result.hot_shooters?.map(h => (
+                        <span key={h.player} style={{fontSize:9, letterSpacing:1, color:'rgba(0,255,128,0.85)', background:'rgba(0,255,128,0.06)', border:'1px solid rgba(0,255,128,0.2)', borderRadius:4, padding:'3px 10px', fontWeight:700}}>
+                          🔥 {h.player.split(' ').pop()} {h.fgm}/{h.fga} FG
+                        </span>
+                      ))}
+                      {result.cold_shooters?.map(c => (
+                        <span key={c.player} style={{fontSize:9, letterSpacing:1, color:'rgba(150,150,255,0.75)', background:'rgba(100,100,255,0.05)', border:'1px solid rgba(100,100,255,0.15)', borderRadius:4, padding:'3px 10px', fontWeight:700}}>
+                          ❄ {c.player.split(' ').pop()} {c.fgm}/{c.fga} FG
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Court diagram for timeout plays */}
             {result.mode === 'timeout' && result.diagram && (
@@ -4529,10 +4687,13 @@ function CoachMode() {
               </div>
             )}
 
-            <div style={{fontSize:14, lineHeight:2.1, letterSpacing:.3, color:'var(--white)',
-              whiteSpace:'pre-wrap', fontWeight:700, textTransform:'none', fontFamily:'Helvetica Neue, sans-serif'}}>
-              {result.play || result.analysis}
-            </div>
+            {/* Standard prose result for adjust/timeout modes */}
+            {result.mode !== 'live' && (
+              <div style={{fontSize:14, lineHeight:2.1, letterSpacing:.3, color:'var(--white)',
+                whiteSpace:'pre-wrap', fontWeight:700, textTransform:'none', fontFamily:'Helvetica Neue, sans-serif'}}>
+                {result.play || result.analysis}
+              </div>
+            )}
           </div>
         )}
       </div>

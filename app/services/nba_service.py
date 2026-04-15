@@ -788,6 +788,246 @@ async def get_game_boxscore(game_id: int) -> dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
+# Live Game State
+# ---------------------------------------------------------------------------
+
+async def get_live_game_state(game_id: int) -> dict[str, Any]:
+    """
+    Build a rich live-game state object from BDL game metadata + player stats.
+
+    BDL does not expose a play-by-play endpoint.  Instead we derive momentum
+    and run context from quarter-score deltas and cumulative player stat lines.
+
+    The returned dict is the canonical payload consumed by both the Games
+    Section live dashboard and Coach Mode's tactical engine.
+
+    Keys
+    ----
+    game_id, clock, period, period_label, home_score, away_score,
+    home_team, away_team,                       — team objects
+    home_q_scores, away_q_scores,               — list[int|None] per period
+    home_timeouts, away_timeouts,               — int remaining
+    home_in_bonus, away_in_bonus,               — bool
+    score_diff,                                 — int (home − away)
+    momentum,                                   — "home" | "away" | "even"
+    current_run,                                — dict with team/points/periods
+    quarter_summary,                            — list of period deltas
+    top_performers,                             — top 3 players by impact
+    foul_trouble,                               — players with ≥3 PF
+    hot_shooters,                               — players on 50%+ FG with ≥6 FGA
+    cold_shooters,                              — players on ≤25% FG with ≥6 FGA
+    high_turnover_players,                      — players with ≥4 TO
+    home_players, away_players,                 — full stat lines
+    is_live,                                    — bool
+    status,                                     — raw status string
+    """
+    logger.info("Fetching live game state | game_id=%d", game_id)
+
+    game_payload, stats_payload = await asyncio.gather(
+        _fetch_data(f"/games/{game_id}"),
+        _fetch_data("/stats", params={"game_ids[]": game_id, "per_page": _DEFAULT_PER_PAGE}),
+    )
+
+    game_raw: dict[str, Any] = game_payload.get("data") or {}
+    stats_raw: list[dict] = stats_payload.get("data") or []
+
+    # ── Basic game fields ──────────────────────────────────────────────────
+    period   = int(game_raw.get("period") or 0)
+    clock    = str(game_raw.get("time") or "")
+    status   = str(game_raw.get("status") or "")
+    is_live  = status.lower() not in ("final", "") and period > 0 and "final" not in status.lower()
+
+    home_score = int(game_raw.get("home_team_score") or 0)
+    away_score = int(game_raw.get("visitor_team_score") or 0)
+    score_diff = home_score - away_score
+
+    home_raw = game_raw.get("home_team") or {}
+    away_raw = game_raw.get("visitor_team") or {}
+
+    def _team(raw: dict) -> dict:
+        return {
+            "id": raw.get("id"),
+            "name": raw.get("full_name") or f"{raw.get('city','')} {raw.get('name','')}".strip(),
+            "abbreviation": raw.get("abbreviation") or "",
+            "city": raw.get("city") or "",
+        }
+
+    home_team = _team(home_raw)
+    away_team = _team(away_raw)
+
+    # ── Period label ──────────────────────────────────────────────────────
+    if period == 0:
+        period_label = "PRE-GAME"
+    elif period <= 4:
+        period_label = f"Q{period}"
+    elif period == 5:
+        period_label = "OT"
+    else:
+        period_label = f"OT{period - 4}"
+
+    # ── Quarter scores ────────────────────────────────────────────────────
+    def _q_scores(prefix: str) -> list[int | None]:
+        quarters = []
+        for q in ["q1", "q2", "q3", "q4", "ot1", "ot2", "ot3"]:
+            val = game_raw.get(f"{prefix}_{q}")
+            quarters.append(int(val) if val is not None else None)
+        return quarters
+
+    home_q = _q_scores("home")
+    away_q = _q_scores("visitor")
+
+    # ── Quarter summary (deltas per period) ───────────────────────────────
+    quarter_summary = []
+    labels = ["Q1", "Q2", "Q3", "Q4", "OT1", "OT2", "OT3"]
+    for i, lbl in enumerate(labels):
+        h, a = home_q[i], away_q[i]
+        if h is None or a is None:
+            break
+        quarter_summary.append({
+            "period": lbl,
+            "home": h,
+            "away": a,
+            "winner": "home" if h > a else ("away" if a > h else "even"),
+            "margin": abs(h - a),
+        })
+
+    # ── Momentum: which team won the most recent two completed periods ─────
+    momentum = "even"
+    if len(quarter_summary) >= 2:
+        recent = quarter_summary[-2:]
+        home_won = sum(1 for q in recent if q["winner"] == "home")
+        away_won = sum(1 for q in recent if q["winner"] == "away")
+        if home_won > away_won:
+            momentum = "home"
+        elif away_won > home_won:
+            momentum = "away"
+
+    # ── Current run: score in the most recent completed period ─────────────
+    current_run: dict[str, Any] = {}
+    if quarter_summary:
+        last = quarter_summary[-1]
+        if last["margin"] >= 8:
+            current_run = {
+                "team": home_team["name"] if last["winner"] == "home" else away_team["name"],
+                "points": last[last["winner"]] if last["winner"] != "even" else 0,
+                "opponent_points": last["away" if last["winner"] == "home" else "home"],
+                "period": last["period"],
+            }
+
+    # ── Player stat lines ─────────────────────────────────────────────────
+    home_id = home_raw.get("id")
+    away_id = away_raw.get("id")
+
+    home_players: list[dict] = []
+    away_players: list[dict] = []
+
+    for s in stats_raw:
+        p = s.get("player") or {}
+        t = s.get("team") or {}
+        mins_raw = str(s.get("min") or "0")
+        try:
+            mins = int(mins_raw.split(":")[0])
+        except (ValueError, AttributeError):
+            mins = 0
+
+        fgm, fga = int(s.get("fgm") or 0), int(s.get("fga") or 0)
+        fg3m, fg3a = int(s.get("fg3m") or 0), int(s.get("fg3a") or 0)
+        ftm, fta = int(s.get("ftm") or 0), int(s.get("fta") or 0)
+
+        line = {
+            "player": f"{p.get('first_name','')} {p.get('last_name','')}".strip(),
+            "player_id": p.get("id"),
+            "pos": p.get("position") or "",
+            "min": mins,
+            "pts": int(s.get("pts") or 0),
+            "reb": int(s.get("reb") or 0),
+            "ast": int(s.get("ast") or 0),
+            "stl": int(s.get("stl") or 0),
+            "blk": int(s.get("blk") or 0),
+            "to":  int(s.get("turnover") or 0),
+            "pf":  int(s.get("pf") or 0),
+            "fgm": fgm, "fga": fga,
+            "fg3m": fg3m, "fg3a": fg3a,
+            "ftm": ftm, "fta": fta,
+            "fg_pct": round(fgm / fga, 3) if fga > 0 else None,
+            "plus_minus": int(s.get("plus_minus") or 0),
+        }
+
+        tid = t.get("id")
+        if tid == home_id:
+            home_players.append(line)
+        elif tid == away_id:
+            away_players.append(line)
+
+    home_players.sort(key=lambda x: x["pts"], reverse=True)
+    away_players.sort(key=lambda x: x["pts"], reverse=True)
+    all_players = home_players + away_players
+
+    # ── Derived player flags ──────────────────────────────────────────────
+    def _impact(p: dict) -> float:
+        return p["pts"] + p["reb"] * 0.7 + p["ast"] * 0.7 + p["stl"] * 1.5 + p["blk"] * 1.5 - p["to"] * 1.2
+
+    top_performers = sorted(
+        [p for p in all_players if p["min"] >= 8],
+        key=_impact, reverse=True
+    )[:4]
+
+    foul_trouble = [
+        {"player": p["player"], "pf": p["pf"],
+         "team": home_team["name"] if p in home_players else away_team["name"]}
+        for p in all_players if p["pf"] >= 3
+    ]
+
+    hot_shooters = [
+        {"player": p["player"], "fgm": p["fgm"], "fga": p["fga"], "pts": p["pts"],
+         "team": home_team["name"] if p in home_players else away_team["name"]}
+        for p in all_players if p["fga"] >= 6 and (p["fg_pct"] or 0) >= 0.50
+    ]
+
+    cold_shooters = [
+        {"player": p["player"], "fgm": p["fgm"], "fga": p["fga"], "pts": p["pts"],
+         "team": home_team["name"] if p in home_players else away_team["name"]}
+        for p in all_players if p["fga"] >= 6 and (p["fg_pct"] or 1) <= 0.25
+    ]
+
+    high_turnover_players = [
+        {"player": p["player"], "to": p["to"],
+         "team": home_team["name"] if p in home_players else away_team["name"]}
+        for p in all_players if p["to"] >= 4
+    ]
+
+    return {
+        "game_id": game_id,
+        "clock": clock,
+        "period": period,
+        "period_label": period_label,
+        "home_score": home_score,
+        "away_score": away_score,
+        "score_diff": score_diff,
+        "home_team": home_team,
+        "away_team": away_team,
+        "home_q_scores": home_q,
+        "away_q_scores": away_q,
+        "home_timeouts": int(game_raw.get("home_timeouts_remaining") or 0),
+        "away_timeouts": int(game_raw.get("visitor_timeouts_remaining") or 0),
+        "home_in_bonus": bool(game_raw.get("home_in_bonus")),
+        "away_in_bonus": bool(game_raw.get("visitor_in_bonus")),
+        "momentum": momentum,
+        "current_run": current_run,
+        "quarter_summary": quarter_summary,
+        "top_performers": top_performers,
+        "foul_trouble": foul_trouble,
+        "hot_shooters": hot_shooters,
+        "cold_shooters": cold_shooters,
+        "high_turnover_players": high_turnover_players,
+        "home_players": home_players,
+        "away_players": away_players,
+        "is_live": is_live,
+        "status": status,
+    }
+
+
+# ---------------------------------------------------------------------------
 # Player Season Stats
 # ---------------------------------------------------------------------------
 

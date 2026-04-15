@@ -1848,6 +1848,219 @@ async def coach_adjustment(body: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+async def coach_live_adjustment(body: dict[str, Any]) -> dict[str, Any]:
+    """
+    Tactical engine for Coach Mode: pulls full live game state, detects scoring
+    runs, foul trouble, clock situations, and hot/cold players, then returns
+    structured JSON with prioritized adjustments.
+
+    Parameters
+    ----------
+    body:
+        - ``game_id`` (int): BallDontLie game ID.
+        - ``my_team`` (str): Team name for perspective framing.
+        - ``situation`` (str, optional): Coach's free-text context.
+    """
+    game_id: Optional[int] = body.get("game_id")
+    my_team: str = body.get("my_team") or ""
+    situation: str = body.get("situation") or ""
+
+    if not game_id:
+        return {"error": "game_id required"}
+
+    import json as _json
+
+    state = await nba_service.get_live_game_state(game_id)
+
+    home_name = state["home_team"]["name"]
+    away_name = state["away_team"]["name"]
+    home_abbr = state["home_team"]["abbreviation"]
+
+    is_home = my_team.lower() in (home_name + " " + home_abbr).lower() if my_team else True
+    my_name  = home_name if is_home else away_name
+    opp_name = away_name if is_home else home_name
+    my_score  = state["home_score"] if is_home else state["away_score"]
+    opp_score = state["away_score"] if is_home else state["home_score"]
+    diff = my_score - opp_score
+    diff_str = f"UP {abs(diff)}" if diff > 0 else (f"DOWN {abs(diff)}" if diff < 0 else "TIED")
+
+    my_timeouts  = state["home_timeouts"] if is_home else state["away_timeouts"]
+    opp_timeouts = state["away_timeouts"] if is_home else state["home_timeouts"]
+    my_bonus  = state["home_in_bonus"] if is_home else state["away_in_bonus"]
+    opp_bonus = state["away_in_bonus"] if is_home else state["home_in_bonus"]
+
+    my_players  = state["home_players"] if is_home else state["away_players"]
+    opp_players = state["away_players"] if is_home else state["home_players"]
+
+    # ── Quarter summary — detect scoring runs ─────────────────────────────
+    def _fmt_q_summary(qs: list[dict]) -> str:
+        lines = []
+        for q in qs:
+            home_pts = q["home"]
+            away_pts = q["away"]
+            my_pts   = home_pts if is_home else away_pts
+            opp_pts  = away_pts if is_home else home_pts
+            marker = " ◄ RUN" if abs(my_pts - opp_pts) >= 10 else ""
+            lines.append(f"  {q['period']}: {my_name} {my_pts} — {opp_pts} {opp_name}{marker}")
+        return "\n".join(lines)
+
+    q_block = _fmt_q_summary(state["quarter_summary"]) if state["quarter_summary"] else "  No completed periods yet."
+
+    # ── Run detection: has opponent outscored us 8+ in last period? ───────
+    run_alert = ""
+    if state["quarter_summary"]:
+        last_q = state["quarter_summary"][-1]
+        my_last  = last_q["home"] if is_home else last_q["away"]
+        opp_last = last_q["away"] if is_home else last_q["home"]
+        if opp_last - my_last >= 8:
+            run_alert = (
+                f"\n⚠️  OPPONENT RUN: {opp_name} outscored {my_name} {opp_last}-{my_last} "
+                f"in {last_q['period']}. Pattern response needed immediately.\n"
+            )
+        elif my_last - opp_last >= 8:
+            run_alert = (
+                f"\n✓ WE ARE ON A RUN: {my_name} outscored {opp_name} {my_last}-{opp_last} "
+                f"in {last_q['period']}. Sustain the pressure.\n"
+            )
+
+    # ── Clock management flags ────────────────────────────────────────────
+    clock_flags = []
+    period = state["period"]
+    clock  = state["clock"]
+    # 2-for-1 opportunity: ~35-45s left in a quarter
+    try:
+        if ":" in clock:
+            mins, secs = clock.split(":")
+            total_secs = int(mins) * 60 + int(secs)
+            if 30 <= total_secs <= 50 and period in (1, 2, 3):
+                clock_flags.append(f"2-FOR-1 OPPORTUNITY: ~{clock} left in {state['period_label']} — push pace to get an extra possession.")
+            if total_secs <= 90 and period == 4 and abs(diff) <= 5:
+                clock_flags.append(f"LATE GAME: {clock} left in Q4, game within {abs(diff)}. Every possession is critical — control the clock.")
+            if total_secs <= 30 and period == 4 and diff < 0:
+                clock_flags.append(f"URGENT FOUL: DOWN {abs(diff)} with {clock} left. Must foul immediately if not already.")
+    except (ValueError, AttributeError):
+        pass
+
+    # ── Player stat lines ─────────────────────────────────────────────────
+    def _fmt_players(players: list[dict], label: str) -> str:
+        if not players:
+            return ""
+        lines = [f"\n{label}:"]
+        for p in players[:8]:
+            fg_str = f"{p['fgm']}/{p['fga']}" if p["fga"] > 0 else "0/0"
+            lines.append(
+                f"  {p['player']} ({p['pos']}): {p['pts']}pts {p['reb']}reb {p['ast']}ast "
+                f"{p['to']}TO {p['pf']}PF {fg_str}FG +{p['plus_minus']} | {p['min']}min"
+            )
+        return "\n".join(lines)
+
+    foul_block = ""
+    if state["foul_trouble"]:
+        names = ", ".join(f"{f['player']} ({f['pf']} PF)" for f in state["foul_trouble"])
+        foul_block = f"\nFOUL TROUBLE: {names}"
+
+    hot_block = ""
+    if state["hot_shooters"]:
+        names = ", ".join(f"{h['player']} ({h['fgm']}/{h['fga']}FG, {h['pts']}pts)" for h in state["hot_shooters"])
+        hot_block = f"\nHOT: {names}"
+
+    cold_block = ""
+    if state["cold_shooters"]:
+        names = ", ".join(f"{c['player']} ({c['fgm']}/{c['fga']}FG)" for c in state["cold_shooters"])
+        cold_block = f"\nCOLD: {names}"
+
+    to_block = ""
+    if state["high_turnover_players"]:
+        names = ", ".join(f"{t['player']} ({t['to']} TO)" for t in state["high_turnover_players"])
+        to_block = f"\nHIGH TURNOVERS: {names}"
+
+    situation_line = situation or "Give me the most critical adjustment right now."
+
+    clock_flag_block = "\n".join(clock_flags) if clock_flags else ""
+
+    prompt = f"""LIVE TACTICAL BRIEF — {state['period_label']} | {clock} | {my_name} {my_score} — {opp_score} {opp_name} ({diff_str})
+Timeouts: {my_name} {my_timeouts} | {opp_name} {opp_timeouts}
+Bonus: {my_name} {'YES' if my_bonus else 'no'} | {opp_name} {'YES' if opp_bonus else 'no'}
+{run_alert}
+QUARTER-BY-QUARTER SCORING:
+{q_block}
+{clock_flag_block}
+{foul_block}{hot_block}{cold_block}{to_block}
+{_fmt_players(my_players, my_name + ' (MY TEAM)')}
+{_fmt_players(opp_players, opp_name + ' (OPPONENT)')}
+
+COACH'S QUESTION: {situation_line}
+
+Return a JSON object with exactly these fields:
+{{
+  "priority_adjustment": "The single most important thing to fix or exploit RIGHT NOW — name players and scheme",
+  "run_response": "If opponent is on a run, the specific tactical counter. If we're on a run, how to sustain it. If no run, null",
+  "lineup_change": "Specific substitution to make now and why — or null if lineup is correct",
+  "defensive_call": "The exact defensive scheme or coverage adjustment for the next 2-3 possessions — name who guards who",
+  "offensive_call": "The specific play or action to run next possession — name the play, the ball-handler, the target",
+  "clock_management": "Clock-specific instruction if relevant (2-for-1, foul, hold ball) — or null",
+  "foul_management": "Who to protect/bench due to foul trouble — or null",
+  "momentum_read": "one sentence on who has momentum and why the numbers say so",
+  "urgency": "low|medium|high|critical"
+}}
+Return only valid JSON. No text outside the object."""
+
+    _COACH_LIVE_SYSTEM = (
+        "You are an elite NBA head coach making real-time decisions during a live game. "
+        "You have the full game state, quarter-by-quarter scoring, and complete box score. "
+        "CRITICAL: Every answer must name specific players from the provided data. "
+        "Detect opponent scoring runs from the quarter summary — 8+ point swing = a run that needs an immediate tactical response. "
+        "2-for-1 opportunities are real clock management leverage — call them when the window is open. "
+        "Foul trouble players must be managed — their minutes matter more than their talent right now. "
+        "Hot shooters must get the ball. Cold shooters must be screened away or benched. "
+        "High-turnover players should not be handling late-game possessions. "
+        "Return only valid JSON with no prose outside it. Be decisive. Coaches need clarity in 10 seconds."
+    )
+
+    result = await claude_service.analyze(
+        prompt=prompt,
+        system_prompt=_COACH_LIVE_SYSTEM,
+        override_model=_FAST_MODEL,
+        override_max_tokens=900,
+        override_temperature=0.1,
+    )
+
+    # Parse JSON response
+    raw = result.analysis.strip()
+    if raw.startswith("```"):
+        raw = raw.split("```")[1]
+        if raw.startswith("json"):
+            raw = raw[4:]
+        raw = raw.strip()
+
+    try:
+        parsed = _json.loads(raw)
+    except Exception:
+        logger.warning("coach_live_adjustment JSON parse failed | game_id=%d", game_id)
+        parsed = {"priority_adjustment": result.analysis}
+
+    logger.info("Coach live adjustment complete | game_id=%d period=%s", game_id, state["period_label"])
+
+    return {
+        "game_id": game_id,
+        "my_team": my_name,
+        "game_state": {
+            "period": state["period_label"],
+            "clock": clock,
+            "score": f"{my_name} {my_score} — {opp_score} {opp_name}",
+            "diff": diff_str,
+            "momentum": state["momentum"],
+            "current_run": state["current_run"],
+        },
+        "adjustment": parsed,
+        "foul_trouble": state["foul_trouble"],
+        "hot_shooters": state["hot_shooters"],
+        "cold_shooters": state["cold_shooters"],
+        "quarter_summary": state["quarter_summary"],
+        "tokens_used": result.tokens_used,
+    }
+
+
 async def timeout_play(body: dict[str, Any]) -> dict[str, Any]:
     """
     Draw up a specific in-bounds or half-court play for use coming out of a timeout.

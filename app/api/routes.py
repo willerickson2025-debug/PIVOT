@@ -154,6 +154,15 @@ async def get_game_boxscore(game_id: int):
         raise HTTPException(status_code=502, detail=f"BallDontLie API error: {str(e)}")
 
 
+@router.get("/nba/games/{game_id}/live-state")
+async def get_live_game_state(game_id: int):
+    """Rich live game state: quarter scores, momentum, run detection, player flags."""
+    try:
+        return await nba_service.get_live_game_state(game_id)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"BallDontLie API error: {str(e)}")
+
+
 @router.get("/nba/players/{player_id}/stats")
 async def get_player_stats(player_id: int, season: int = Query(2025, description="NBA season year")):
     try:
@@ -227,6 +236,17 @@ async def predict_game(request: Request, _key: str = Depends(verify_api_key)):
     try:
         body = await request.json()
         return await analysis_service.predict_game(body)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+
+@router.post("/analysis/coach-live")
+@limiter.limit(_CLAUDE_LIMIT)
+async def coach_live(request: Request, _key: str = Depends(verify_api_key)):
+    """Live tactical engine: run detection, clock management, structured adjustments."""
+    try:
+        body = await request.json()
+        return await analysis_service.coach_live_adjustment(body)
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e))
 
