@@ -5234,7 +5234,7 @@ function Teams() {
   React.useEffect(() => {
     fetch(`${API}/nba/teams`)
       .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d?.teams) setTeams(d.teams.sort((a,b) => a.full_name.localeCompare(b.full_name))); setTeamsLoading(false); })
+      .then(d => { if (d?.teams) setTeams(d.teams.sort((a,b) => a.name.localeCompare(b.name))); setTeamsLoading(false); })
       .catch(() => setTeamsLoading(false));
   }, []);
 
@@ -5246,7 +5246,7 @@ function Teams() {
   const loadDna = () => {
     if (!selected || dnaLoading) return;
     setDnaLoading(true); setDnaText('');
-    fetch(`${API}/analysis/team-dna?team_name=${encodeURIComponent(selected.full_name)}`)
+    fetch(`${API}/analysis/team-dna?team_name=${encodeURIComponent(selected.name)}`)
       .then(r => r.ok ? r.json() : r.json().then(e => { throw new Error(e.detail || 'Failed'); }))
       .then(d => { setDnaText(d.analysis || JSON.stringify(d)); setDnaLoading(false); })
       .catch(e => { setDnaText('Failed to load. Try again.'); setDnaLoading(false); });
@@ -5255,7 +5255,7 @@ function Teams() {
   const loadRoster = () => {
     if (!selected || rosterLoading) return;
     setRosterLoading(true); setRosterText('');
-    fetch(`${API}/frontoffice/roster?team_name=${encodeURIComponent(selected.full_name)}`)
+    fetch(`${API}/frontoffice/roster?team_name=${encodeURIComponent(selected.name)}`)
       .then(r => r.ok ? r.json() : r.json().then(e => { throw new Error(e.detail || 'Failed'); }))
       .then(d => { setRosterText(d.analysis || JSON.stringify(d)); setRosterLoading(false); })
       .catch(e => { setRosterText('Failed to load. Try again.'); setRosterLoading(false); });
@@ -5309,6 +5309,7 @@ function Teams() {
                       <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:7, letterSpacing:3, color:'rgba(255,255,255,0.25)', fontWeight:700, textTransform:'uppercase', marginBottom:6}}>{div}</div>
                       {divTeams.map(team => {
                         const isActive = selected?.id === team.id;
+                        const slug = BDL_SLUG[team.abbreviation?.toUpperCase()] || team.abbreviation?.toLowerCase();
                         return (
                           <div key={team.id} onClick={() => selectTeam(team)}
                             style={{display:'flex', alignItems:'center', gap:12, padding:'10px 14px', marginBottom:4,
@@ -5318,13 +5319,11 @@ function Teams() {
                               boxShadow: isActive ? '0 0 16px rgba(0,255,128,0.06)' : 'none'}}
                             onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background='rgba(255,255,255,0.045)'; e.currentTarget.style.borderColor='rgba(255,255,255,0.1)'; }}}
                             onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background='rgba(255,255,255,0.02)'; e.currentTarget.style.borderColor='rgba(255,255,255,0.05)'; }}}>
-                            {teamLogoUrl(team.abbreviation) && (
-                              <img src={teamLogoUrl(team.abbreviation)} alt={team.abbreviation} width={22} height={22}
-                                style={{objectFit:'contain', opacity: isActive ? 1 : 0.55}}
-                                onError={e=>e.currentTarget.style.display='none'}/>
-                            )}
+                            <img src={`https://a.espncdn.com/i/teamlogos/nba/500/${slug}.png`} alt={team.abbreviation} width={24} height={24}
+                              style={{objectFit:'contain', opacity: isActive ? 1 : 0.6, flexShrink:0}}
+                              onError={e=>e.currentTarget.style.display='none'}/>
                             <div style={{flex:1}}>
-                              <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:12, fontWeight:700, color: isActive ? 'var(--green)' : 'rgba(255,255,255,0.82)', letterSpacing:0, textTransform:'none'}}>{team.full_name}</div>
+                              <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:12, fontWeight:700, color: isActive ? 'var(--green)' : 'rgba(255,255,255,0.82)', letterSpacing:0, textTransform:'none'}}>{team.name}</div>
                               <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:2, color:'rgba(255,255,255,0.28)', fontWeight:700, textTransform:'uppercase', marginTop:1}}>{team.abbreviation}</div>
                             </div>
                             <div style={{fontSize:9, color: isActive ? 'var(--green)' : 'rgba(255,255,255,0.2)'}}>→</div>
@@ -5343,13 +5342,12 @@ function Teams() {
             <div style={{background:'rgba(22,27,34,0.7)', border:'1px solid var(--border)', borderRadius:12, overflow:'hidden', backdropFilter:'blur(8px)'}}>
               {/* Header */}
               <div style={{padding:'24px 28px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', gap:16, background:'rgba(0,0,0,0.2)'}}>
-                {teamLogoUrl(selected.abbreviation) && (
-                  <img src={teamLogoUrl(selected.abbreviation)} alt={selected.abbreviation} width={44} height={44}
-                    style={{objectFit:'contain'}} onError={e=>e.currentTarget.style.display='none'}/>
-                )}
+                <img src={`https://a.espncdn.com/i/teamlogos/nba/500/${BDL_SLUG[selected.abbreviation?.toUpperCase()] || selected.abbreviation?.toLowerCase()}.png`}
+                  alt={selected.abbreviation} width={52} height={52}
+                  style={{objectFit:'contain', flexShrink:0}} onError={e=>e.currentTarget.style.display='none'}/>
                 <div>
-                  <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:22, fontWeight:700, color:'var(--white)', letterSpacing:-0.5, textTransform:'none'}}>{selected.full_name}</div>
-                  <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:3, color:'rgba(255,255,255,0.35)', fontWeight:700, marginTop:4}}>{selected.conference}ERN · {selected.division}</div>
+                  <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:22, fontWeight:700, color:'var(--white)', letterSpacing:-0.5, textTransform:'none'}}>{selected.name}</div>
+                  <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:3, color:'rgba(255,255,255,0.35)', fontWeight:700, marginTop:4}}>{selected.conference}ern Conference · {selected.division}</div>
                 </div>
               </div>
 
