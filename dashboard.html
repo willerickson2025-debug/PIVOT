@@ -1108,6 +1108,19 @@ function GameModal({ game, onClose }) {
   const [predError, setPredError] = React.useState(null);
   const predFetchedRef = React.useRef(false);
 
+  // Shared live state — single poll fed to both LiveStateBanner and LiveFeedTab
+  const [liveState, setLiveState] = React.useState(null);
+  React.useEffect(() => {
+    if (type !== 'live') return;
+    const load = () => fetch(`${API}/nba/games/${game.id}/live-state`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d) setLiveState(d); })
+      .catch(() => {});
+    load();
+    const iv = setInterval(load, 15000);
+    return () => clearInterval(iv);
+  }, [game.id]);
+
   // Box score fetch
   React.useEffect(() => {
     const load = async () => {
@@ -1244,7 +1257,7 @@ function GameModal({ game, onClose }) {
         </div>
         {/* Live state banner — quarter scores, clock, momentum, foul trouble */}
         {type === 'live' && (
-          <LiveStateBanner gameId={game.id} homeAbbr={game.home_team.abbreviation} awayAbbr={game.visitor_team.abbreviation}/>
+          <LiveStateBanner state={liveState} homeAbbr={game.home_team.abbreviation} awayAbbr={game.visitor_team.abbreviation}/>
         )}
         <div>
           {/* Green action buttons */}
@@ -1281,7 +1294,7 @@ function GameModal({ game, onClose }) {
 
           {/* LIVE FEED */}
           {activeTab === 'livefeed' && (
-            <LiveFeedTab gameId={game.id} homeAbbr={game.home_team.abbreviation} awayAbbr={game.visitor_team.abbreviation}/>
+            <LiveFeedTab state={liveState} homeAbbr={game.home_team.abbreviation} awayAbbr={game.visitor_team.abbreviation}/>
           )}
 
           {/* ANALYSIS */}
@@ -1434,81 +1447,53 @@ function GameModal({ game, onClose }) {
 // ── Shared game-data components used in both Analysis and Predict tabs ─────
 
 // ── Live Feed Tab — play-by-play narrative derived from live state ──────────
-function LiveFeedTab({ gameId, homeAbbr, awayAbbr }) {
-  const [state, setState] = React.useState(null);
+function LiveFeedTab({ state, homeAbbr, awayAbbr }) {
   const [events, setEvents] = React.useState([]);
   const prevStateRef = React.useRef(null);
 
-  // Build narrative events from a live state snapshot
-  const buildEvents = (s, prev) => {
+  React.useEffect(() => {
+    if (!state) return;
+    const s = state;
     const ts = Date.now();
-    const newEvts = [];
-
     const p = s.period || 0;
     const periodStr = p <= 4 ? `Q${p}` : p === 5 ? 'OT' : `OT${p-4}`;
     const clock = s.clock && s.clock !== 'Final' ? s.clock : '';
+    const timeLabel = `${periodStr}${clock ? ' ' + clock : ''}`;
+    const newEvts = [];
 
-    // Score update event
-    newEvts.push({ id: `score-${ts}`, time: `${periodStr}${clock ? ' ' + clock : ''}`, type: 'score',
-      text: `${awayAbbr} ${s.away_score} — ${homeAbbr} ${s.home_score}` });
+    newEvts.push({ id:`score-${ts}`, time:timeLabel, type:'score',
+      text:`${awayAbbr} ${s.away_score} — ${homeAbbr} ${s.home_score}` });
 
-    // Run alert
     if (s.current_run?.team && s.current_run.points >= 6) {
       const runTeam = s.current_run.team.split(' ').pop();
-      newEvts.push({ id: `run-${ts}`, time: periodStr, type: 'run',
-        text: `${runTeam} on a ${s.current_run.points}-${s.current_run.opponent_points} run in ${s.current_run.period}` });
+      newEvts.push({ id:`run-${ts}`, time:periodStr, type:'run',
+        text:`${runTeam} on a ${s.current_run.points}-${s.current_run.opponent_points} run in ${s.current_run.period}` });
     }
-
-    // Momentum shift
     if (s.momentum !== 'even') {
-      const momTeam = s.momentum === 'home' ? homeAbbr : awayAbbr;
-      newEvts.push({ id: `mom-${ts}`, time: periodStr, type: 'momentum', text: `${momTeam} with the momentum edge` });
+      newEvts.push({ id:`mom-${ts}`, time:periodStr, type:'momentum',
+        text:`${s.momentum === 'home' ? homeAbbr : awayAbbr} with the momentum edge` });
     }
-
-    // Top performers
-    (s.top_performers || []).slice(0, 3).forEach(p => {
-      const parts = [p.pts != null && `${p.pts} PTS`, p.reb != null && `${p.reb} REB`, p.ast != null && `${p.ast} AST`].filter(Boolean);
-      if (parts.length) newEvts.push({ id: `perf-${p.player}-${ts}`, time: periodStr, type: 'performer',
-        text: `${p.player} — ${parts.join(', ')}` });
+    (s.top_performers || []).slice(0,3).forEach(pl => {
+      const parts = [pl.pts != null && `${pl.pts} PTS`, pl.reb != null && `${pl.reb} REB`, pl.ast != null && `${pl.ast} AST`].filter(Boolean);
+      if (parts.length) newEvts.push({ id:`perf-${pl.player}-${ts}`, time:periodStr, type:'performer',
+        text:`${pl.player} — ${parts.join(', ')}` });
     });
-
-    // Hot shooters
-    (s.hot_shooters || []).forEach(p => {
-      newEvts.push({ id: `hot-${p.player}-${ts}`, time: periodStr, type: 'hot',
-        text: `${p.player} running hot — ${p.fgm}/${p.fga} FG` });
+    (s.hot_shooters || []).forEach(pl => {
+      newEvts.push({ id:`hot-${pl.player}-${ts}`, time:periodStr, type:'hot',
+        text:`${pl.player} running hot — ${pl.fgm}/${pl.fga} FG` });
     });
-
-    // Foul trouble
     (s.foul_trouble || []).forEach(f => {
-      newEvts.push({ id: `foul-${f.player}-${ts}`, time: periodStr, type: 'foul',
-        text: `${f.player} in foul trouble — ${f.pf} PF` });
+      newEvts.push({ id:`foul-${f.player}-${ts}`, time:periodStr, type:'foul',
+        text:`${f.player} in foul trouble — ${f.pf} PF` });
+    });
+    (s.high_turnover_players || []).forEach(pl => {
+      newEvts.push({ id:`to-${pl.player}-${ts}`, time:periodStr, type:'to',
+        text:`${pl.player} — ${pl.to} turnovers` });
     });
 
-    // High turnover players
-    (s.high_turnover_players || []).forEach(p => {
-      newEvts.push({ id: `to-${p.player}-${ts}`, time: periodStr, type: 'to',
-        text: `${p.player} — ${p.to} turnovers` });
-    });
-
-    return newEvts;
-  };
-
-  React.useEffect(() => {
-    if (!gameId) return;
-    const load = () => fetch(`${API}/nba/games/${gameId}/live-state`)
-      .then(r => r.ok ? r.json() : null)
-      .then(s => {
-        if (!s) return;
-        setState(s);
-        const newEvts = buildEvents(s, prevStateRef.current);
-        setEvents(prev => [...newEvts, ...prev].slice(0, 40));
-        prevStateRef.current = s;
-      })
-      .catch(() => {});
-    load();
-    const iv = setInterval(load, 15000);
-    return () => clearInterval(iv);
-  }, [gameId]);
+    setEvents(prev => [...newEvts, ...prev].slice(0, 40));
+    prevStateRef.current = s;
+  }, [state]);
 
   const TYPE_STYLES = {
     score:     { color: 'var(--white)',             icon: '●', iconColor: 'var(--green)' },
@@ -1548,13 +1533,13 @@ function LiveFeedTab({ gameId, homeAbbr, awayAbbr }) {
               <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:28, fontWeight:700, color:'var(--white)', letterSpacing:0, lineHeight:1}}>{state.home_score}</div>
             </div>
           </div>
-          <span style={{marginLeft:'auto', fontFamily:'Helvetica Neue, sans-serif', fontSize:8, letterSpacing:3, color:'rgba(0,255,128,0.35)', fontWeight:700}}>LIVE · AUTO-REFRESH 15s</span>
+          <span style={{marginLeft:'auto', fontFamily:'Helvetica Neue, sans-serif', fontSize:8, letterSpacing:3, color:'rgba(0,255,128,0.35)', fontWeight:700}}>AUTO-REFRESH 15s</span>
         </div>
       )}
 
       {/* Events feed */}
       <div style={{maxHeight:400, overflowY:'auto', padding:'8px 0'}}>
-        {!state && <div style={{padding:'40px', textAlign:'center', fontSize:10, letterSpacing:4, color:'#333'}}>Loading live feed…</div>}
+        {!state && <div style={{padding:'40px', textAlign:'center', fontSize:10, letterSpacing:4, color:'#333'}}>Awaiting live data…</div>}
         {events.map((evt, i) => {
           const s = TYPE_STYLES[evt.type] || TYPE_STYLES.score;
           return (
@@ -1574,18 +1559,7 @@ function LiveFeedTab({ gameId, homeAbbr, awayAbbr }) {
 }
 
 // ── Live State Banner — shown in GameModal for live games ──────────────────
-function LiveStateBanner({ gameId, homeAbbr, awayAbbr }) {
-  const [state, setState] = React.useState(null);
-  React.useEffect(() => {
-    if (!gameId) return;
-    const load = () => fetch(`${API}/nba/games/${gameId}/live-state`)
-      .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d) setState(d); })
-      .catch(() => {});
-    load();
-    const iv = setInterval(load, 15000);
-    return () => clearInterval(iv);
-  }, [gameId]);
+function LiveStateBanner({ state, homeAbbr, awayAbbr }) {
   if (!state) return null;
 
   const qs = state.quarter_summary || [];
