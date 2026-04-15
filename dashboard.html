@@ -4310,9 +4310,10 @@ function CoachMode() {
   const run = async () => {
     setLoading(true); setError(null);
     try {
-      const endpoint = mode === 'live'
-        ? '/analysis/coach-live'
-        : mode === 'adjust' ? '/coach/adjust' : '/coach/timeout';
+      const endpoint = mode === 'live'    ? '/analysis/coach-live'
+                     : mode === 'adjust'  ? '/coach/adjust'
+                     : mode === 'defense' ? '/coach/defense'
+                     :                     '/coach/timeout';
       const r = await fetch(`${API}${endpoint}`, {
         method: 'POST', headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ game_id: selectedGame?.id, my_team: myTeam }),
@@ -4474,8 +4475,8 @@ function CoachMode() {
           </div>
 
           <div style={{fontSize:8, letterSpacing:5, color:'rgba(0,255,128,0.82)', marginBottom:10, fontFamily:'Helvetica Neue, sans-serif'}}>⬡ MODE</div>
-          <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:4, marginBottom:24}}>
-            {[['live','LIVE INTEL'],['adjust','ADJUST'],['timeout','DRAW PLAY']].map(([id, lbl]) => (
+          <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:4, marginBottom:24}}>
+            {[['live','LIVE INTEL'],['adjust','ADJUST'],['defense','DEF PLAY'],['timeout','OFF PLAY']].map(([id, lbl]) => (
               <button key={id} onClick={() => setMode(id)}
                 style={{background: mode===id ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.5)',
                   color: mode===id ? '#000' : '#333',
@@ -4494,7 +4495,7 @@ function CoachMode() {
               background: loading ? '#111' : !myTeam ? '#0a0a0a' : 'var(--green)',
               color: loading||!myTeam ? '#2a2a2a' : '#000',
               boxShadow: (!loading && myTeam) ? '0 0 20px rgba(0,255,128,0.2)' : 'none'}}>
-            {loading ? '◌ COMPUTING' : !myTeam ? 'SELECT TEAM' : mode==='live' ? 'GET LIVE INTEL' : mode==='adjust' ? 'GET ADJUSTMENTS' : 'DRAW THE PLAY'}
+            {loading ? '◌ COMPUTING' : !myTeam ? 'SELECT TEAM' : mode==='live' ? 'GET LIVE INTEL' : mode==='adjust' ? 'GET ADJUSTMENTS' : mode==='defense' ? 'DESIGN DEFENSE' : 'DRAW THE PLAY'}
           </button>
         </div>
       </div>
@@ -4583,7 +4584,7 @@ function CoachMode() {
               ))}
             </div>
             <div style={{fontSize:8, letterSpacing:6, color:'rgba(0,255,128,0.9)', fontFamily:'Helvetica Neue, sans-serif'}}>
-              {mode === 'live' ? 'READING LIVE STATE' : mode === 'timeout' ? 'DRAWING PLAY' : 'COMPUTING ADJUSTMENTS'}
+              {mode === 'live' ? 'READING LIVE STATE' : mode === 'defense' ? 'DESIGNING DEFENSE' : mode === 'timeout' ? 'DRAWING PLAY' : 'COMPUTING ADJUSTMENTS'}
             </div>
           </div>
         )}
@@ -4595,7 +4596,7 @@ function CoachMode() {
           <div style={{padding:'32px 40px'}}>
             <div style={{display:'flex', gap:16, alignItems:'center', marginBottom:24, flexWrap:'wrap'}}>
               <div style={{fontSize:8, letterSpacing:4, color:'var(--green)', fontFamily:'Helvetica Neue, sans-serif'}}>
-                {result.mode === 'live' ? '⊙ LIVE INTEL' : result.mode === 'timeout' ? '⊙ PLAY DRAWN' : '⊙ ADJUSTMENTS READY'}
+                {result.mode === 'live' ? '⊙ LIVE INTEL' : result.mode === 'defense' ? '⊙ DEFENSE SET' : result.mode === 'timeout' ? '⊙ PLAY DRAWN' : '⊙ ADJUSTMENTS READY'}
               </div>
               <div style={{fontSize:8, letterSpacing:2, color:'#333', fontFamily:'Helvetica Neue, sans-serif'}}>{result.my_team?.toUpperCase()}</div>
               {result.game_state?.period && (
@@ -4676,18 +4677,20 @@ function CoachMode() {
               );
             })()}
 
-            {/* Court diagram for timeout plays */}
-            {result.mode === 'timeout' && result.diagram && (
+            {/* Court diagram for timeout / defensive plays */}
+            {(result.mode === 'timeout' || result.mode === 'defense') && result.diagram && (
               <div style={{marginBottom:28, borderRadius:4, overflow:'hidden', border:'1px solid rgba(0,255,128,0.1)'}}>
                 <div style={{padding:'8px 12px', background:'rgba(0,0,0,0.6)', borderBottom:'1px solid rgba(0,255,128,0.1)',
                   fontSize:7, letterSpacing:4, color:'rgba(0,255,128,0.82)', fontFamily:'Helvetica Neue, sans-serif'}}>
-                  PLAY DIAGRAM  ·  ● OFFENSE  ─ ─ BALL  → CUT
+                  {result.mode === 'defense'
+                    ? 'DEFENSIVE DIAGRAM  ·  ● DEFENDER  → ASSIGNMENT  ▦ ZONE'
+                    : 'PLAY DIAGRAM  ·  ● OFFENSE  ─ ─ BALL  → CUT'}
                 </div>
                 <CourtDiagram diagram={result.diagram}/>
               </div>
             )}
 
-            {/* Standard prose result for adjust/timeout modes */}
+            {/* Standard prose result for adjust/timeout/defense modes */}
             {result.mode !== 'live' && (
               <div style={{fontSize:14, lineHeight:2.1, letterSpacing:.3, color:'var(--white)',
                 whiteSpace:'pre-wrap', fontWeight:700, textTransform:'none', fontFamily:'Helvetica Neue, sans-serif'}}>

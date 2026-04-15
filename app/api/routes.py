@@ -443,6 +443,20 @@ async def timeout_play(request: Request, body: dict = Body(...), _key: str = Dep
         raise HTTPException(status_code=502, detail=str(e))
 
 
+@router.post("/coach/defense")
+@limiter.limit(_CLAUDE_LIMIT)
+async def defensive_play(request: Request, body: dict = Body(...), _key: str = Depends(verify_api_key)):
+    """
+    Design a defensive scheme. Reads live box score, identifies opponent threats,
+    and prescribes a named scheme with exact player-by-player assignments.
+    Expects: { "game_id": 12345, "my_team": "Lakers", "situation": "optional context" }
+    """
+    try:
+        return await analysis_service.defensive_play(body)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+
 # ── Standings ────────────────────────────────────────────────────────────────
 
 @router.get("/standings")

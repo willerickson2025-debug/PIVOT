@@ -2219,6 +2219,184 @@ async def timeout_play(body: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+async def defensive_play(body: dict[str, Any]) -> dict[str, Any]:
+    """
+    Design a specific defensive assignment or scheme coming out of a timeout.
+
+    Reads the live box score to identify the opponent's hot players, shooting
+    patterns, and foul trouble, then prescribes a named defensive scheme with
+    exact player-by-player assignments and a rotation diagram.
+
+    Parameters
+    ----------
+    body:
+        - ``game_id`` (int, optional): BallDontLie game ID.
+        - ``my_team`` (str, optional): Team name for perspective framing.
+        - ``situation`` (str, optional): Coach's specific defensive concern.
+    """
+    game_id: Optional[int] = body.get("game_id")
+    my_team: str = body.get("my_team") or ""
+    situation: str = body.get("situation") or ""
+
+    score_diff: int = 0
+    time_remaining: str = ""
+    quarter: int = 4
+    game_context: str = ""
+    my_players_lines: str = ""
+    opp_players_lines: str = ""
+    threat_block: str = ""
+
+    logger.info("Defensive play | game_id=%s team=%r", game_id, my_team)
+
+    if game_id:
+        try:
+            box = await nba_service.get_game_boxscore(game_id)
+            state = await nba_service.get_live_game_state(game_id)
+
+            if box and box.get("total_players", 0) > 0:
+                game_info = box.get("game_info") or {}
+                home_t = box.get("home_team") or {}
+                away_t = box.get("away_team") or {}
+
+                home_score = int(game_info.get("home_team_score") or 0)
+                away_score = int(game_info.get("away_team_score") or 0)
+                period = int(game_info.get("period") or 0)
+                clock = game_info.get("time") or ""
+                home_name = home_t.get("name") or "Home"
+                home_abbr = home_t.get("abbreviation") or ""
+                away_name = away_t.get("name") or "Away"
+
+                is_home = my_team.lower() in (home_name + " " + home_abbr).lower()
+                my_score = home_score if is_home else away_score
+                opp_score_val = away_score if is_home else home_score
+                score_diff = my_score - opp_score_val
+                quarter = period if period > 0 else 4
+                time_remaining = clock
+                diff_str = f"UP {abs(score_diff)}" if score_diff > 0 else (f"DOWN {abs(score_diff)}" if score_diff < 0 else "TIED")
+                quarter_label = f"Q{quarter}" if quarter <= 4 else ("OT" if quarter == 5 else f"OT{quarter - 4}")
+                game_context = (
+                    f"SCORE: {away_name} {away_score} — {home_score} {home_name}\n"
+                    f"PERIOD: {quarter_label} {clock} | MY TEAM ({my_team or home_name}): {diff_str}"
+                )
+
+                my_key  = "home_players" if is_home else "away_players"
+                opp_key = "away_players" if is_home else "home_players"
+
+                def _fmt(players: list[dict], label: str) -> str:
+                    lines = [f"{label}:"]
+                    for p in players[:8]:
+                        fg = f"{p.get('fgm',0)}/{p.get('fga',0)}" if isinstance(p.get('fga'), int) else p.get('fg','')
+                        lines.append(
+                            f"  {p['player']} ({p.get('pos','')}) #{p.get('jersey','')}:"
+                            f" {p['pts']}pts {p['reb']}reb {p['ast']}ast {p.get('fg3','') or ''} {fg}FG {p.get('min','?')}min {p['pf']}PF"
+                        )
+                    return "\n".join(lines)
+
+                my_players_lines  = _fmt(box.get(my_key) or [], "MY DEFENDERS")
+                opp_players_lines = _fmt(box.get(opp_key) or [], "OPPONENT THREATS")
+
+                # Identify the top scoring threats on the opponent
+                opp_players = box.get(opp_key) or []
+                threats = sorted(opp_players, key=lambda p: p["pts"], reverse=True)[:3]
+                hot = state.get("hot_shooters") or []
+                opp_hot = [h for h in hot if h.get("team") != (home_name if is_home else away_name)]
+                if threats or opp_hot:
+                    parts = [f"{t['player']} ({t['pts']}pts, {t.get('fg','?')}FG)" for t in threats]
+                    if opp_hot:
+                        parts += [f"{h['player']} ({h['fgm']}/{h['fga']}FG — HOT)" for h in opp_hot]
+                    threat_block = f"\nKEY THREATS TO STOP: {', '.join(parts)}"
+
+        except Exception as exc:
+            logger.warning("Failed to fetch data for defensive play | game_id=%s error=%s", game_id, exc)
+
+    situation_line = situation or "Design the best defensive assignment for the next possession."
+
+    _DEF_SCHEME_NAMES = (
+        "man-to-man, switching man, ICE coverage (force baseline on ball screens), "
+        "drop coverage (sag the big under screens), hedge-and-recover, show-and-recover, "
+        "box-and-one, triangle-and-two, 2-3 zone, 1-3-1 zone, full-court press, "
+        "3/4 court trap, deny-the-entry, pack-the-paint, blitz the ball screen"
+    )
+
+    prompt_parts = [
+        "DEFENSIVE TIMEOUT — Design the exact defensive scheme. Executable in 20 seconds.\n",
+        f"Team: {my_team or 'My team'}",
+    ]
+    if game_context:
+        prompt_parts.append(game_context)
+    if threat_block:
+        prompt_parts.append(threat_block)
+    if my_players_lines:
+        prompt_parts.append(my_players_lines)
+    if opp_players_lines:
+        prompt_parts.append(opp_players_lines)
+    prompt_parts += [
+        f"\nCOACH'S CALL: {situation_line}",
+        "",
+        "Respond with:",
+        "1. SCHEME NAME — pick the exact defensive scheme from this list or name a variation: " + _DEF_SCHEME_NAMES,
+        "2. WHY THIS SCHEME — one sentence on why it neutralizes the specific threat right now",
+        "3. ASSIGNMENTS — name every defender and exactly who/what they guard:",
+        "   - Who takes the primary ball-handler",
+        "   - Who takes the best scorer",
+        "   - Big's positioning (drop, hedge, switch, or protect rim)",
+        "   - Help-side responsibilities",
+        "   - Any traps, denials, or special instructions",
+        "4. ROTATION RULE — one sentence on what triggers the first rotation and who covers",
+        "5. ADJUSTMENT — what the opponent will try to counter with, and how you pre-empt it",
+        "",
+        "Name every player by last name. Use their actual stats from the box score.",
+        "Then on the very last line — after all prose — output a defensive court diagram in this exact format (no spaces, valid JSON):",
+        'DIAGRAM:{"p":[{"n":1,"x":50,"y":72},{"n":2,"x":76,"y":58},{"n":3,"x":24,"y":58},{"n":4,"x":64,"y":42},{"n":5,"x":50,"y":36}],"assignments":[{"defender":1,"marks":"PG"},{"defender":2,"marks":"SG"},{"defender":3,"marks":"SF"},{"defender":4,"marks":"PF"},{"defender":5,"marks":"C"}],"zones":[]}',
+        "Use x=50,y=50 as the paint; basket at x=50,y=89. Adjust defender positions to reflect the called scheme (e.g. sagging bigs, help-side positions, zone).",
+        "The DIAGRAM line must be the absolute last line. Valid JSON only.",
+    ]
+
+    _DEF_SYSTEM = (
+        "You are an elite NBA head coach designing a defensive scheme in a live timeout. "
+        "Every answer names specific players from the box score data provided. "
+        "Be decisive — coaches need a clear, executable scheme in 20 seconds. "
+        "Choose the scheme that best neutralizes the opponent's current hot hand and scoring pattern. "
+        "Account for your own foul trouble — players with 3+ fouls cannot be primary defenders on drives. "
+        "Use the actual player names and stats. No generic filler. Plain prose, no markdown."
+    )
+
+    result = await claude_service.analyze(
+        prompt="\n".join(prompt_parts),
+        system_prompt=_DEF_SYSTEM,
+        override_max_tokens=950,
+        override_temperature=0.1,
+    )
+
+    import re as _re, json as _json
+    play_text = result.analysis
+    diagram = None
+    diag_match = _re.search(r'DIAGRAM:(\{.+\})\s*$', play_text, _re.MULTILINE)
+    if diag_match:
+        try:
+            diagram = _json.loads(diag_match.group(1))
+            play_text = play_text[:diag_match.start()].rstrip()
+        except (ValueError, KeyError):
+            pass
+
+    logger.info(
+        "Defensive play complete | game_id=%s team=%r tokens=%d diagram=%s",
+        game_id, my_team, result.tokens_used, "yes" if diagram else "no",
+    )
+
+    return {
+        "game_id": game_id,
+        "my_team": my_team,
+        "quarter": quarter,
+        "time_remaining": time_remaining,
+        "score_diff": score_diff,
+        "play": play_text,
+        "diagram": diagram,
+        "model": result.model,
+        "tokens_used": result.tokens_used,
+    }
+
+
 async def predict_game(body: dict[str, Any]) -> dict[str, Any]:
     """
     Return a structured prediction for an upcoming game.
