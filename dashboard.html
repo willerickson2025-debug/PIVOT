@@ -5221,170 +5221,203 @@ function StatBar({ label, aVal, bVal, fmt, higher='more', animDelay=0 }) {
   );
 }
 
+const NBA_TEAMS = [
+  // Eastern Conference
+  { name:'Atlanta Hawks',          abbr:'ATL', slug:'atl', conf:'East', div:'Southeast' },
+  { name:'Boston Celtics',         abbr:'BOS', slug:'bos', conf:'East', div:'Atlantic'  },
+  { name:'Brooklyn Nets',          abbr:'BKN', slug:'bkn', conf:'East', div:'Atlantic'  },
+  { name:'Charlotte Hornets',      abbr:'CHA', slug:'cha', conf:'East', div:'Southeast' },
+  { name:'Chicago Bulls',          abbr:'CHI', slug:'chi', conf:'East', div:'Central'   },
+  { name:'Cleveland Cavaliers',    abbr:'CLE', slug:'cle', conf:'East', div:'Central'   },
+  { name:'Detroit Pistons',        abbr:'DET', slug:'det', conf:'East', div:'Central'   },
+  { name:'Indiana Pacers',         abbr:'IND', slug:'ind', conf:'East', div:'Central'   },
+  { name:'Miami Heat',             abbr:'MIA', slug:'mia', conf:'East', div:'Southeast' },
+  { name:'Milwaukee Bucks',        abbr:'MIL', slug:'mil', conf:'East', div:'Central'   },
+  { name:'New York Knicks',        abbr:'NYK', slug:'ny',  conf:'East', div:'Atlantic'  },
+  { name:'Orlando Magic',          abbr:'ORL', slug:'orl', conf:'East', div:'Southeast' },
+  { name:'Philadelphia 76ers',     abbr:'PHI', slug:'phi', conf:'East', div:'Atlantic'  },
+  { name:'Toronto Raptors',        abbr:'TOR', slug:'tor', conf:'East', div:'Atlantic'  },
+  { name:'Washington Wizards',     abbr:'WAS', slug:'was', conf:'East', div:'Southeast' },
+  // Western Conference
+  { name:'Dallas Mavericks',       abbr:'DAL', slug:'dal', conf:'West', div:'Southwest' },
+  { name:'Denver Nuggets',         abbr:'DEN', slug:'den', conf:'West', div:'Northwest' },
+  { name:'Golden State Warriors',  abbr:'GSW', slug:'gsw', conf:'West', div:'Pacific'   },
+  { name:'Houston Rockets',        abbr:'HOU', slug:'hou', conf:'West', div:'Southwest' },
+  { name:'Los Angeles Clippers',   abbr:'LAC', slug:'lac', conf:'West', div:'Pacific'   },
+  { name:'Los Angeles Lakers',     abbr:'LAL', slug:'lal', conf:'West', div:'Pacific'   },
+  { name:'Memphis Grizzlies',      abbr:'MEM', slug:'mem', conf:'West', div:'Southwest' },
+  { name:'Minnesota Timberwolves', abbr:'MIN', slug:'min', conf:'West', div:'Northwest' },
+  { name:'New Orleans Pelicans',   abbr:'NOP', slug:'no',  conf:'West', div:'Southwest' },
+  { name:'Oklahoma City Thunder',  abbr:'OKC', slug:'okc', conf:'West', div:'Northwest' },
+  { name:'Phoenix Suns',           abbr:'PHX', slug:'phx', conf:'West', div:'Pacific'   },
+  { name:'Portland Trail Blazers', abbr:'POR', slug:'por', conf:'West', div:'Northwest' },
+  { name:'Sacramento Kings',       abbr:'SAC', slug:'sac', conf:'West', div:'Pacific'   },
+  { name:'San Antonio Spurs',      abbr:'SAS', slug:'sas', conf:'West', div:'Southwest' },
+  { name:'Utah Jazz',              abbr:'UTA', slug:'utah',conf:'West', div:'Northwest' },
+];
+
 function Teams() {
-  const [teams, setTeams] = React.useState([]);
-  const [teamsLoading, setTeamsLoading] = React.useState(true);
   const [selected, setSelected] = React.useState(null);
-  const [dnaText, setDnaText] = React.useState('');
+  const [dnaText, setDnaText]     = React.useState('');
   const [dnaLoading, setDnaLoading] = React.useState(false);
-  const [rosterText, setRosterText] = React.useState('');
+  const [dnaError, setDnaError]   = React.useState('');
+  const [rosterText, setRosterText]   = React.useState('');
   const [rosterLoading, setRosterLoading] = React.useState(false);
-  const [teamView, setTeamView] = React.useState('dna'); // 'dna' | 'roster'
+  const [rosterError, setRosterError] = React.useState('');
+  const [teamView, setTeamView]   = React.useState('dna');
 
-  React.useEffect(() => {
-    fetch(`${API}/nba/teams`)
-      .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d?.teams) setTeams(d.teams.sort((a,b) => a.name.localeCompare(b.name))); setTeamsLoading(false); })
-      .catch(() => setTeamsLoading(false));
-  }, []);
-
-  const selectTeam = (team) => {
-    if (selected?.id === team.id) { setSelected(null); return; }
-    setSelected(team); setDnaText(''); setRosterText(''); setTeamView('dna');
+  const selectTeam = (t) => {
+    if (selected?.abbr === t.abbr) { setSelected(null); return; }
+    setSelected(t);
+    setDnaText(''); setDnaError(''); setDnaLoading(false);
+    setRosterText(''); setRosterError(''); setRosterLoading(false);
+    setTeamView('dna');
   };
 
-  const loadDna = () => {
-    if (!selected || dnaLoading) return;
-    setDnaLoading(true); setDnaText('');
-    fetch(`${API}/analysis/team-dna?team_name=${encodeURIComponent(selected.name)}`)
-      .then(r => r.ok ? r.json() : r.json().then(e => { throw new Error(e.detail || 'Failed'); }))
-      .then(d => { setDnaText(d.analysis || JSON.stringify(d)); setDnaLoading(false); })
-      .catch(e => { setDnaText('Failed to load. Try again.'); setDnaLoading(false); });
+  const fetchDna = (t) => {
+    setDnaLoading(true); setDnaText(''); setDnaError('');
+    fetch(`${API}/analysis/team-dna?team_name=${encodeURIComponent(t.name)}`)
+      .then(r => r.ok ? r.json() : r.json().then(e => Promise.reject(e.detail || 'Failed')))
+      .then(d => { setDnaText(d.analysis || ''); setDnaLoading(false); })
+      .catch(e => { setDnaError(String(e)); setDnaLoading(false); });
   };
 
-  const loadRoster = () => {
-    if (!selected || rosterLoading) return;
-    setRosterLoading(true); setRosterText('');
-    fetch(`${API}/frontoffice/roster?team_name=${encodeURIComponent(selected.name)}`)
-      .then(r => r.ok ? r.json() : r.json().then(e => { throw new Error(e.detail || 'Failed'); }))
-      .then(d => { setRosterText(d.analysis || JSON.stringify(d)); setRosterLoading(false); })
-      .catch(e => { setRosterText('Failed to load. Try again.'); setRosterLoading(false); });
+  const fetchRoster = (t) => {
+    setRosterLoading(true); setRosterText(''); setRosterError('');
+    fetch(`${API}/frontoffice/roster?team_name=${encodeURIComponent(t.name)}`)
+      .then(r => r.ok ? r.json() : r.json().then(e => Promise.reject(e.detail || 'Failed')))
+      .then(d => { setRosterText(d.analysis || ''); setRosterLoading(false); })
+      .catch(e => { setRosterError(String(e)); setRosterLoading(false); });
   };
 
-  React.useEffect(() => {
+  const switchView = (v) => {
+    setTeamView(v);
     if (!selected) return;
-    if (teamView === 'dna' && !dnaText && !dnaLoading) loadDna();
-    if (teamView === 'roster' && !rosterText && !rosterLoading) loadRoster();
-  }, [selected, teamView]);
+    if (v === 'dna'    && !dnaText    && !dnaLoading)    fetchDna(selected);
+    if (v === 'roster' && !rosterText && !rosterLoading) fetchRoster(selected);
+  };
 
-  // Group teams by conference then division
-  const grouped = React.useMemo(() => {
-    const out = {};
-    teams.forEach(t => {
-      const conf = t.conference || 'Other';
-      const div = t.division || 'Other';
-      if (!out[conf]) out[conf] = {};
-      if (!out[conf][div]) out[conf][div] = [];
-      out[conf][div].push(t);
-    });
-    return out;
-  }, [teams]);
+  const handleSelect = (t) => {
+    selectTeam(t);
+    // fetchDna will be triggered after state settles via the effect below
+  };
 
-  const CONF_ORDER = ['East', 'West'];
+  React.useEffect(() => {
+    if (selected && teamView === 'dna' && !dnaText && !dnaLoading && !dnaError) {
+      fetchDna(selected);
+    }
+  }, [selected]);
+
+  const byConf = { East: {}, West: {} };
+  NBA_TEAMS.forEach(t => {
+    if (!byConf[t.conf][t.div]) byConf[t.conf][t.div] = [];
+    byConf[t.conf][t.div].push(t);
+  });
+
+  const HN = "'Helvetica Neue',Helvetica,Arial,sans-serif";
 
   return (
-    <div style={{maxWidth:1200, margin:'0 auto', padding:'40px 32px 80px', width:'100%', boxSizing:'border-box'}}>
+    <div style={{maxWidth:1200, margin:'0 auto', padding:'40px 32px 80px', boxSizing:'border-box'}}>
+
+      {/* Page header */}
       <div style={{marginBottom:32}}>
-        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:4, color:'rgba(0,255,128,0.9)', fontWeight:700, textTransform:'uppercase', marginBottom:8}}>NBA Teams</div>
-        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:28, letterSpacing:-0.5, color:'var(--white)', fontWeight:700}}>Team Intelligence</div>
-        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:13, color:'rgba(255,255,255,0.4)', fontWeight:400, marginTop:6, textTransform:'none', letterSpacing:0}}>Select a team for DNA analysis and roster breakdown.</div>
+        <div style={{fontFamily:HN, fontSize:9, letterSpacing:4, color:'rgba(0,255,128,0.9)', fontWeight:700, textTransform:'uppercase', marginBottom:8}}>NBA Teams</div>
+        <div style={{fontFamily:HN, fontSize:28, letterSpacing:-0.5, color:'var(--white)', fontWeight:700, textTransform:'none'}}>Team Intelligence</div>
+        <div style={{fontFamily:HN, fontSize:13, color:'rgba(255,255,255,0.4)', fontWeight:400, marginTop:6, textTransform:'none', letterSpacing:0}}>Select a team for DNA analysis and roster breakdown.</div>
       </div>
 
-      {teamsLoading && <Loader label="LOADING TEAMS"/>}
+      <div style={{display:'grid', gridTemplateColumns: selected ? '300px 1fr' : '1fr', gap:24, alignItems:'start'}}>
 
-      {!teamsLoading && (
-        <div style={{display:'grid', gridTemplateColumns: selected ? '320px 1fr' : '1fr', gap:24, alignItems:'start'}}>
-
-          {/* ── Team list ── */}
-          <div>
-            {CONF_ORDER.map(conf => {
-              const divs = grouped[conf] || {};
-              return (
-                <div key={conf} style={{marginBottom:24}}>
-                  <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, letterSpacing:4, color:'rgba(0,255,128,0.7)', fontWeight:700, textTransform:'uppercase', marginBottom:12, paddingBottom:8, borderBottom:'1px solid var(--border)'}}>
-                    {conf}ern Conference
-                  </div>
-                  {Object.entries(divs).sort(([a],[b]) => a.localeCompare(b)).map(([div, divTeams]) => (
-                    <div key={div} style={{marginBottom:16}}>
-                      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:7, letterSpacing:3, color:'rgba(255,255,255,0.25)', fontWeight:700, textTransform:'uppercase', marginBottom:6}}>{div}</div>
-                      {divTeams.map(team => {
-                        const isActive = selected?.id === team.id;
-                        const slug = BDL_SLUG[team.abbreviation?.toUpperCase()] || team.abbreviation?.toLowerCase();
-                        return (
-                          <div key={team.id} onClick={() => selectTeam(team)}
-                            style={{display:'flex', alignItems:'center', gap:12, padding:'10px 14px', marginBottom:4,
-                              background: isActive ? 'rgba(0,255,128,0.07)' : 'rgba(255,255,255,0.02)',
-                              border: isActive ? '1px solid rgba(0,255,128,0.35)' : '1px solid rgba(255,255,255,0.05)',
-                              borderRadius:8, cursor:'pointer', transition:'all 0.15s',
-                              boxShadow: isActive ? '0 0 16px rgba(0,255,128,0.06)' : 'none'}}
-                            onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background='rgba(255,255,255,0.045)'; e.currentTarget.style.borderColor='rgba(255,255,255,0.1)'; }}}
-                            onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background='rgba(255,255,255,0.02)'; e.currentTarget.style.borderColor='rgba(255,255,255,0.05)'; }}}>
-                            <img src={`https://a.espncdn.com/i/teamlogos/nba/500/${slug}.png`} alt={team.abbreviation} width={24} height={24}
-                              style={{objectFit:'contain', opacity: isActive ? 1 : 0.6, flexShrink:0}}
-                              onError={e=>e.currentTarget.style.display='none'}/>
-                            <div style={{flex:1}}>
-                              <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:12, fontWeight:700, color: isActive ? 'var(--green)' : 'rgba(255,255,255,0.82)', letterSpacing:0, textTransform:'none'}}>{team.name}</div>
-                              <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:2, color:'rgba(255,255,255,0.28)', fontWeight:700, textTransform:'uppercase', marginTop:1}}>{team.abbreviation}</div>
-                            </div>
-                            <div style={{fontSize:9, color: isActive ? 'var(--green)' : 'rgba(255,255,255,0.2)'}}>→</div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ))}
-                </div>
-              );
-            })}
-          </div>
-
-          {/* ── Team detail panel ── */}
-          {selected && (
-            <div style={{background:'rgba(22,27,34,0.7)', border:'1px solid var(--border)', borderRadius:12, overflow:'hidden', backdropFilter:'blur(8px)'}}>
-              {/* Header */}
-              <div style={{padding:'24px 28px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', gap:16, background:'rgba(0,0,0,0.2)'}}>
-                <img src={`https://a.espncdn.com/i/teamlogos/nba/500/${BDL_SLUG[selected.abbreviation?.toUpperCase()] || selected.abbreviation?.toLowerCase()}.png`}
-                  alt={selected.abbreviation} width={52} height={52}
-                  style={{objectFit:'contain', flexShrink:0}} onError={e=>e.currentTarget.style.display='none'}/>
-                <div>
-                  <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:22, fontWeight:700, color:'var(--white)', letterSpacing:-0.5, textTransform:'none'}}>{selected.name}</div>
-                  <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:3, color:'rgba(255,255,255,0.35)', fontWeight:700, marginTop:4}}>{selected.conference}ern Conference · {selected.division}</div>
-                </div>
+        {/* ── Team list ── */}
+        <div>
+          {['East','West'].map(conf => (
+            <div key={conf} style={{marginBottom:28}}>
+              <div style={{fontFamily:HN, fontSize:8, letterSpacing:4, color:'rgba(0,255,128,0.7)', fontWeight:700,
+                textTransform:'uppercase', marginBottom:12, paddingBottom:8, borderBottom:'1px solid var(--border)'}}>
+                {conf === 'East' ? 'Eastern' : 'Western'} Conference
               </div>
+              {Object.entries(byConf[conf]).sort(([a],[b]) => a.localeCompare(b)).map(([div, divTeams]) => (
+                <div key={div} style={{marginBottom:14}}>
+                  <div style={{fontFamily:HN, fontSize:7, letterSpacing:3, color:'rgba(255,255,255,0.22)', fontWeight:700, textTransform:'uppercase', marginBottom:5}}>{div}</div>
+                  {divTeams.map(t => {
+                    const active = selected?.abbr === t.abbr;
+                    return (
+                      <div key={t.abbr} onClick={() => handleSelect(t)}
+                        style={{display:'flex', alignItems:'center', gap:10, padding:'9px 12px', marginBottom:3,
+                          background: active ? 'rgba(0,255,128,0.07)' : 'rgba(255,255,255,0.02)',
+                          border: `1px solid ${active ? 'rgba(0,255,128,0.35)' : 'rgba(255,255,255,0.05)'}`,
+                          borderRadius:7, cursor:'pointer', transition:'all 0.12s'}}
+                        onMouseEnter={e => { if (!active) e.currentTarget.style.background='rgba(255,255,255,0.04)'; }}
+                        onMouseLeave={e => { if (!active) e.currentTarget.style.background='rgba(255,255,255,0.02)'; }}>
+                        <img src={`https://a.espncdn.com/i/teamlogos/nba/500/${t.slug}.png`}
+                          alt={t.abbr} width={26} height={26}
+                          style={{objectFit:'contain', opacity: active ? 1 : 0.55, flexShrink:0}}
+                          onError={e => e.currentTarget.style.visibility='hidden'}/>
+                        <div style={{flex:1, minWidth:0}}>
+                          <div style={{fontFamily:HN, fontSize:12, fontWeight:700, color: active ? 'var(--green)' : 'rgba(255,255,255,0.82)', textTransform:'none', letterSpacing:0, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{t.name}</div>
+                          <div style={{fontFamily:HN, fontSize:8, letterSpacing:2, color:'rgba(255,255,255,0.25)', fontWeight:700, textTransform:'uppercase', marginTop:1}}>{t.abbr}</div>
+                        </div>
+                        <div style={{fontSize:9, color: active ? 'var(--green)' : 'rgba(255,255,255,0.18)', flexShrink:0}}>›</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
 
-              {/* View tabs */}
-              <div style={{display:'flex', gap:8, padding:'14px 28px', borderBottom:'1px solid var(--border)'}}>
-                {[['dna','Team DNA'],['roster','Roster Intel']].map(([id, lbl]) => (
-                  <button key={id} onClick={() => setTeamView(id)}
-                    style={{fontFamily:'Helvetica Neue, sans-serif', fontWeight:700, fontSize:9, letterSpacing:3, textTransform:'uppercase',
-                      padding:'8px 18px', borderRadius:6, cursor:'pointer', transition:'all 0.15s',
-                      background: teamView===id ? 'rgba(0,255,128,0.14)' : 'rgba(0,255,128,0.05)',
-                      color: teamView===id ? 'var(--green)' : 'rgba(0,255,128,0.55)',
-                      border: teamView===id ? '1px solid rgba(0,255,128,0.55)' : '1px solid rgba(0,255,128,0.2)',
-                      boxShadow: teamView===id ? 'inset 0 1px 0 rgba(0,255,128,0.18), 0 0 18px rgba(0,255,128,0.1)' : 'none'}}>
-                    {lbl}
-                  </button>
-                ))}
-              </div>
+        {/* ── Detail panel ── */}
+        {selected && (
+          <div style={{background:'rgba(22,27,34,0.7)', border:'1px solid var(--border)', borderRadius:12, overflow:'hidden', backdropFilter:'blur(8px)'}}>
 
-              {/* Content */}
-              <div style={{padding:'24px 28px', minHeight:300}}>
-                {teamView === 'dna' && (
-                  dnaLoading ? <Loader label="ANALYZING TEAM DNA"/> :
-                  dnaText ? (
-                    <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:14, lineHeight:1.95, color:'rgba(255,255,255,0.85)', whiteSpace:'pre-wrap', fontWeight:400, textTransform:'none', letterSpacing:0}}>{dnaText}</div>
-                  ) : null
-                )}
-                {teamView === 'roster' && (
-                  rosterLoading ? <Loader label="BREAKING DOWN ROSTER"/> :
-                  rosterText ? (
-                    <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:14, lineHeight:1.95, color:'rgba(255,255,255,0.85)', whiteSpace:'pre-wrap', fontWeight:400, textTransform:'none', letterSpacing:0}}>{rosterText}</div>
-                  ) : null
-                )}
+            {/* Header */}
+            <div style={{padding:'22px 28px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', gap:16, background:'rgba(0,0,0,0.25)'}}>
+              <img src={`https://a.espncdn.com/i/teamlogos/nba/500/${selected.slug}.png`}
+                alt={selected.abbr} width={54} height={54}
+                style={{objectFit:'contain', flexShrink:0}}
+                onError={e => e.currentTarget.style.visibility='hidden'}/>
+              <div>
+                <div style={{fontFamily:HN, fontSize:22, fontWeight:700, color:'var(--white)', letterSpacing:-0.5, textTransform:'none'}}>{selected.name}</div>
+                <div style={{fontFamily:HN, fontSize:9, letterSpacing:3, color:'rgba(255,255,255,0.35)', fontWeight:700, marginTop:4, textTransform:'uppercase'}}>
+                  {selected.conf === 'East' ? 'Eastern' : 'Western'} · {selected.div}
+                </div>
               </div>
             </div>
-          )}
-        </div>
-      )}
+
+            {/* Tab switcher */}
+            <div style={{display:'flex', gap:8, padding:'12px 24px', borderBottom:'1px solid var(--border)'}}>
+              {[['dna','Team DNA'],['roster','Roster Intel']].map(([id,lbl]) => (
+                <button key={id} onClick={() => switchView(id)}
+                  style={{fontFamily:HN, fontWeight:700, fontSize:9, letterSpacing:3, textTransform:'uppercase',
+                    padding:'8px 18px', borderRadius:6, cursor:'pointer', transition:'all 0.15s',
+                    background: teamView===id ? 'rgba(0,255,128,0.14)' : 'rgba(0,255,128,0.05)',
+                    color: teamView===id ? 'var(--green)' : 'rgba(0,255,128,0.55)',
+                    border: teamView===id ? '1px solid rgba(0,255,128,0.55)' : '1px solid rgba(0,255,128,0.2)',
+                    boxShadow: teamView===id ? 'inset 0 1px 0 rgba(0,255,128,0.18),0 0 18px rgba(0,255,128,0.1)' : 'none'}}>
+                  {lbl}
+                </button>
+              ))}
+            </div>
+
+            {/* Content */}
+            <div style={{padding:'24px 28px', minHeight:320}}>
+              {teamView === 'dna' && (
+                dnaLoading  ? <Loader label="ANALYZING TEAM DNA"/> :
+                dnaError    ? <div style={{fontFamily:HN, fontSize:12, color:'rgba(255,80,80,0.8)', textTransform:'none', letterSpacing:0}}>{dnaError}</div> :
+                dnaText     ? <div style={{fontFamily:HN, fontSize:14, lineHeight:1.95, color:'rgba(255,255,255,0.85)', whiteSpace:'pre-wrap', fontWeight:400, textTransform:'none', letterSpacing:0}}>{dnaText}</div>
+                            : null
+              )}
+              {teamView === 'roster' && (
+                rosterLoading  ? <Loader label="BREAKING DOWN ROSTER"/> :
+                rosterError    ? <div style={{fontFamily:HN, fontSize:12, color:'rgba(255,80,80,0.8)', textTransform:'none', letterSpacing:0}}>{rosterError}</div> :
+                rosterText     ? <div style={{fontFamily:HN, fontSize:14, lineHeight:1.95, color:'rgba(255,255,255,0.85)', whiteSpace:'pre-wrap', fontWeight:400, textTransform:'none', letterSpacing:0}}>{rosterText}</div>
+                               : null
+              )}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
