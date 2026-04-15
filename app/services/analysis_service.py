@@ -2015,34 +2015,41 @@ async def predict_game(body: dict[str, Any]) -> dict[str, Any]:
         f"INSTRUCTIONS:\n"
         f"1. If any star player is listed as LOAD MANAGEMENT or REST, treat them as OUT. Do not assume they play.\n"
         f"2. A team missing its top-1 or top-2 player(s) to rest must have its win probability substantially reduced.\n"
-        f"3. Reference specific players and records in your reasoning — no generic statements.\n"
-        f"4. Home court advantage is worth ~3 points but is overridden by major roster absences.\n\n"
+        f"3. Reference specific players and records — no generic statements ever.\n"
+        f"4. Home court advantage is worth ~3 points but is overridden by major roster absences.\n"
+        f"5. Write like a scout who watched both teams this week. Be direct, analytical, confident.\n\n"
         f"Return a JSON object with exactly these fields:\n"
         f"  pick: full team name — must be exactly \"{home_name}\" or \"{away_name}\"\n"
-        f"  confidence: integer 55-95. Toss-up = 55-60. If a star is resting, cap confidence at 70 unless the backup unit is demonstrably stronger.\n"
-        f"  key_factor: one crisp sentence — if anyone is resting this MUST be the key factor\n"
-        f"  reasoning: 4-6 sentences. Cover: (1) how each team's record and current form sets the stage, (2) the roster availability impact and which absences matter most, (3) home court context, (4) your confident prediction rationale. Name specific players.\n"
-        f"  breakdown: 2-3 sentences on the stylistic matchup — pace, defensive scheme, or specific player battles that will decide this game.\n\n"
+        f"  confidence: integer 55-95\n"
+        f"  key_factor: one punchy sentence — the single biggest swing factor; if anyone is resting this MUST name them\n"
+        f"  reasoning: 7-9 sentences of dense analysis. Required sections in order — "
+        f"(1) each team's record and what it actually means right now (seeding, streak, momentum), "
+        f"(2) the full injury/availability picture and exactly how it reshapes each team's rotation, "
+        f"(3) how the missing pieces alter the offensive and defensive systems specifically, "
+        f"(4) home court context and how this crowd/arena historically affects this matchup, "
+        f"(5) the two or three individual player matchups that will decide the outcome, "
+        f"(6) your confident final call with a specific game-script prediction. Name players throughout.\n"
+        f"  breakdown: 3-4 sentences — stylistic clash analysis: pace differential, defensive scheme conflict, "
+        f"specific positional mismatches, and which team's identity is harder to replicate short-handed.\n"
+        f"  outlook: 1-2 sentences — projected final score range and the most likely path to that result.\n\n"
         f"Return only valid JSON. No markdown, no extra text."
     )
 
     system = (
-        "You are a sharp NBA analyst making game predictions for coaches who need accuracy above all else. "
-        "You are given real standings and live roster availability data — use every piece of it. "
+        "You are an elite NBA scout writing a pre-game prediction report for head coaches. "
+        "Every word must be grounded in the data provided — no filler, no hedging, no generic takes. "
         "CRITICAL: Load management and rest decisions are the single biggest swing factor in NBA predictions. "
-        "A team missing its best player(s) to rest is NOT the same team as their season record suggests — "
-        "adjust accordingly and always name the absent player(s) in your reasoning. "
-        "Confidence calibration: 90-95 = strong edge (healthy rosters, clear talent gap), "
-        "75-89 = solid lean, 60-74 = moderate lean, 55-59 = toss-up or rest-game uncertainty. "
-        "Never inflate confidence when roster data is incomplete or players are flagged as resting. "
-        "Return only a valid JSON object."
+        "A team missing its best player(s) is fundamentally a different team — recompute everything accordingly. "
+        "Write with the authority of someone who has watched every game this week. "
+        "Confidence calibration: 90-95 = decisive edge, 75-89 = solid lean, 60-74 = moderate lean, 55-59 = genuine toss-up. "
+        "Never inflate confidence. Return only a valid JSON object — no prose outside the JSON."
     )
 
     result = await claude_service.analyze(
         prompt=prompt,
         system_prompt=system,
         override_model=_FAST_MODEL,
-        override_max_tokens=650,
+        override_max_tokens=1100,
         override_temperature=0.15,
     )
 
@@ -2068,6 +2075,7 @@ async def predict_game(body: dict[str, Any]) -> dict[str, Any]:
         key_factor = str(parsed.get("key_factor", ""))
         reasoning  = str(parsed.get("reasoning", ""))
         breakdown  = str(parsed.get("breakdown", ""))
+        outlook    = str(parsed.get("outlook", ""))
     except Exception:
         logger.warning("predict_game JSON parse failed | raw=%r", raw[:200])
         return {"error": "Could not parse prediction."}
@@ -2079,6 +2087,7 @@ async def predict_game(body: dict[str, Any]) -> dict[str, Any]:
         "key_factor": key_factor,
         "reasoning": reasoning,
         "breakdown": breakdown,
+        "outlook": outlook,
         "model": result.model,
         "tokens_used": result.tokens_used,
     }

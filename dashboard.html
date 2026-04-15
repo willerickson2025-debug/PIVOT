@@ -1151,7 +1151,7 @@ function GameModal({ game, onClose }) {
       .then(data => {
         if (data.error) throw new Error(data.error);
         const confidence = Math.max(55, Math.min(95, parseInt(data.confidence) || 70));
-        setPrediction({ pick: data.pick, confidence, key_factor: data.key_factor, reasoning: data.reasoning, breakdown: data.breakdown });
+        setPrediction({ pick: data.pick, confidence, key_factor: data.key_factor, reasoning: data.reasoning, breakdown: data.breakdown, outlook: data.outlook });
         setPredLoading(false);
       })
       .catch(e => { setPredError(friendlyError(e.message)); setPredLoading(false); });
@@ -1334,6 +1334,14 @@ function GameModal({ game, onClose }) {
                     <div>
                       <div style={{fontSize:8, letterSpacing:3, color:'rgba(255,255,255,0.3)', fontWeight:700, marginBottom:10}}>REASONING</div>
                       <p style={{margin:0, fontSize:13, lineHeight:1.8, color:'rgba(255,255,255,0.72)', fontWeight:400}}>{prediction.reasoning}</p>
+                    </div>
+                  )}
+                  {/* Outlook */}
+                  {prediction.outlook && (
+                    <div style={{padding:'12px 16px', background:'rgba(255,255,255,0.03)',
+                      border:'1px solid rgba(255,255,255,0.07)', borderRadius:6}}>
+                      <div style={{fontSize:8, letterSpacing:3, color:'rgba(255,255,255,0.3)', fontWeight:700, marginBottom:6}}>OUTLOOK</div>
+                      <p style={{margin:0, fontSize:13, lineHeight:1.7, color:'rgba(255,255,255,0.65)', fontWeight:400}}>{prediction.outlook}</p>
                     </div>
                   )}
                   <div style={{fontSize:8, letterSpacing:3, color:'rgba(255,255,255,0.18)', fontWeight:700}}>
