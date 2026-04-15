@@ -1511,6 +1511,31 @@ async def analyze_game(body: dict[str, Any]) -> dict[str, Any]:
     game_injury_ctx = await _fetch_injury_for_game()
     injury_block = f"\nINJURY REPORT:\n{game_injury_ctx}" if game_injury_ctx else ""
 
+    _JSON_SUFFIX = (
+        "\n\nReturn your entire response as a single JSON object with exactly these fields:\n"
+        "{\n"
+        "  \"analysis\": \"full prose analysis — use \\\\n\\\\n between paragraphs\",\n"
+        "  \"lineup_matchup\": [\n"
+        "    {\"pos\": \"PG\", \"home\": \"Full Name\", \"away\": \"Full Name\"},\n"
+        "    {\"pos\": \"SG\", \"home\": \"Full Name\", \"away\": \"Full Name\"},\n"
+        "    {\"pos\": \"SF\", \"home\": \"Full Name\", \"away\": \"Full Name\"},\n"
+        "    {\"pos\": \"PF\", \"home\": \"Full Name\", \"away\": \"Full Name\"},\n"
+        "    {\"pos\": \"C\",  \"home\": \"Full Name\", \"away\": \"Full Name\"}\n"
+        "  ],\n"
+        "  \"stat_predictions\": [\n"
+        "    {\"stat\": \"Team Points\",   \"home_val\": 0, \"away_val\": 0, \"edge\": \"home|away|even\", \"note\": \"one-line context\"},\n"
+        "    {\"stat\": \"Rebounds\",      \"home_val\": 0, \"away_val\": 0, \"edge\": \"home|away|even\", \"note\": \"\"},\n"
+        "    {\"stat\": \"Assists\",       \"home_val\": 0, \"away_val\": 0, \"edge\": \"home|away|even\", \"note\": \"\"},\n"
+        "    {\"stat\": \"Turnovers\",     \"home_val\": 0, \"away_val\": 0, \"edge\": \"home|away|even\", \"note\": \"\"},\n"
+        "    {\"stat\": \"3-Pointers\",    \"home_val\": 0, \"away_val\": 0, \"edge\": \"home|away|even\", \"note\": \"\"},\n"
+        "    {\"stat\": \"FG%\",           \"home_val\": 0.0, \"away_val\": 0.0, \"edge\": \"home|away|even\", \"note\": \"\"}\n"
+        "  ]\n"
+        "}\n"
+        "For final/live games: lineup_matchup = actual players who played most minutes; stat_predictions = actual team totals.\n"
+        "For upcoming games: lineup_matchup = projected starters accounting for injuries; stat_predictions = projected totals.\n"
+        "No markdown, no text outside the JSON."
+    )
+
     if is_final:
         prompt = (
             f"POST-GAME RECAP — {score_line} FINAL\n"
@@ -1522,15 +1547,16 @@ async def analyze_game(body: dict[str, Any]) -> dict[str, Any]:
         if injury_block:
             prompt += f"\n{injury_block}"
         prompt += (
-            "\n\nWrite a complete game breakdown. Cover:\n"
-            "1. KEY PERFORMERS — name every player who impacted this game, stats and why they mattered\n"
+            "\n\nWrite a complete game breakdown covering:\n"
+            "1. KEY PERFORMERS — every player who impacted this game, stats and why they mattered\n"
             "2. TURNING POINT — the specific moment(s) that decided the outcome\n"
-            "3. WHAT WON IT — the tactical or individual factor the winning team executed\n"
+            "3. WHAT WON IT — the tactical or individual factor the winner executed\n"
             "4. WHAT LOST IT — where the losing team broke down\n"
-            "5. INJURY IMPACT — if notable players were out per the injury report, explain how their absence shaped the game\n"
-            "6. IMPLICATIONS — what this result means for both franchises going forward\n"
-            "Be specific. Name players, name plays, name quarters. No filler."
+            "5. INJURY IMPACT — how any absences shaped the game\n"
+            "6. IMPLICATIONS — what this result means for both franchises\n"
+            "Be specific. Name players, plays, quarters. No filler."
         )
+        prompt += _JSON_SUFFIX
     elif is_live:
         prompt = (
             f"LIVE GAME ANALYSIS — {score_line} ({game_type})\n"
@@ -1542,13 +1568,15 @@ async def analyze_game(body: dict[str, Any]) -> dict[str, Any]:
         if injury_block:
             prompt += f"\n{injury_block}"
         prompt += (
-            "\n\nWrite a live breakdown. Cover:\n"
-            "1. CURRENT STATE — who is winning and why, what the score differential reflects\n"
-            "2. KEY PERFORMERS — who is dominating this game right now and how\n"
-            "3. TROUBLE SPOTS — who is struggling, who is in foul trouble, shooting cold\n"
-            "4. THE CLOSE — who has the edge to close this out and why\n"
-            "Be specific. Use the actual numbers. No hedging."
+            "\n\nWrite a live breakdown covering:\n"
+            "1. CURRENT STATE — who is winning and why, what the differential reflects\n"
+            "2. KEY PERFORMERS — who is dominating right now and how\n"
+            "3. TROUBLE SPOTS — who is struggling, in foul trouble, shooting cold\n"
+            "4. IN-GAME STAT PROJECTIONS — at current pace, project final team totals\n"
+            "5. THE CLOSE — who has the edge to close this out and why\n"
+            "Use the actual numbers. No hedging."
         )
+        prompt += _JSON_SUFFIX
     else:
         # ── Upcoming: enrich with live standings (parallel with injury already fetched) ──
         from app.services import standings_service as _standings_svc
@@ -1576,7 +1604,7 @@ async def analyze_game(body: dict[str, Any]) -> dict[str, Any]:
             except Exception:
                 return ""
 
-        standings_ctx = await _fetch_standings_ctx()  # standings has own 6h cache; fast after warmup
+        standings_ctx = await _fetch_standings_ctx()
 
         context_block = ""
         if standings_ctx:
@@ -1588,24 +1616,57 @@ async def analyze_game(body: dict[str, Any]) -> dict[str, Any]:
             f"PRE-GAME MATCHUP PREVIEW — {score_line}\n"
             f"{away_name} ({away_abbr}) at {home_name} ({home_abbr})\n"
             f"{context_block}\n\n"
-            "Write a complete game preview grounded in the standings and injury data above. Cover:\n"
-            "1. FORM & STAKES — what each team's record means right now, playoff implications\n"
-            "2. STYLISTIC CLASH — how these teams play and where the styles conflict\n"
-            "3. KEY BATTLES — the individual matchups that decide this game\n"
-            "4. INJURY IMPACT — how the injury report changes the calculus (if injuries listed above)\n"
-            "5. PREDICTION — a confident call with a specific reason\n"
-            "Be specific. Name players, name schemes. No generic takes. Ground everything in the data provided."
+            "Write a complete game preview covering:\n"
+            "1. FORM & STAKES — what each team's record means, playoff implications\n"
+            "2. STYLISTIC CLASH — how these teams play and where styles conflict\n"
+            "3. KEY BATTLES — individual matchups that decide this game; project each starting lineup\n"
+            "4. INJURY IMPACT — how the injury report changes the calculus\n"
+            "5. PRE-GAME STAT PROJECTIONS — projected team totals based on season averages and injuries\n"
+            "6. PREDICTION — confident call with specific reasoning\n"
+            "Name players, name schemes. No generic takes."
         )
+        prompt += _JSON_SUFFIX
+
+    _ANALYSIS_SYSTEM = (
+        "You are an elite NBA analyst writing game reports for coaches. "
+        "Always return a single valid JSON object as specified — no text outside it. "
+        "The 'analysis' field contains your full prose. "
+        "lineup_matchup must list all 5 positions. "
+        "stat_predictions must have exactly 6 entries. "
+        "For live games, stat_predictions are pace-projected final totals. "
+        "For final games, stat_predictions are actual team totals from the box score. "
+        "For upcoming games, stat_predictions are your best projection given season averages and injuries. "
+        "Be specific. Name players. No filler."
+    )
 
     result = await claude_service.analyze(
         prompt=prompt,
-        system_prompt=_game_analyst_system_prompt(),
+        system_prompt=_ANALYSIS_SYSTEM,
         override_model=_FAST_MODEL,
-        override_max_tokens=2200,
+        override_max_tokens=2800,
         override_temperature=0.1,
     )
 
     logger.info("Game analysis complete | game_id=%d type=%s tokens=%d", game_id, game_type, result.tokens_used)
+
+    # Parse structured fields from JSON response
+    import json as _json
+    analysis_text = result.analysis
+    lineup_matchup: list = []
+    stat_predictions: list = []
+    try:
+        raw = result.analysis.strip()
+        if raw.startswith("```"):
+            raw = raw.split("```")[1]
+            if raw.startswith("json"):
+                raw = raw[4:]
+            raw = raw.strip()
+        parsed = _json.loads(raw)
+        analysis_text   = str(parsed.get("analysis", result.analysis))
+        lineup_matchup  = parsed.get("lineup_matchup") or []
+        stat_predictions = parsed.get("stat_predictions") or []
+    except Exception:
+        logger.warning("analyze_game JSON parse failed, falling back to raw text | game_id=%d", game_id)
 
     response = {
         "game_id": game_id,
@@ -1613,7 +1674,9 @@ async def analyze_game(body: dict[str, Any]) -> dict[str, Any]:
         "score_line": score_line,
         "home_team": home_name,
         "away_team": away_name,
-        "analysis": result.analysis,
+        "analysis": analysis_text,
+        "lineup_matchup": lineup_matchup,
+        "stat_predictions": stat_predictions,
         "model": result.model,
         "tokens_used": result.tokens_used,
     }
@@ -2038,7 +2101,14 @@ async def predict_game(body: dict[str, Any]) -> dict[str, Any]:
         f"confident directional argument, describe the most likely game script (lead changes, 4th quarter dynamics), "
         f"state what would have to go wrong for your pick to lose, and give one sharp closing sentence.\n"
         f"  outlook: 2 sentences — projected final score range (e.g. 'PHX wins 112-104') and "
-        f"the specific sequence of events most likely to produce it.\n\n"
+        f"the specific sequence of events most likely to produce it.\n"
+        f"  lineup_matchup: array of 5 objects — projected starting lineup matchup by position:\n"
+        f"    [{{\"pos\":\"PG\",\"home\":\"Full Name\",\"away\":\"Full Name\"}}, ...SF, SG, PF, C]\n"
+        f"    Account for injuries — if a starter is out, use their replacement.\n"
+        f"  stat_predictions: array of 6 objects — projected team totals for this game:\n"
+        f"    [{{\"stat\":\"Team Points\",\"home_val\":0,\"away_val\":0,\"edge\":\"home|away|even\",\"note\":\"brief context\"}}, ...]\n"
+        f"    Include: Team Points, Rebounds, Assists, Turnovers, 3-Pointers, FG%\n"
+        f"    Base projections on season averages adjusted for tonight's injuries/rest decisions.\n\n"
         f"Return only valid JSON. No markdown fences, no text outside the JSON object."
     )
 
@@ -2057,7 +2127,7 @@ async def predict_game(body: dict[str, Any]) -> dict[str, Any]:
         prompt=prompt,
         system_prompt=system,
         override_model=_FAST_MODEL,
-        override_max_tokens=1800,
+        override_max_tokens=2400,
         override_temperature=0.15,
     )
 
@@ -2087,11 +2157,15 @@ async def predict_game(body: dict[str, Any]) -> dict[str, Any]:
         player_battles       = str(parsed.get("player_battles", ""))
         prediction_rationale = str(parsed.get("prediction_rationale", ""))
         outlook              = str(parsed.get("outlook", ""))
-        # legacy field kept for compatibility
+        lineup_matchup_p   = parsed.get("lineup_matchup") or []
+        stat_predictions_p = parsed.get("stat_predictions") or []
+        # legacy fields kept for compatibility
         reasoning  = str(parsed.get("reasoning", prediction_rationale))
         breakdown  = str(parsed.get("breakdown", matchup_breakdown))
     except Exception:
         logger.warning("predict_game JSON parse failed | raw=%r", raw[:200])
+        lineup_matchup_p = []
+        stat_predictions_p = []
         return {"error": "Could not parse prediction."}
 
     response = {
@@ -2107,6 +2181,8 @@ async def predict_game(body: dict[str, Any]) -> dict[str, Any]:
         "reasoning": reasoning,
         "breakdown": breakdown,
         "outlook": outlook,
+        "lineup_matchup": lineup_matchup_p,
+        "stat_predictions": stat_predictions_p,
         "model": result.model,
         "tokens_used": result.tokens_used,
     }

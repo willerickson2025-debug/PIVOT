@@ -1286,6 +1286,18 @@ function GameModal({ game, onClose }) {
                       </span>
                     </div>
                   )}
+                  <LineupMatchup
+                    rows={analysisResult.lineup_matchup}
+                    homeAbbr={game.home_team.abbreviation}
+                    awayAbbr={game.visitor_team.abbreviation}
+                    label={isUpcoming ? 'PROJECTED LINEUPS' : 'LINEUP MATCHUP'}
+                  />
+                  <StatPredictions
+                    rows={analysisResult.stat_predictions}
+                    homeAbbr={game.home_team.abbreviation}
+                    awayAbbr={game.visitor_team.abbreviation}
+                    label={type==='final' ? 'FINAL TEAM STATS' : type==='live' ? 'IN-GAME PROJECTIONS' : 'PRE-GAME STAT PROJECTIONS'}
+                  />
                   {(analysisResult.analysis || '').split(/\n{2,}/).filter(Boolean).map((para, i, arr) => (
                     <p key={i} style={{margin:0, fontFamily:'Helvetica Neue, sans-serif', fontSize:14, lineHeight:1.9,
                       letterSpacing:0, textTransform:'none',
@@ -1331,6 +1343,19 @@ function GameModal({ game, onClose }) {
                       <div style={{fontSize:13, color:'rgba(255,255,255,0.82)', lineHeight:1.6}}>{prediction.key_factor}</div>
                     </div>
                   )}
+                  {/* Lineup + Stats */}
+                  <LineupMatchup
+                    rows={prediction.lineup_matchup}
+                    homeAbbr={game.home_team.abbreviation}
+                    awayAbbr={game.visitor_team.abbreviation}
+                    label="PROJECTED LINEUPS"
+                  />
+                  <StatPredictions
+                    rows={prediction.stat_predictions}
+                    homeAbbr={game.home_team.abbreviation}
+                    awayAbbr={game.visitor_team.abbreviation}
+                    label="PRE-GAME STAT PROJECTIONS"
+                  />
                   {/* Sections */}
                   {[
                     { id:'form_analysis',        label:'FORM & STANDINGS' },
@@ -1380,6 +1405,80 @@ function GameModal({ game, onClose }) {
             </div>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Shared game-data components used in both Analysis and Predict tabs ─────
+
+function LineupMatchup({ rows, homeAbbr, awayAbbr, label }) {
+  if (!rows || rows.length === 0) return null;
+  return (
+    <div style={{marginBottom:4}}>
+      <div style={{fontSize:8, letterSpacing:3, color:'rgba(0,255,128,0.55)', fontWeight:700, marginBottom:12}}>{label || 'LINEUP MATCHUP'}</div>
+      <div style={{border:'1px solid rgba(255,255,255,0.07)', borderRadius:8, overflow:'hidden'}}>
+        {/* Header */}
+        <div style={{display:'grid', gridTemplateColumns:'1fr 48px 1fr', background:'rgba(255,255,255,0.04)',
+          padding:'8px 16px', borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
+          <div style={{fontSize:9, letterSpacing:2, color:'var(--green)', fontWeight:700}}>{awayAbbr} (AWAY)</div>
+          <div style={{fontSize:8, letterSpacing:1, color:'rgba(255,255,255,0.25)', fontWeight:700, textAlign:'center'}}>POS</div>
+          <div style={{fontSize:9, letterSpacing:2, color:'var(--green)', fontWeight:700, textAlign:'right'}}>{homeAbbr} (HOME)</div>
+        </div>
+        {rows.map((r, i) => (
+          <div key={i} style={{display:'grid', gridTemplateColumns:'1fr 48px 1fr',
+            padding:'10px 16px', borderBottom: i < rows.length-1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
+            background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)'}}>
+            <div style={{fontSize:12, fontWeight:600, color:'rgba(255,255,255,0.82)', letterSpacing:0, textTransform:'none'}}>{r.away}</div>
+            <div style={{fontSize:9, letterSpacing:1, color:'rgba(0,255,128,0.7)', fontWeight:700, textAlign:'center',
+              background:'rgba(0,255,128,0.06)', borderRadius:3, display:'flex', alignItems:'center', justifyContent:'center',
+              margin:'0 4px'}}>{r.pos}</div>
+            <div style={{fontSize:12, fontWeight:600, color:'rgba(255,255,255,0.82)', letterSpacing:0, textTransform:'none', textAlign:'right'}}>{r.home}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function StatPredictions({ rows, homeAbbr, awayAbbr, label }) {
+  if (!rows || rows.length === 0) return null;
+  const edgeColor = (edge, side) =>
+    edge === side ? 'var(--green)' : edge === 'even' ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.38)';
+  return (
+    <div style={{marginBottom:4}}>
+      <div style={{fontSize:8, letterSpacing:3, color:'rgba(0,255,128,0.55)', fontWeight:700, marginBottom:12}}>{label || 'STAT PROJECTIONS'}</div>
+      <div style={{border:'1px solid rgba(255,255,255,0.07)', borderRadius:8, overflow:'hidden'}}>
+        {/* Header */}
+        <div style={{display:'grid', gridTemplateColumns:'1fr 80px 1fr', background:'rgba(255,255,255,0.04)',
+          padding:'8px 16px', borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
+          <div style={{fontSize:9, letterSpacing:2, color:'var(--green)', fontWeight:700}}>{awayAbbr}</div>
+          <div style={{fontSize:8, letterSpacing:1, color:'rgba(255,255,255,0.25)', fontWeight:700, textAlign:'center'}}>STAT</div>
+          <div style={{fontSize:9, letterSpacing:2, color:'var(--green)', fontWeight:700, textAlign:'right'}}>{homeAbbr}</div>
+        </div>
+        {rows.map((r, i) => {
+          const awayWins = r.edge === 'away';
+          const homeWins = r.edge === 'home';
+          return (
+            <div key={i} style={{borderBottom: i < rows.length-1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
+              background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)'}}>
+              <div style={{display:'grid', gridTemplateColumns:'1fr 80px 1fr', padding:'10px 16px 4px'}}>
+                <div style={{fontSize:14, fontWeight:700, color: edgeColor(r.edge,'away'), letterSpacing:0}}>
+                  {typeof r.away_val === 'number' && r.away_val < 1 ? `${(r.away_val*100).toFixed(1)}%` : r.away_val}
+                  {awayWins && <span style={{fontSize:8, color:'var(--green)', marginLeft:4}}>▲</span>}
+                </div>
+                <div style={{fontSize:8, letterSpacing:2, color:'rgba(255,255,255,0.35)', fontWeight:700, textAlign:'center', alignSelf:'center'}}>{r.stat}</div>
+                <div style={{fontSize:14, fontWeight:700, color: edgeColor(r.edge,'home'), letterSpacing:0, textAlign:'right'}}>
+                  {homeWins && <span style={{fontSize:8, color:'var(--green)', marginRight:4}}>▲</span>}
+                  {typeof r.home_val === 'number' && r.home_val < 1 ? `${(r.home_val*100).toFixed(1)}%` : r.home_val}
+                </div>
+              </div>
+              {r.note && (
+                <div style={{padding:'0 16px 8px', fontSize:10, color:'rgba(255,255,255,0.32)', letterSpacing:0, textTransform:'none', lineHeight:1.4}}>{r.note}</div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
