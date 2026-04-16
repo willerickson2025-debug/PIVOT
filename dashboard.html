@@ -1271,19 +1271,33 @@ function GameModal({ game, onClose }) {
           </div>
           <div className="modal-score-center">
             {(() => {
+              const awayAbbr = game.visitor_team.abbreviation;
+              const homeAbbr = game.home_team.abbreviation;
               const awayScore = (type === 'live' && liveState) ? liveState.away_score : game.visitor_team_score;
               const homeScore = (type === 'live' && liveState) ? liveState.home_score  : game.home_team_score;
+              const clock = liveState?.clock && liveState.clock !== 'Final' ? liveState.clock : null;
               const showScore = awayScore > 0 || homeScore > 0 || hasScore;
+
+              if (type === 'live' && showScore) {
+                return (
+                  <div style={{fontFamily:'Helvetica Neue,sans-serif', fontWeight:700, letterSpacing:1, lineHeight:1, textAlign:'center'}}>
+                    <div style={{fontSize:13, color:'rgba(255,255,255,0.45)', letterSpacing:3, marginBottom:6, textTransform:'uppercase'}}>
+                      {awayAbbr} <span style={{color:'var(--green)', fontSize:36, letterSpacing:2, verticalAlign:'middle'}}>{awayScore} – {homeScore}</span> {homeAbbr}
+                      {clock && <span style={{color:'rgba(255,255,255,0.5)', fontSize:13, letterSpacing:3, marginLeft:10}}>| {clock}</span>}
+                    </div>
+                    <div style={{display:'flex', alignItems:'center', justifyContent:'center', gap:10}}>
+                      <span className="live-badge">● LIVE</span>
+                      {lastUpdated && <span style={{fontSize:8, letterSpacing:2, color:'rgba(255,255,255,0.2)', textTransform:'uppercase'}}>
+                        {lastUpdated.toLocaleTimeString([], {hour:'numeric', minute:'2-digit', second:'2-digit'})}
+                      </span>}
+                    </div>
+                  </div>
+                );
+              }
               return showScore
-                ? <div className="modal-score-big">{awayScore} – {homeScore}</div>
-                : <div className="modal-score-vs">VS</div>;
+                ? <><div className="modal-score-big">{awayScore} – {homeScore}</div><div className="modal-status">{label}</div></>
+                : <><div className="modal-score-vs">VS</div><div className="modal-status">{label}</div></>;
             })()}
-            <div className="modal-status">{type==='live' ? <span className="live-badge">● LIVE</span> : label}</div>
-            {type === 'live' && lastUpdated && (
-              <div style={{fontFamily:'Helvetica Neue,sans-serif', fontSize:8, letterSpacing:2, color:'rgba(255,255,255,0.25)', marginTop:4, textTransform:'uppercase'}}>
-                Updated {lastUpdated.toLocaleTimeString([], {hour:'numeric', minute:'2-digit', second:'2-digit'})}
-              </div>
-            )}
           </div>
           <div className="modal-team home">
             {teamLogoUrl(game.home_team.abbreviation) && (
