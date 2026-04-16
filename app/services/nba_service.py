@@ -40,7 +40,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 _DEFAULT_PER_PAGE: int = 100
-_REQUEST_TIMEOUT: float = 12.0          # seconds per attempt
+_REQUEST_TIMEOUT: float = 30.0          # seconds per attempt
 _MAX_RETRIES: int = 3                   # total attempts before raising
 _RETRY_BACKOFF_BASE: float = 0.5        # seconds; multiplied by attempt index
 # Season is computed at call time — see get_current_season() in app/core/season.py

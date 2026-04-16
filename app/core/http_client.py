@@ -18,7 +18,7 @@ class GlobalHTTPClient:
         if cls._client is None:
             # Fallback outside the FastAPI lifecycle (tests, scripts).
             cls._client = httpx.AsyncClient(
-                timeout=httpx.Timeout(connect=4.0, read=8.0, write=4.0, pool=4.0),
+                timeout=httpx.Timeout(connect=8.0, read=20.0, write=8.0, pool=8.0),
                 limits=httpx.Limits(max_connections=100, max_keepalive_connections=20),
             )
         return cls._client
@@ -26,7 +26,7 @@ class GlobalHTTPClient:
     @classmethod
     async def start(cls) -> None:
         cls._client = httpx.AsyncClient(
-            timeout=httpx.Timeout(connect=4.0, read=8.0, write=4.0, pool=4.0),
+            timeout=httpx.Timeout(connect=8.0, read=20.0, write=8.0, pool=8.0),
             limits=httpx.Limits(max_connections=100, max_keepalive_connections=20),
         )
 

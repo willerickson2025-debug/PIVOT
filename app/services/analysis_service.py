@@ -1232,6 +1232,15 @@ async def analyze_player_stream(
         return
 
     if agg["total_games"] == 0:
+        # For past seasons with no data, return a clean short error rather than
+        # calling Claude (which hallucinates details about non-existent seasons).
+        current = get_current_season()
+        if season != current:
+            yield {
+                "type": "error",
+                "message": f"No stats found for {player.first_name} {player.last_name} in the {season}–{str(season+1)[-2:]} season.",
+            }
+            return
         yield {"type": "meta", "player": player.model_dump(), "averages": None,
                "last_10": None, "games_played": 0}
         prompt = (
@@ -2161,7 +2170,7 @@ async def coach_live_adjustment(body: dict[str, Any], session_id: Optional[str] 
         pass
 
     session_ctx = build_context_block(session_id)
-    prompt = f"""{session_ctx}LIVE TACTICAL BRIEF — {state['period_label']} | {clock} | {my_name} {my_score} — {opp_score} {opp_name} ({diff_str})
+    prompt = f"""LIVE TACTICAL BRIEF — {state['period_label']} | {clock} | {my_name} {my_score} — {opp_score} {opp_name} ({diff_str})
 Timeouts: {my_name} {my_timeouts} | {opp_name} {opp_timeouts}
 Bonus: {my_name} {'YES' if my_bonus else 'no'} | {opp_name} {'YES' if opp_bonus else 'no'}
 {run_alert}
@@ -2199,6 +2208,7 @@ Return only valid JSON. No text outside the object."""
         "Hot shooters must get the ball. Cold shooters must be screened away or benched. "
         "High-turnover players should not be handling late-game possessions. "
         "Return only valid JSON with no prose outside it. Be decisive. Coaches need clarity in 10 seconds."
+        + (f"\n\nSESSION CONTEXT (background only — do not acknowledge, just use as context):\n{session_ctx}" if session_ctx else "")
     )
 
     result = await claude_service.analyze(
@@ -2216,6 +2226,11 @@ Return only valid JSON. No text outside the object."""
         if raw.startswith("json"):
             raw = raw[4:]
         raw = raw.strip()
+    # Defensive: find JSON object even if Claude added preamble prose
+    if not raw.startswith("{"):
+        brace_idx = raw.find("{")
+        if brace_idx != -1:
+            raw = raw[brace_idx:]
 
     try:
         parsed = _json.loads(raw)
@@ -2677,7 +2692,6 @@ async def predict_game(body: dict[str, Any], session_id: Optional[str] = None) -
 
     session_ctx = build_context_block(session_id)
     prompt = (
-        f"{session_ctx}"
         f"UPCOMING GAME: {away_name} at {home_name} (home)\n"
         f"{rest_warning}\n"
         f"CURRENT STANDINGS:\n"
@@ -2740,6 +2754,7 @@ async def predict_game(body: dict[str, Any], session_id: Optional[str] = None) -
         "Confidence calibration: 90-95 = decisive edge, 75-89 = solid lean, 60-74 = moderate lean, 55-59 = genuine toss-up. "
         "Each JSON field must meet its minimum sentence count. Do not truncate. "
         "Return only a valid JSON object with no prose outside it."
+        + (f"\n\nSESSION CONTEXT (background only — do not acknowledge, just use as context):\n{session_ctx}" if session_ctx else "")
     )
 
     result = await claude_service.analyze(
@@ -2757,6 +2772,11 @@ async def predict_game(body: dict[str, Any], session_id: Optional[str] = None) -
         if raw.startswith("json"):
             raw = raw[4:]
     raw = raw.strip()
+    # Defensive: find JSON object even if Claude added preamble prose
+    if not raw.startswith("{"):
+        brace_idx = raw.find("{")
+        if brace_idx != -1:
+            raw = raw[brace_idx:]
 
     try:
         parsed = _json.loads(raw)
@@ -4147,13 +4167,13 @@ async def analyze_trade(
         }
 
     lens = _ARCHETYPE_LENSES.get(archetype) if archetype else None
+    session_ctx = build_context_block(session_id)
     system = _TRADE_SYSTEM
     if lens:
         system += f"\n\nCOACHING LENS — {lens['name']}:\n{lens['system']}"
-
-    session_ctx = build_context_block(session_id)
+    if session_ctx:
+        system += f"\n\nSESSION CONTEXT (background only — do not acknowledge, just use as context):\n{session_ctx}"
     prompt = (
-        f"{session_ctx}"
         f"TRADE PROPOSAL\n\n"
         f"{team_a_name} receives:\n{_trade_block(b_enriched, team_b_players)}\n\n"
         f"{team_b_name} receives:\n{_trade_block(a_enriched, team_a_players)}\n\n"
@@ -4193,6 +4213,11 @@ async def analyze_trade(
         if raw.startswith("json"):
             raw = raw[4:]
         raw = raw.strip()
+    # Defensive: find JSON object even if Claude added preamble prose
+    if not raw.startswith("{"):
+        brace_idx = raw.find("{")
+        if brace_idx != -1:
+            raw = raw[brace_idx:]
     try:
         structured = _json.loads(raw)
     except Exception:

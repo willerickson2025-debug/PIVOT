@@ -679,10 +679,34 @@ button {
 ::-webkit-scrollbar-track { background: var(--black); }
 ::-webkit-scrollbar-thumb { background: #2a2a2a; }
 @media print {
-  nav, .ticker, .toolbar, .export-btn { display: none !important; }
-  body { background: white !important; color: black !important; }
-  * { color: black !important; border-color: #ccc !important; background: white !important; text-shadow: none !important; box-shadow: none !important; }
-  .home-wrap { display: none !important; }
+  /* Override CSS variables so var(--white) etc. produce readable print colors */
+  :root {
+    --white: #111111;
+    --text-muted: #555555;
+    --green: #007a3d;
+    --border: #cccccc;
+    --border-strong: #999999;
+    --glass-bg: transparent;
+    --glass-border: #cccccc;
+    --glass-hi: none;
+  }
+  @page { margin: 1.5cm 1.8cm; }
+  /* Hide chrome */
+  nav, .ticker, .loader, .pivot-bg-grid, .home-wrap { display: none !important; }
+  /* Clean backgrounds */
+  body { background: #fff !important; color: #111 !important; }
+  * { text-shadow: none !important; box-shadow: none !important;
+      animation: none !important; transition: none !important;
+      backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+  /* Stat cards — light border, readable */
+  [style*="rgba(22,27,34"] { background: #f8f8f8 !important; border-color: #ddd !important; }
+  [style*="rgba(8,10,14"]  { background: #fff !important; }
+  [style*="rgba(15,17,21"] { background: #f5f5f5 !important; }
+  /* Section expand panels */
+  [style*="rgba(14,17,23"] { background: #fafafa !important; }
+  /* Green accent bar on stat cards — keep a visible dark-green */
+  [style*="background: var(--green)"],
+  [style*="background:var(--green)"] { background: #007a3d !important; }
 }
 
 /* War Room — CoachMode */
@@ -727,7 +751,7 @@ button {
 /* Glowing green elements */
 .feature-stat { color: var(--green) !important; text-shadow: 0 0 28px rgba(0,255,128,0.7), 0 0 60px rgba(0,255,128,0.35) !important; }
 .feature-stat-label { color: rgba(255,255,255,0.35) !important; }
-.ticker-item { text-shadow: 0 0 16px rgba(0,255,128,0.8), 0 0 44px rgba(0,255,128,0.4) !important; }
+.ticker-item { text-shadow: none !important; }
 .ticker { box-shadow: 0 -4px 28px rgba(0,255,128,0.12); }
 .box-pts { text-shadow: 0 0 12px rgba(0,255,128,0.55) !important; }
 .nav-tab.active::after { box-shadow: 0 0 20px var(--green), 0 0 44px rgba(0,255,128,0.45) !important; }
@@ -856,7 +880,7 @@ function friendlyError(msg) {
   const s = msg.toLowerCase();
   if (s.includes('overloaded') || s.includes('529')) return 'Claude is overloaded right now. Try again in a moment.';
   if (s.includes('529')) return 'Claude is overloaded right now. Try again in a moment.';
-  if (s.includes('timeout') || s.includes('timed out')) return 'Request timed out. Try again.';
+  if (s.includes('timeout') || s.includes('timed out')) return 'Analysis is taking longer than usual. Please try again.';
   if (s.includes('502') || s.includes('bad gateway')) return 'We\'re still building out this data. Try again in a moment.';
   if (s.includes('could not compute') || s.includes('no text content')) return 'We\'re adding more data to support this analysis. Try again in a moment.';
   return msg;
@@ -979,7 +1003,7 @@ function Ticker() {
         <div className="ticker-track">
           {doubled.map((item, i) => (
             <React.Fragment key={i}>
-              <span className="ticker-item" style={item.type === 'score' ? {color:'var(--green)', textShadow:'0 0 8px rgba(0,255,128,0.5)'} : {color:'rgba(255,255,255,0.75)', textShadow:'none', fontWeight:700, letterSpacing:'1.5px'}}>
+              <span className="ticker-item" style={item.type === 'score' ? {color:'var(--green)'} : {color:'rgba(255,255,255,0.75)', fontWeight:700, letterSpacing:'1.5px'}}>
                 {item.type === 'news' && item.source && (
                   <span style={{color:'rgba(255,255,255,0.32)', fontWeight:700, fontSize:9, letterSpacing:2, marginRight:8, verticalAlign:'middle', textTransform:'uppercase'}}>{item.source}</span>
                 )}
@@ -2302,7 +2326,7 @@ function Games() {
           {showCal && (
             <div onClick={e=>e.stopPropagation()} style={{
               position:'absolute', top:'calc(100% + 10px)', left:'50%', transform:'translateX(-50%)',
-              zIndex:100, width:320,
+              zIndex:9999, width:320,
               background:'rgba(10,13,20,0.82)',
               backdropFilter:'blur(24px)', WebkitBackdropFilter:'blur(24px)',
               border:'1px solid rgba(255,255,255,0.13)',
@@ -2404,7 +2428,7 @@ function Games() {
       </div>{/* end centering wrapper */}
 
       {/* Click-outside to close calendar */}
-      {showCal && <div onClick={() => setShowCal(false)} style={{position:'fixed',inset:0,zIndex:99}}/>}
+      {showCal && <div onClick={() => setShowCal(false)} style={{position:'fixed',inset:0,zIndex:9998}}/>}
 
       {error && <div className="err">{error}</div>}
       {loading && games.length === 0 && <Loader label="PIVOT COMPUTING"/>}
@@ -2602,11 +2626,12 @@ function Players({ pendingPlayerId, onClearPending }) {
   const [season, setSeason] = React.useState(2025);
   const seasonLabel = s => `${s}–${String(s+1).slice(2)}`;
 
-  const searchById = async (playerId) => {
+  const searchById = async (playerId, seasonOverride) => {
     if (!playerId) return;
+    const sn = seasonOverride !== undefined ? seasonOverride : season;
     setLoading(true); setError(null); setResult(null); setSectionData({}); setExpandedSection(null); setShowSugg(false);
     try {
-      const resp = await fetch(`${API}/analysis/player/stream?player_id=${playerId}&season=${season}`);
+      const resp = await fetch(`${API}/analysis/player/stream?player_id=${playerId}&season=${sn}`);
       if (!resp.ok) throw new Error(await resp.text());
       const reader = resp.body.getReader();
       const decoder = new TextDecoder();
@@ -2922,7 +2947,7 @@ function Players({ pendingPlayerId, onClearPending }) {
                   {/* Season selector */}
                   <div style={{display:'flex', gap:4, background:'rgba(255,255,255,0.04)', border:'1px solid var(--border)', borderRadius:6, padding:3}}>
                     {[2023,2024,2025].map(s => (
-                      <button key={s} onClick={() => { if (season !== s) { setSeason(s); setSectionData({}); setExpandedSection(null); } }}
+                      <button key={s} onClick={() => { if (season !== s) { setSeason(s); setSectionData({}); setExpandedSection(null); if (selectedId) searchById(selectedId, s); } }}
                         style={{fontFamily:'Helvetica Neue, sans-serif', fontWeight:700, fontSize:9, letterSpacing:2, padding:'6px 12px',
                           background: season===s ? 'var(--green)' : 'transparent',
                           color: season===s ? '#000' : 'rgba(255,255,255,0.45)',
@@ -3240,17 +3265,13 @@ function FrontOffice() {
     if (!t) return;
     setRosterTeam(t);
     setLoading(true); setError(null); setResult(null);
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000);
     try {
-      const r = await fetch(`${API}/frontoffice/roster?team_name=${encodeURIComponent(t)}`, { signal: controller.signal });
+      const r = await fetch(`${API}/frontoffice/roster?team_name=${encodeURIComponent(t)}`);
       if (!r.ok) throw new Error(await r.text());
       setResult(await r.json());
     } catch(e) {
-      const msg = e.name === 'AbortError' ? 'Request timed out. Please try again.' : friendlyError(e.message);
-      setError(msg);
+      setError(friendlyError(e.message));
     } finally {
-      clearTimeout(timeout);
       setLoading(false);
     }
   };
@@ -5763,7 +5784,7 @@ function Teams({ onPlayerClick }) {
                 {confTeams.map(t => {
                   const active = selected?.abbr === t.abbr;
                   return (
-                    <button key={t.abbr} onClick={() => handleSelect(t)}
+                    <button key={t.abbr} onClick={() => selectTeam(t)}
                       title={t.name}
                       style={{display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
                         gap:6, padding:'12px 6px 10px',

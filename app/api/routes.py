@@ -34,7 +34,7 @@ async def headshot_proxy(nba_id: int, response: Response):
     """Proxy NBA.com headshot images to avoid browser cross-origin blocks."""
     url = f"https://cdn.nba.com/headshots/nba/latest/1040x760/{nba_id}.png"
     try:
-        async with httpx.AsyncClient(timeout=8) as client:
+        async with httpx.AsyncClient(timeout=15) as client:
             r = await client.get(url, headers={"User-Agent": "Mozilla/5.0"})
         if r.status_code != 200:
             raise HTTPException(status_code=404, detail="Headshot not found")
@@ -228,7 +228,7 @@ async def _fetch_rss(client: httpx.AsyncClient, source: dict) -> list[dict]:
 @router.get("/nba/news")
 async def nba_news():
     """Fetch latest NBA headlines from multiple RSS feeds, merged and deduplicated."""
-    async with httpx.AsyncClient(timeout=10) as client:
+    async with httpx.AsyncClient(timeout=15) as client:
         results = await asyncio.gather(*[_fetch_rss(client, s) for s in _NEWS_SOURCES])
 
     # Flatten all items
@@ -600,7 +600,7 @@ async def nba_injuries():
         return _cache["data"]
 
     try:
-        async with httpx.AsyncClient(timeout=10) as client:
+        async with httpx.AsyncClient(timeout=20) as client:
             r = await client.get(
                 "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/injuries",
                 headers={"User-Agent": "Mozilla/5.0"},
