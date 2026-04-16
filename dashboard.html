@@ -3073,23 +3073,6 @@ function FrontOffice() {
   const [headlines, setHeadlines] = React.useState([]);
   const [dashTab, setDashTab] = React.useState('warboard');
 
-  // Team DNA state
-  const [dnaTeam, setDnaTeam] = React.useState('');
-  const [dnaResult, setDnaResult] = React.useState(null);
-  const [dnaLoading, setDnaLoading] = React.useState(false);
-  const [dnaError, setDnaError] = React.useState(null);
-
-  const runDna = async (teamName) => {
-    if (!teamName) return;
-    setDnaTeam(teamName);
-    setDnaLoading(true); setDnaError(null); setDnaResult(null);
-    try {
-      const r = await fetch(`${API}/analysis/team-dna?team_name=${encodeURIComponent(teamName)}`);
-      if (!r.ok) throw new Error(await r.text());
-      setDnaResult(await r.json());
-    } catch(e) { setDnaError(friendlyError(e.message)); } finally { setDnaLoading(false); }
-  };
-
   const [standings, setStandings] = React.useState(null);
   const [standingsLoading, setStandingsLoading] = React.useState(true);
   const [standingsError, setStandingsError] = React.useState(false);
@@ -3287,7 +3270,6 @@ function FrontOffice() {
   const TABS = [
     {id:'warboard',  label:'War Board'},
     {id:'cap',       label:'Cap Intel'},
-    {id:'team_dna',  label:'Team DNA'},
     {id:'mvp',       label:'MVP Race'},
     {id:'young',     label:'Young Stars'},
     {id:'injuries',  label:'Injury Report'},
@@ -3750,66 +3732,6 @@ function FrontOffice() {
                 </div>
               );
             })()
-          )}
-
-          {/* ── Team DNA tab ── */}
-          {!result && !loading && !error && dashTab === 'team_dna' && (
-            <div style={{padding:'24px 24px 60px'}}>
-              {!dnaResult && !dnaLoading && !dnaError && (
-                <div style={{textAlign:'center', padding:'60px 40px'}}>
-                  <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:10, letterSpacing:5, color:'rgba(0,255,128,0.86)', textTransform:'uppercase', fontWeight:700, marginBottom:20}}>Team DNA</div>
-                  <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:'clamp(36px,5vw,64px)', fontWeight:700, letterSpacing:-2, color:'rgba(255,255,255,0.88)', lineHeight:1, marginBottom:12}}>Scheme.<br/>Shot Diet.<br/>Tendencies.</div>
-                  <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:12, color:'rgba(255,255,255,0.52)', marginBottom:40, lineHeight:1.7}}>Select any team to see their offensive identity, defensive scheme, pace profile, and the vulnerabilities opponents exploit.</div>
-                  <div style={{display:'grid', gridTemplateColumns:'repeat(6,1fr)', gap:6, maxWidth:480, margin:'0 auto'}}>
-                    {ALL_TEAMS.map(t => (
-                      <button key={t.abbr} onClick={()=>runDna(t.name)}
-                        style={{background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:6, padding:'8px 4px', cursor:'pointer', display:'flex', flexDirection:'column', alignItems:'center', gap:3, transition:'all 0.12s'}}
-                        onMouseEnter={e=>{e.currentTarget.style.background='rgba(0,255,128,0.08)';e.currentTarget.style.borderColor='rgba(0,255,128,0.35)';}}
-                        onMouseLeave={e=>{e.currentTarget.style.background='rgba(255,255,255,0.03)';e.currentTarget.style.borderColor='rgba(255,255,255,0.08)';}}>
-                        <img src={`https://a.espn.com/combiner/i?img=/i/teamlogos/nba/500/${t.abbr.toLowerCase()}.png&h=28&w=28`} alt={t.abbr} width={20} height={20} style={{objectFit:'contain'}} onError={e=>e.target.style.display='none'}/>
-                        <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:7, letterSpacing:0.5, color:'rgba(255,255,255,0.62)', fontWeight:700}}>{t.abbr}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {dnaLoading && (
-                <div style={{display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:300, gap:20}}>
-                  <div style={{display:'flex', gap:8}}>{[0,1,2].map(i=><div key={i} style={{width:6,height:6,borderRadius:'50%',background:'var(--green)',animation:`pulse-dot 1.2s ease-in-out ${i*0.2}s infinite`}}/>)}</div>
-                  <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, letterSpacing:4, color:'var(--green)', textTransform:'uppercase'}}>Scouting {dnaTeam}...</div>
-                </div>
-              )}
-              {dnaError && <div style={{margin:'32px 0', color:'#ef4444', fontFamily:'Helvetica Neue, sans-serif', fontSize:13}}>{dnaError}</div>}
-              {dnaResult && (
-                <div style={{maxWidth:820, margin:'0 auto'}}>
-                  <div style={{display:'flex', alignItems:'center', gap:16, marginBottom:32}}>
-                    {(() => { const abbr = ALL_TEAMS.find(t=>t.name===dnaResult.team)?.abbr; return abbr ? <img src={`https://a.espn.com/combiner/i?img=/i/teamlogos/nba/500/${abbr.toLowerCase()}.png&h=64&w=64`} alt={abbr} width={48} height={48} style={{objectFit:'contain'}} onError={e=>e.target.style.display='none'}/> : null; })()}
-                    <div>
-                      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:24, fontWeight:700, letterSpacing:-0.5, color:'rgba(255,255,255,0.92)'}}>{dnaResult.team}</div>
-                      {dnaResult.standing && <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:10, color:'rgba(255,255,255,0.52)', marginTop:4, letterSpacing:1}}>{dnaResult.standing}</div>}
-                    </div>
-                    <button onClick={()=>{setDnaResult(null);setDnaError(null);setDnaTeam('');}} style={{marginLeft:'auto', background:'var(--glass-bg)', border:'1px solid var(--glass-border)', boxShadow:'var(--glass-hi)', borderRadius:4, color:'rgba(255,255,255,0.55)', fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:2, padding:'6px 12px', cursor:'pointer', textTransform:'uppercase', transition:'all 0.15s'}}>
-                      Change Team
-                    </button>
-                  </div>
-                  <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:14, fontWeight:700, lineHeight:1.85, color:'rgba(255,255,255,0.78)', letterSpacing:0, textTransform:'none'}}>
-                    {dnaResult.analysis.split('\n\n').map((para, i) => (
-                      <p key={i} style={{marginBottom:18, marginTop:0}}>{para}</p>
-                    ))}
-                  </div>
-                  <div style={{display:'flex', flexWrap:'wrap', gap:6, marginTop:32}}>
-                    {ALL_TEAMS.filter(t=>t.name!==dnaResult.team).slice(0,10).map(t => (
-                      <button key={t.abbr} onClick={()=>runDna(t.name)}
-                        style={{background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:4, padding:'5px 10px', cursor:'pointer', fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:1, color:'rgba(255,255,255,0.52)', fontWeight:700, transition:'all 0.12s'}}
-                        onMouseEnter={e=>{e.currentTarget.style.borderColor='rgba(0,255,128,0.4)';e.currentTarget.style.color='var(--green)';}}
-                        onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(255,255,255,0.1)';e.currentTarget.style.color='rgba(255,255,255,0.52)';}}>
-                        {t.abbr}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
           )}
 
           {/* Loading */}
