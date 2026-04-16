@@ -3166,11 +3166,19 @@ function FrontOffice() {
     if (!t) return;
     setRosterTeam(t);
     setLoading(true); setError(null); setResult(null);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
     try {
-      const r = await fetch(`${API}/frontoffice/roster?team_name=${encodeURIComponent(t)}`);
+      const r = await fetch(`${API}/frontoffice/roster?team_name=${encodeURIComponent(t)}`, { signal: controller.signal });
       if (!r.ok) throw new Error(await r.text());
       setResult(await r.json());
-    } catch(e) { setError(friendlyError(e.message)); } finally { setLoading(false); }
+    } catch(e) {
+      const msg = e.name === 'AbortError' ? 'Request timed out. Please try again.' : friendlyError(e.message);
+      setError(msg);
+    } finally {
+      clearTimeout(timeout);
+      setLoading(false);
+    }
   };
 
   const ALL_TEAMS = [
@@ -3423,8 +3431,8 @@ function FrontOffice() {
               const capEntry = CAP_DATA.find(c => c.abbr === t.abbr);
               const tier = capEntry ? getCapTier(capEntry.used) : null;
               return (
-                <button key={t.abbr} onClick={()=>runRoster(t.name)} title={t.name}
-                  style={{background:rosterTeam===t.name?'rgba(0,255,128,0.1)':'rgba(255,255,255,0.02)', border:`1px solid ${rosterTeam===t.name?'rgba(0,255,128,0.4)':'rgba(255,255,255,0.06)'}`, borderRadius:6, padding:'6px 3px', cursor:'pointer', display:'flex', flexDirection:'column', alignItems:'center', gap:2, transition:'all 0.12s', position:'relative'}}
+                <button key={t.abbr} onClick={()=>{ if (!loading) runRoster(t.name); }} title={t.name}
+                  style={{background:rosterTeam===t.name?'rgba(0,255,128,0.1)':'rgba(255,255,255,0.02)', border:`1px solid ${rosterTeam===t.name?'rgba(0,255,128,0.4)':'rgba(255,255,255,0.06)'}`, borderRadius:6, padding:'6px 3px', cursor:loading?'not-allowed':'pointer', display:'flex', flexDirection:'column', alignItems:'center', gap:2, transition:'all 0.12s', position:'relative', opacity:loading?0.5:1}}
                   onMouseEnter={e=>{e.currentTarget.style.background='rgba(0,255,128,0.06)';e.currentTarget.style.borderColor='rgba(0,255,128,0.3)';}}
                   onMouseLeave={e=>{e.currentTarget.style.background=rosterTeam===t.name?'rgba(0,255,128,0.1)':'rgba(255,255,255,0.02)';e.currentTarget.style.borderColor=rosterTeam===t.name?'rgba(0,255,128,0.4)':'rgba(255,255,255,0.06)';}}>
                   {tier && <div style={{position:'absolute', top:3, right:3, width:4, height:4, borderRadius:'50%', background:tier.color, opacity:0.7}}/>}
@@ -3787,6 +3795,10 @@ function FrontOffice() {
                 {[0,1,2].map(i=><div key={i} style={{width:6,height:6,borderRadius:'50%',background:'var(--green)',animation:`pulse-dot 1.2s ease-in-out ${i*0.2}s infinite`}}/>)}
               </div>
               <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, letterSpacing:4, color:'var(--green)', textTransform:'uppercase'}}>Opening War Room · {rosterTeam}</div>
+              <button onClick={()=>{ setLoading(false); setError('Cancelled.'); }}
+                style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:3, color:'rgba(255,255,255,0.35)', background:'transparent', border:'1px solid rgba(255,255,255,0.1)', borderRadius:4, padding:'6px 14px', cursor:'pointer', textTransform:'uppercase', marginTop:4}}>
+                Cancel
+              </button>
             </div>
           )}
 
