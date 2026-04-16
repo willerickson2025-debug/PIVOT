@@ -5803,10 +5803,7 @@ function App() {
       {!isHome && <div className="pivot-bg-grid"/>}
       <nav className={scrolled || !isHome ? 'solid' : ''}>
         <div className="nav-logo" onClick={() => setTab('home')}>
-          <svg width="28" height="38" viewBox="0 0 60 90" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <polygon points="8,2 52,45 8,88" stroke="white" strokeWidth="4" strokeLinejoin="miter"/>
-            <polygon points="17,19 40,45 17,71" stroke="white" strokeWidth="3.5" strokeLinejoin="miter"/>
-          </svg>
+          <img src="/static/logo.png" alt="PIVOT" height="40" style={{display:'block', objectFit:'contain'}}/>
         </div>
         <div className="nav-tabs">
           {[['games','Games'],['players','Players'],['teams','Teams'],['compare','Compare'],['frontoffice','Front Office'],['coach','Coach Mode'],['about','About PIVOT']].map(([id,label]) => (
