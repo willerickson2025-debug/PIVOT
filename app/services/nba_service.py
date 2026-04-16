@@ -608,22 +608,6 @@ async def get_roster_by_abbr(abbr: str) -> list[dict]:
                 seen_ids.add(pid)
                 result.append(pdata)
 
-    # Fallback: if stats returned nothing (pre-season, brand-new team, etc.)
-    # use the /players endpoint as a best-effort backup.
-    if not result:
-        logger.warning("No stats found for team abbr=%s — falling back to /players", abbr)
-        players_payload = await _fetch_data(
-            "/players",
-            params={"team_ids[]": team_id, "per_page": 100, "season": current_season},
-        )
-        for p in players_payload.get("data") or []:
-            pid = p.get("id")
-            first = (p.get("first_name") or "").strip()
-            last  = (p.get("last_name") or "").strip()
-            if pid and (first or last):
-                result.append({"id": pid, "first_name": first, "last_name": last,
-                                "position": (p.get("position") or "").strip()})
-
     result.sort(key=lambda x: x.get("last_name", ""))
     logger.debug("Roster for abbr=%s: %d players (from %d recent games)", abbr, len(result), len(recent_games))
     return result

@@ -5854,27 +5854,32 @@ function Teams({ onPlayerClick }) {
               rosterLoading ? <Loader label="LOADING ROSTER"/> :
               rosterError   ? <div style={{fontFamily:HN, fontSize:12, color:'rgba(255,80,80,0.8)', textTransform:'none', letterSpacing:0}}>{rosterError}</div> :
               roster.length > 0 ? (() => {
-                const posOrder = ['G','G-F','F-G','F','F-C','C-F','C',''];
-                const grouped = {};
-                roster.forEach(p => {
-                  const pos = p.position || '';
-                  if (!grouped[pos]) grouped[pos] = [];
-                  grouped[pos].push(p);
-                });
-                const posLabel = pos => pos === 'G' ? 'Guards' : pos === 'F' ? 'Forwards' : pos === 'C' ? 'Centers' : pos ? pos : 'Other';
-                const sortedKeys = Object.keys(grouped).sort((a,b) => posOrder.indexOf(a) - posOrder.indexOf(b));
+                // Map every standard NBA position code to one of 3 display buckets.
+                // Guards: PG, SG, G, G-F (guard-primary hybrids)
+                // Forwards: SF, PF, F, F-G, F-C (forward-primary hybrids)
+                // Centers: C, C-F
+                const toBucket = pos => {
+                  switch ((pos || '').toUpperCase()) {
+                    case 'PG': case 'SG': case 'G': case 'G-F': return 'Guards';
+                    case 'SF': case 'PF': case 'F': case 'F-G': case 'F-C': return 'Forwards';
+                    case 'C': case 'C-F': return 'Centers';
+                    default: return 'Guards'; // rare/empty — park with guards rather than drop
+                  }
+                };
+                const buckets = { Guards: [], Forwards: [], Centers: [] };
+                roster.forEach(p => buckets[toBucket(p.position)].push(p));
                 return (
                   <div>
                     <div style={{fontFamily:HN, fontSize:9, letterSpacing:3, color:'rgba(255,255,255,0.3)', marginBottom:18, textTransform:'uppercase'}}>
                       {roster.length} Players · Click a name to view stats
                     </div>
-                    {sortedKeys.map(pos => (
-                      <div key={pos} style={{marginBottom:20}}>
+                    {['Guards','Forwards','Centers'].filter(b => buckets[b].length > 0).map(bucket => (
+                      <div key={bucket} style={{marginBottom:20}}>
                         <div style={{fontFamily:HN, fontSize:8, letterSpacing:3, color:'rgba(0,255,128,0.6)', fontWeight:700, textTransform:'uppercase', marginBottom:10}}>
-                          {posLabel(pos)}
+                          {bucket}
                         </div>
                         <div style={{display:'flex', flexWrap:'wrap', gap:8}}>
-                          {grouped[pos].map(p => (
+                          {buckets[bucket].map(p => (
                             <button key={p.id} onClick={() => onPlayerClick && onPlayerClick(p.id)}
                               style={{fontFamily:HN, fontSize:13, fontWeight:500, color:'rgba(255,255,255,0.85)',
                                 background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.1)',
