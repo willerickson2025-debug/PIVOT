@@ -2544,7 +2544,7 @@ function TrendBar({ val, avg, maxVal, label, isPct }) {
   );
 }
 
-function Players() {
+function Players({ pendingPlayerId, onClearPending }) {
   const [query, setQuery] = React.useState('');
   const [selectedId, setSelectedId] = React.useState(null);
   const [result, setResult] = React.useState(null);
@@ -2596,6 +2596,14 @@ function Players() {
   React.useEffect(() => {
     if (selectedId) { searchById(selectedId); }
   }, [season]);
+
+  // Navigate here from Teams tab — load the clicked player immediately
+  React.useEffect(() => {
+    if (!pendingPlayerId) return;
+    setSelectedId(pendingPlayerId);
+    searchById(pendingPlayerId);
+    if (onClearPending) onClearPending();
+  }, [pendingPlayerId]);
 
   const searchByName = async () => {
     if (selectedId) { searchById(selectedId); return; }
@@ -5336,22 +5344,34 @@ const NBA_TEAMS = [
   { name:'Utah Jazz',              abbr:'UTA', slug:'utah',conf:'West', div:'Northwest' },
 ];
 
-function Teams() {
+function Teams({ onPlayerClick }) {
   const [selected, setSelected] = React.useState(null);
+  const [teamView, setTeamView]   = React.useState('roster');
+
+  // Roster state — real player data
+  const [roster, setRoster]             = React.useState([]);
+  const [rosterLoading, setRosterLoading] = React.useState(false);
+  const [rosterError, setRosterError]   = React.useState('');
+
+  // Team DNA state — AI analysis
   const [dnaText, setDnaText]     = React.useState('');
   const [dnaLoading, setDnaLoading] = React.useState(false);
   const [dnaError, setDnaError]   = React.useState('');
-  const [rosterText, setRosterText]   = React.useState('');
-  const [rosterLoading, setRosterLoading] = React.useState(false);
-  const [rosterError, setRosterError] = React.useState('');
-  const [teamView, setTeamView]   = React.useState('dna');
 
   const selectTeam = (t) => {
     if (selected?.abbr === t.abbr) { setSelected(null); return; }
     setSelected(t);
+    setRoster([]); setRosterError(''); setRosterLoading(false);
     setDnaText(''); setDnaError(''); setDnaLoading(false);
-    setRosterText(''); setRosterError(''); setRosterLoading(false);
-    setTeamView('dna');
+    setTeamView('roster');
+  };
+
+  const fetchRoster = (t) => {
+    setRosterLoading(true); setRoster([]); setRosterError('');
+    fetch(`${API}/nba/teams/roster?abbr=${encodeURIComponent(t.abbr)}`)
+      .then(r => r.ok ? r.json() : r.json().then(e => Promise.reject(e.detail || 'Failed')))
+      .then(d => { setRoster(d.players || []); setRosterLoading(false); })
+      .catch(e => { setRosterError(String(e)); setRosterLoading(false); });
   };
 
   const fetchDna = (t) => {
@@ -5362,30 +5382,15 @@ function Teams() {
       .catch(e => { setDnaError(String(e)); setDnaLoading(false); });
   };
 
-  const fetchRoster = (t) => {
-    setRosterLoading(true); setRosterText(''); setRosterError('');
-    fetch(`${API}/frontoffice/roster?team_name=${encodeURIComponent(t.name)}`)
-      .then(r => r.ok ? r.json() : r.json().then(e => Promise.reject(e.detail || 'Failed')))
-      .then(d => { setRosterText(d.analysis || ''); setRosterLoading(false); })
-      .catch(e => { setRosterError(String(e)); setRosterLoading(false); });
-  };
-
   const switchView = (v) => {
     setTeamView(v);
     if (!selected) return;
-    if (v === 'dna'    && !dnaText    && !dnaLoading)    fetchDna(selected);
-    if (v === 'roster' && !rosterText && !rosterLoading) fetchRoster(selected);
-  };
-
-  const handleSelect = (t) => {
-    selectTeam(t);
-    // fetchDna will be triggered after state settles via the effect below
+    if (v === 'roster' && !roster.length && !rosterLoading) fetchRoster(selected);
+    if (v === 'dna'    && !dnaText       && !dnaLoading)    fetchDna(selected);
   };
 
   React.useEffect(() => {
-    if (selected && teamView === 'dna' && !dnaText && !dnaLoading && !dnaError) {
-      fetchDna(selected);
-    }
+    if (selected) fetchRoster(selected);
   }, [selected]);
 
   const byConf = { East: {}, West: {} };
@@ -5403,7 +5408,7 @@ function Teams() {
       <div style={{marginBottom:28}}>
         <div style={{fontFamily:HN, fontSize:9, letterSpacing:4, color:'rgba(0,255,128,0.9)', fontWeight:700, textTransform:'uppercase', marginBottom:8}}>NBA Teams</div>
         <div style={{fontFamily:HN, fontSize:28, letterSpacing:-0.5, color:'var(--white)', fontWeight:700, textTransform:'none'}}>Team Intelligence</div>
-        <div style={{fontFamily:HN, fontSize:13, color:'rgba(255,255,255,0.4)', fontWeight:400, marginTop:6, textTransform:'none', letterSpacing:0}}>Select a team for DNA analysis and roster breakdown.</div>
+        <div style={{fontFamily:HN, fontSize:13, color:'rgba(255,255,255,0.4)', fontWeight:400, marginTop:6, textTransform:'none', letterSpacing:0}}>Select a team to browse the roster. Click any player to view their stats.</div>
       </div>
 
       {/* ── Conference logo grids ── */}
@@ -5470,7 +5475,7 @@ function Teams() {
 
           {/* Tab switcher */}
           <div style={{display:'flex', gap:8, padding:'12px 24px', borderBottom:'1px solid var(--border)'}}>
-            {[['dna','Team DNA'],['roster','Roster Intel']].map(([id,lbl]) => (
+            {[['roster','Roster'],['dna','Team DNA']].map(([id,lbl]) => (
               <button key={id} onClick={() => switchView(id)}
                 style={{fontFamily:HN, fontWeight:700, fontSize:9, letterSpacing:3, textTransform:'uppercase',
                   padding:'8px 18px', borderRadius:6, cursor:'pointer', transition:'all 0.15s',
@@ -5484,18 +5489,54 @@ function Teams() {
           </div>
 
           {/* Content */}
-          <div style={{padding:'24px 28px', minHeight:320}}>
+          <div style={{padding:'24px 28px', minHeight:200}}>
+            {teamView === 'roster' && (
+              rosterLoading ? <Loader label="LOADING ROSTER"/> :
+              rosterError   ? <div style={{fontFamily:HN, fontSize:12, color:'rgba(255,80,80,0.8)', textTransform:'none', letterSpacing:0}}>{rosterError}</div> :
+              roster.length > 0 ? (() => {
+                const posOrder = ['G','G-F','F-G','F','F-C','C-F','C',''];
+                const grouped = {};
+                roster.forEach(p => {
+                  const pos = p.position || '';
+                  if (!grouped[pos]) grouped[pos] = [];
+                  grouped[pos].push(p);
+                });
+                const posLabel = pos => pos === 'G' ? 'Guards' : pos === 'F' ? 'Forwards' : pos === 'C' ? 'Centers' : pos ? pos : 'Other';
+                const sortedKeys = Object.keys(grouped).sort((a,b) => posOrder.indexOf(a) - posOrder.indexOf(b));
+                return (
+                  <div>
+                    <div style={{fontFamily:HN, fontSize:9, letterSpacing:3, color:'rgba(255,255,255,0.3)', marginBottom:18, textTransform:'uppercase'}}>
+                      {roster.length} Players · Click a name to view stats
+                    </div>
+                    {sortedKeys.map(pos => (
+                      <div key={pos} style={{marginBottom:20}}>
+                        <div style={{fontFamily:HN, fontSize:8, letterSpacing:3, color:'rgba(0,255,128,0.6)', fontWeight:700, textTransform:'uppercase', marginBottom:10}}>
+                          {posLabel(pos)}
+                        </div>
+                        <div style={{display:'flex', flexWrap:'wrap', gap:8}}>
+                          {grouped[pos].map(p => (
+                            <button key={p.id} onClick={() => onPlayerClick && onPlayerClick(p.id)}
+                              style={{fontFamily:HN, fontSize:13, fontWeight:500, color:'rgba(255,255,255,0.85)',
+                                background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.1)',
+                                borderRadius:6, padding:'8px 14px', cursor:'pointer', transition:'all 0.12s',
+                                textTransform:'none', letterSpacing:0, textAlign:'left'}}
+                              onMouseEnter={e => { e.currentTarget.style.background='rgba(0,255,128,0.1)'; e.currentTarget.style.borderColor='rgba(0,255,128,0.35)'; e.currentTarget.style.color='var(--green)'; }}
+                              onMouseLeave={e => { e.currentTarget.style.background='rgba(255,255,255,0.04)'; e.currentTarget.style.borderColor='rgba(255,255,255,0.1)'; e.currentTarget.style.color='rgba(255,255,255,0.85)'; }}>
+                              {p.first_name} {p.last_name}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })() : null
+            )}
             {teamView === 'dna' && (
               dnaLoading  ? <Loader label="ANALYZING TEAM DNA"/> :
               dnaError    ? <div style={{fontFamily:HN, fontSize:12, color:'rgba(255,80,80,0.8)', textTransform:'none', letterSpacing:0}}>{dnaError}</div> :
               dnaText     ? <div style={{fontFamily:HN, fontSize:14, lineHeight:1.95, color:'rgba(255,255,255,0.85)', whiteSpace:'pre-wrap', fontWeight:400, textTransform:'none', letterSpacing:0}}>{dnaText}</div>
                           : null
-            )}
-            {teamView === 'roster' && (
-              rosterLoading  ? <Loader label="BREAKING DOWN ROSTER"/> :
-              rosterError    ? <div style={{fontFamily:HN, fontSize:12, color:'rgba(255,80,80,0.8)', textTransform:'none', letterSpacing:0}}>{rosterError}</div> :
-              rosterText     ? <div style={{fontFamily:HN, fontSize:14, lineHeight:1.95, color:'rgba(255,255,255,0.85)', whiteSpace:'pre-wrap', fontWeight:400, textTransform:'none', letterSpacing:0}}>{rosterText}</div>
-                             : null
             )}
           </div>
         </div>
@@ -5777,6 +5818,7 @@ function Compare() {
 function App() {
   const [tab, setTab] = React.useState('home');
   const [scrolled, setScrolled] = React.useState(false);
+  const [pendingPlayerId, setPendingPlayerId] = React.useState(null);
 
   React.useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -5802,8 +5844,8 @@ function App() {
       <div style={{paddingTop: isHome ? 0 : 70, paddingBottom: isHome ? 0 : 48}}>
         {tab === 'home'        && <Home onNavigate={setTab}/>}
         {tab === 'games'       && <Games/>}
-        {tab === 'players'     && <Players/>}
-        {tab === 'teams'       && <Teams/>}
+        {tab === 'players'     && <Players pendingPlayerId={pendingPlayerId} onClearPending={() => setPendingPlayerId(null)}/>}
+        {tab === 'teams'       && <Teams onPlayerClick={(id) => { setPendingPlayerId(id); setTab('players'); }}/>}
         {tab === 'compare'     && <Compare/>}
         {tab === 'frontoffice' && <FrontOffice/>}
         {tab === 'coach'       && <CoachMode/>}

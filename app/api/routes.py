@@ -77,6 +77,17 @@ async def get_teams():
         raise HTTPException(status_code=502, detail=f"BallDontLie API error: {str(e)}")
 
 
+@router.get("/nba/teams/roster")
+async def get_team_roster(abbr: str = Query(..., description="Team abbreviation, e.g. LAL")):
+    try:
+        players = await nba_service.get_roster_by_abbr(abbr)
+        return {"players": players, "count": len(players)}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"BallDontLie API error: {str(e)}")
+
+
 @router.get("/nba/teams/{team_id}")
 async def get_team(team_id: int):
     try:

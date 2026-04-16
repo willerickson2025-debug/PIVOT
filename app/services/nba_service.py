@@ -542,6 +542,39 @@ async def get_team_roster_last_names(team_id: int) -> set[str]:
         return set()
 
 
+async def get_roster_by_abbr(abbr: str) -> list[dict]:
+    """
+    Return basic player info for a team's current roster, resolved from
+    the team's abbreviation (e.g. 'LAL', 'BOS').
+    """
+    teams_payload = await _fetch_data("/teams", params={"per_page": 100})
+    team_id: int | None = None
+    for t in teams_payload.get("data") or []:
+        if (t.get("abbreviation") or "").upper() == abbr.upper():
+            team_id = int(t["id"])
+            break
+    if team_id is None:
+        raise ValueError(f"No team found with abbreviation '{abbr}'")
+
+    players_payload = await _fetch_data("/players", params={"team_ids[]": team_id, "per_page": 100})
+    result: list[dict] = []
+    for p in players_payload.get("data") or []:
+        pid = p.get("id")
+        first = (p.get("first_name") or "").strip()
+        last = (p.get("last_name") or "").strip()
+        if not pid or not (first or last):
+            continue
+        result.append({
+            "id": pid,
+            "first_name": first,
+            "last_name": last,
+            "position": (p.get("position") or "").strip(),
+        })
+    result.sort(key=lambda x: x.get("last_name", ""))
+    logger.debug("Roster for abbr=%s: %d players", abbr, len(result))
+    return result
+
+
 # ---------------------------------------------------------------------------
 # Contracts, Advanced Stats, Lineups
 # ---------------------------------------------------------------------------
