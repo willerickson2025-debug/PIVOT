@@ -436,8 +436,8 @@ button {
   position: fixed;
   bottom: 0; left: 0; right: 0;
   height: 40px;
-  background: var(--black);
-  border-top: 2px solid var(--green);
+  background: #111;
+  border-top: 1px solid #222;
   display: flex;
   align-items: center;
   overflow: hidden;
@@ -445,25 +445,26 @@ button {
 }
 .ticker-label {
   flex-shrink: 0;
-  background: var(--green);
-  color: var(--black);
+  background: #1a1a1a;
+  color: rgba(255,255,255,0.5);
   font-size: 9px;
   letter-spacing: 3px;
   padding: 0 16px;
   height: 100%;
   display: flex; align-items: center;
   font-weight: 700; white-space: nowrap; z-index: 2;
+  border-right: 1px solid #222;
 }
 .ticker-track-wrap { flex: 1; overflow: hidden; height: 100%; display: flex; align-items: center; }
 .ticker-track {
   display: flex; align-items: center; white-space: nowrap;
-  animation: ticker-scroll 40s linear infinite;
+  animation: ticker-scroll 70s linear infinite;
   will-change: transform;
 }
 .ticker-track:hover { animation-play-state: paused; }
 @keyframes ticker-scroll { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
-.ticker-item { font-size: 11px; letter-spacing: 2px; color: var(--green); padding: 0 32px; text-shadow: 0 0 8px rgba(0,255,128,0.4); white-space: nowrap; }
-.ticker-sep { color: #1a1a1a; font-size: 14px; padding: 0 8px; }
+.ticker-item { font-size: 11px; letter-spacing: 1.5px; color: rgba(255,255,255,0.75); padding: 0 32px; white-space: nowrap; }
+.ticker-sep { color: #2a2a2a; font-size: 14px; padding: 0 8px; }
 .toolbar {
   height: 56px;
   border-bottom: 1px solid var(--border);
