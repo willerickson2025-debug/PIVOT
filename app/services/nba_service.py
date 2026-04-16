@@ -546,9 +546,14 @@ async def get_team_roster_last_names(team_id: int) -> set[str]:
 
 async def get_roster_by_abbr(abbr: str) -> list[dict]:
     """
-    Return basic player info for a team's current roster, resolved from
-    the team's abbreviation (e.g. 'LAL', 'BOS').
+    Return current-roster players for a team by extracting unique players
+    from the team's most recent game logs this season.
+
+    Using game-log data (rather than the /players endpoint) avoids returning
+    traded-away or historically-associated players — only players who
+    actually appeared in a recent box score for this team are included.
     """
+    # 1. Resolve team ID from abbreviation
     teams_payload = await _fetch_data("/teams", params={"per_page": 100})
     team_id: int | None = None
     for t in teams_payload.get("data") or []:
@@ -558,26 +563,69 @@ async def get_roster_by_abbr(abbr: str) -> list[dict]:
     if team_id is None:
         raise ValueError(f"No team found with abbreviation '{abbr}'")
 
+    # 2. Fetch recent per-game stats for the team this season.
+    #    /stats with team_ids[] returns only lines where the player was
+    #    actually playing for this team — the most recent 100 entries cover
+    #    roughly the last 7-10 games and give us a clean active roster.
     current_season = get_current_season()
-    players_payload = await _fetch_data(
-        "/players",
-        params={"team_ids[]": team_id, "per_page": 100, "season": current_season},
+    stats_payload = await _fetch_data(
+        "/stats",
+        params={"team_ids[]": team_id, "seasons[]": current_season, "per_page": 100},
     )
-    result: list[dict] = []
-    for p in players_payload.get("data") or []:
-        pid = p.get("id")
-        first = (p.get("first_name") or "").strip()
-        last = (p.get("last_name") or "").strip()
-        if not pid or not (first or last):
+    stats_data = stats_payload.get("data") or []
+
+    # 3. Collect unique players seen across the most recent 5 game IDs.
+    #    Capping at 5 recent games ensures we don't include players who
+    #    played early in the season and were then traded away.
+    from collections import defaultdict as _dd
+    game_order: list[int] = []          # game IDs in appearance order (most-recent first from BDL)
+    game_players: dict[int, dict] = _dd(dict)   # game_id -> {player_id -> player_info}
+
+    for s in stats_data:
+        game = s.get("game") or {}
+        gid = game.get("id")
+        player = s.get("player") or {}
+        pid = player.get("id")
+        if not gid or not pid:
             continue
-        result.append({
-            "id": pid,
-            "first_name": first,
-            "last_name": last,
-            "position": (p.get("position") or "").strip(),
-        })
+        if gid not in game_order:
+            game_order.append(gid)
+        if pid not in game_players[gid]:
+            game_players[gid][pid] = {
+                "id": pid,
+                "first_name": (player.get("first_name") or "").strip(),
+                "last_name":  (player.get("last_name") or "").strip(),
+                "position":   (player.get("position") or "").strip(),
+            }
+
+    # Union players from the 5 most-recent games
+    recent_games = game_order[:5]
+    seen_ids: set[int] = set()
+    result: list[dict] = []
+    for gid in recent_games:
+        for pid, pdata in game_players[gid].items():
+            if pid not in seen_ids and (pdata["first_name"] or pdata["last_name"]):
+                seen_ids.add(pid)
+                result.append(pdata)
+
+    # Fallback: if stats returned nothing (pre-season, brand-new team, etc.)
+    # use the /players endpoint as a best-effort backup.
+    if not result:
+        logger.warning("No stats found for team abbr=%s — falling back to /players", abbr)
+        players_payload = await _fetch_data(
+            "/players",
+            params={"team_ids[]": team_id, "per_page": 100, "season": current_season},
+        )
+        for p in players_payload.get("data") or []:
+            pid = p.get("id")
+            first = (p.get("first_name") or "").strip()
+            last  = (p.get("last_name") or "").strip()
+            if pid and (first or last):
+                result.append({"id": pid, "first_name": first, "last_name": last,
+                                "position": (p.get("position") or "").strip()})
+
     result.sort(key=lambda x: x.get("last_name", ""))
-    logger.debug("Roster for abbr=%s: %d players", abbr, len(result))
+    logger.debug("Roster for abbr=%s: %d players (from %d recent games)", abbr, len(result), len(recent_games))
     return result
 
 
