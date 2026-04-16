@@ -36,6 +36,8 @@ class Game(BaseModel):
     home_team_score: int
     visitor_team_score: int
 
+    postseason: bool = False
+
 
 class Player(BaseModel):
     """Basic player profile."""

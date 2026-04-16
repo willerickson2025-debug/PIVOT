@@ -287,6 +287,7 @@ def _parse_game(raw: dict[str, Any]) -> Game:
         visitor_team=_parse_team(_require(raw, "visitor_team", "game")),
         home_team_score=int(raw.get("home_team_score") or 0),
         visitor_team_score=int(raw.get("visitor_team_score") or 0),
+        postseason=bool(raw.get("postseason", False)),
     )
 
 

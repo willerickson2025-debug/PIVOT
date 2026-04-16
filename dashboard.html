@@ -585,6 +585,27 @@ button {
   color: #00FF80;
   font-weight: 600;
 }
+.g-postseason-banner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 8px;
+  letter-spacing: 3px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+.g-postseason-banner.playoffs {
+  color: #f59e0b;
+  background: rgba(245,158,11,0.1);
+  border: 1px solid rgba(245,158,11,0.3);
+}
+.g-postseason-banner.playin {
+  color: #a78bfa;
+  background: rgba(167,139,250,0.1);
+  border: 1px solid rgba(167,139,250,0.3);
+}
 .g-glow-overlay {
   position: absolute;
   inset: 0;
@@ -879,6 +900,15 @@ function fmtDateLabel(dateStr) {
 
 function Loader({ label = 'LOADING' }) {
   return <div className="loader"><div className="loader-bar"/>{label}</div>;
+}
+
+function getPostseasonLabel(game) {
+  if (!game.postseason) return null;
+  // Play-in is always the ~4 days before the main playoff bracket opens
+  // NBA play-in: typically April 15–18; playoffs: April 19+
+  const d = new Date(game.date);
+  if (d.getMonth() === 3 && d.getDate() <= 18) return 'PLAY-IN';
+  return 'PLAYOFFS';
 }
 
 function parseStatus(s) {
@@ -1255,6 +1285,22 @@ function GameModal({ game, onClose }) {
           </div>
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
+        {/* Postseason banner */}
+        {(() => {
+          const ps = getPostseasonLabel(game);
+          if (!ps) return null;
+          return (
+            <div style={{display:'flex', alignItems:'center', justifyContent:'center', gap:8, padding:'8px 0',
+              background: ps === 'PLAY-IN' ? 'rgba(167,139,250,0.08)' : 'rgba(245,158,11,0.08)',
+              borderBottom:'1px solid ' + (ps === 'PLAY-IN' ? 'rgba(167,139,250,0.2)' : 'rgba(245,158,11,0.2)')}}>
+              <span style={{fontSize:11}}>{ps === 'PLAYOFFS' ? '🏆' : '⚡'}</span>
+              <span style={{fontFamily:'Helvetica Neue,sans-serif', fontSize:9, letterSpacing:4, fontWeight:700,
+                color: ps === 'PLAY-IN' ? '#a78bfa' : '#f59e0b', textTransform:'uppercase'}}>
+                {ps === 'PLAYOFFS' ? 'NBA Playoffs' : 'NBA Play-In Tournament'}
+              </span>
+            </div>
+          );
+        })()}
         {/* Live state banner — quarter scores, clock, momentum, foul trouble */}
         {type === 'live' && (
           <LiveStateBanner state={liveState} homeAbbr={game.home_team.abbreviation} awayAbbr={game.visitor_team.abbreviation}/>
@@ -2096,13 +2142,14 @@ function GameCard({ g, onSelect, records = {} }) {
 
       {/* Footer */}
       <div className="g-card-footer" style={{marginTop:'auto'}}>
-        <span className="g-conf-pill">{(() => {
+        {(() => {
+          const ps = getPostseasonLabel(g);
+          if (ps) return <span className={`g-postseason-banner ${ps === 'PLAY-IN' ? 'playin' : 'playoffs'}`}>{ps === 'PLAYOFFS' ? '🏆' : '⚡'} {ps}</span>;
           const hc = g.home_team?.conference, ac = g.visitor_team?.conference;
           const hd = g.home_team?.division,   ad = g.visitor_team?.division;
-          if (hd && hd === ad) return `${hd} · DIV`;
-          if (hc && hc !== ac) return `${hc} vs ${ac}`;
-          return [hc, hd].filter(Boolean).join(' · ');
-        })()}</span>
+          const pill = hd && hd === ad ? `${hd} · DIV` : hc && hc !== ac ? `${hc} vs ${ac}` : [hc, hd].filter(Boolean).join(' · ');
+          return <span className="g-conf-pill">{pill}</span>;
+        })()}
         <span className="g-box-link">Open →</span>
       </div>
     </div>
@@ -3970,13 +4017,14 @@ function CoachGameCard({ g, onSelect, records = {} }) {
       </div>
 
       <div className="g-card-footer" style={{marginTop:'auto'}}>
-        <span className="g-conf-pill">{(() => {
+        {(() => {
+          const ps = getPostseasonLabel(g);
+          if (ps) return <span className={`g-postseason-banner ${ps === 'PLAY-IN' ? 'playin' : 'playoffs'}`}>{ps === 'PLAYOFFS' ? '🏆' : '⚡'} {ps}</span>;
           const hc = g.home_team?.conference, ac = g.visitor_team?.conference;
           const hd = g.home_team?.division,   ad = g.visitor_team?.division;
-          if (hd && hd === ad) return `${hd} · DIVISION`;
-          if (hc && hc !== ac) return `${hc} vs ${ac} · CROSS-CONF`;
-          return [hc, hd].filter(Boolean).join(' · ');
-        })()}</span>
+          const pill = hd && hd === ad ? `${hd} · DIVISION` : hc && hc !== ac ? `${hc} vs ${ac} · CROSS-CONF` : [hc, hd].filter(Boolean).join(' · ');
+          return <span className="g-conf-pill">{pill}</span>;
+        })()}
         <div style={{display:'inline-flex', alignItems:'center', gap:6, background:'rgba(0,255,128,0.06)', border:'1px solid rgba(0,255,128,0.2)', borderRadius:3, padding:'7px 14px'}}>
           <div style={{width:4, height:4, borderRadius:'50%', background:'var(--green)', opacity:0.8}}/>
           <span style={{fontFamily:'Helvetica Neue, Helvetica, Arial, sans-serif', fontSize:9, letterSpacing:3, fontWeight:700, color:'var(--green)', textTransform:'uppercase'}}>Coach Mode</span>
