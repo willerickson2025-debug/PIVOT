@@ -1147,7 +1147,7 @@ function GameModal({ game, onClose }) {
       .then(d => { if (d) { setLiveState(d); setLastUpdated(new Date()); } })
       .catch(() => {});
     load();
-    const iv = setInterval(load, 5000);
+    const iv = setInterval(load, 12000);
     return () => clearInterval(iv);
   }, [game.id]);
 
