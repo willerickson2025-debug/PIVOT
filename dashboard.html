@@ -960,7 +960,7 @@ function Ticker() {
     const loadNews = () =>
       fetch(`${API}/nba/news`)
         .then(r => r.ok ? r.json() : null)
-        .then(d => { if (d?.headlines?.length) setNews(d.headlines.slice(0, 18)); })
+        .then(d => { if (d?.headlines?.length) setNews(d.headlines.slice(0, 30)); })
         .catch(() => {});
 
     loadScores();
@@ -3225,7 +3225,7 @@ function FrontOffice() {
   React.useEffect(() => {
     const load = () => fetch(`${API}/nba/news`)
       .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d?.headlines) setHeadlines(d.headlines.slice(0, 12)); })
+      .then(d => { if (d?.headlines) setHeadlines(d.headlines.slice(0, 20)); })
       .catch(() => {});
     load();
     const iv = setInterval(load, 300000);

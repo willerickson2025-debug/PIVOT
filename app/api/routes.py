@@ -194,18 +194,14 @@ async def get_trending_players():
 
 
 _NEWS_SOURCES = [
-    {
-        "label": "ESPN",
-        "url": "https://www.espn.com/espn/rss/nba/news",
-    },
-    {
-        "label": "CBS Sports",
-        "url": "https://www.cbssports.com/rss/headlines/nba/",
-    },
-    {
-        "label": "Yahoo Sports",
-        "url": "https://sports.yahoo.com/nba/rss.xml",
-    },
+    {"label": "ESPN",          "url": "https://www.espn.com/espn/rss/nba/news"},
+    {"label": "CBS Sports",    "url": "https://www.cbssports.com/rss/headlines/nba/"},
+    {"label": "Yahoo Sports",  "url": "https://sports.yahoo.com/nba/rss.xml"},
+    {"label": "Bleacher Report","url": "https://bleacherreport.com/nba.rss"},
+    {"label": "HoopsHype",     "url": "https://hoopshype.com/feed/"},
+    {"label": "SI",            "url": "https://www.si.com/rss/si_nba.rss"},
+    {"label": "NBA.com",       "url": "https://www.nba.com/news/rss.xml"},
+    {"label": "ClutchPoints",  "url": "https://clutchpoints.com/rss.xml"},
 ]
 
 async def _fetch_rss(client: httpx.AsyncClient, source: dict) -> list[dict]:
@@ -250,7 +246,7 @@ async def nba_news():
             seen.add(key)
             headlines.append({"title": item["title"], "url": item["url"], "source": item["source"]})
 
-    return {"headlines": headlines[:30]}
+    return {"headlines": headlines[:50]}
 
 
 # ── Claude ────────────────────────────────────────────────────────────────────
