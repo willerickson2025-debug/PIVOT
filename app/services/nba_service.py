@@ -558,7 +558,11 @@ async def get_roster_by_abbr(abbr: str) -> list[dict]:
     if team_id is None:
         raise ValueError(f"No team found with abbreviation '{abbr}'")
 
-    players_payload = await _fetch_data("/players", params={"team_ids[]": team_id, "per_page": 100})
+    current_season = get_current_season()
+    players_payload = await _fetch_data(
+        "/players",
+        params={"team_ids[]": team_id, "per_page": 100, "season": current_season},
+    )
     result: list[dict] = []
     for p in players_payload.get("data") or []:
         pid = p.get("id")
