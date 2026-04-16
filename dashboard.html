@@ -936,7 +936,7 @@ function Ticker() {
     const loadNews = () =>
       fetch(`${API}/nba/news`)
         .then(r => r.ok ? r.json() : null)
-        .then(d => { if (d?.headlines?.length) setNews(d.headlines.slice(0, 12)); })
+        .then(d => { if (d?.headlines?.length) setNews(d.headlines.slice(0, 18)); })
         .catch(() => {});
 
     loadScores();
@@ -951,15 +951,18 @@ function Ticker() {
     const out = [];
     const maxLen = Math.max(scores.length, news.length);
     for (let i = 0; i < maxLen; i++) {
-      if (i < scores.length) out.push({ text: scores[i], type: 'score' });
-      if (i < news.length)   out.push({ text: news[i].title || news[i], type: 'news' });
+      if (i < scores.length) out.push({ text: scores[i], type: 'score', source: null });
+      if (i < news.length) {
+        const n = news[i];
+        out.push({ text: n.title || n, type: 'news', source: n.source || null });
+      }
     }
     if (!out.length) {
       return [
-        { text: 'PIVOT — NBA INTELLIGENCE PLATFORM', type: 'news' },
-        { text: "TODAY'S SLATE LOADING", type: 'score' },
-        { text: 'GAMES · ANALYSIS · PLAYERS · COACH MODE', type: 'news' },
-        { text: 'POWERED BY PIVOT', type: 'score' },
+        { text: 'PIVOT — NBA INTELLIGENCE PLATFORM', type: 'news', source: null },
+        { text: "TODAY'S SLATE LOADING", type: 'score', source: null },
+        { text: 'GAMES · ANALYSIS · PLAYERS · COACH MODE', type: 'news', source: null },
+        { text: 'POWERED BY PIVOT', type: 'score', source: null },
       ];
     }
     return out;
@@ -977,6 +980,9 @@ function Ticker() {
           {doubled.map((item, i) => (
             <React.Fragment key={i}>
               <span className="ticker-item" style={item.type === 'score' ? {color:'var(--green)', textShadow:'0 0 8px rgba(0,255,128,0.5)'} : {color:'rgba(255,255,255,0.75)', textShadow:'none', fontWeight:700, letterSpacing:'1.5px'}}>
+                {item.type === 'news' && item.source && (
+                  <span style={{color:'rgba(255,255,255,0.32)', fontWeight:700, fontSize:9, letterSpacing:2, marginRight:8, verticalAlign:'middle', textTransform:'uppercase'}}>{item.source}</span>
+                )}
                 {item.text}
               </span>
               <span className="ticker-sep">{item.type === 'score' ? '◆' : '·'}</span>
@@ -1160,7 +1166,7 @@ function GameModal({ game, onClose }) {
     predFetchedRef.current = true;
     setPredLoading(true);
     fetch(`${API}/analysis/predict-game`, {
-      method: 'POST', headers: {'Content-Type':'application/json'},
+      method: 'POST', headers: {'Content-Type':'application/json','X-Pivot-Session':_pivotSessionId},
       body: JSON.stringify(game),
     })
       .then(r => r.ok ? r.json() : r.json().then(e => { throw new Error(e.detail || 'Prediction unavailable'); }))
@@ -3067,6 +3073,82 @@ function Players({ pendingPlayerId, onClearPending }) {
 
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Player contract data — 2025-26 season
+// salary: current year AAV ($M), years: seasons remaining incl. this one,
+// type: max | supermax | near-max | mid-level | veteran-min | rookie-scale | two-way | expiring
+// Source: Spotrac / Basketball Reference — update each offseason.
+// ─────────────────────────────────────────────────────────────────────────────
+const PLAYER_CONTRACTS = {
+  // Stars / max deals
+  "Nikola Jokic":               { salary: 51.4,  years: 3, type: "supermax" },
+  "Giannis Antetokounmpo":      { salary: 48.8,  years: 3, type: "supermax" },
+  "Joel Embiid":                { salary: 51.4,  years: 4, type: "supermax" },
+  "Jayson Tatum":               { salary: 50.2,  years: 5, type: "supermax" },
+  "Luka Doncic":                { salary: 46.2,  years: 4, type: "max" },
+  "Shai Gilgeous-Alexander":    { salary: 46.2,  years: 4, type: "max" },
+  "Anthony Edwards":            { salary: 43.9,  years: 5, type: "max" },
+  "Damian Lillard":             { salary: 48.8,  years: 3, type: "supermax" },
+  "LeBron James":               { salary: 51.4,  years: 1, type: "max" },
+  "Stephen Curry":              { salary: 51.9,  years: 2, type: "supermax" },
+  "Kevin Durant":               { salary: 51.4,  years: 2, type: "max" },
+  "Devin Booker":               { salary: 36.0,  years: 3, type: "max" },
+  "Kawhi Leonard":              { salary: 39.6,  years: 2, type: "near-max" },
+  "Jaylen Brown":               { salary: 49.9,  years: 5, type: "supermax" },
+  "Trae Young":                 { salary: 43.0,  years: 4, type: "max" },
+  "Zion Williamson":            { salary: 37.0,  years: 3, type: "max" },
+  "Karl-Anthony Towns":         { salary: 49.9,  years: 4, type: "supermax" },
+  "Tyrese Haliburton":          { salary: 40.0,  years: 5, type: "max" },
+  "Ja Morant":                  { salary: 40.0,  years: 4, type: "max" },
+  "Paul George":                { salary: 42.5,  years: 2, type: "max" },
+  "Rudy Gobert":                { salary: 41.0,  years: 3, type: "max" },
+  "Cade Cunningham":            { salary: 40.0,  years: 5, type: "max" },
+  "Victor Wembanyama":          { salary: 12.2,  years: 4, type: "rookie-scale" },
+  "Cooper Flagg":               { salary: 8.4,   years: 4, type: "rookie-scale" },
+  "Keyonte George":             { salary: 4.8,   years: 3, type: "rookie-scale" },
+  "Scoot Henderson":            { salary: 8.1,   years: 3, type: "rookie-scale" },
+  "Alexandre Sarr":             { salary: 7.9,   years: 4, type: "rookie-scale" },
+  "Stephon Castle":             { salary: 6.2,   years: 4, type: "rookie-scale" },
+  "Zaccharie Risacher":         { salary: 6.1,   years: 4, type: "rookie-scale" },
+  "Ron Holland":                { salary: 5.8,   years: 3, type: "rookie-scale" },
+  "Gradey Dick":                { salary: 3.8,   years: 2, type: "rookie-scale" },
+  "Donovan Mitchell":           { salary: 37.1,  years: 3, type: "max" },
+  "Darius Garland":             { salary: 37.0,  years: 3, type: "max" },
+  "Evan Mobley":                { salary: 30.0,  years: 4, type: "near-max" },
+  "Jalen Brunson":              { salary: 28.0,  years: 4, type: "near-max" },
+  "OG Anunoby":                 { salary: 34.0,  years: 5, type: "near-max" },
+  "Mikal Bridges":              { salary: 24.0,  years: 4, type: "near-max" },
+  "Draymond Green":             { salary: 22.3,  years: 3, type: "near-max" },
+  "Klay Thompson":              { salary: 16.0,  years: 2, type: "veteran-min" },
+  "Chris Paul":                 { salary: 4.0,   years: 1, type: "veteran-min" },
+  "Jimmy Butler":               { salary: 48.8,  years: 2, type: "supermax" },
+  "Anthony Davis":              { salary: 40.6,  years: 3, type: "max" },
+  "Bam Adebayo":                { salary: 32.6,  years: 4, type: "near-max" },
+  "Tyler Herro":                { salary: 29.0,  years: 4, type: "near-max" },
+  "Franz Wagner":               { salary: 21.5,  years: 4, type: "near-max" },
+  "Paolo Banchero":             { salary: 10.2,  years: 2, type: "rookie-scale" },
+  "Jalen Williams":             { salary: 26.0,  years: 4, type: "near-max" },
+  "Isaiah Hartenstein":         { salary: 16.0,  years: 3, type: "mid-level" },
+  "Nikola Vucevic":             { salary: 13.5,  years: 1, type: "mid-level" },
+  "De'Aaron Fox":               { salary: 30.4,  years: 3, type: "near-max" },
+  "Domantas Sabonis":           { salary: 22.0,  years: 2, type: "near-max" },
+  "CJ McCollum":                { salary: 31.6,  years: 2, type: "max" },
+  "Brandon Ingram":             { salary: 36.0,  years: 3, type: "max" },
+  "Kristaps Porzingis":         { salary: 30.0,  years: 2, type: "near-max" },
+  "Andrew Wiggins":             { salary: 24.3,  years: 2, type: "near-max" },
+  "Jonathan Kuminga":           { salary: 29.0,  years: 4, type: "near-max" },
+  "Anfernee Simons":            { salary: 26.0,  years: 3, type: "near-max" },
+  "Josh Hart":                  { salary: 12.9,  years: 3, type: "mid-level" },
+  "Precious Achiuwa":           { salary: 7.0,   years: 2, type: "mid-level" },
+  "Jordan Clarkson":            { salary: 13.5,  years: 2, type: "mid-level" },
+  "Lauri Markkanen":            { salary: 28.0,  years: 4, type: "near-max" },
+  "Collin Sexton":              { salary: 18.0,  years: 2, type: "mid-level" },
+  "Walker Kessler":             { salary: 4.4,   years: 2, type: "rookie-scale" },
+  "Khris Middleton":            { salary: 33.5,  years: 2, type: "max" },
+  "Brook Lopez":                { salary: 12.0,  years: 1, type: "mid-level" },
+  "Bobby Portis":               { salary: 11.0,  years: 2, type: "mid-level" },
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // NBA CBA Financial Constants — 2025-26 season
 // Update once per offseason. Single source of truth for all cap-related UI.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -3249,6 +3331,16 @@ function FrontOffice() {
   const [youngNotes, setYoungNotes] = React.useState({});
   const [mvpOdds, setMvpOdds] = React.useState({});
 
+  // Trade Analyzer state
+  const [tradeTeamA, setTradeTeamA] = React.useState('');
+  const [tradeTeamB, setTradeTeamB] = React.useState('');
+  const [tradePlayersA, setTradePlayersA] = React.useState([]);
+  const [tradePlayersB, setTradePlayersB] = React.useState([]);
+  const [tradeArchetype, setTradeArchetype] = React.useState('');
+  const [tradeLoading, setTradeLoading] = React.useState(false);
+  const [tradeResult, setTradeResult] = React.useState(null);
+  const [tradeError, setTradeError] = React.useState(null);
+
   React.useEffect(() => {
     if (dashTab !== 'mvp') return;
     const ids = MVP_PLAYERS.map(p => p.bdlId);
@@ -3277,8 +3369,8 @@ function FrontOffice() {
       const live = mvpLive[String(p.bdlId)] || {};
       const pts = live.pts ?? p.pts; const reb = live.reb ?? p.reb; const ast = live.ast ?? p.ast;
       fetch(`${API}/analysis/scout-note`, {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({name:p.name, team:p.team, pts, reb, ast, context:'mvp'}),
+        method:'POST', headers:{'Content-Type':'application/json','X-Pivot-Session':_pivotSessionId},
+        body: JSON.stringify({name:p.name, team:p.team, pts, reb, ast, context:'mvp', player_id:p.bdlId}),
       }).then(r => r.ok ? r.json() : null)
         .then(d => { if (d?.note) setMvpNotes(prev => ({...prev, [p.name]: d.note})); })
         .catch(() => {});
@@ -3305,8 +3397,8 @@ function FrontOffice() {
       const pts = live.pts ?? p.pts; const reb = live.reb ?? p.reb; const ast = live.ast ?? p.ast;
       const age = playerAge(p.name);
       fetch(`${API}/analysis/scout-note`, {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({name:p.name, team:p.team, pts, reb, ast, age, pos:p.pos, context:'young-star'}),
+        method:'POST', headers:{'Content-Type':'application/json','X-Pivot-Session':_pivotSessionId},
+        body: JSON.stringify({name:p.name, team:p.team, pts, reb, ast, age, pos:p.pos, context:'young-star', player_id:p.bdlId}),
       }).then(r => r.ok ? r.json() : null)
         .then(d => { if (d?.note) setYoungNotes(prev => ({...prev, [p.name]: d.note})); })
         .catch(() => {});
@@ -3319,6 +3411,7 @@ function FrontOffice() {
     {id:'mvp',       label:'MVP Race'},
     {id:'young',     label:'Young Stars'},
     {id:'injuries',  label:'Injury Report'},
+    {id:'trade',     label:'Trade Analyzer'},
   ];
 
   const getCapTier = (used) => {
@@ -3451,21 +3544,25 @@ function FrontOffice() {
             <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, color:'rgba(255,255,255,0.18)'}}>{now}</div>
           </div>
           {(headlines.length ? headlines : []).map((h,i) => {
-            const title = typeof h === 'string' ? h : h.title;
-            const url   = typeof h === 'object' ? h.url : null;
+            const title  = typeof h === 'string' ? h : h.title;
+            const url    = typeof h === 'object' ? h.url : null;
+            const source = typeof h === 'object' ? h.source : null;
             return (
               <div key={i} style={{display:'flex', gap:8, alignItems:'flex-start', padding:'8px 0', borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
                 <div style={{width:3, height:3, borderRadius:'50%', background:'rgba(0,255,128,0.4)', marginTop:6, flexShrink:0}}/>
-                {url ? (
-                  <a href={url} target="_blank" rel="noopener noreferrer"
-                    style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, color:'rgba(255,255,255,0.75)', lineHeight:1.55, textTransform:'none', letterSpacing:0, fontWeight:700, textDecoration:'none', cursor:'pointer'}}
-                    onMouseEnter={e=>e.currentTarget.style.color='var(--green)'}
-                    onMouseLeave={e=>e.currentTarget.style.color='rgba(255,255,255,0.75)'}>
-                    {title} →
-                  </a>
-                ) : (
-                  <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, color:'rgba(255,255,255,0.75)', lineHeight:1.55, textTransform:'none', letterSpacing:0, fontWeight:700}}>{title}</span>
-                )}
+                <div style={{flex:1, minWidth:0}}>
+                  {source && <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, letterSpacing:1.5, color:'rgba(255,255,255,0.28)', fontWeight:700, textTransform:'uppercase', marginBottom:2}}>{source}</div>}
+                  {url ? (
+                    <a href={url} target="_blank" rel="noopener noreferrer"
+                      style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, color:'rgba(255,255,255,0.75)', lineHeight:1.55, textTransform:'none', letterSpacing:0, fontWeight:700, textDecoration:'none', cursor:'pointer', display:'block'}}
+                      onMouseEnter={e=>e.currentTarget.style.color='var(--green)'}
+                      onMouseLeave={e=>e.currentTarget.style.color='rgba(255,255,255,0.75)'}>
+                      {title} →
+                    </a>
+                  ) : (
+                    <span style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, color:'rgba(255,255,255,0.75)', lineHeight:1.55, textTransform:'none', letterSpacing:0, fontWeight:700}}>{title}</span>
+                  )}
+                </div>
               </div>
             );
           })}
@@ -3777,6 +3874,274 @@ function FrontOffice() {
               );
             })()
           )}
+
+          {/* ── Trade Analyzer tab ── */}
+          {!result && !loading && !error && dashTab === 'trade' && (() => {
+            const runTrade = async () => {
+              if (!tradeTeamA || !tradeTeamB) { setTradeError('Set both team names before running.'); return; }
+              if (tradePlayersA.length === 0 && tradePlayersB.length === 0) { setTradeError('Add at least one player to the trade.'); return; }
+              setTradeLoading(true); setTradeError(null); setTradeResult(null);
+              try {
+                const r = await fetch(`${API}/frontoffice/trade`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', 'X-Pivot-Session': _pivotSessionId },
+                  body: JSON.stringify({
+                    team_a: tradeTeamA, team_a_players: tradePlayersA,
+                    team_b: tradeTeamB, team_b_players: tradePlayersB,
+                    archetype: tradeArchetype || undefined,
+                    team_a_cap: CAP_DATA.find(c => ALL_TEAMS.find(t => t.name === tradeTeamA)?.abbr === c.abbr)?.used ?? null,
+                    team_b_cap: CAP_DATA.find(c => ALL_TEAMS.find(t => t.name === tradeTeamB)?.abbr === c.abbr)?.used ?? null,
+                    cap_tax: NBA_CAP.luxuryTaxM,
+                    cap_first_apron: NBA_CAP.firstApronM,
+                    cap_second_apron: NBA_CAP.secondApronM,
+                  }),
+                });
+                if (!r.ok) throw new Error(await r.text());
+                const data = await r.json();
+                if (data.error) throw new Error(data.error);
+                setTradeResult(data);
+              } catch(e) { setTradeError(friendlyError(e.message)); }
+              finally { setTradeLoading(false); }
+            };
+
+            const addPlayer = (side, player) => {
+              if (!player?.id) return;
+              const setter = side === 'a' ? setTradePlayersA : setTradePlayersB;
+              const fullName = `${player.first_name} ${player.last_name}`.trim();
+              const contract = PLAYER_CONTRACTS[fullName] || null;
+              setter(prev => prev.find(p => p.id === player.id) ? prev : [...prev, {
+                id: player.id,
+                name: fullName,
+                pos: player.position || '?',
+                salary: contract?.salary ?? null,
+                years: contract?.years ?? null,
+                contract_type: contract?.type ?? null,
+              }]);
+            };
+            const removePlayer = (side, id) => {
+              const setter = side === 'a' ? setTradePlayersA : setTradePlayersB;
+              setter(prev => prev.filter(p => p.id !== id));
+            };
+
+            const gradeColor = g => ({ A:'#22c55e', B:'rgba(0,255,128,0.7)', C:'#fbbf24', D:'#f97316', F:'#ef4444' }[g?.[0]] || 'rgba(255,255,255,0.4)');
+
+            const TeamSide = ({ side, teamName, setTeamName, players, label, accentColor }) => (
+              <div style={{flex:1, minWidth:0, display:'flex', flexDirection:'column', gap:12}}>
+                <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:4, fontWeight:700, color:accentColor, textTransform:'uppercase'}}>{label}</div>
+                {/* Team name input */}
+                <div style={{position:'relative'}}>
+                  <select value={teamName} onChange={e=>{setTeamName(e.target.value); setTradeResult(null);}}
+                    style={{width:'100%', background:'rgba(20,25,35,0.9)', border:`1px solid ${teamName ? accentColor+'44' : 'rgba(255,255,255,0.1)'}`, color: teamName ? 'var(--white)' : 'rgba(255,255,255,0.35)', padding:'9px 12px', fontSize:12, fontFamily:'Helvetica Neue, sans-serif', borderRadius:8, cursor:'pointer', outline:'none', appearance:'none', WebkitAppearance:'none', boxSizing:'border-box'}}>
+                    <option value="">Select team…</option>
+                    {ALL_TEAMS.map(t => <option key={t.abbr} value={t.name}>{t.abbr} — {t.name}</option>)}
+                  </select>
+                  {teamName && (() => {
+                    const abbr = ALL_TEAMS.find(t=>t.name===teamName)?.abbr;
+                    return abbr ? <img src={`https://a.espn.com/combiner/i?img=/i/teamlogos/nba/500/${abbr.toLowerCase()}.png&h=28&w=28`} alt={abbr} width={18} height={18} style={{position:'absolute', right:10, top:'50%', transform:'translateY(-50%)', objectFit:'contain', pointerEvents:'none'}} onError={e=>e.currentTarget.style.display='none'}/> : null;
+                  })()}
+                </div>
+                {/* Player search */}
+                <PlayerSearchBox label={`Add player to ${label}`} side={side} onSelect={p=>{ addPlayer(side, p); setTradeResult(null); }}/>
+                {/* Player chips */}
+                <div style={{display:'flex', flexDirection:'column', gap:6, minHeight:60}}>
+                  {players.length === 0 && (
+                    <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:10, color:'rgba(255,255,255,0.18)', textAlign:'center', padding:'16px 0', border:'1px dashed rgba(255,255,255,0.08)', borderRadius:8}}>No players added</div>
+                  )}
+                  {players.map(p => (
+                    <div key={p.id} style={{display:'flex', alignItems:'center', gap:10, background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:8, padding:'8px 12px'}}>
+                      <div style={{width:4, height:4, borderRadius:'50%', background:accentColor, flexShrink:0}}/>
+                      <div style={{flex:1, minWidth:0}}>
+                        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:12, fontWeight:700, color:'rgba(255,255,255,0.85)'}}>{p.name}</div>
+                        {p.salary != null && (
+                          <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, color:'rgba(255,255,255,0.35)', marginTop:2}}>
+                            ${p.salary}M · {p.years}yr · <span style={{color: p.contract_type==='supermax'||p.contract_type==='max' ? 'rgba(239,68,68,0.65)' : p.contract_type==='rookie-scale' ? 'rgba(34,197,94,0.65)' : 'rgba(255,255,255,0.3)', textTransform:'uppercase', letterSpacing:1}}>{p.contract_type}</span>
+                          </div>
+                        )}
+                        {p.salary == null && <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, color:'rgba(255,255,255,0.2)', marginTop:2}}>contract unknown</div>}
+                      </div>
+                      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, color:'rgba(255,255,255,0.35)', letterSpacing:1}}>{p.pos}</div>
+                      <button onClick={()=>{removePlayer(side, p.id); setTradeResult(null);}}
+                        style={{background:'none', border:'none', color:'rgba(255,255,255,0.25)', cursor:'pointer', fontSize:14, padding:'0 0 0 6px', lineHeight:1, transition:'color 0.12s'}}
+                        onMouseEnter={e=>e.currentTarget.style.color='#ef4444'}
+                        onMouseLeave={e=>e.currentTarget.style.color='rgba(255,255,255,0.25)'}>×</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+
+            return (
+              <div style={{padding:'28px 32px 60px'}}>
+
+                {/* Header */}
+                <div style={{display:'flex', alignItems:'baseline', gap:12, marginBottom:24}}>
+                  <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:20, fontWeight:700, color:'var(--white)', letterSpacing:-0.5}}>Trade Analyzer</div>
+                  <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:4, color:'rgba(0,255,128,0.7)', fontWeight:700, textTransform:'uppercase'}}>Front Office</div>
+                </div>
+
+                {/* Trade Builder */}
+                <div style={{background:'rgba(13,16,22,0.9)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:14, padding:'28px 28px 24px', marginBottom:20, position:'relative', overflow:'hidden'}}>
+                  <div style={{position:'absolute', top:0, left:0, right:0, height:1, background:'linear-gradient(to right, rgba(0,255,128,0.25), transparent 50%, rgba(160,120,255,0.25))'}}/>
+
+                  {/* Two-side builder */}
+                  <div style={{display:'grid', gridTemplateColumns:'1fr 56px 1fr', gap:0, alignItems:'start'}}>
+                    <TeamSide side="a" teamName={tradeTeamA} setTeamName={setTradeTeamA} players={tradePlayersA} label="Team A Sends" accentColor="rgba(0,255,128,0.8)"/>
+                    {/* Arrow */}
+                    <div style={{display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'flex-start', paddingTop:32, gap:4}}>
+                      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:14, color:'rgba(255,255,255,0.18)'}}>⇄</div>
+                    </div>
+                    <TeamSide side="b" teamName={tradeTeamB} setTeamName={setTradeTeamB} players={tradePlayersB} label="Team B Sends" accentColor="rgba(160,120,255,0.85)"/>
+                  </div>
+
+                  {/* Archetype + Run */}
+                  <div style={{display:'flex', alignItems:'center', gap:12, marginTop:24, paddingTop:20, borderTop:'1px solid rgba(255,255,255,0.06)'}}>
+                    <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:4, color:'rgba(255,255,255,0.32)', fontWeight:700, whiteSpace:'nowrap'}}>LENS</div>
+                    <select value={tradeArchetype} onChange={e=>{setTradeArchetype(e.target.value); setTradeResult(null);}}
+                      style={{flex:1, background:'rgba(20,25,35,0.9)', border:'1px solid rgba(255,255,255,0.1)', color:'rgba(255,255,255,0.75)', padding:'8px 12px', fontSize:11, fontFamily:'Helvetica Neue, sans-serif', letterSpacing:0.5, borderRadius:6, cursor:'pointer', outline:'none', appearance:'none', WebkitAppearance:'none'}}>
+                      {COACHING_ARCHETYPES.map(a => <option key={a.value} value={a.value}>{a.label}</option>)}
+                    </select>
+                    <button
+                      onClick={runTrade}
+                      disabled={tradeLoading || !tradeTeamA || !tradeTeamB}
+                      style={{background:'var(--green)', color:'#080A0E', border:'none', padding:'10px 28px', fontSize:11, letterSpacing:3, fontWeight:800, fontFamily:'Helvetica Neue, sans-serif', textTransform:'uppercase', cursor: (tradeLoading || !tradeTeamA || !tradeTeamB) ? 'not-allowed' : 'pointer', borderRadius:6, opacity:(tradeLoading || !tradeTeamA || !tradeTeamB) ? 0.4 : 1, transition:'opacity 0.15s', whiteSpace:'nowrap'}}>
+                      {tradeLoading ? 'ANALYZING…' : 'ANALYZE →'}
+                    </button>
+                  </div>
+                </div>
+
+                {tradeError && <div style={{marginBottom:20, background:'rgba(239,68,68,0.06)', border:'1px solid rgba(239,68,68,0.2)', borderRadius:8, padding:'12px 18px', fontFamily:'Helvetica Neue, sans-serif', fontSize:13, color:'#ef4444'}}>{tradeError}</div>}
+
+                {tradeLoading && (
+                  <div style={{display:'flex', flexDirection:'column', alignItems:'center', gap:14, padding:'40px 0'}}>
+                    <div style={{display:'flex', gap:8}}>
+                      {[0,1,2].map(i=><div key={i} style={{width:6,height:6,borderRadius:'50%',background:'var(--green)',animation:`pulse-dot 1.2s ease-in-out ${i*0.2}s infinite`}}/>)}
+                    </div>
+                    <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, letterSpacing:5, color:'rgba(0,255,128,0.6)', fontWeight:700, textTransform:'uppercase'}}>Evaluating Trade</div>
+                  </div>
+                )}
+
+                {/* Results */}
+                {!tradeLoading && tradeResult && (() => {
+                  const s = tradeResult.structured;
+                  const aColor = 'rgba(0,255,128,0.8)';
+                  const bColor = 'rgba(160,120,255,0.85)';
+                  const winnerIsA = s.winner === tradeResult.team_a;
+                  const winnerIsB = s.winner === tradeResult.team_b;
+                  const isEven = !winnerIsA && !winnerIsB;
+                  const archetypeLabel = tradeArchetype ? COACHING_ARCHETYPES.find(x=>x.value===tradeArchetype)?.label?.split('(')[0]?.trim() : null;
+
+                  return (
+                    <div style={{background:'rgba(8,10,16,0.95)', border:'1px solid rgba(0,255,128,0.18)', borderRadius:14, padding:'28px 32px', boxShadow:'0 0 60px rgba(0,255,128,0.05), 0 8px 40px rgba(0,0,0,0.6)', position:'relative', overflow:'hidden'}}>
+                      <div style={{position:'absolute', top:0, left:0, right:0, height:1, background:'linear-gradient(to right, transparent, rgba(0,255,128,0.4), transparent)'}}/>
+
+                      {/* Header row */}
+                      <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:24, flexWrap:'wrap'}}>
+                        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:16, color:'rgba(0,255,128,0.9)', lineHeight:1}}>✦</div>
+                        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, letterSpacing:5, color:'rgba(0,255,128,0.85)', fontWeight:700, textTransform:'uppercase'}}>Trade Verdict</div>
+                        {archetypeLabel && (
+                          <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:3, color:'rgba(160,120,255,0.8)', fontWeight:700, background:'rgba(160,120,255,0.08)', border:'1px solid rgba(160,120,255,0.2)', borderRadius:4, padding:'3px 8px', textTransform:'uppercase'}}>{archetypeLabel}</div>
+                        )}
+                      </div>
+
+                      {/* Winner banner */}
+                      <div style={{background: isEven ? 'rgba(255,255,255,0.04)' : winnerIsA ? 'rgba(0,255,128,0.06)' : 'rgba(160,120,255,0.06)', border:`1px solid ${isEven ? 'rgba(255,255,255,0.1)' : winnerIsA ? 'rgba(0,255,128,0.25)' : 'rgba(160,120,255,0.25)'}`, borderRadius:10, padding:'16px 20px', marginBottom:20, display:'flex', alignItems:'center', gap:14}}>
+                        <div>
+                          <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:4, color:'rgba(255,255,255,0.35)', fontWeight:700, textTransform:'uppercase', marginBottom:6}}>Winner</div>
+                          <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:22, fontWeight:700, color: isEven ? 'rgba(255,255,255,0.6)' : winnerIsA ? aColor : bColor, letterSpacing:-0.3}}>{s.winner}</div>
+                        </div>
+                      </div>
+
+                      {/* Grade cards */}
+                      <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:20}}>
+                        {[
+                          {name: tradeResult.team_a, grade: s.team_a_grade, verdict: s.team_a_verdict, color: aColor, players: tradeResult.team_b_players},
+                          {name: tradeResult.team_b, grade: s.team_b_grade, verdict: s.team_b_verdict, color: bColor, players: tradeResult.team_a_players},
+                        ].map(({name, grade, verdict, color, players}) => {
+                          const abbr = ALL_TEAMS.find(t=>t.name===name)?.abbr;
+                          return (
+                            <div key={name} style={{background:'rgba(17,20,26,0.9)', border:`1px solid ${color}22`, borderRadius:10, padding:'18px 20px'}}>
+                              <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:12}}>
+                                {abbr && <img src={`https://a.espn.com/combiner/i?img=/i/teamlogos/nba/500/${abbr.toLowerCase()}.png&h=28&w=28`} alt={abbr} width={22} height={22} style={{objectFit:'contain'}} onError={e=>e.currentTarget.style.display='none'}/>}
+                                <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:13, fontWeight:700, color:color, flex:1}}>{name}</div>
+                                <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:28, fontWeight:700, color:gradeColor(grade), lineHeight:1}}>{grade}</div>
+                              </div>
+                              {/* What they receive */}
+                              {players.length > 0 && (
+                                <div style={{marginBottom:10}}>
+                                  <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, letterSpacing:2, color:'rgba(255,255,255,0.3)', fontWeight:700, textTransform:'uppercase', marginBottom:6}}>Receives</div>
+                                  {players.map(p=>(
+                                    <div key={p.name} style={{marginBottom:5}}>
+                                      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, color:'rgba(255,255,255,0.82)', fontWeight:700}}>{p.name}</div>
+                                      <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, color:'rgba(255,255,255,0.35)', marginTop:1}}>
+                                        {p.pos}{p.pts!=null?` · ${p.pts}pts`:''}{p.reb!=null?`/${p.reb}reb`:''}{p.ast!=null?`/${p.ast}ast`:''}
+                                        {p.salary!=null && <span style={{color:'rgba(251,191,36,0.6)', marginLeft:6}}>${p.salary}M · {p.years}yr{p.contract_type ? ` · ${p.contract_type}` : ''}</span>}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                              <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:12, lineHeight:1.65, color:'rgba(255,255,255,0.78)', textTransform:'none', letterSpacing:0}}>{verdict}</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Cap verdict */}
+                      {s.cap_verdict && (
+                        <div style={{background:'rgba(251,191,36,0.04)', border:'1px solid rgba(251,191,36,0.15)', borderRadius:10, padding:'14px 18px', marginBottom:16}}>
+                          <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:4, color:'rgba(251,191,36,0.7)', fontWeight:700, textTransform:'uppercase', marginBottom:8}}>Cap Impact</div>
+                          <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:12, lineHeight:1.65, color:'rgba(255,255,255,0.8)', textTransform:'none', letterSpacing:0}}>{s.cap_verdict}</div>
+                        </div>
+                      )}
+
+                      {/* Key factors */}
+                      {s.key_factors?.length > 0 && (
+                        <div style={{marginBottom:16}}>
+                          <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:4, color:'rgba(0,255,128,0.6)', fontWeight:700, textTransform:'uppercase', marginBottom:10}}>Key Factors</div>
+                          <div style={{display:'flex', flexDirection:'column', gap:7}}>
+                            {s.key_factors.map((f,i) => (
+                              <div key={i} style={{display:'flex', alignItems:'flex-start', gap:10}}>
+                                <div style={{width:4, height:4, borderRadius:'50%', background:'rgba(0,255,128,0.45)', marginTop:6, flexShrink:0}}/>
+                                <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:12, lineHeight:1.65, color:'rgba(255,255,255,0.8)', textTransform:'none', letterSpacing:0}}>{f}</div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Risk + Limitation */}
+                      {(s.risk || s.limitation) && (
+                        <div style={{display:'flex', flexDirection:'column', gap:8, opacity:0.65, borderTop:'1px solid rgba(255,255,255,0.06)', paddingTop:14}}>
+                          {s.risk && (
+                            <div style={{display:'flex', alignItems:'flex-start', gap:8}}>
+                              <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, letterSpacing:2, color:'#f97316', fontWeight:700, textTransform:'uppercase', flexShrink:0, paddingTop:2}}>Risk</div>
+                              <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, lineHeight:1.6, color:'rgba(255,255,255,0.6)', textTransform:'none', letterSpacing:0}}>{s.risk}</div>
+                            </div>
+                          )}
+                          {s.limitation && (
+                            <div style={{display:'flex', alignItems:'flex-start', gap:8}}>
+                              <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, letterSpacing:2, color:'rgba(255,255,255,0.35)', fontWeight:700, textTransform:'uppercase', flexShrink:0, paddingTop:2}}>Note</div>
+                              <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, lineHeight:1.6, color:'rgba(255,255,255,0.5)', textTransform:'none', letterSpacing:0}}>{s.limitation}</div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      <div style={{marginTop:20, display:'flex', alignItems:'center', justifyContent:'space-between'}}>
+                        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:3, color:'rgba(255,255,255,0.18)', fontWeight:700, textTransform:'uppercase'}}>Powered by Claude AI</div>
+                        <button onClick={runTrade}
+                          style={{background:'none', border:'1px solid rgba(0,255,128,0.3)', color:'rgba(0,255,128,0.8)', padding:'8px 20px', fontSize:10, letterSpacing:4, fontWeight:700, fontFamily:'Helvetica Neue, sans-serif', textTransform:'uppercase', cursor:'pointer', borderRadius:6, transition:'border-color 0.15s, color 0.15s'}}
+                          onMouseEnter={e=>{e.currentTarget.style.borderColor='rgba(0,255,128,0.7)';e.currentTarget.style.color='var(--green)';}}
+                          onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(0,255,128,0.3)';e.currentTarget.style.color='rgba(0,255,128,0.8)';}}>
+                          RE-ANALYZE →
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            );
+          })()}
 
           {/* Loading */}
           {loading && (
@@ -4552,7 +4917,7 @@ function CoachMode() {
                      : mode === 'defense' ? '/coach/defense'
                      :                     '/coach/timeout';
       const r = await fetch(`${API}${endpoint}`, {
-        method: 'POST', headers: {'Content-Type': 'application/json'},
+        method: 'POST', headers: {'Content-Type': 'application/json', 'X-Pivot-Session': _pivotSessionId},
         body: JSON.stringify({ game_id: selectedGame?.id, my_team: myTeam }),
       });
       if (!r.ok) throw new Error(await r.text());
@@ -5105,7 +5470,7 @@ function About() {
           <div style={{marginBottom:64}}>
             <div style={{display:'flex', alignItems:'baseline', gap:20, marginBottom:8, flexWrap:'wrap'}}>
               <span style={{fontFamily:hv, fontWeight:700, fontSize:28, letterSpacing:'-1px', color:'#F0F2F5', textTransform:'uppercase'}}>WORTH McMILLEN</span>
-              <span style={{fontFamily:hv, fontWeight:700, fontSize:10, letterSpacing:4, color:'var(--green)', textTransform:'uppercase'}}>CHIEF FINANCIAL OFFICER / CO-FOUNDER</span>
+              <span style={{fontFamily:hv, fontWeight:700, fontSize:10, letterSpacing:4, color:'var(--green)', textTransform:'uppercase'}}>CHIEF OPERATING OFFICER / CO-FOUNDER</span>
             </div>
             <p style={{...body}}>
               Worth runs the financial side and keeps the business honest. He thinks clearly about where we are spending, what it buys us, and when the math on a decision stops making sense. That same mindset — knowing what a number actually means — applies to how we approach player valuation and cap analysis inside the platform. He is the reason we do not overclaim what the tool can do.
@@ -5519,20 +5884,50 @@ function Teams({ onPlayerClick }) {
   );
 }
 
+const COACHING_ARCHETYPES = [
+  { value: '', label: 'Default' },
+  { value: 'architect', label: 'The Architect (Analytics-First)' },
+  { value: 'motivator', label: 'The Motivator (Culture & Energy)' },
+  { value: 'tactician', label: 'The Tactician (Scheme & Positioning)' },
+  { value: 'players_coach', label: "The Player's Coach (Role Fit)" },
+  { value: 'disciplinarian', label: 'The Disciplinarian (Defense & Effort)' },
+  { value: 'innovator', label: 'The Innovator (Pace & Space)' },
+  { value: 'closer', label: 'The Closer (Clutch & High-Stakes)' },
+];
+
+const COMPARE_CONTEXTS = [
+  { value: '', label: 'General comparison' },
+  { value: 'contender_starter', label: 'Starting role on a contender' },
+  { value: 'next_to_star_pg', label: 'Fit next to a star PG' },
+  { value: 'next_to_star_big', label: 'Fit next to a dominant big' },
+  { value: 'rebuild_development', label: 'Rebuild / developmental situation' },
+  { value: 'best_value', label: 'Best available value' },
+  { value: 'playoff_minutes', label: 'Playoff rotation minutes' },
+  { value: 'max_contract_decision', label: 'Max contract decision' },
+];
+
 function Compare() {
   const [playerA, setPlayerA] = React.useState(null);
   const [playerB, setPlayerB] = React.useState(null);
   const [result, setResult] = React.useState(null);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState(null);
+  const [archetype, setArchetype] = React.useState('');
+  const [compareContext, setCompareContext] = React.useState('');
 
   const canCompare = playerA && playerB && playerA.id !== playerB.id;
 
-  const runCompare = async () => {
+  const runCompare = async (arch, ctx) => {
     if (!canCompare) return;
+    const activeArch = arch !== undefined ? arch : archetype;
+    const activeCtx  = ctx  !== undefined ? ctx  : compareContext;
     setLoading(true); setError(null); setResult(null);
     try {
-      const r = await fetch(`${API}/analysis/compare?player_a=${playerA.id}&player_b=${playerB.id}&season=2025`);
+      const arcParam = activeArch ? `&archetype=${activeArch}` : '';
+      const ctxParam = activeCtx  ? `&compare_context=${activeCtx}` : '';
+      const r = await fetch(`${API}/analysis/compare?player_a=${playerA.id}&player_b=${playerB.id}&season=2025${arcParam}${ctxParam}`, {
+        headers: {'X-Pivot-Session': _pivotSessionId},
+      });
       if (!r.ok) throw new Error(await r.text());
       const data = await r.json();
       if (data.error) throw new Error(data.error);
@@ -5557,8 +5952,9 @@ function Compare() {
         recent_reb: p.recent_reb != null ? p.recent_reb.toFixed(1) : '-',
         recent_ast: p.recent_ast != null ? p.recent_ast.toFixed(1) : '-',
         nba_id: p.nba_id,
+        trend_flag: p.trend_flag || null,
       });
-      setResult({ a: mapPlayer(data.player_a), b: mapPlayer(data.player_b), analysis: data.analysis, structured: data.structured || null });
+      setResult({ a: mapPlayer(data.player_a), b: mapPlayer(data.player_b), analysis: data.analysis, structured: data.structured || null, contextLabel: data.context_label || null });
     } catch(e) { setError(friendlyError(e.message)); } finally { setLoading(false); }
   };
 
@@ -5598,7 +5994,7 @@ function Compare() {
           <div style={{display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'0 20px', minWidth:90}}>
             <div className="cmp-vs-text" style={{fontFamily:BC, fontSize:52, fontWeight:900, letterSpacing:3, color:'rgba(0,255,128,0.55)', lineHeight:1, userSelect:'none'}}>VS</div>
             {canCompare && !result && !loading && (
-              <button onClick={runCompare}
+              <button onClick={()=>runCompare()}
                 style={{marginTop:20, background:'var(--green)', color:'#080A0E', border:'none', padding:'10px 22px', fontSize:12, letterSpacing:3, fontWeight:800, fontFamily:BC, textTransform:'uppercase', cursor:'pointer', borderRadius:6, transition:'opacity 0.15s', whiteSpace:'nowrap'}}
                 onMouseEnter={e=>e.currentTarget.style.opacity='0.85'}
                 onMouseLeave={e=>e.currentTarget.style.opacity='1'}>
@@ -5619,6 +6015,50 @@ function Compare() {
           </div>
         )}
       </div>
+
+      {/* ── Analysis controls toolbar ── */}
+      {canCompare && (
+        <div style={{marginBottom:20, background:'rgba(12,15,22,0.8)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:10, overflow:'hidden'}}>
+          {/* Row 1: Coaching lens */}
+          <div style={{display:'flex', alignItems:'center', gap:12, padding:'12px 20px', borderBottom:'1px solid rgba(255,255,255,0.05)'}}>
+            <div style={{fontFamily:BC, fontSize:10, letterSpacing:4, color:'rgba(255,255,255,0.35)', fontWeight:700, whiteSpace:'nowrap', minWidth:72}}>VIEW AS</div>
+            <select
+              value={archetype}
+              onChange={e=>{
+                const v = e.target.value;
+                setArchetype(v);
+                if (result) runCompare(v, undefined);
+              }}
+              style={{flex:1, background:'rgba(20,25,35,0.9)', border:'1px solid rgba(255,255,255,0.12)', color:'rgba(255,255,255,0.85)', padding:'8px 12px', fontSize:12, fontFamily:BC, letterSpacing:1, borderRadius:6, cursor:'pointer', outline:'none', appearance:'none', WebkitAppearance:'none'}}>
+              {COACHING_ARCHETYPES.map(a => (
+                <option key={a.value} value={a.value}>{a.label}</option>
+              ))}
+            </select>
+            {archetype && (
+              <div style={{fontFamily:BC, fontSize:9, letterSpacing:3, color:'rgba(160,120,255,0.7)', fontWeight:700, whiteSpace:'nowrap'}}>LENS ACTIVE</div>
+            )}
+          </div>
+          {/* Row 2: Situation context */}
+          <div style={{display:'flex', alignItems:'center', gap:12, padding:'12px 20px'}}>
+            <div style={{fontFamily:BC, fontSize:10, letterSpacing:4, color:'rgba(255,255,255,0.35)', fontWeight:700, whiteSpace:'nowrap', minWidth:72}}>SITUATION</div>
+            <select
+              value={compareContext}
+              onChange={e=>{
+                const v = e.target.value;
+                setCompareContext(v);
+                if (result) runCompare(undefined, v);
+              }}
+              style={{flex:1, background:'rgba(20,25,35,0.9)', border:'1px solid rgba(255,255,255,0.12)', color:'rgba(255,255,255,0.85)', padding:'8px 12px', fontSize:12, fontFamily:BC, letterSpacing:1, borderRadius:6, cursor:'pointer', outline:'none', appearance:'none', WebkitAppearance:'none'}}>
+              {COMPARE_CONTEXTS.map(c => (
+                <option key={c.value} value={c.value}>{c.label}</option>
+              ))}
+            </select>
+            {compareContext && (
+              <div style={{fontFamily:BC, fontSize:9, letterSpacing:3, color:'rgba(0,255,128,0.6)', fontWeight:700, whiteSpace:'nowrap'}}>CONTEXT SET</div>
+            )}
+          </div>
+        </div>
+      )}
 
       {error && <div className="err" style={{margin:'0 0 24px'}}>{error}</div>}
 
@@ -5710,18 +6150,36 @@ function Compare() {
 
               {/* L10 context row */}
               <div style={{borderTop:'1px solid rgba(255,255,255,0.06)', paddingTop:16, marginTop:8, display:'grid', gridTemplateColumns:'1fr auto 1fr', gap:12, alignItems:'center'}}>
-                <div style={{fontFamily:BC, fontSize:13, fontWeight:700, color:'rgba(255,255,255,0.45)', letterSpacing:0.3}}>L10: {a.recent_pts}pts / {a.recent_reb}reb / {a.recent_ast}ast</div>
+                <div>
+                  <div style={{fontFamily:BC, fontSize:13, fontWeight:700, color:'rgba(255,255,255,0.45)', letterSpacing:0.3}}>L10: {a.recent_pts}pts / {a.recent_reb}reb / {a.recent_ast}ast</div>
+                  {a.trend_flag && <div style={{marginTop:4, fontFamily:BC, fontSize:9, letterSpacing:2, fontWeight:700, padding:'2px 7px', borderRadius:3, display:'inline-block', ...(a.trend_flag==='trending_down' ? {color:'rgba(255,100,80,0.9)', background:'rgba(255,100,80,0.1)', border:'1px solid rgba(255,100,80,0.3)'} : {color:'rgba(80,255,160,0.9)', background:'rgba(80,255,160,0.08)', border:'1px solid rgba(80,255,160,0.25)'})}}>
+                    {a.trend_flag==='trending_down' ? '↓ TRENDING DOWN' : '↑ TRENDING UP'}
+                  </div>}
+                </div>
                 <div style={{fontFamily:BC, fontSize:9, letterSpacing:3, color:'rgba(255,255,255,0.18)', fontWeight:700, textAlign:'center'}}>LAST 10</div>
-                <div style={{fontFamily:BC, fontSize:13, fontWeight:700, color:'rgba(255,255,255,0.45)', textAlign:'right', letterSpacing:0.3}}>L10: {b.recent_pts}pts / {b.recent_reb}reb / {b.recent_ast}ast</div>
+                <div style={{textAlign:'right'}}>
+                  <div style={{fontFamily:BC, fontSize:13, fontWeight:700, color:'rgba(255,255,255,0.45)', letterSpacing:0.3}}>L10: {b.recent_pts}pts / {b.recent_reb}reb / {b.recent_ast}ast</div>
+                  {b.trend_flag && <div style={{marginTop:4, fontFamily:BC, fontSize:9, letterSpacing:2, fontWeight:700, padding:'2px 7px', borderRadius:3, display:'inline-block', ...(b.trend_flag==='trending_down' ? {color:'rgba(255,100,80,0.9)', background:'rgba(255,100,80,0.1)', border:'1px solid rgba(255,100,80,0.3)'} : {color:'rgba(80,255,160,0.9)', background:'rgba(80,255,160,0.08)', border:'1px solid rgba(80,255,160,0.25)'})}}>
+                    {b.trend_flag==='trending_down' ? '↓ TRENDING DOWN' : '↑ TRENDING UP'}
+                  </div>}
+                </div>
               </div>
             </div>
 
             {/* AI Analysis card */}
             <div className="cmp-reveal" style={{animationDelay:'160ms', background:'rgba(8,10,16,0.95)', border:'1px solid rgba(0,255,128,0.18)', borderRadius:14, padding:'28px 32px', boxShadow:'0 0 60px rgba(0,255,128,0.06), 0 8px 40px rgba(0,0,0,0.6)', position:'relative', overflow:'hidden'}}>
               <div style={{position:'absolute', top:0, left:0, right:0, height:1, background:'linear-gradient(to right, transparent, rgba(0,255,128,0.4), transparent)'}}/>
-              <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:22}}>
+              <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:22, flexWrap:'wrap'}}>
                 <div style={{fontFamily:BC, fontSize:16, color:'rgba(0,255,128,0.9)', lineHeight:1}}>✦</div>
                 <div style={{fontFamily:BC, fontSize:11, letterSpacing:5, color:'rgba(0,255,128,0.85)', fontWeight:700, textTransform:'uppercase'}}>PIVOT Matchup Analysis</div>
+                {archetype && (() => {
+                  const a = COACHING_ARCHETYPES.find(x=>x.value===archetype);
+                  return a ? (
+                    <div style={{marginLeft:6, fontFamily:BC, fontSize:9, letterSpacing:3, color:'rgba(160,120,255,0.8)', fontWeight:700, background:'rgba(160,120,255,0.08)', border:'1px solid rgba(160,120,255,0.2)', borderRadius:4, padding:'3px 8px'}}>
+                      {a.label.split('(')[0].trim().toUpperCase()}
+                    </div>
+                  ) : null;
+                })()}
               </div>
 
               {result.structured ? (() => {
@@ -5744,14 +6202,26 @@ function Compare() {
                       </div>
                     )}
 
-                    {/* Better Player + Reasoning */}
-                    {s.better_player && (
-                      <div style={{background:'rgba(0,255,128,0.05)', border:'1px solid rgba(0,255,128,0.15)', borderRadius:10, padding:'16px 20px'}}>
-                        <div style={{fontFamily:BC, fontSize:9, letterSpacing:4, color:'rgba(0,255,128,0.6)', fontWeight:700, textTransform:'uppercase', marginBottom:8}}>Edge</div>
-                        <div style={{fontFamily:BC, fontSize:18, fontWeight:900, color:'var(--green)', letterSpacing:0.5, marginBottom:10}}>{s.better_player}</div>
-                        {s.reasoning && <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:13, lineHeight:1.75, color:'rgba(255,255,255,0.82)', fontWeight:400}}>{s.reasoning}</div>}
-                      </div>
-                    )}
+                    {/* Verdict + Reasoning */}
+                    {(s.better_for_context || s.better_player) && (() => {
+                      const verdict = s.better_for_context || s.better_player;
+                      const edgeLabel = result.contextLabel
+                        ? result.contextLabel.toUpperCase()
+                        : 'OVERALL EDGE';
+                      // Determine if verdict is a full sentence or just a name
+                      const isFullSentence = verdict && verdict.includes(' ');
+                      return (
+                        <div style={{background:'rgba(0,255,128,0.05)', border:'1px solid rgba(0,255,128,0.15)', borderRadius:10, padding:'16px 20px'}}>
+                          <div style={{fontFamily:BC, fontSize:9, letterSpacing:4, color:'rgba(0,255,128,0.6)', fontWeight:700, textTransform:'uppercase', marginBottom:10}}>{edgeLabel}</div>
+                          {isFullSentence ? (
+                            <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:15, fontWeight:700, color:'var(--green)', lineHeight:1.65, marginBottom: s.reasoning ? 12 : 0}}>{verdict}</div>
+                          ) : (
+                            <div style={{fontFamily:BC, fontSize:18, fontWeight:900, color:'var(--green)', letterSpacing:0.5, marginBottom: s.reasoning ? 10 : 0}}>{verdict}</div>
+                          )}
+                          {s.reasoning && <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:13, lineHeight:1.75, color:'rgba(255,255,255,0.75)', fontWeight:400}}>{s.reasoning}</div>}
+                        </div>
+                      );
+                    })()}
 
                     {/* Limitation */}
                     {s.limitation && (
@@ -5774,7 +6244,7 @@ function Compare() {
 
               <div style={{marginTop:24, display:'flex', alignItems:'center', justifyContent:'space-between'}}>
                 <div style={{fontFamily:BC, fontSize:10, letterSpacing:3, color:'rgba(255,255,255,0.18)', fontWeight:700}}>POWERED BY CLAUDE AI</div>
-                <button onClick={runCompare}
+                <button onClick={()=>runCompare()}
                   style={{background:'none', border:'1px solid rgba(0,255,128,0.3)', color:'rgba(0,255,128,0.8)', padding:'9px 22px', fontSize:11, letterSpacing:4, fontWeight:700, fontFamily:BC, textTransform:'uppercase', cursor:'pointer', borderRadius:6, transition:'border-color 0.15s, color 0.15s'}}
                   onMouseEnter={e=>{e.currentTarget.style.borderColor='rgba(0,255,128,0.7)';e.currentTarget.style.color='var(--green)';}}
                   onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(0,255,128,0.3)';e.currentTarget.style.color='rgba(0,255,128,0.8)';}}>
@@ -5788,6 +6258,14 @@ function Compare() {
     </div>
   );
 }
+
+// Generate a stable session UUID once per page load (persists across React re-renders)
+const _pivotSessionId = (() => {
+  const k = 'pivot_session_id';
+  let id = sessionStorage.getItem(k);
+  if (!id) { id = crypto.randomUUID(); sessionStorage.setItem(k, id); }
+  return id;
+})();
 
 function App() {
   const [tab, setTab] = React.useState('home');

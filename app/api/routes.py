@@ -193,25 +193,64 @@ async def get_trending_players():
         raise HTTPException(status_code=502, detail=str(e))
 
 
+_NEWS_SOURCES = [
+    {
+        "label": "ESPN",
+        "url": "https://www.espn.com/espn/rss/nba/news",
+    },
+    {
+        "label": "CBS Sports",
+        "url": "https://www.cbssports.com/rss/headlines/nba/",
+    },
+    {
+        "label": "Yahoo Sports",
+        "url": "https://sports.yahoo.com/nba/rss.xml",
+    },
+]
+
+async def _fetch_rss(client: httpx.AsyncClient, source: dict) -> list[dict]:
+    """Fetch and parse a single RSS feed; returns [] on any failure."""
+    try:
+        r = await client.get(source["url"], headers={"User-Agent": "Mozilla/5.0 (compatible)"})
+        r.raise_for_status()
+        root = ET.fromstring(r.text)
+        items = []
+        for item in root.findall("./channel/item")[:20]:
+            title = (item.findtext("title") or "").strip()
+            link  = (item.findtext("link") or "").strip()
+            pub   = (item.findtext("pubDate") or "").strip()
+            if title:
+                items.append({"title": title, "url": link, "pub": pub, "source": source["label"]})
+        return items
+    except Exception:
+        return []
+
 @router.get("/nba/news")
 async def nba_news():
-    """Fetch latest NBA headlines from ESPN RSS feed."""
-    try:
-        async with httpx.AsyncClient(timeout=10) as client:
-            r = await client.get(
-                "https://www.espn.com/espn/rss/nba/news",
-                headers={"User-Agent": "Mozilla/5.0"},
-            )
-        root = ET.fromstring(r.text)
-        headlines = []
-        for item in root.findall("./channel/item")[:25]:
-            title = item.findtext("title", "").strip()
-            link  = item.findtext("link", "").strip()
-            if title:
-                headlines.append({"title": title, "url": link})
-        return {"headlines": headlines}
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=str(e))
+    """Fetch latest NBA headlines from multiple RSS feeds, merged and deduplicated."""
+    async with httpx.AsyncClient(timeout=10) as client:
+        results = await asyncio.gather(*[_fetch_rss(client, s) for s in _NEWS_SOURCES])
+
+    # Flatten all items
+    all_items: list[dict] = [item for feed in results for item in feed]
+
+    if not all_items:
+        raise HTTPException(status_code=502, detail="All news sources unavailable")
+
+    # Deduplicate: normalize title to first 60 chars, lowercase, alphanumeric only
+    import re as _re
+    def _norm(t: str) -> str:
+        return _re.sub(r"[^a-z0-9]", "", t.lower())[:60]
+
+    seen: set[str] = set()
+    headlines: list[dict] = []
+    for item in all_items:
+        key = _norm(item["title"])
+        if key and key not in seen:
+            seen.add(key)
+            headlines.append({"title": item["title"], "url": item["url"], "source": item["source"]})
+
+    return {"headlines": headlines[:30]}
 
 
 # ── Claude ────────────────────────────────────────────────────────────────────
@@ -246,7 +285,8 @@ async def game_analysis(request: Request, _key: str = Depends(verify_api_key)):
 async def predict_game(request: Request, _key: str = Depends(verify_api_key)):
     try:
         body = await request.json()
-        return await analysis_service.predict_game(body)
+        session_id = request.headers.get("X-Pivot-Session")
+        return await analysis_service.predict_game(body, session_id=session_id)
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e))
 
@@ -257,7 +297,8 @@ async def coach_live(request: Request, _key: str = Depends(verify_api_key)):
     """Live tactical engine: run detection, clock management, structured adjustments."""
     try:
         body = await request.json()
-        return await analysis_service.coach_live_adjustment(body)
+        session_id = request.headers.get("X-Pivot-Session")
+        return await analysis_service.coach_live_adjustment(body, session_id=session_id)
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e))
 
@@ -312,6 +353,7 @@ async def scout_note(request: Request, _key: str = Depends(verify_api_key)):
     """Generate a live 1-2 sentence scout note for a single player via Claude."""
     try:
         body = await request.json()
+        session_id = request.headers.get("X-Pivot-Session")
         return await analysis_service.scout_note(
             name=body["name"],
             team=body.get("team", ""),
@@ -321,6 +363,8 @@ async def scout_note(request: Request, _key: str = Depends(verify_api_key)):
             context=body.get("context", "general"),
             age=body.get("age"),
             pos=body.get("pos"),
+            player_id=body.get("player_id"),
+            session_id=session_id,
         )
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e))
@@ -346,10 +390,18 @@ async def compare_players(
     player_a: int = Query(..., description="BallDontLie player ID for player A"),
     player_b: int = Query(..., description="BallDontLie player ID for player B"),
     season: int = Query(2025, description="NBA season year"),
+    archetype: Optional[str] = Query(None, description="Coaching archetype lens"),
+    compare_context: Optional[str] = Query(None, description="Situational context for the comparison"),
     _key: str = Depends(verify_api_key),
 ):
     try:
-        return await analysis_service.compare_players(player_a, player_b, season)
+        session_id = request.headers.get("X-Pivot-Session")
+        return await analysis_service.compare_players(
+            player_a, player_b, season,
+            archetype=archetype,
+            compare_context=compare_context,
+            session_id=session_id,
+        )
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e))
 
@@ -447,6 +499,42 @@ async def get_roster_analysis(request: Request, team_name: str = Query(..., desc
         raise HTTPException(status_code=502, detail=str(e))
 
 
+@router.post("/frontoffice/trade")
+@limiter.limit(_CLAUDE_LIMIT)
+async def analyze_trade(request: Request, body: dict = Body(...), _key: str = Depends(verify_api_key)):
+    """
+    Evaluate a trade proposal through an optional coaching archetype lens.
+
+    Body:
+    {
+        "team_a": "Lakers",
+        "team_a_players": [{"name": "LeBron James", "id": 237, "pos": "F", "age": 40}],
+        "team_b": "Celtics",
+        "team_b_players": [{"name": "Jayson Tatum", "id": 434, "pos": "F", "age": 27}],
+        "archetype": "architect"  // optional
+    }
+    """
+    try:
+        session_id = request.headers.get("X-Pivot-Session")
+        return await analysis_service.analyze_trade(
+            team_a_name=body.get("team_a", "Team A"),
+            team_a_players=body.get("team_a_players", []),
+            team_b_name=body.get("team_b", "Team B"),
+            team_b_players=body.get("team_b_players", []),
+            archetype=body.get("archetype"),
+            team_a_cap=body.get("team_a_cap"),
+            team_b_cap=body.get("team_b_cap"),
+            cap_context={
+                "tax_line":          body.get("cap_tax"),
+                "first_apron":       body.get("cap_first_apron"),
+                "second_apron":      body.get("cap_second_apron"),
+            },
+            session_id=session_id,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+
 # ── Coach Mode ────────────────────────────────────────────────────────────────
 
 @router.post("/coach/adjust")
@@ -457,7 +545,8 @@ async def coach_adjustment(request: Request, body: dict = Body(...), _key: str =
     Expects: { "game_id": 12345, "my_team": "Lakers" }
     """
     try:
-        return await analysis_service.coach_adjustment(body)
+        session_id = request.headers.get("X-Pivot-Session")
+        return await analysis_service.coach_adjustment(body, session_id=session_id)
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e))
 

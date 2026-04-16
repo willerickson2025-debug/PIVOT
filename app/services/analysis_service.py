@@ -22,8 +22,10 @@ import logging
 from typing import Any, AsyncGenerator, Optional
 from zoneinfo import ZoneInfo
 
-from app.core.cache import analysis_cache
+from app.core.cache import analysis_cache, get_cache_ttl
+from app.core.season import get_current_season
 from app.core.http_client import GlobalHTTPClient
+from app.core.session import SessionEvent, build_context_block, record as session_record
 from app.models.schemas import Game, GameAnalysisResponse
 from app.services import claude_service, nba_service
 
@@ -118,6 +120,59 @@ async def _validated_injury_tags(
 
     return tags
 
+
+def _get_player_injury_status(player_name: str, espn_raw: dict) -> str:
+    """
+    Look up a single player's current injury status in the raw ESPN injury JSON.
+
+    Matches by last name first; if two players share a last name the first name
+    initial is used as a tiebreaker.  Returns a human-readable string:
+      "Out — right knee"
+      "Questionable — hamstring"
+      "Day-To-Day — load management / rest"
+      "Active"
+    """
+    if not espn_raw or not player_name:
+        return "Active"
+
+    name_parts = player_name.lower().strip().split()
+    last_name  = name_parts[-1] if name_parts else ""
+    first_init = name_parts[0][0] if len(name_parts) > 1 and name_parts[0] else ""
+
+    for team_block in espn_raw.get("injuries", []):
+        for inj in team_block.get("injuries", []):
+            athlete = inj.get("athlete") or {}
+            a_display = athlete.get("displayName", "").lower().strip()
+            a_last = (
+                athlete.get("lastName") or (a_display.split()[-1] if a_display else "")
+            ).lower().strip()
+
+            if a_last != last_name:
+                continue
+            # First-initial tiebreaker when multiple players share a last name
+            if first_init and a_display and not a_display.startswith(first_init):
+                continue
+
+            status = (inj.get("status") or "").strip()
+            inj_type = inj.get("type") or inj.get("injuryType") or {}
+            type_name = inj_type.get("name", "") if isinstance(inj_type, dict) else str(inj_type)
+            type_lower = type_name.lower()
+            comment = (inj.get("details") or {}).get("detail", "") or inj.get("shortComment", "") or ""
+
+            if "load" in type_lower or "rest" in type_lower:
+                return "Day-To-Day — load management / rest"
+
+            if not status or status.lower() in ("active",):
+                return "Active"
+
+            parts = [status.title()]
+            if comment:
+                parts.append(comment)
+            return " — ".join(parts)
+
+    return "Active"
+
+
 # ---------------------------------------------------------------------------
 # Module-level logger
 # ---------------------------------------------------------------------------
@@ -128,13 +183,38 @@ logger = logging.getLogger(__name__)
 # Constants
 # ---------------------------------------------------------------------------
 
-_DEFAULT_SEASON: int = 2025
+# Season resolved at call time via get_current_season() — see app/core/season.py
 _RECENT_FORM_WINDOW: int = 10   # number of most-recent games used for trend data
 _MAX_TRADE_PLAYERS: int = 4     # max players to fetch live stats for in a trade
 
 # Fast model for latency-sensitive paths (player/game analysis).
 # Haiku is ~5-8x faster than Sonnet; plenty of reasoning for structured stat analysis.
 _FAST_MODEL: str = "claude-haiku-4-5-20251001"
+
+# ---------------------------------------------------------------------------
+# Token tier constants
+# ---------------------------------------------------------------------------
+# Centralised so any future tuning is a single-line change.
+#
+# TIER_BLURB   — leaderboard cards (MVP Race, Young Stars): 1-2 sentences max.
+# TIER_NOTE    — detailed scout note with full stat block: 2-3 sentences.
+# TIER_VERDICT — structured analysis verdicts (compare, trade per-team): room
+#                for 2-4 sentences per field plus JSON overhead.
+# TIER_COACH   — in-game coach prose: 3-4 paragraphs of tactical depth.
+# TIER_PLAY    — play diagrams: prose + JSON diagram on the same response.
+# ---------------------------------------------------------------------------
+_TOKENS_BLURB:   int = 140    # leaderboard blurbs (MVP Race, Young Stars)
+_TOKENS_NOTE:    int = 300    # detailed scout note (player_id + full stats)
+_TOKENS_GAME:    int = 900    # game slate / upcoming matchup analysis prose
+_TOKENS_VERDICT: int = 750    # compare / trade structured JSON verdicts
+_TOKENS_PLAYER:  int = 1000   # single player analysis prose (stream + non-stream)
+_TOKENS_COACH:   int = 950    # coach adjustment & live tactical response
+_TOKENS_PLAY:    int = 1000   # timeout & defensive play draw (prose + diagram JSON)
+_TOKENS_ROSTER:  int = 1200   # team roster / front-office memo
+_TOKENS_DNA:     int = 1400   # team identity / DNA breakdown
+_TOKENS_SECTION: int = 1600   # deep player section analysis (offense/defense/financials)
+_TOKENS_PREDICT: int = 2400   # full game prediction (matchup + projection)
+_TOKENS_GAME_BOX: int = 3400  # live game box score analysis (both teams, all players)
 
 
 # ---------------------------------------------------------------------------
@@ -853,7 +933,7 @@ async def analyze_today_games(target_date: Optional[str] = None) -> GameAnalysis
         prompt=prompt,
         system_prompt=_nba_analyst_system_prompt(),
         override_model=_FAST_MODEL,
-        override_max_tokens=900,
+        override_max_tokens=_TOKENS_GAME,
     )
 
     logger.info(
@@ -868,13 +948,13 @@ async def analyze_today_games(target_date: Optional[str] = None) -> GameAnalysis
         model=result.model,
         tokens_used=result.tokens_used,
     )
-    analysis_cache.set(cache_key, response, ttl=3600)
+    analysis_cache.set(cache_key, response, ttl=get_cache_ttl())
     return response
 
 
 async def analyze_player(
     player_id: int,
-    season: int = _DEFAULT_SEASON,
+    season: int = 0,
 ) -> dict[str, Any]:
     """
     Generate a full player analysis for a given season.
@@ -893,6 +973,7 @@ async def analyze_player(
         Player metadata, season and recent-form averages, analysis text, and
         token usage. Returns ``{"error": "..."}`` on lookup failure.
     """
+    season = season or get_current_season()
     logger.info("Analyzing player | player_id=%d season=%d", player_id, season)
 
     try:
@@ -935,7 +1016,7 @@ async def analyze_player(
         prompt=prompt,
         system_prompt=_nba_analyst_system_prompt(),
         override_model=_FAST_MODEL,
-        override_max_tokens=800,
+        override_max_tokens=_TOKENS_PLAYER,
     )
 
     logger.info(
@@ -972,7 +1053,7 @@ async def analyze_player(
         "model": result.model,
         "tokens_used": result.tokens_used,
     }
-    analysis_cache.set(cache_key, payload, ttl=3600)
+    analysis_cache.set(cache_key, payload, ttl=get_cache_ttl())
     return payload
 
 
@@ -1040,7 +1121,7 @@ async def analyze_player_section(
         prompt=prompt,
         system_prompt=_nba_analyst_system_prompt(),
         override_model=_FAST_MODEL,
-        override_max_tokens=1600,
+        override_max_tokens=_TOKENS_SECTION,
     )
 
     logger.info(
@@ -1108,7 +1189,7 @@ async def analyze_player_section_stream(
         prompt,
         system_prompt=_nba_analyst_system_prompt(),
         override_model=_FAST_MODEL,
-        override_max_tokens=1600,
+        override_max_tokens=_TOKENS_SECTION,
     ):
         yield {"type": "chunk", "text": chunk}
 
@@ -1117,7 +1198,7 @@ async def analyze_player_section_stream(
 
 async def analyze_player_stream(
     player_id: int,
-    season: int = _DEFAULT_SEASON,
+    season: int = 0,
 ) -> AsyncGenerator[dict, None]:
     """
     Streaming version of analyze_player.
@@ -1130,6 +1211,7 @@ async def analyze_player_stream(
     If the result is cached, streams the cached analysis text character-by-character
     so the typewriter effect still plays.
     """
+    season = season or get_current_season()
     try:
         player, agg = await _build_player_stat_block(player_id, season)
     except Exception as exc:
@@ -1177,7 +1259,7 @@ async def analyze_player_stream(
         prompt = f"Analyze this player's {season} NBA season:\n\n{stat_block}"
 
     full_text = []
-    async for chunk in claude_service.analyze_stream(prompt, system_prompt=_nba_analyst_system_prompt(), override_model=_FAST_MODEL, override_max_tokens=1000):
+    async for chunk in claude_service.analyze_stream(prompt, system_prompt=_nba_analyst_system_prompt(), override_model=_FAST_MODEL, override_max_tokens=_TOKENS_PLAYER):
         full_text.append(chunk)
         yield {"type": "chunk", "text": chunk}
 
@@ -1199,7 +1281,7 @@ async def analyze_player_stream(
             "games_played": agg["total_games"],
             "analysis": analysis_text, "model": "", "tokens_used": 0,
         }
-        analysis_cache.set(cache_key, payload, ttl=3600)  # cache_key = player_analysis:{id}:{season}
+        analysis_cache.set(cache_key, payload, ttl=get_cache_ttl())  # cache_key = player_analysis:{id}:{season}
 
     yield {"type": "done"}
 
@@ -1255,11 +1337,12 @@ async def analyze_trade(body: dict[str, Any]) -> dict[str, Any]:
         key = (name or "").lower().strip()
         try:
             trade_player = await _resolve_player_by_name(name)
-            _, agg = await _build_player_stat_block(trade_player.id, _DEFAULT_SEASON)
+            _season = get_current_season()
+            _, agg = await _build_player_stat_block(trade_player.id, _season)
             if agg["total_games"] > 0:
                 player_stats[key] = (
                     f"{agg['avg_pts']}pts / {agg['avg_reb']}reb / {agg['avg_ast']}ast "
-                    f"({agg['total_games']}GP, {_DEFAULT_SEASON} season)"
+                    f"({agg['total_games']}GP, {_season} season)"
                 )
         except ValueError:
             logger.debug("No stats found for trade asset %r — skipping", name)
@@ -1418,7 +1501,7 @@ async def analyze_roster(team_name: str) -> dict[str, Any]:
     result = await claude_service.analyze(
         prompt=prompt,
         system_prompt=_front_office_system_prompt(),
-        override_max_tokens=1200,
+        override_max_tokens=_TOKENS_ROSTER,
     )
 
     logger.info("Roster analysis complete | team=%r tokens=%d", team_name, result.tokens_used)
@@ -1715,7 +1798,7 @@ async def analyze_game(body: dict[str, Any]) -> dict[str, Any]:
         prompt=prompt,
         system_prompt=_ANALYSIS_SYSTEM,
         override_model=_FAST_MODEL,
-        override_max_tokens=3400,
+        override_max_tokens=_TOKENS_GAME_BOX,
         override_temperature=0.1,
     )
 
@@ -1765,7 +1848,7 @@ async def analyze_game(body: dict[str, Any]) -> dict[str, Any]:
     return response
 
 
-async def coach_adjustment(body: dict[str, Any]) -> dict[str, Any]:
+async def coach_adjustment(body: dict[str, Any], session_id: Optional[str] = None) -> dict[str, Any]:
     """
     Generate live in-game coaching adjustments based on the current box score.
 
@@ -1858,6 +1941,23 @@ async def coach_adjustment(body: dict[str, Any]) -> dict[str, Any]:
                     + _fmt_player_lines(box.get("home_players") or [], home_name + " (HOME)")
                     + _fmt_player_lines(box.get("away_players") or [], away_name + " (AWAY)")
                 )
+
+                # Inject injury report for both teams
+                try:
+                    _espn = await _fetch_espn_injuries_raw()
+                    _home_inj, _away_inj = await asyncio.gather(
+                        _validated_injury_tags(home_name, None, _espn),
+                        _validated_injury_tags(away_name, None, _espn),
+                    )
+                    if _home_inj or _away_inj:
+                        _inj_lines = []
+                        if _home_inj:
+                            _inj_lines.append(f"  {home_name}: {', '.join(_home_inj)}")
+                        if _away_inj:
+                            _inj_lines.append(f"  {away_name}: {', '.join(_away_inj)}")
+                        box_summary += "\n\nINJURY REPORT (factor absent players into all lineup/rotation decisions):\n" + "\n".join(_inj_lines)
+                except Exception:
+                    pass
         except Exception as exc:
             logger.warning("Failed to fetch box score | game_id=%s error=%s", game_id, exc)
 
@@ -1866,23 +1966,33 @@ async def coach_adjustment(body: dict[str, Any]) -> dict[str, Any]:
         or "Give me the most important adjustments based on what you see in the box score right now."
     )
 
+    session_ctx = build_context_block(session_id)
     prompt = (
+        f"{session_ctx}"
         f"LIVE IN-GAME COACHING CALL — You have full situational awareness. "
         f"Do NOT ask for more information. Give adjustments immediately based on what you see.\n\n"
         f"{game_context}\n\n"
         f"COACH'S NOTE: {situation_line}\n\n"
         f"{box_summary}\n\n"
         f"Based on the live data — who's hot, who's in foul trouble, shooting splits, turnovers, minutes — "
-        f"give me the single most important adjustment right now (name players and schemes), any lineup change needed, "
-        f"a defensive rotation based on what their guys are doing, and the exact offensive action to run next possession. "
-        f"Name players by last name. Use the actual numbers. Be surgical."
+        f"respond in 3-4 focused paragraphs: (1) the single most important adjustment right now with specific players and scheme, "
+        f"(2) any lineup change needed and why, "
+        f"(3) the defensive rotation based on what their guys are doing, "
+        f"(4) the exact offensive action to run next possession. "
+        f"Name players by last name. Cite the actual numbers. Be surgical."
     )
 
     result = await claude_service.analyze(
         prompt=prompt,
         system_prompt=COACH_SYSTEM_PROMPT,
-        override_max_tokens=850,
+        override_max_tokens=_TOKENS_COACH,
     )
+
+    session_record(session_id, SessionEvent(
+        type="coach",
+        summary=f"Coach call {my_team or 'team'} game {game_id}: {situation_line[:60]}",
+        entities=[my_team] if my_team else [],
+    ))
 
     logger.info(
         "Coach adjustment complete | game_id=%s box_used=%s tokens=%d",
@@ -1902,7 +2012,7 @@ async def coach_adjustment(body: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-async def coach_live_adjustment(body: dict[str, Any]) -> dict[str, Any]:
+async def coach_live_adjustment(body: dict[str, Any], session_id: Optional[str] = None) -> dict[str, Any]:
     """
     Tactical engine for Coach Mode: pulls full live game state, detects scoring
     runs, foul trouble, clock situations, and hot/cold players, then returns
@@ -2032,13 +2142,33 @@ async def coach_live_adjustment(body: dict[str, Any]) -> dict[str, Any]:
 
     clock_flag_block = "\n".join(clock_flags) if clock_flags else ""
 
-    prompt = f"""LIVE TACTICAL BRIEF — {state['period_label']} | {clock} | {my_name} {my_score} — {opp_score} {opp_name} ({diff_str})
+    # Fetch injury report for both teams
+    inj_block = ""
+    try:
+        _espn = await _fetch_espn_injuries_raw()
+        _my_inj, _opp_inj = await asyncio.gather(
+            _validated_injury_tags(my_name, None, _espn),
+            _validated_injury_tags(opp_name, None, _espn),
+        )
+        if _my_inj or _opp_inj:
+            _parts = []
+            if _my_inj:
+                _parts.append(f"  {my_name}: {', '.join(_my_inj)}")
+            if _opp_inj:
+                _parts.append(f"  {opp_name}: {', '.join(_opp_inj)}")
+            inj_block = "\nINJURY REPORT (factor absent players into all rotation/lineup calls):\n" + "\n".join(_parts)
+    except Exception:
+        pass
+
+    session_ctx = build_context_block(session_id)
+    prompt = f"""{session_ctx}LIVE TACTICAL BRIEF — {state['period_label']} | {clock} | {my_name} {my_score} — {opp_score} {opp_name} ({diff_str})
 Timeouts: {my_name} {my_timeouts} | {opp_name} {opp_timeouts}
 Bonus: {my_name} {'YES' if my_bonus else 'no'} | {opp_name} {'YES' if opp_bonus else 'no'}
 {run_alert}
 QUARTER-BY-QUARTER SCORING:
 {q_block}
 {clock_flag_block}
+{inj_block}
 {foul_block}{hot_block}{cold_block}{to_block}
 {_fmt_players(my_players, my_name + ' (MY TEAM)')}
 {_fmt_players(opp_players, opp_name + ' (OPPONENT)')}
@@ -2075,7 +2205,7 @@ Return only valid JSON. No text outside the object."""
         prompt=prompt,
         system_prompt=_COACH_LIVE_SYSTEM,
         override_model=_FAST_MODEL,
-        override_max_tokens=900,
+        override_max_tokens=_TOKENS_COACH,
         override_temperature=0.1,
     )
 
@@ -2092,6 +2222,13 @@ Return only valid JSON. No text outside the object."""
     except Exception:
         logger.warning("coach_live_adjustment JSON parse failed | game_id=%d", game_id)
         parsed = {"priority_adjustment": result.analysis}
+
+    _live_priority = parsed.get("priority_adjustment", "")
+    session_record(session_id, SessionEvent(
+        type="coach",
+        summary=f"Live coach {my_name} vs {opp_name} {state['period_label']}: {_live_priority[:60]}",
+        entities=[my_name, opp_name],
+    ))
 
     logger.info("Coach live adjustment complete | game_id=%d period=%s", game_id, state["period_label"])
 
@@ -2237,7 +2374,7 @@ async def timeout_play(body: dict[str, Any]) -> dict[str, Any]:
     result = await claude_service.analyze(
         prompt="\n".join(prompt_parts),
         system_prompt=COACH_SYSTEM_PROMPT,
-        override_max_tokens=900,
+        override_max_tokens=_TOKENS_PLAY,
     )
 
     # Parse the court diagram JSON from the response
@@ -2418,7 +2555,7 @@ async def defensive_play(body: dict[str, Any]) -> dict[str, Any]:
     result = await claude_service.analyze(
         prompt="\n".join(prompt_parts),
         system_prompt=_DEF_SYSTEM,
-        override_max_tokens=950,
+        override_max_tokens=_TOKENS_PLAY,
         override_temperature=0.1,
     )
 
@@ -2451,7 +2588,7 @@ async def defensive_play(body: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-async def predict_game(body: dict[str, Any]) -> dict[str, Any]:
+async def predict_game(body: dict[str, Any], session_id: Optional[str] = None) -> dict[str, Any]:
     """
     Return a structured prediction for an upcoming game.
 
@@ -2538,7 +2675,9 @@ async def predict_game(body: dict[str, Any]) -> dict[str, Any]:
             f"This is the single most important factor — adjust confidence downward and reflect this in key_factor.\n"
         )
 
+    session_ctx = build_context_block(session_id)
     prompt = (
+        f"{session_ctx}"
         f"UPCOMING GAME: {away_name} at {home_name} (home)\n"
         f"{rest_warning}\n"
         f"CURRENT STANDINGS:\n"
@@ -2607,7 +2746,7 @@ async def predict_game(body: dict[str, Any]) -> dict[str, Any]:
         prompt=prompt,
         system_prompt=system,
         override_model=_FAST_MODEL,
-        override_max_tokens=2400,
+        override_max_tokens=_TOKENS_PREDICT,
         override_temperature=0.15,
     )
 
@@ -2675,169 +2814,829 @@ async def predict_game(body: dict[str, Any]) -> dict[str, Any]:
         "model": result.model,
         "tokens_used": result.tokens_used,
     }
+    session_record(session_id, SessionEvent(
+        type="predict",
+        summary=f"Predict {away_name} @ {home_name}: {pick} wins ({confidence}% conf) — {key_factor[:60]}",
+        entities=[home_name, away_name],
+        concern=key_factor[:80] if home_has_rest or away_has_rest else None,
+    ))
+
     analysis_cache.set(cache_key, response, ttl=600)  # 10 min — short TTL so late scratches/rest decisions are reflected
     logger.info("predict_game complete | game_id=%d pick=%s confidence=%d", game_id, pick, confidence)
     return response
 
 
+_ARCHETYPE_LENSES: dict[str, dict] = {
+    "architect": {
+        "name": "The Architect",
+        "system": (
+            "You are analyzing through the lens of a systems-first, data-driven coach. "
+            "Prioritize: True Shooting %, eFG%, assist-to-turnover ratio, defensive stats (STL+BLK), "
+            "role clarity, and consistency (L10 vs season delta). De-emphasize raw scoring volume. "
+            "Ask: which player executes a system more reliably?"
+        ),
+        "prompt": (
+            "Apply an analytics-first lens. Weight efficiency metrics (TS%, eFG%, AST/TO) and "
+            "two-way consistency above raw scoring. Identify which player is the better system fit."
+        ),
+    },
+    "motivator": {
+        "name": "The Motivator",
+        "system": (
+            "You are analyzing through the lens of a culture-first, player-development coach. "
+            "Prioritize: recent form trajectory (L10 trend), hustle stats (STL, BLK, REB relative to position), "
+            "minutes played (effort/availability), and competitive resilience. "
+            "Ask: which player elevates those around them and shows up consistently?"
+        ),
+        "prompt": (
+            "Apply a culture and momentum lens. Emphasize recent form, hustle stats, availability, "
+            "and competitive character. Identify who makes their teammates better."
+        ),
+    },
+    "tactician": {
+        "name": "The Tactician",
+        "system": (
+            "You are analyzing through the lens of a scheme-obsessed tactician. "
+            "Prioritize: positional versatility (position listed), 3-point attempt rate and accuracy, "
+            "assist rate, pick-and-roll threat (pts + ast combo), and mismatch-creation potential. "
+            "Ask: which player creates more tactical optionality and breaks down defenses?"
+        ),
+        "prompt": (
+            "Apply a schematic lens. Emphasize versatility, spacing (3PA/3P%), playmaking (AST), "
+            "and tactical flexibility. Identify which player gives a coach more in-game options."
+        ),
+    },
+    "players_coach": {
+        "name": "The Player's Coach",
+        "system": (
+            "You are analyzing through the lens of a player-empowerment coach who values autonomy and development. "
+            "Prioritize: offensive creation (AST, FGA volume), recent trajectory (is this player getting better?), "
+            "free throw rate (getting to the line = aggression), and overall usage. "
+            "Ask: which player has more upside and benefits most from trust and freedom?"
+        ),
+        "prompt": (
+            "Apply a player-development lens. Emphasize offensive creation, aggression (FTA), "
+            "and growth trajectory. Identify who has the higher ceiling given autonomy."
+        ),
+    },
+    "disciplinarian": {
+        "name": "The Disciplinarian",
+        "system": (
+            "You are analyzing through the lens of a standards-first, accountability coach. "
+            "Prioritize: defensive stats (STL+BLK+REB), FT% (free throw execution = discipline), "
+            "consistency between season averages and L10, and low turnover production. "
+            "Ask: which player meets the standard every night and can be trusted in high-stakes moments?"
+        ),
+        "prompt": (
+            "Apply a discipline and accountability lens. Prioritize defensive production, "
+            "free throw execution, consistency (season vs L10), and low turnovers. "
+            "Identify who you can trust in the biggest moments."
+        ),
+    },
+    "innovator": {
+        "name": "The Innovator",
+        "system": (
+            "You are analyzing through the lens of an unconventional, creativity-first coach. "
+            "Prioritize: 3-point volume and efficiency, multi-category production (pts+reb+ast combined), "
+            "positional mismatch potential, and outlier or unexpected stats. "
+            "Ask: which player breaks conventional defensive schemes and enables positionless basketball?"
+        ),
+        "prompt": (
+            "Apply an unconventional lens. Weight 3-point creation, multi-positional versatility, "
+            "and surprising stat combinations. Identify which player enables a positionless, "
+            "scheme-breaking attack."
+        ),
+    },
+    "closer": {
+        "name": "The Closer",
+        "system": (
+            "You are analyzing through the lens of a results-obsessed, pressure-moment coach. "
+            "Prioritize: scoring volume (PTS, FGA), free throw rate (FTA — getting to the line under pressure), "
+            "FT% (executing when it matters), and recent form (L10 — who is hot right now). "
+            "Ask: who do you give the ball to with the game on the line?"
+        ),
+        "prompt": (
+            "Apply a clutch, high-leverage lens. Emphasize scoring volume, free throw rate and accuracy, "
+            "and recent form. Identify who you trust most with the game on the line."
+        ),
+    },
+}
+
+
+# ---------------------------------------------------------------------------
+# Archetype Stat Map + Spotlight Builder
+# ---------------------------------------------------------------------------
+#
+# ARCHETYPE_STAT_MAP declares which metrics each lens foregrounds and why.
+# _archetype_spotlight() uses it to build a focused summary block that is
+# prepended to the standard stat block in compare/trade prompts — so Claude
+# reads the lens-relevant numbers first, before the full detail block.
+#
+# Design rule: every spotlight is self-contained; it re-extracts values from
+# the enriched player dict so it can be called at prompt-build time without
+# touching the cached stat_block.
+# ---------------------------------------------------------------------------
+
+ARCHETYPE_STAT_MAP: dict[str, dict] = {
+    "architect": {
+        "label":   "ARCHITECT LENS — EFFICIENCY & SYSTEM FIT",
+        "focus":   "TS%, eFG%, AST/TO, FT Rate, STL/BLK, season-to-L10 consistency delta",
+        "reason":  "Systems coaches want efficiency and reliability, not raw volume.",
+    },
+    "motivator": {
+        "label":   "MOTIVATOR LENS — TRAJECTORY & HUSTLE",
+        "focus":   "L10 recent form first, trend deltas (↑/↓), availability (GP/MPG), hustle (STL/BLK)",
+        "reason":  "Culture coaches care who is building momentum and showing up every night.",
+    },
+    "tactician": {
+        "label":   "TACTICIAN LENS — SCHEME IMPACT & SPACING",
+        "focus":   "3PA, 3P%, AST, PTS+AST combined (P&R proxy), positional versatility",
+        "reason":  "Tacticians need to know: does this player break defenses and create options?",
+    },
+    "players_coach": {
+        "label":   "PLAYER'S COACH LENS — CREATION & DEVELOPMENT",
+        "focus":   "FGA (volume), FTA (aggression), AST, usage proxy, L10 growth trend",
+        "reason":  "Development coaches ask: is this player getting more creative and attacking?",
+    },
+    "disciplinarian": {
+        "label":   "DISCIPLINARIAN LENS — DEFENSE & ACCOUNTABILITY",
+        "focus":   "STL, BLK, REB, TOV (ball security), FT% (execution), season-L10 variance",
+        "reason":  "Accountability coaches trust players who defend, protect the ball, and hit FTs.",
+    },
+    "innovator": {
+        "label":   "INNOVATOR LENS — POSITIONLESS VERSATILITY",
+        "focus":   "3PA + 3P% (floor-spacing), combined production (PTS+REB+AST), position",
+        "reason":  "Innovators want players who break conventional schemes and play multiple roles.",
+    },
+    "closer": {
+        "label":   "CLOSER LENS — PRESSURE SCORING & HOT HAND",
+        "focus":   "L10 first (who's hot NOW), PTS volume, FTA, FT%, season scoring baseline",
+        "reason":  "Closers need the player who is producing under pressure RIGHT NOW.",
+    },
+}
+
+
+def _archetype_spotlight(ep: dict, archetype_key: str) -> str:
+    """
+    Return a lens-specific foregrounded metric summary to prepend to the full
+    stat block in Claude prompts.  Ordering of sub-sections matches each
+    archetype's documented priorities in ARCHETYPE_STAT_MAP.
+
+    Returns an empty string for unknown archetype keys.
+    """
+    spec = ARCHETYPE_STAT_MAP.get(archetype_key)
+    if not spec:
+        return ""
+
+    label = spec["label"]
+    lines = [label]
+
+    def _s(v: Optional[float], suffix: str = "", prefix: str = "") -> str:
+        return f"{prefix}{v}{suffix}" if v is not None else "—"
+
+    def _delta_str(d: Optional[float]) -> str:
+        if d is None:
+            return "—"
+        sign = "+" if d >= 0 else ""
+        return f"{sign}{d}"
+
+    if archetype_key == "architect":
+        # ── Efficiency first ──────────────────────────────────────────────
+        ts     = ep.get("ts_pct")
+        efg    = ep.get("efg_pct")
+        ast_to = ep.get("ast_to")
+        fga    = ep.get("fga")
+        fta    = ep.get("fta")
+        ft_rate = round(fta / fga, 2) if fga and fta and fga > 0 else None
+        stl    = ep.get("stl")
+        blk    = ep.get("blk")
+
+        eff: list[str] = []
+        if ts     is not None: eff.append(f"TS% {ts}%")
+        if efg    is not None: eff.append(f"eFG% {efg}%")
+        if ast_to is not None: eff.append(f"AST/TO {ast_to}")
+        if ft_rate is not None: eff.append(f"FT Rate {ft_rate}")
+        if stl    is not None: eff.append(f"STL {stl}")
+        if blk    is not None: eff.append(f"BLK {blk}")
+        if eff:
+            lines.append("  Efficiency: " + " | ".join(eff))
+
+        # Consistency delta
+        pts_d = ep.get("pts_delta"); reb_d = ep.get("reb_delta"); ast_d = ep.get("ast_delta")
+        drift: list[str] = []
+        if pts_d is not None: drift.append(f"PTS {_delta_str(pts_d)}")
+        if reb_d is not None: drift.append(f"REB {_delta_str(reb_d)}")
+        if ast_d is not None: drift.append(f"AST {_delta_str(ast_d)}")
+        if drift:
+            lines.append(f"  L10 vs season drift: {' | '.join(drift)}")
+
+    elif archetype_key == "motivator":
+        # ── Recent trajectory first ───────────────────────────────────────
+        l10_pts = ep.get("l10_pts"); l10_reb = ep.get("l10_reb"); l10_ast = ep.get("l10_ast")
+        l10_stl = ep.get("l10_stl"); l10_blk = ep.get("l10_blk")
+        l10_n   = ep.get("l10_n", 10)
+        if l10_pts is not None:
+            lines.append(
+                f"  L{l10_n} (recent): {_s(l10_pts)} PTS | {_s(l10_reb)} REB | {_s(l10_ast)} AST"
+                f" | {_s(l10_stl)} STL | {_s(l10_blk)} BLK"
+            )
+
+        pts_d = ep.get("pts_delta"); reb_d = ep.get("reb_delta"); ast_d = ep.get("ast_delta")
+        trend: list[str] = []
+        if pts_d is not None: trend.append(f"PTS {_delta_str(pts_d)}")
+        if reb_d is not None: trend.append(f"REB {_delta_str(reb_d)}")
+        if ast_d is not None: trend.append(f"AST {_delta_str(ast_d)}")
+        if trend:
+            up_count = sum(1 for d in [pts_d, reb_d, ast_d] if d is not None and d > 0)
+            total    = sum(1 for d in [pts_d, reb_d, ast_d] if d is not None)
+            momentum = "↑ BUILDING" if up_count > total // 2 else "↓ FADING"
+            lines.append(f"  Trajectory: {' | '.join(trend)} — {momentum}")
+
+        gp = ep.get("gp"); mpg = ep.get("mpg")
+        if gp or mpg:
+            lines.append(f"  Availability: {_s(gp)} GP | {_s(mpg)} MPG")
+
+    elif archetype_key == "tactician":
+        # ── Spacing and playmaking ────────────────────────────────────────
+        fg3a    = ep.get("fg3a"); fg3_pct = ep.get("fg3_pct")
+        ast     = ep.get("ast");  pts = ep.get("pts")
+        pos     = ep.get("position") or "?"
+
+        spacing: list[str] = []
+        if fg3a    is not None: spacing.append(f"3PA {fg3a}")
+        if fg3_pct is not None: spacing.append(f"3P% {fg3_pct}%")
+        if spacing:
+            lines.append("  Spacing: " + " | ".join(spacing))
+
+        creation: list[str] = []
+        if ast is not None: creation.append(f"AST {ast}")
+        if pts is not None and ast is not None:
+            creation.append(f"PTS+AST {round(pts + ast, 1)} (P&R value proxy)")
+        if creation:
+            lines.append("  Creation: " + " | ".join(creation))
+
+        lines.append(f"  Position: {pos} — tactical versatility")
+
+    elif archetype_key == "players_coach":
+        # ── Volume, aggression, creation upside ──────────────────────────
+        fga = ep.get("fga"); fta = ep.get("fta"); ast = ep.get("ast")
+        usg = ep.get("usage_proxy")
+        pts_d = ep.get("pts_delta"); ast_d = ep.get("ast_delta")
+
+        vol: list[str] = []
+        if fga is not None: vol.append(f"FGA {fga}")
+        if fta is not None: vol.append(f"FTA {fta} (aggression)")
+        if ast is not None: vol.append(f"AST {ast}")
+        if usg is not None: vol.append(f"USG {usg} poss/40")
+        if vol:
+            lines.append("  Creation volume: " + " | ".join(vol))
+
+        growth: list[str] = []
+        if pts_d is not None: growth.append(f"PTS {_delta_str(pts_d)}")
+        if ast_d is not None: growth.append(f"AST {_delta_str(ast_d)}")
+        if growth:
+            lines.append(f"  Growth (L10 vs season): {' | '.join(growth)}")
+
+    elif archetype_key == "disciplinarian":
+        # ── Defense + accountability + consistency ────────────────────────
+        stl    = ep.get("stl");  blk = ep.get("blk"); reb = ep.get("reb")
+        tov    = ep.get("tov");  ft_pct = ep.get("ft_pct")
+        pts_d  = ep.get("pts_delta"); reb_d = ep.get("reb_delta")
+
+        defense: list[str] = []
+        if stl is not None: defense.append(f"STL {stl}")
+        if blk is not None: defense.append(f"BLK {blk}")
+        if reb is not None: defense.append(f"REB {reb}")
+        if tov is not None: defense.append(f"TOV {tov} (ball security)")
+        if defense:
+            lines.append("  Defense & accountability: " + " | ".join(defense))
+
+        if ft_pct is not None:
+            lines.append(f"  FT execution: {ft_pct}%")
+
+        consistency: list[str] = []
+        if pts_d is not None: consistency.append(f"PTS {_delta_str(pts_d)}")
+        if reb_d is not None: consistency.append(f"REB {_delta_str(reb_d)}")
+        if consistency:
+            deltas = [d for d in [pts_d, reb_d] if d is not None]
+            tag = "CONSISTENT" if all(abs(d) < 2.5 for d in deltas) else "INCONSISTENT"
+            lines.append(f"  Season-to-L10 variance: {' | '.join(consistency)} — {tag}")
+
+    elif archetype_key == "innovator":
+        # ── Stretch + multi-category versatility ─────────────────────────
+        fg3a    = ep.get("fg3a"); fg3_pct = ep.get("fg3_pct")
+        pts     = ep.get("pts"); reb = ep.get("reb"); ast = ep.get("ast")
+        pos     = ep.get("position") or "?"
+
+        stretch: list[str] = []
+        if fg3a    is not None: stretch.append(f"3PA {fg3a}")
+        if fg3_pct is not None: stretch.append(f"3P% {fg3_pct}%")
+        if stretch:
+            lines.append("  Floor-spacing: " + " | ".join(stretch))
+
+        if pts is not None and reb is not None and ast is not None:
+            combined = round(pts + reb + ast, 1)
+            lines.append(f"  Combined production (PTS+REB+AST): {combined}")
+
+        lines.append(f"  Position: {pos} — positionless/mismatch potential")
+
+    elif archetype_key == "closer":
+        # ── L10 hot hand first, then pressure scoring ─────────────────────
+        l10_pts = ep.get("l10_pts"); l10_ts = ep.get("l10_ts_pct")
+        l10_n   = ep.get("l10_n", 10)
+        pts     = ep.get("pts"); fga = ep.get("fga")
+        fta     = ep.get("fta"); ft_pct = ep.get("ft_pct")
+
+        if l10_pts is not None:
+            hot: list[str] = [f"L{l10_n}: {l10_pts} PTS"]
+            if l10_ts is not None: hot.append(f"TS% {l10_ts}%")
+            lines.append("  HOT HAND — " + " | ".join(hot))
+
+        pressure: list[str] = []
+        if pts    is not None: pressure.append(f"{pts} PTS/g (season)")
+        if fga    is not None: pressure.append(f"{fga} FGA")
+        if fta    is not None: pressure.append(f"{fta} FTA")
+        if ft_pct is not None: pressure.append(f"FT% {ft_pct}%")
+        if pressure:
+            lines.append("  Pressure scoring: " + " | ".join(pressure))
+
+    return "\n".join(lines) + "\n"
+
+
+# ---------------------------------------------------------------------------
+# Player enrichment — single shared utility for all Claude stat payloads
+# ---------------------------------------------------------------------------
+
+def _parse_min(m: Any) -> Optional[float]:
+    """Parse a BDL minutes value ('MM:SS', 'MM', or float) to decimal minutes."""
+    if not m or m in ("0", "0:00", "00"):
+        return None
+    try:
+        parts = str(m).split(":")
+        return float(parts[0]) + (float(parts[1]) / 60 if len(parts) == 2 else 0.0)
+    except Exception:
+        return None
+
+
+def _avg(vals: list) -> Optional[float]:
+    clean = [v for v in vals if v is not None]
+    return round(sum(clean) / len(clean), 2) if clean else None
+
+
+def _build_stat_block(ep: dict) -> str:
+    """
+    Build the canonical prompt-ready text block from an enriched player dict.
+    This is what gets injected into every Claude prompt — one format, everywhere.
+    """
+    name     = ep.get("name", "?")
+    pos      = ep.get("position") or "?"
+    team     = ep.get("team_name") or ep.get("team") or "?"
+    gp       = ep.get("gp")
+    mpg      = ep.get("mpg")
+
+    lines = [f"{name} | {pos} | {team}"]
+
+    # ── Injury status (shown prominently when not Active) ─────────────────
+    inj_status = ep.get("injury_status", "Active")
+    if inj_status and inj_status != "Active":
+        lines.append(f"INJURY STATUS: {inj_status}  ⚠")
+
+    # ── Stat values ───────────────────────────────────────────────────────
+    pts  = ep.get("pts");  reb = ep.get("reb");  ast = ep.get("ast")
+    stl  = ep.get("stl"); blk  = ep.get("blk"); tov = ep.get("tov")
+    fga  = ep.get("fga"); fg3a = ep.get("fg3a"); fta = ep.get("fta")
+    fg3_pct = ep.get("fg3_pct"); ft_pct = ep.get("ft_pct")
+    ts   = ep.get("ts_pct");  efg = ep.get("efg_pct")
+    ast_to  = ep.get("ast_to"); usg = ep.get("usage_proxy")
+
+    l10_pts = ep.get("l10_pts"); l10_reb = ep.get("l10_reb"); l10_ast = ep.get("l10_ast")
+    l10_stl = ep.get("l10_stl"); l10_blk = ep.get("l10_blk"); l10_tov = ep.get("l10_tov")
+    l10_ts  = ep.get("l10_ts_pct"); l10_ast_to = ep.get("l10_ast_to")
+    l10_min = ep.get("l10_min"); l10_n = ep.get("l10_n", 10)
+
+    trend_flag = ep.get("trend_flag")  # "trending_down" | "trending_up" | None
+
+    # ── Trend NOTE (prominent header when form diverges ≥30% from season) ─
+    if trend_flag and pts and l10_pts:
+        pct_delta = (l10_pts - pts) / pts * 100
+        if trend_flag == "trending_down":
+            lines.append(
+                f"⚠ TRENDING DOWN: L10 {l10_pts} PTS vs {pts} season ({pct_delta:+.0f}%). "
+                f"Recent form is the primary lens — season totals are context only."
+            )
+        else:
+            lines.append(
+                f"↑ TRENDING UP: L10 {l10_pts} PTS vs {pts} season ({pct_delta:+.0f}%). "
+                f"Recent form is the primary lens — season totals are context only."
+            )
+
+    # ── Helper: build season block lines ─────────────────────────────────
+    def _season_lines(label: str) -> list[str]:
+        out = []
+        if pts is not None:
+            gp_str  = f"{gp} GP, " if gp else ""
+            mpg_str = f"{mpg} MPG" if mpg else "? MPG"
+            out.append(f"{label} ({gp_str}{mpg_str}):")
+            out.append(f"  {pts} PTS | {reb} REB | {ast} AST | {stl} STL | {blk} BLK | {tov} TOV")
+            if fga:
+                fg3_str = f"{fg3a} 3PA ({fg3_pct}%)" if fg3_pct is not None else f"{fg3a} 3PA"
+                ft_str  = f"{fta} FTA ({ft_pct}%)" if ft_pct is not None else f"{fta} FTA"
+                out.append(f"  FGA: {fga} | {fg3_str} | {ft_str}")
+            eff_parts = []
+            if ts      is not None: eff_parts.append(f"TS% {ts}%")
+            if efg     is not None: eff_parts.append(f"eFG% {efg}%")
+            if ast_to  is not None: eff_parts.append(f"AST/TO {ast_to}")
+            if usg     is not None: eff_parts.append(f"USG {usg} poss/40")
+            if eff_parts:
+                out.append("  " + " | ".join(eff_parts))
+        else:
+            out.append(f"{label}: not yet available.")
+        return out
+
+    # ── Helper: build L10 block lines ─────────────────────────────────────
+    def _l10_lines(label: str) -> list[str]:
+        out = []
+        if l10_pts is not None:
+            min_str = f"{l10_min} MPG" if l10_min else "? MPG"
+            out.append(f"{label} ({min_str}):")
+            out.append(f"  {l10_pts} PTS | {l10_reb} REB | {l10_ast} AST | {l10_stl} STL | {l10_blk} BLK | {l10_tov} TOV")
+            eff_l10 = []
+            if l10_ts     is not None: eff_l10.append(f"TS% {l10_ts}%")
+            if l10_ast_to is not None: eff_l10.append(f"AST/TO {l10_ast_to}")
+            if eff_l10:
+                out.append("  " + " | ".join(eff_l10))
+            # Secondary delta commentary when not already captured by trend NOTE
+            if not trend_flag:
+                trends = []
+                if pts and l10_pts:
+                    d = round(l10_pts - pts, 1)
+                    if abs(d) >= 2: trends.append(f"PTS {'+' if d>0 else ''}{d}")
+                if reb and l10_reb:
+                    d = round(l10_reb - reb, 1)
+                    if abs(d) >= 1: trends.append(f"REB {'+' if d>0 else ''}{d}")
+                if ast and l10_ast:
+                    d = round(l10_ast - ast, 1)
+                    if abs(d) >= 1: trends.append(f"AST {'+' if d>0 else ''}{d}")
+                if trends:
+                    arrow = "↑" if any('+' in t for t in trends) else "↓"
+                    out.append(f"  vs season: {', '.join(trends)} {arrow}")
+            if mpg and l10_min and l10_min < mpg * 0.65:
+                out.append("  NOTE: MPG significantly lower recently — per-game dip may be a minutes story.")
+        else:
+            out.append(f"{label}: no data available.")
+        return out
+
+    # ── Section ordering: L10 first when form diverges significantly ──────
+    if trend_flag:
+        # Primary: recent form  /  Secondary: season as context
+        lines += _l10_lines(f"Last {l10_n} games — PRIMARY")
+        lines += _season_lines("Season avg — context only")
+    else:
+        # Standard order: season first, L10 below
+        lines += _season_lines("Season")
+        lines += _l10_lines(f"Last {l10_n} games")
+
+    # ── On/off note ───────────────────────────────────────────────────────
+    lines.append("On/off net rating: not available (requires NBA.com advanced stats).")
+
+    return "\n".join(lines)
+
+
+async def enrich_player(
+    player_id: int,
+    season: int = 0,
+) -> dict[str, Any]:
+    """
+    Single shared utility — assembles the full stat payload for a player.
+
+    Every Claude feature (compare, trade, scout notes, roster analysis) should
+    call this instead of building its own stat block. Results are cached for
+    30 minutes so parallel calls within one request are free.
+
+    Returns
+    -------
+    dict with keys:
+        identity   — id, name, first_name, last_name, team, team_name, position, nba_id
+        season     — pts, reb, ast, stl, blk, tov, pf, oreb, dreb, mpg, gp,
+                     fga, fgm, fg3a, fg3m, fta, ftm, fg_pct, fg3_pct, ft_pct
+        derived    — ts_pct, efg_pct, ast_to, usage_proxy
+        l10        — l10_pts, l10_reb, l10_ast, l10_stl, l10_blk, l10_tov,
+                     l10_ts_pct, l10_ast_to, l10_min, l10_n
+        deltas     — pts_delta, reb_delta, ast_delta  (L10 − season; + = trending up)
+        stat_block — pre-formatted text string ready for direct Claude prompt injection
+    """
+    season = season or get_current_season()
+    cache_key = f"enrich:{player_id}:{season}"
+    cached = analysis_cache.get(cache_key)
+    if cached:
+        return cached
+
+    # Fetch in parallel: player identity, season averages, L10 full game logs, ESPN injuries
+    try:
+        player, avg, recent, espn_raw = await asyncio.gather(
+            nba_service.get_player_by_id(player_id),
+            nba_service.get_season_averages(player_id, season),
+            nba_service.get_recent_stats_full(player_id, season, n=10),
+            _fetch_espn_injuries_raw(),
+        )
+    except Exception as exc:
+        logger.warning("enrich_player fetch failed | player_id=%d error=%s", player_id, exc)
+        return {"id": player_id, "name": "Unknown", "stat_block": "Player data unavailable."}
+
+    name = f"{player.first_name} {player.last_name}"
+    injury_status = _get_player_injury_status(name, espn_raw)
+
+    # ── Validate: guard before any Claude call — empty avg = no season data ──
+    if not avg:
+        logger.warning(
+            "enrich_player: no season averages | player_id=%d season=%d", player_id, season
+        )
+        return {
+            "id": player_id,
+            "name": name,
+            "season": season,
+            "stats_unavailable": True,
+            "unavailable_message": (
+                f"Stats unavailable for {name} in the {season} season. "
+                f"They may not have played yet or BallDontLie has no data for this period."
+            ),
+            "stat_block": f"STATS UNAVAILABLE: No {season} season data found for {name}.",
+        }
+
+    # ── Helper: parse BDL number (handles 'MM:SS' minutes strings) ─────────
+    def _s(key: str, decimals: int = 1) -> Optional[float]:
+        v = avg.get(key)
+        if v is None:
+            return None
+        try:
+            parts = str(v).split(":")
+            val = float(parts[0]) + (float(parts[1]) / 60 if len(parts) == 2 else 0.0)
+            return round(val, decimals)
+        except Exception:
+            return None
+
+    def _pct_display(key: str) -> Optional[float]:
+        v = avg.get(key)
+        return round(float(v) * 100, 1) if v is not None else None
+
+    # ── Season averages ───────────────────────────────────────────────────
+    pts  = _s("pts");   reb  = _s("reb");  ast = _s("ast")
+    stl  = _s("stl");  blk  = _s("blk");  tov = _s("turnover")
+    pf   = _s("pf");   oreb = _s("oreb"); dreb = _s("dreb")
+    fga  = _s("fga");  fgm  = _s("fgm");  fg3a = _s("fg3a")
+    fg3m = _s("fg3m"); fta  = _s("fta");  ftm  = _s("ftm")
+    mpg  = _s("min");  gp   = avg.get("games_played")
+    fg_pct  = _pct_display("fg_pct")
+    fg3_pct = _pct_display("fg3_pct")
+    ft_pct  = _pct_display("ft_pct")
+
+    # ── Derived: TS%, eFG%, AST/TO, usage proxy ──────────────────────────
+    ts_pct: Optional[float] = None
+    efg_pct: Optional[float] = None
+    ast_to: Optional[float] = None
+    usage_proxy: Optional[float] = None
+
+    if pts is not None and fga is not None and fta is not None:
+        denom = 2.0 * (fga + 0.44 * fta)
+        if denom > 0:
+            ts_pct = round(pts / denom * 100, 1)
+
+    if fgm is not None and fg3m is not None and fga and fga > 0:
+        efg_pct = round((fgm + 0.5 * fg3m) / fga * 100, 1)
+
+    if ast is not None and tov is not None and tov > 0:
+        ast_to = round(ast / tov, 2)
+
+    # Usage proxy: (FGA + 0.44*FTA + TOV) per 40 min — comparable across players
+    if fga is not None and fta is not None and tov is not None and mpg and mpg > 0:
+        usage_proxy = round((fga + 0.44 * fta + tov) / mpg * 40, 1)
+
+    # ── L10 averages from full game logs ──────────────────────────────────
+    def _l10(key: str) -> Optional[float]:
+        vals = [g[key] for g in recent if g.get(key) is not None]
+        return round(sum(vals) / len(vals), 1) if vals else None
+
+    l10_min_vals = [_parse_min(g.get("min")) for g in recent]
+    l10_min_vals = [v for v in l10_min_vals if v is not None]
+    l10_min = round(sum(l10_min_vals) / len(l10_min_vals), 1) if l10_min_vals else None
+    l10_n   = len(recent)
+
+    l10_pts = _l10("pts");  l10_reb = _l10("reb"); l10_ast = _l10("ast")
+    l10_stl = _l10("stl"); l10_blk = _l10("blk"); l10_tov = _l10("tov")
+    l10_fga = _l10("fga"); l10_fgm = _l10("fgm")
+    l10_fg3m= _l10("fg3m"); l10_fta = _l10("fta"); l10_ftm = _l10("ftm")
+
+    # L10 derived
+    l10_ts_pct: Optional[float] = None
+    l10_ast_to: Optional[float] = None
+    if l10_pts and l10_fga and l10_fta:
+        d = 2.0 * (l10_fga + 0.44 * l10_fta)
+        if d > 0:
+            l10_ts_pct = round(l10_pts / d * 100, 1)
+    if l10_ast and l10_tov and l10_tov > 0:
+        l10_ast_to = round(l10_ast / l10_tov, 2)
+
+    # ── Deltas (L10 − season) ─────────────────────────────────────────────
+    def _delta(l10_val, season_val) -> Optional[float]:
+        if l10_val is not None and season_val is not None:
+            return round(l10_val - season_val, 1)
+        return None
+
+    ep: dict[str, Any] = {
+        # identity
+        "id":         player.id,
+        "name":       name,
+        "first_name": player.first_name,
+        "last_name":  player.last_name,
+        "position":   player.position or "",
+        "team":       player.team.abbreviation if player.team else "",
+        "team_name":  player.team.name if player.team else "",
+        "nba_id":     player.nba_id,
+        # season
+        "pts": pts,  "reb": reb,  "ast": ast,
+        "stl": stl,  "blk": blk,  "tov": tov,
+        "pf":  pf,   "oreb": oreb, "dreb": dreb,
+        "mpg": mpg,  "gp": gp,
+        "fga": fga,  "fgm": fgm,  "fg3a": fg3a, "fg3m": fg3m,
+        "fta": fta,  "ftm": ftm,
+        "fg_pct": fg_pct, "fg3_pct": fg3_pct, "ft_pct": ft_pct,
+        # derived
+        "ts_pct":      ts_pct,
+        "efg_pct":     efg_pct,
+        "ast_to":      ast_to,
+        "usage_proxy": usage_proxy,
+        # L10
+        "l10_pts": l10_pts, "l10_reb": l10_reb, "l10_ast": l10_ast,
+        "l10_stl": l10_stl, "l10_blk": l10_blk, "l10_tov": l10_tov,
+        "l10_ts_pct": l10_ts_pct, "l10_ast_to": l10_ast_to,
+        "l10_min": l10_min, "l10_n": l10_n,
+        # deltas
+        "pts_delta": _delta(l10_pts, pts),
+        "reb_delta": _delta(l10_reb, reb),
+        "ast_delta": _delta(l10_ast, ast),
+        # trend flag — set when L10 pts deviate ≥30% from season avg
+        "trend_flag": (
+            "trending_down" if (pts and l10_pts and pts > 0 and (l10_pts - pts) / pts <= -0.30)
+            else "trending_up" if (pts and l10_pts and pts > 0 and (l10_pts - pts) / pts >= 0.30)
+            else None
+        ),
+        # injury
+        "injury_status": injury_status,
+    }
+    ep["stat_block"] = _build_stat_block(ep)
+
+    analysis_cache.set(cache_key, ep, ttl=get_cache_ttl(default_ttl=1800))  # 10 min during game windows, 30 min otherwise
+    logger.info("enrich_player complete | %s pts=%s ts=%s usg=%s", name, pts, ts_pct, usage_proxy)
+    return ep
+
+
+# ---------------------------------------------------------------------------
+# Compare Contexts
+# ---------------------------------------------------------------------------
+# Each entry defines the framing question and key considerations Claude should
+# weight when the user selects that situation.  The question replaces the
+# abstract "who is better?" with a specific evaluative lens so the verdict
+# is actually useful for a decision-maker.
+# ---------------------------------------------------------------------------
+
+_COMPARE_CONTEXTS: dict[str, dict] = {
+    "contender_starter": {
+        "label": "Starting role on a contender",
+        "question": "Which player better fits as a starter on a championship-contending team?",
+        "considerations": (
+            "Weight: two-way efficiency (TS% + STL/BLK), consistency (season-to-L10 delta), "
+            "durability (GP), role clarity, and performance under defensive pressure. "
+            "A contender starter must produce reliably against elite defenses every night."
+        ),
+    },
+    "next_to_star_pg": {
+        "label": "Fit next to a star PG",
+        "question": "Which player is the better fit playing off a star point guard who dominates ball-handling?",
+        "considerations": (
+            "Weight: off-ball scoring (3PA and 3P% are paramount — spacing unlocks the PG), "
+            "cutting/FTA without needing creation touches, defensive versatility. "
+            "Low AST is expected and acceptable; what matters is that the player makes the PG's job easier."
+        ),
+    },
+    "next_to_star_big": {
+        "label": "Fit next to a dominant big",
+        "question": "Which player fits better alongside a dominant interior presence?",
+        "considerations": (
+            "Weight: perimeter spacing (3PA/3P% — the big needs the paint clear), "
+            "AST/playmaking from the perimeter, defensive switching range, "
+            "and avoiding redundant skill sets (e.g., two paint-heavy players)."
+        ),
+    },
+    "rebuild_development": {
+        "label": "Rebuild / developmental situation",
+        "question": "Which player has more upside in a low-pressure environment with expanded minutes and freedom?",
+        "considerations": (
+            "Weight: age trajectory, FTA (aggression and initiative at the line), "
+            "AST (developing playmaking), L10 trend delta (is production growing?), "
+            "usage proxy (can they handle more). A player on an ascending curve wins this."
+        ),
+    },
+    "best_value": {
+        "label": "Best available value",
+        "question": "Which player delivers more production relative to their usage and role?",
+        "considerations": (
+            "Weight: TS% (efficiency per possession), multi-category contribution, "
+            "usage-adjusted output (high production at moderate usage = high value), "
+            "consistency (low season-to-L10 variance). Ignore raw volume; reward efficiency."
+        ),
+    },
+    "playoff_minutes": {
+        "label": "Playoff rotation minutes",
+        "question": "Which player earns and keeps rotation minutes when playoff defenses tighten?",
+        "considerations": (
+            "Weight: defensive impact (STL+BLK), FT rate (getting fouled in pressure moments "
+            "generates possessions), low turnovers (TOV), and L10 consistency — "
+            "players who wilt in the last 10 games are a liability in a seven-game series."
+        ),
+    },
+    "max_contract_decision": {
+        "label": "Max contract decision",
+        "question": "Which player justifies the long-term commitment of a maximum contract?",
+        "considerations": (
+            "Weight: usage-adjusted efficiency (TS% at high FGA volume), multi-category dominance, "
+            "durability (GP), age relative to their trajectory peak, "
+            "and L10 trend (is this player ascending or declining heading into a long commitment?)."
+        ),
+    },
+}
+
+
 async def compare_players(
     player_a_id: int,
     player_b_id: int,
-    season: int = _DEFAULT_SEASON,
+    season: int = 0,
+    archetype: Optional[str] = None,
+    compare_context: Optional[str] = None,
+    session_id: Optional[str] = None,
 ) -> dict[str, Any]:
-    """
-    Compare two players using official BDL season averages + true L10 game logs.
+    """Compare two players using the shared enrich_player utility."""
+    season = season or get_current_season()
+    logger.info("compare_players | a=%d b=%d season=%d context=%s", player_a_id, player_b_id, season, compare_context)
 
-    Step 1: Fetch player objects
-    Step 2: Fetch official season averages (player_ids[] param — correct v1 format)
-    Step 3: Fetch 10 most-recent game logs separately for accurate L10
-    Step 4: Build prompt from real data only — no computed/derived stats if source is absent
-    """
-    logger.info("compare_players | a=%d b=%d season=%d", player_a_id, player_b_id, season)
-
-    cache_key = f"compare2:{min(player_a_id, player_b_id)}:{max(player_a_id, player_b_id)}:{season}"
+    cache_key = f"compare2:{min(player_a_id, player_b_id)}:{max(player_a_id, player_b_id)}:{season}:{archetype or 'default'}:{compare_context or 'none'}"
     cached = analysis_cache.get(cache_key)
     if cached:
         logger.info("compare_players cache hit | %s", cache_key)
         return cached
 
-    # ── Step 1: fetch both player objects ──────────────────────────────────
     try:
-        player_a, player_b = await asyncio.gather(
-            nba_service.get_player_by_id(player_a_id),
-            nba_service.get_player_by_id(player_b_id),
+        ep_a, ep_b = await asyncio.gather(
+            enrich_player(player_a_id, season),
+            enrich_player(player_b_id, season),
         )
     except Exception as exc:
-        logger.warning("compare_players player fetch failed | %s", exc)
+        logger.warning("compare_players enrich failed | %s", exc)
         return {"error": str(exc)}
 
-    name_a = f"{player_a.first_name} {player_a.last_name}"
-    name_b = f"{player_b.first_name} {player_b.last_name}"
+    if not ep_a.get("name") or not ep_b.get("name"):
+        return {"error": "Could not resolve one or both players."}
 
-    # ── Step 2 & 3: official averages + L10 in parallel ───────────────────
-    avg_a, avg_b, recent_a_raw, recent_b_raw = await asyncio.gather(
-        nba_service.get_season_averages(player_a_id, season),
-        nba_service.get_season_averages(player_b_id, season),
-        nba_service.get_recent_stats(player_a_id, season, n=10),
-        nba_service.get_recent_stats(player_b_id, season, n=10),
-    )
+    for _ep in (ep_a, ep_b):
+        if _ep.get("stats_unavailable"):
+            return {"error": _ep["unavailable_message"]}
 
-    def _parse_bdl_num(v: Any) -> Optional[float]:
-        """Parse a BDL value that is normally a float but can be 'MM:SS' for minutes."""
-        if v is None:
-            return None
-        s = str(v)
-        try:
-            parts = s.split(":")
-            return float(parts[0]) + (float(parts[1]) / 60 if len(parts) == 2 else 0.0)
-        except Exception:
-            return None
+    name_a, name_b = ep_a["name"], ep_b["name"]
 
-    def _safe(d: dict, key: str, decimals: int = 1) -> Optional[float]:
-        v = _parse_bdl_num(d.get(key))
-        return round(v, decimals) if v is not None else None
-
-    def _pct(d: dict, key: str) -> Optional[str]:
-        v = d.get(key)
-        return f"{float(v)*100:.1f}%" if v is not None else None
-
-    def _l10_avg(games: list, attr: str) -> Optional[float]:
-        vals = [getattr(g, attr) for g in games if getattr(g, attr, None) is not None and getattr(g, attr) > 0]
-        return round(sum(vals) / len(vals), 1) if vals else None
-
-    def _l10_min_avg(games: list) -> Optional[float]:
-        """Parse 'MM:SS' or 'MM' minute strings and average them."""
-        def parse(m: Any) -> Optional[float]:
-            if not m or m in ("0", "0:00"):
-                return None
-            try:
-                parts = str(m).split(":")
-                return float(parts[0]) + (float(parts[1]) / 60 if len(parts) == 2 else 0.0)
-            except Exception:
-                return None
-        vals = [v for g in games for v in [parse(g.minutes)] if v is not None]
-        return round(sum(vals) / len(vals), 1) if vals else None
-
-    def _build_block(name: str, player: Any, avg: dict, recent: list) -> tuple[str, dict]:
-        gp        = avg.get("games_played")
-        mpg       = _safe(avg, "min")
-        pts       = _safe(avg, "pts")
-        reb       = _safe(avg, "reb")
-        ast       = _safe(avg, "ast")
-        stl       = _safe(avg, "stl")
-        blk       = _safe(avg, "blk")
-        fg_pct    = _pct(avg, "fg_pct")
-        fg3_pct   = _pct(avg, "fg3_pct")
-        ft_pct    = _pct(avg, "ft_pct")
-        fga       = _safe(avg, "fga")
-        fg3a      = _safe(avg, "fg3a")
-        fta       = _safe(avg, "fta")
-        fgm       = _safe(avg, "fgm")
-        fg3m      = _safe(avg, "fg3m")
-
-        # TS% and eFG% only if we have all required fields
-        ts_pct = None
-        efg_pct = None
-        if pts and fga and fta:
-            denom = 2.0 * (fga + 0.44 * fta)
-            ts_pct = f"{pts / denom * 100:.1f}%" if denom > 0 else None
-        if fgm is not None and fg3m is not None and fga:
-            efg_pct = f"{(fgm + 0.5 * fg3m) / fga * 100:.1f}%" if fga > 0 else None
-
-        l10_pts = _l10_avg(recent, "points")
-        l10_reb = _l10_avg(recent, "rebounds")
-        l10_ast = _l10_avg(recent, "assists")
-        l10_min = _l10_min_avg(recent)
-        has_season = pts is not None
-
-        lines = [f"{name} | {player.position or '?'} | {player.team.name if player.team else '?'}"]
-        if has_season:
-            lines.append(f"Season ({gp or '?'} GP, {mpg or '?'} MPG):")
-            lines.append(f"  {pts} PTS | {reb} REB | {ast} AST | {stl} STL | {blk} BLK")
-            if fga:
-                lines.append(f"  FGA: {fga} | 3PA: {fg3a} ({fg3_pct}) | FTA: {fta} ({ft_pct})")
-            if ts_pct:
-                lines.append(f"  TS%: {ts_pct}" + (f" | eFG%: {efg_pct}" if efg_pct else ""))
-            elif fg_pct:
-                lines.append(f"  FG%: {fg_pct}")
-        else:
-            lines.append("Season averages: not yet available for this season.")
-
-        if recent:
-            lines.append(f"Last {len(recent)} games ({l10_min or '?'} MPG this stretch):")
-            lines.append(f"  {l10_pts or '?'} PTS | {l10_reb or '?'} REB | {l10_ast or '?'} AST")
-            if l10_min is None or (mpg and l10_min < mpg * 0.6):
-                lines.append("  NOTE: MPG significantly lower recently — raw per-game dip may be a minutes story.")
-        else:
-            lines.append("Last 10 games: no data available.")
-
-        payload = {
-            "id": player.id,
-            "name": name,
-            "first_name": player.first_name,
-            "last_name": player.last_name,
-            "position": player.position or "",
-            "team": player.team.abbreviation if player.team else "",
-            "team_name": player.team.name if player.team else "",
-            "nba_id": player.nba_id,
-            "games_played": gp,
-            "avg_pts": pts, "avg_reb": reb, "avg_ast": ast,
-            "avg_stl": stl, "avg_blk": blk,
-            "avg_fg": float(avg.get("fg_pct") or 0),
-            "avg_fg3": float(avg.get("fg3_pct") or 0),
-            "avg_ft": float(avg.get("ft_pct") or 0),
-            "avg_fga": fga, "avg_fg3a": fg3a, "avg_fta": fta,
-            "ts_pct": float(ts_pct.rstrip('%')) / 100 if ts_pct else None,
-            "efg_pct": float(efg_pct.rstrip('%')) / 100 if efg_pct else None,
-            "recent_pts": l10_pts, "recent_reb": l10_reb, "recent_ast": l10_ast,
+    # Build frontend payload (maintains API contract with existing dashboard keys)
+    def _payload(ep: dict) -> dict:
+        return {
+            "id":          ep["id"],
+            "name":        ep["name"],
+            "first_name":  ep["first_name"],
+            "last_name":   ep["last_name"],
+            "position":    ep["position"],
+            "team":        ep["team"],
+            "team_name":   ep["team_name"],
+            "nba_id":      ep.get("nba_id"),
+            "games_played": ep.get("gp"),
+            "avg_pts":     ep.get("pts"),  "avg_reb": ep.get("reb"), "avg_ast": ep.get("ast"),
+            "avg_stl":     ep.get("stl"),  "avg_blk": ep.get("blk"),
+            "avg_fg":      (ep.get("fg_pct") or 0) / 100,
+            "avg_fg3":     (ep.get("fg3_pct") or 0) / 100,
+            "avg_ft":      (ep.get("ft_pct") or 0) / 100,
+            "avg_fga":     ep.get("fga"),  "avg_fg3a": ep.get("fg3a"), "avg_fta": ep.get("fta"),
+            "ts_pct":      ep.get("ts_pct") / 100 if ep.get("ts_pct") is not None else None,
+            "efg_pct":     ep.get("efg_pct") / 100 if ep.get("efg_pct") is not None else None,
+            "recent_pts":  ep.get("l10_pts"), "recent_reb": ep.get("l10_reb"), "recent_ast": ep.get("l10_ast"),
+            # new fields surfaced to frontend
+            "ast_to":      ep.get("ast_to"),
+            "usage_proxy": ep.get("usage_proxy"),
+            "pts_delta":   ep.get("pts_delta"),
+            "trend_flag":  ep.get("trend_flag"),
         }
 
-        return "\n".join(lines), payload
+    payload_a = _payload(ep_a)
+    payload_b = _payload(ep_b)
 
-    block_a, payload_a = _build_block(name_a, player_a, avg_a, recent_a_raw)
-    block_b, payload_b = _build_block(name_b, player_b, avg_b, recent_b_raw)
+    # ── Prompt: use enriched stat_block from each player ──────────────────
+    lens = _ARCHETYPE_LENSES.get(archetype) if archetype else None
+    ctx_spec = _COMPARE_CONTEXTS.get(compare_context) if compare_context else None
 
-    # ── Step 4: prompt using only real data ───────────────────────────────
     COMPARE_SYSTEM = """You are a basketball analytics assistant for PIVOT, used by coaches who need defensible, data-driven insights.
 
 STRICT RULES:
@@ -2846,34 +3645,63 @@ STRICT RULES:
 - Prioritize accuracy over fluency. Be concise and decisive.
 - Do not access the internet or rely on memory between calls.
 - You are interpreting structured data, not deciding facts.
+- INJURY STATUS: if a player's stat block includes an INJURY STATUS line, factor it explicitly into the comparison. An injured player's current contribution is compromised; their recent stats may understate healthy production or mask a real decline. The verdict must account for availability risk.
+- TRENDING DOWN / TRENDING UP: if a player's stat block starts with a ⚠ TRENDING DOWN or ↑ TRENDING UP line, that means their recent form deviates ≥30% from their season average. The stat block will already show L10 as the primary section. You MUST weight the L10 stats over the season totals in your analysis — the season figures are context only. Name the trend explicitly in your reasoning and adjust the verdict accordingly (a trending-down player's season average overstates their current value; a trending-up player may be breaking out).
+- CONTEXT FRAMING: when a comparison context is provided, your verdict must be specific to that situation — not a generic "who is better" answer. The better_for_context field must name the player AND explain why they win for THAT specific context, citing the relevant stats.
 
-INPUT: You will receive a JSON object containing player stats, derived metrics (pre-computed by the backend), and team context.
+INPUT: You will receive player stats, derived metrics (pre-computed by the backend), a comparison context, and key considerations for that context.
 
-TASK: Compare the players using ONLY the provided data.
+TASK: Compare the players through the lens of the provided context using ONLY the provided data.
 
 Return JSON only, in this exact format:
 {
   "key_differences": [],
-  "better_player": "",
+  "better_for_context": "Player Name is the better [context] because [specific stat-backed reason]",
   "reasoning": "",
   "limitation": ""
 }
 
-Keep reasoning under 120 words. Base every claim strictly on the provided metrics."""
+The better_for_context field must be a complete sentence naming the player and the context-specific reason. Write reasoning in 2-3 focused paragraphs (under 250 words total), with each paragraph covering a distinct analytical point. Base every claim strictly on the provided metrics."""
+
+    if lens:
+        COMPARE_SYSTEM += f"\n\nCOACHING LENS — {lens['name']}:\n{lens['system']}"
+
+    def _lens_block(ep: dict) -> str:
+        spotlight = _archetype_spotlight(ep, archetype) if archetype else ""
+        return spotlight + ep["stat_block"] if spotlight else ep["stat_block"]
+
+    context_block = ""
+    if ctx_spec:
+        context_block = (
+            f"\nCOMPARISON CONTEXT: {ctx_spec['label']}\n"
+            f"QUESTION: {ctx_spec['question']}\n"
+            f"KEY CONSIDERATIONS: {ctx_spec['considerations']}\n"
+        )
+
+    session_ctx = build_context_block(session_id)
 
     prompt = (
-        f"HEAD-TO-HEAD: {name_a} vs {name_b} — {season} Season\n\n"
-        f"PLAYER A — {block_a}\n\n"
-        f"PLAYER B — {block_b}\n\n"
-        f"Compare these two players using only the stats above. "
-        f"Return JSON only with key_differences (array of short strings), better_player (name), reasoning (under 120 words), and limitation (what data is missing or inconclusive)."
+        f"{session_ctx}"
+        f"HEAD-TO-HEAD: {name_a} vs {name_b} — {season} Season\n"
+        f"{context_block}\n"
+        f"PLAYER A — {_lens_block(ep_a)}\n\n"
+        f"PLAYER B — {_lens_block(ep_b)}\n\n"
+        f"Compare these two players"
+        + (f" specifically for: {ctx_spec['question']}" if ctx_spec else " using only the stats above")
+        + f". Return JSON only with key_differences (array of short strings), "
+          f"better_for_context (full sentence naming the player and the context-specific reason), "
+          f"reasoning (2-3 focused paragraphs under 250 words — each paragraph covers a distinct point), "
+          f"and limitation (what data is missing or inconclusive)."
     )
+
+    if lens:
+        prompt += f"\n\n{lens['prompt']}"
 
     result = await claude_service.analyze(
         prompt=prompt,
         system_prompt=COMPARE_SYSTEM,
         override_model=_FAST_MODEL,
-        override_max_tokens=600,
+        override_max_tokens=_TOKENS_VERDICT,
         override_temperature=0.1,
     )
 
@@ -2892,10 +3720,14 @@ Keep reasoning under 120 words. Base every claim strictly on the provided metric
         # Fallback: wrap prose in structured format
         structured = {
             "key_differences": [],
-            "better_player": "",
+            "better_for_context": "",
             "reasoning": raw_text[:500],
             "limitation": "Response could not be parsed as structured JSON.",
         }
+
+    # Normalise: some cached/old responses may still have better_player — promote it
+    if "better_player" in structured and "better_for_context" not in structured:
+        structured["better_for_context"] = structured.pop("better_player")
 
     response = {
         "player_a": payload_a,
@@ -2905,9 +3737,28 @@ Keep reasoning under 120 words. Base every claim strictly on the provided metric
         "model": result.model,
         "tokens_used": result.tokens_used,
         "season": season,
+        "compare_context": compare_context,
+        "context_label": ctx_spec["label"] if ctx_spec else None,
     }
-    analysis_cache.set(cache_key, response, ttl=3600)
-    logger.info("compare_players complete | %s vs %s tokens=%d", name_a, name_b, result.tokens_used)
+    analysis_cache.set(cache_key, response, ttl=get_cache_ttl())
+    logger.info("compare_players complete | %s vs %s context=%s tokens=%d", name_a, name_b, compare_context, result.tokens_used)
+
+    # Record session event
+    verdict = structured.get("better_for_context", "")
+    limitation = structured.get("limitation", "")
+    summary = f"Compared {name_a} vs {name_b}"
+    if compare_context:
+        summary += f" ({compare_context})"
+    if verdict:
+        summary += f" → {verdict[:80]}"
+    concern = limitation[:80] if limitation and "insufficient" not in limitation.lower() else None
+    session_record(session_id, SessionEvent(
+        type="compare",
+        summary=summary[:120],
+        entities=[name_a, name_b],
+        concern=concern,
+    ))
+
     return response
 
 # ---------------------------------------------------------------------------
@@ -2981,7 +3832,7 @@ async def analyze_team_dna(team_name: str) -> dict[str, Any]:
     result = await claude_service.analyze(
         prompt=prompt,
         system_prompt=TEAM_DNA_SYSTEM_PROMPT,
-        override_max_tokens=1400,
+        override_max_tokens=_TOKENS_DNA,
         override_temperature=0.1,
     )
 
@@ -3006,15 +3857,59 @@ async def scout_note(
     context: str = "general",
     age: Optional[int] = None,
     pos: Optional[str] = None,
+    player_id: Optional[int] = None,
+    session_id: Optional[str] = None,
 ) -> dict[str, Any]:
     """
     Generate a live 1-2 sentence scout note for a single player.
     context: 'mvp' | 'young-star' | 'general'
+
+    If player_id is provided, enriches with full stat block (TS%, AST/TO, L10 trend).
+    Falls back to pts/reb/ast only when no ID is available.
     """
-    cache_key = f"scout_note:{name.lower()}:{context}:{pts}:{reb}:{ast}"
+    cache_key = f"scout_note:{name.lower()}:{context}:{player_id or pts}:{reb}:{ast}"
     cached = analysis_cache.get(cache_key)
     if cached:
         return cached
+
+    if context == "mvp":
+        instruction = (
+            "Write exactly 1-2 sentences on why this player is or isn't an MVP contender right now. "
+            "Lead with the sharpest insight. Cite specific numbers from the stats provided. No hedging."
+        )
+        _max_tokens = _TOKENS_BLURB
+    elif context == "young-star":
+        instruction = (
+            "Write exactly 1-2 sentences on what makes this young player's development trajectory "
+            "noteworthy. Focus on what's emerging or what the ceiling looks like. Cite numbers."
+        )
+        _max_tokens = _TOKENS_BLURB
+    else:
+        if player_id:
+            # Full stat block is available — ask for real depth
+            instruction = (
+                "Write 2-3 sentences evaluating this player's current standing. "
+                "Lead with their efficiency anchor (TS% or eFG%), then address the recent-form trend "
+                "(L10 vs season), then close with a sharp one-sentence verdict on where they stand right now. "
+                "Cite specific numbers. No hedging."
+            )
+            _max_tokens = _TOKENS_NOTE
+        else:
+            instruction = (
+                "Write 1-2 sentences evaluating this player's current impact. Cite the specific stats provided. Be precise."
+            )
+            _max_tokens = _TOKENS_BLURB
+
+    # Use full enriched stat block if we have a player ID
+    stat_section = f"STATS: {pts} PPG · {reb} RPG · {ast} APG"
+    if player_id:
+        try:
+            ep = await enrich_player(player_id)
+            if ep.get("stats_unavailable"):
+                return {"error": ep["unavailable_message"]}
+            stat_section = f"FULL STATS:\n{ep['stat_block']}"
+        except Exception:
+            pass  # fall back to basic stats
 
     meta_parts = [f"{name} ({team})"]
     if pos:
@@ -3023,35 +3918,320 @@ async def scout_note(
         meta_parts.append(f"Age {age}")
     meta = " · ".join(meta_parts)
 
-    if context == "mvp":
-        instruction = (
-            "Write exactly 1-2 sentences on why this player is or isn't an MVP contender right now. "
-            "Lead with the sharpest insight. Cite specific numbers. No hedging."
-        )
-    elif context == "young-star":
-        instruction = (
-            "Write exactly 1-2 sentences on what makes this young player's development trajectory "
-            "noteworthy. Focus on what's emerging or what the ceiling looks like. Cite numbers."
-        )
-    else:
-        instruction = (
-            "Write exactly 1-2 sentences evaluating this player's current impact. Be specific."
-        )
-
+    # Inject session context for depth notes (blurb contexts are too short to benefit)
+    session_ctx = build_context_block(session_id) if _max_tokens >= _TOKENS_NOTE else ""
     prompt = (
+        f"{session_ctx}"
         f"PLAYER: {meta}\n"
-        f"STATS: {pts} PPG · {reb} RPG · {ast} APG\n\n"
+        f"{stat_section}\n\n"
         f"{instruction}"
     )
 
     result = await claude_service.analyze(
         prompt=prompt,
         system_prompt=_nba_analyst_system_prompt(),
-        override_max_tokens=120,
+        override_max_tokens=_max_tokens,
         override_temperature=0.3,
         override_model=_FAST_MODEL,
     )
 
-    response = {"note": result.analysis.strip(), "model": result.model}
-    analysis_cache.set(cache_key, response, ttl=3600)  # 1-hour cache per stat snapshot
+    note_text = result.analysis.strip()
+    session_record(session_id, SessionEvent(
+        type="scout",
+        summary=f"Scout {name} ({context}): {note_text[:80]}",
+        entities=[name, team],
+    ))
+
+    response = {"note": note_text, "model": result.model}
+    analysis_cache.set(cache_key, response, ttl=get_cache_ttl())
+    return response
+
+
+# ---------------------------------------------------------------------------
+# Trade Analyzer
+# ---------------------------------------------------------------------------
+
+_TRADE_SYSTEM = """You are a senior NBA front office analyst for PIVOT. You evaluate trades with front-office precision.
+
+STRICT RULES:
+- Use ONLY the player data, contract data, and cap context provided. Never invent figures.
+- Be concrete and decisive — "insufficient data" if a key figure is missing.
+- No fluff. Every sentence must carry a specific insight.
+- Return valid JSON only, in the exact schema requested.
+
+EVALUATION FRAMEWORK — assess ALL five dimensions:
+1. TALENT DELTA: raw skill gap between the assets on each side (use provided stats). If a player's stat block includes an INJURY STATUS line, treat it as a material factor — an Out or Questionable player is not delivering full value; factor availability risk into the talent assessment and explicitly name the injury in your verdict. If a player's stat block starts with ⚠ TRENDING DOWN or ↑ TRENDING UP, their L10 stats (labeled PRIMARY) reflect current actual value — weight these over the season totals when assessing talent. A trending-down player is worth less than their season line implies; explicitly call this out in your talent assessment.
+2. ROLE FIT: does this player fill a positional or schematic need?
+3. AGE/TRAJECTORY: are you acquiring a peak player or buying/selling at the right time?
+4. CAP IMPACT: use the provided salary, years, and contract type for each player.
+   - Compute the net salary delta for each team (salary_in − salary_out).
+   - Note if a team crosses or retreats from the luxury tax, first apron, or second apron after the trade.
+   - Flag max/supermax deals as high-commitment; rookie-scale as high-value; expiring as flexibility assets.
+   - "Taking on more salary" vs "shedding salary" must be stated explicitly with the dollar figures.
+5. WIN-NOW vs REBUILD: does the move match each team's timeline given their current payroll tier?"""
+
+
+async def analyze_trade(
+    team_a_name: str,
+    team_a_players: list[dict],  # [{name, id, pos, age, salary, years, contract_type}]
+    team_b_name: str,
+    team_b_players: list[dict],
+    archetype: Optional[str] = None,
+    team_a_cap: Optional[float] = None,   # current total payroll $M
+    team_b_cap: Optional[float] = None,
+    cap_context: Optional[dict] = None,   # {tax_line, first_apron, second_apron}
+    session_id: Optional[str] = None,
+) -> dict[str, Any]:
+    """
+    Evaluate a trade between two teams through an optional coaching archetype lens.
+    Uses enrich_player() for full stat depth (TS%, AST/TO, usage, L10 delta).
+    """
+    import hashlib as _hashlib
+
+    def _player_key(p: dict) -> str:
+        return f"{p.get('name','?')}:{p.get('id','')}"
+
+    raw_key = f"trade:{team_a_name}:{','.join(_player_key(p) for p in team_a_players)}:{team_b_name}:{','.join(_player_key(p) for p in team_b_players)}:{archetype or 'default'}"
+    cache_key = "trade:" + _hashlib.md5(raw_key.encode()).hexdigest()
+    cached = analysis_cache.get(cache_key)
+    if cached:
+        logger.info("analyze_trade cache hit | %s", cache_key)
+        return cached
+
+    # Enrich every player that has a BDL id via the shared utility (parallel)
+    all_players = [(p, "a") for p in team_a_players] + [(p, "b") for p in team_b_players]
+
+    async def _safe_enrich(p: dict) -> dict:
+        pid = p.get("id")
+        if pid:
+            try:
+                ep = await enrich_player(int(pid), get_current_season())
+                if ep.get("stats_unavailable"):
+                    # Surface the message in the stat_block so Claude and the
+                    # caller both see it; don't silently pass empty data.
+                    return {
+                        "id": pid, "name": ep.get("name", p.get("name", "?")),
+                        "position": p.get("pos") or p.get("position") or "?",
+                        "age": p.get("age"),
+                        "stats_unavailable": True,
+                        "unavailable_message": ep["unavailable_message"],
+                        "stat_block": ep["stat_block"],
+                    }
+                # Preserve age from the frontend payload if not in enriched data
+                if p.get("age") and not ep.get("age"):
+                    ep = {**ep, "age": p["age"]}
+                return ep
+            except Exception:
+                pass
+        # Fallback: return lightweight dict with just what the frontend sent
+        return {
+            "id": pid, "name": p.get("name", "?"),
+            "position": p.get("pos") or p.get("position") or "?",
+            "age": p.get("age"),
+            "stat_block": f"{p.get('name','?')} — season stats unavailable.",
+        }
+
+    enriched_all = await asyncio.gather(*[_safe_enrich(p) for p, _ in all_players])
+    a_n = len(team_a_players)
+    a_enriched = list(enriched_all[:a_n])
+    b_enriched = list(enriched_all[a_n:])
+
+    # Guard: if any player has no season data, return the message before calling Claude
+    for _ep in a_enriched + b_enriched:
+        if _ep.get("stats_unavailable"):
+            return {"error": _ep["unavailable_message"]}
+
+    cc = cap_context or {}
+    tax_line     = cc.get("tax_line")
+    first_apron  = cc.get("first_apron")
+    second_apron = cc.get("second_apron")
+
+    def _contract_line(p_input: dict) -> str:
+        """Build a one-line contract summary from the raw player dict sent by the frontend."""
+        salary = p_input.get("salary")
+        years  = p_input.get("years")
+        ctype  = p_input.get("contract_type")
+        name   = p_input.get("name", "?")
+        parts  = [f"  CONTRACT — {name}:"]
+        if salary is not None:
+            parts.append(f"${salary}M AAV")
+        if years is not None:
+            parts.append(f"{years} yr{'s' if years != 1 else ''} remaining")
+        if ctype:
+            parts.append(f"({ctype})")
+        if salary is None and years is None:
+            parts.append("contract data unavailable")
+        return " ".join(parts)
+
+    # Map raw input player dicts by name so we can attach contract lines to enriched blocks
+    input_by_name: dict[str, dict] = {}
+    for p in team_a_players + team_b_players:
+        input_by_name[p.get("name", "")] = p
+
+    def _trade_block(players: list[dict], raw_inputs: list[dict]) -> str:
+        """Stat block (with archetype spotlight prepended) + contract line for each player."""
+        if not players:
+            return "  (no players)"
+        lines = []
+        for ep, raw in zip(players, raw_inputs):
+            base_stat = ep.get("stat_block") or f"  {ep.get('name','?')} — stats unavailable"
+            spotlight = _archetype_spotlight(ep, archetype) if archetype else ""
+            stat = (spotlight + base_stat) if spotlight else base_stat
+            contract = _contract_line(raw)
+            lines.append(f"{stat}\n{contract}")
+        return "\n\n".join(lines)
+
+    def _cap_situation(team_name: str, cap_used: Optional[float], salary_out: float, salary_in: float) -> str:
+        if cap_used is None:
+            return f"{team_name}: current payroll unknown — cap impact cannot be computed."
+        net = round(salary_in - salary_out, 1)
+        new_total = round(cap_used + net, 1)
+        direction = f"+${net}M (takes on more)" if net > 0 else f"-${abs(net)}M (sheds salary)" if net < 0 else "salary-neutral"
+        lines = [f"{team_name}: current payroll ${cap_used}M → ${new_total}M after trade ({direction})"]
+        thresholds = []
+        if tax_line:
+            if cap_used < tax_line <= new_total:
+                thresholds.append(f"CROSSES luxury tax line (${tax_line}M)")
+            elif cap_used >= tax_line > new_total:
+                thresholds.append(f"DROPS BELOW luxury tax line (${tax_line}M)")
+        if first_apron:
+            if cap_used < first_apron <= new_total:
+                thresholds.append(f"CROSSES first apron (${first_apron}M) — hard-cap implications")
+            elif cap_used >= first_apron > new_total:
+                thresholds.append(f"DROPS BELOW first apron (${first_apron}M)")
+        if second_apron:
+            if cap_used < second_apron <= new_total:
+                thresholds.append(f"CROSSES second apron (${second_apron}M) — trade aggregation blocked")
+            elif cap_used >= second_apron > new_total:
+                thresholds.append(f"DROPS BELOW second apron (${second_apron}M)")
+        if thresholds:
+            lines.extend([f"  ⚠ {t}" for t in thresholds])
+        return "\n".join(lines)
+
+    def _salary_total(players: list[dict]) -> float:
+        return sum(p.get("salary") or 0 for p in players)
+
+    a_salary_out = _salary_total(team_a_players)   # A sends these away
+    b_salary_out = _salary_total(team_b_players)   # B sends these away
+
+    cap_block = (
+        "CAP CONTEXT:\n"
+        + _cap_situation(team_a_name, team_a_cap, a_salary_out, b_salary_out) + "\n"
+        + _cap_situation(team_b_name, team_b_cap, b_salary_out, a_salary_out)
+    )
+
+    # Build a name→input dict for contract data lookup on response players
+    input_contracts: dict[str, dict] = {
+        p.get("name", ""): p for p in team_a_players + team_b_players
+    }
+
+    # Compact response payload for the frontend (what the trade result card renders)
+    def _response_player(ep: dict) -> dict:
+        raw = input_contracts.get(ep.get("name", ""), {})
+        return {
+            "name":    ep.get("name", "?"),
+            "pos":     ep.get("position") or ep.get("pos") or "?",
+            "age":     ep.get("age"),
+            "pts":     ep.get("pts"),
+            "reb":     ep.get("reb"),
+            "ast":     ep.get("ast"),
+            "ts_pct":  ep.get("ts_pct"),
+            "ast_to":  ep.get("ast_to"),
+            "usage_proxy": ep.get("usage_proxy"),
+            "pts_delta":   ep.get("pts_delta"),
+            "gp":      ep.get("gp"),
+            # contract fields passed through for the UI
+            "salary":        raw.get("salary"),
+            "years":         raw.get("years"),
+            "contract_type": raw.get("contract_type"),
+        }
+
+    lens = _ARCHETYPE_LENSES.get(archetype) if archetype else None
+    system = _TRADE_SYSTEM
+    if lens:
+        system += f"\n\nCOACHING LENS — {lens['name']}:\n{lens['system']}"
+
+    session_ctx = build_context_block(session_id)
+    prompt = (
+        f"{session_ctx}"
+        f"TRADE PROPOSAL\n\n"
+        f"{team_a_name} receives:\n{_trade_block(b_enriched, team_b_players)}\n\n"
+        f"{team_b_name} receives:\n{_trade_block(a_enriched, team_a_players)}\n\n"
+        f"{cap_block}\n\n"
+        f"Evaluate this trade for both sides across all five dimensions (talent, role fit, age/trajectory, cap impact, timeline). "
+        f"The cap_verdict field must state the net salary delta for each team in dollars, name any threshold crossings, "
+        f"and judge whether the financial commitment is justified by the talent acquired. "
+        f"Return JSON only in this exact schema:\n"
+        f'{{\n'
+        f'  "winner": "{team_a_name} | {team_b_name} | Even",\n'
+        f'  "team_a_grade": "A/B/C/D/F",\n'
+        f'  "team_b_grade": "A/B/C/D/F",\n'
+        f'  "team_a_verdict": "3-4 sentences for {team_a_name}: talent acquired, role fit, cap commitment — cite specific stats and dollar figures",\n'
+        f'  "team_b_verdict": "3-4 sentences for {team_b_name}: talent acquired, role fit, cap commitment — cite specific stats and dollar figures",\n'
+        f'  "cap_verdict": "Net salary impact for each team, any threshold crossings, and whether the financial commitment is justified",\n'
+        f'  "key_factors": ["factor 1", "factor 2", "factor 3"],\n'
+        f'  "risk": "Main risk or caveat for the winning side",\n'
+        f'  "limitation": "What data is missing or inconclusive"\n'
+        f'}}'
+    )
+
+    if lens:
+        prompt += f"\n\n{lens['prompt']}"
+
+    result = await claude_service.analyze(
+        prompt=prompt,
+        system_prompt=system,
+        override_model=_FAST_MODEL,
+        override_max_tokens=_TOKENS_VERDICT,
+        override_temperature=0.15,
+    )
+
+    import json as _json
+    raw = result.analysis.strip()
+    if raw.startswith("```"):
+        raw = raw.split("```")[1]
+        if raw.startswith("json"):
+            raw = raw[4:]
+        raw = raw.strip()
+    try:
+        structured = _json.loads(raw)
+    except Exception:
+        structured = {
+            "winner": "?",
+            "team_a_grade": "?", "team_b_grade": "?",
+            "team_a_verdict": raw[:300], "team_b_verdict": "",
+            "cap_verdict": "",
+            "key_factors": [], "risk": "", "limitation": "Response could not be parsed.",
+        }
+
+    winner      = structured.get("winner", "")
+    cap_verdict = structured.get("cap_verdict", "")
+    _trade_concern = (
+        cap_verdict[:80]
+        if cap_verdict and any(
+            kw in cap_verdict.lower()
+            for kw in ["luxury tax", "apron", "concern", "risk", "crosses"]
+        )
+        else None
+    )
+    _trade_names = [p.get("name", "") for p in team_a_players + team_b_players]
+    session_record(session_id, SessionEvent(
+        type="trade",
+        summary=f"Trade {team_a_name} ↔ {team_b_name}: {winner}"[:120],
+        entities=_trade_names + [team_a_name, team_b_name],
+        concern=_trade_concern,
+    ))
+
+    response = {
+        "team_a": team_a_name,
+        "team_b": team_b_name,
+        "team_a_players": [_response_player(ep) for ep in b_enriched],  # what A receives
+        "team_b_players": [_response_player(ep) for ep in a_enriched],  # what B receives
+        "structured": structured,
+        "archetype": archetype,
+        "model": result.model,
+        "tokens_used": result.tokens_used,
+    }
+    analysis_cache.set(cache_key, response, ttl=get_cache_ttl(default_ttl=1800))
+    logger.info("analyze_trade complete | %s vs %s tokens=%d", team_a_name, team_b_name, result.tokens_used)
     return response

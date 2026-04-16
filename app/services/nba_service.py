@@ -26,6 +26,7 @@ import httpx
 
 from app.core.config import get_settings
 from app.core.http_client import GlobalHTTPClient
+from app.core.season import get_current_season
 from app.models.schemas import Game, Player, PlayerStats, Team
 
 # ---------------------------------------------------------------------------
@@ -42,7 +43,7 @@ _DEFAULT_PER_PAGE: int = 100
 _REQUEST_TIMEOUT: float = 12.0          # seconds per attempt
 _MAX_RETRIES: int = 3                   # total attempts before raising
 _RETRY_BACKOFF_BASE: float = 0.5        # seconds; multiplied by attempt index
-_DEFAULT_SEASON: int = 2025
+# Season is computed at call time — see get_current_season() in app/core/season.py
 _CENTRAL_TZ: str = "America/Chicago"
 
 # NBA.com player ID lookup by full name for headshot CDN URLs.
@@ -1065,7 +1066,7 @@ async def get_live_game_state(game_id: int) -> dict[str, Any]:
 # Player Season Stats
 # ---------------------------------------------------------------------------
 
-async def get_player_stats(player_id: int, season: int = _DEFAULT_SEASON) -> list[PlayerStats]:
+async def get_player_stats(player_id: int, season: int = 0) -> list[PlayerStats]:
     """
     Retrieve per-game stat logs for a player for a given season.
 
@@ -1084,6 +1085,7 @@ async def get_player_stats(player_id: int, season: int = _DEFAULT_SEASON) -> lis
     list[PlayerStats]
         One entry per game played. Empty list if no stats are found.
     """
+    season = season or get_current_season()
     logger.debug("Fetching player stats | player_id=%d season=%d", player_id, season)
 
     results: list[PlayerStats] = []
@@ -1141,13 +1143,14 @@ async def get_player_stats(player_id: int, season: int = _DEFAULT_SEASON) -> lis
     return results
 
 
-async def get_recent_stats(player_id: int, season: int = _DEFAULT_SEASON, n: int = 10) -> list[PlayerStats]:
+async def get_recent_stats(player_id: int, season: int = 0, n: int = 10) -> list[PlayerStats]:
     """
     Fetch the N most-recent game logs for a player this season.
 
     Uses per_page=N sorted by most recent so we get true last-N games,
     not a slice of a larger sorted list that may include stale preseason entries.
     """
+    season = season or get_current_season()
     logger.debug("Fetching recent stats | player_id=%d season=%d n=%d", player_id, season, n)
     try:
         payload = await _fetch_data(
@@ -1186,7 +1189,76 @@ async def get_recent_stats(player_id: int, season: int = _DEFAULT_SEASON, n: int
     return results
 
 
-async def get_season_averages(player_id: int, season: int = _DEFAULT_SEASON) -> dict[str, Any]:
+async def get_recent_stats_full(
+    player_id: int,
+    season: int = 0,
+    n: int = 10,
+) -> list[dict[str, Any]]:
+    """
+    Fetch the N most-recent game logs as raw dicts, preserving every field
+    the BDL /stats endpoint returns (fga, fgm, fg3a, fg3m, fta, ftm, oreb,
+    dreb, turnover, pf, etc.).
+
+    Used by enrich_player() in analysis_service so derived metrics (TS%, AST/TO,
+    usage proxy) can be computed for the L10 window — not just pts/reb/ast.
+    DNPs are filtered out the same way get_recent_stats() does.
+    """
+    season = season or get_current_season()
+    logger.debug("Fetching full recent stats | player_id=%d season=%d n=%d", player_id, season, n)
+    try:
+        payload = await _fetch_data(
+            "/stats",
+            params={
+                "player_ids[]": player_id,
+                "seasons[]": season,
+                "per_page": n,
+            },
+        )
+    except Exception as exc:
+        logger.warning("Full recent stats fetch failed | player_id=%d error=%s", player_id, exc)
+        return []
+
+    results = []
+    for s in payload.get("data") or []:
+        raw_min = s.get("min")
+        if not _has_real_minutes(raw_min):
+            continue
+        game_raw = s.get("game") or {}
+        results.append({
+            "game_id":  int(game_raw.get("id") or 0),
+            "pts":      _to_float(s.get("pts")),
+            "reb":      _to_float(s.get("reb")),
+            "ast":      _to_float(s.get("ast")),
+            "stl":      _to_float(s.get("stl")),
+            "blk":      _to_float(s.get("blk")),
+            "tov":      _to_float(s.get("turnover")),
+            "pf":       _to_float(s.get("pf")),
+            "oreb":     _to_float(s.get("oreb")),
+            "dreb":     _to_float(s.get("dreb")),
+            "fga":      _to_float(s.get("fga")),
+            "fgm":      _to_float(s.get("fgm")),
+            "fg3a":     _to_float(s.get("fg3a")),
+            "fg3m":     _to_float(s.get("fg3m")),
+            "fta":      _to_float(s.get("fta")),
+            "ftm":      _to_float(s.get("ftm")),
+            "min":      raw_min,
+        })
+
+    results.sort(key=lambda x: x["game_id"], reverse=True)
+    return results
+
+
+def _to_float(v: Any) -> Optional[float]:
+    """Safely coerce a BDL stat value to float, returning None on failure."""
+    if v is None:
+        return None
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return None
+
+
+async def get_season_averages(player_id: int, season: int = 0) -> dict[str, Any]:
     """
     Fetch official season averages for a player from BallDontLie.
 
@@ -1207,6 +1279,7 @@ async def get_season_averages(player_id: int, season: int = _DEFAULT_SEASON) -> 
         Season average dict from the API, or an empty dict if no data exists
         (e.g. the player did not play that season or the endpoint is unavailable).
     """
+    season = season or get_current_season()
     logger.debug(
         "Fetching season averages | player_id=%d season=%d", player_id, season
     )
