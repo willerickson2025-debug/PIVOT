@@ -31,7 +31,9 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 app.include_router(router, prefix="/api/v1")
 
 _root = os.path.dirname(os.path.dirname(__file__))
-app.mount("/static", StaticFiles(directory=_root), name="static")
+_static = os.path.join(_root, "static")
+os.makedirs(_static, exist_ok=True)
+app.mount("/static", StaticFiles(directory=_static), name="static")
 
 
 @app.get("/")
