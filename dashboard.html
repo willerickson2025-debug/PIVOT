@@ -1139,14 +1139,15 @@ function GameModal({ game, onClose }) {
 
   // Shared live state — single poll fed to both LiveStateBanner and LiveFeedTab
   const [liveState, setLiveState] = React.useState(null);
+  const [lastUpdated, setLastUpdated] = React.useState(null);
   React.useEffect(() => {
     if (type !== 'live') return;
     const load = () => fetch(`${API}/nba/games/${game.id}/live-state`)
       .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d) setLiveState(d); })
+      .then(d => { if (d) { setLiveState(d); setLastUpdated(new Date()); } })
       .catch(() => {});
     load();
-    const iv = setInterval(load, 15000);
+    const iv = setInterval(load, 30000);
     return () => clearInterval(iv);
   }, [game.id]);
 
@@ -1269,8 +1270,20 @@ function GameModal({ game, onClose }) {
             <div className="modal-team-abbr">{game.visitor_team.abbreviation}</div>
           </div>
           <div className="modal-score-center">
-            {hasScore ? <div className="modal-score-big">{game.visitor_team_score} - {game.home_team_score}</div> : <div className="modal-score-vs">VS</div>}
+            {(() => {
+              const awayScore = (type === 'live' && liveState) ? liveState.away_score : game.visitor_team_score;
+              const homeScore = (type === 'live' && liveState) ? liveState.home_score  : game.home_team_score;
+              const showScore = awayScore > 0 || homeScore > 0 || hasScore;
+              return showScore
+                ? <div className="modal-score-big">{awayScore} – {homeScore}</div>
+                : <div className="modal-score-vs">VS</div>;
+            })()}
             <div className="modal-status">{type==='live' ? <span className="live-badge">● LIVE</span> : label}</div>
+            {type === 'live' && lastUpdated && (
+              <div style={{fontFamily:'Helvetica Neue,sans-serif', fontSize:8, letterSpacing:2, color:'rgba(255,255,255,0.25)', marginTop:4, textTransform:'uppercase'}}>
+                Updated {lastUpdated.toLocaleTimeString([], {hour:'numeric', minute:'2-digit', second:'2-digit'})}
+              </div>
+            )}
           </div>
           <div className="modal-team home">
             {teamLogoUrl(game.home_team.abbreviation) && (
