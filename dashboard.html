@@ -79,14 +79,13 @@ nav.solid {
   box-shadow: 0 1px 0 var(--border), var(--shadow);
 }
 .nav-logo {
-  font-size: 18px;
-  letter-spacing: 8px;
-  color: var(--white);
   cursor: pointer;
-  font-weight: 700;
   user-select: none;
+  display: flex;
+  align-items: center;
 }
-.nav-logo:hover { color: var(--green); }
+.nav-logo svg { transition: filter 0.2s; }
+.nav-logo:hover svg { filter: drop-shadow(0 0 6px rgba(0,255,128,0.7)) brightness(1.1); }
 .nav-tabs { display: flex; align-items: stretch; height: 70px; }
 /* ── Global glass base for all buttons ──────────────────────────────────── */
 button {
@@ -5803,7 +5802,12 @@ function App() {
       {/* Ambient dot grid — visible on all non-home pages */}
       {!isHome && <div className="pivot-bg-grid"/>}
       <nav className={scrolled || !isHome ? 'solid' : ''}>
-        <div className="nav-logo" onClick={() => setTab('home')}>PIVOT</div>
+        <div className="nav-logo" onClick={() => setTab('home')}>
+          <svg width="28" height="38" viewBox="0 0 60 90" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <polygon points="8,2 52,45 8,88" stroke="white" strokeWidth="4" strokeLinejoin="miter"/>
+            <polygon points="17,19 40,45 17,71" stroke="white" strokeWidth="3.5" strokeLinejoin="miter"/>
+          </svg>
+        </div>
         <div className="nav-tabs">
           {[['games','Games'],['players','Players'],['teams','Teams'],['compare','Compare'],['frontoffice','Front Office'],['coach','Coach Mode'],['about','About PIVOT']].map(([id,label]) => (
             <button key={id} className={`nav-tab ${tab===id?'active':''}`} onClick={() => setTab(id)}>{label}</button>
