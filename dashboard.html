@@ -534,8 +534,8 @@ button {
   gap: 16px;
 }
 .g-card2:hover {
-  border-color: rgba(0,255,128,0.45);
-  box-shadow: 0 8px 32px rgba(0,255,128,0.1);
+  border-color: rgba(0,255,128,0.35);
+  transform: translateY(-2px);
 }
 .g-status-badge {
   display: inline-flex;
@@ -606,16 +606,7 @@ button {
   background: rgba(167,139,250,0.1);
   border: 1px solid rgba(167,139,250,0.3);
 }
-.g-glow-overlay {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  border-radius: 12px;
-  background: radial-gradient(circle at var(--cx, 50%) var(--cy, 50%), rgba(0,255,128,0.04) 0%, transparent 70%);
-  opacity: 0;
-  transition: opacity 0.2s;
-}
-.g-card2:hover .g-glow-overlay { opacity: 1; }
+.g-glow-overlay { display: none; }
 .modal-backdrop {
   position: fixed; inset: 0; background: rgba(0,0,0,0.88);
   z-index: 2000; display: flex; align-items: center; justify-content: center;
@@ -759,17 +750,12 @@ button {
 
 /* Shiny cards */
 .g-card2 {
-  border-color: rgba(255,255,255,0.13) !important;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.07), 0 2px 24px rgba(0,0,0,0.55), 0 0 0 1px rgba(0,255,128,0.04) !important;
   backdrop-filter: blur(8px) !important;
   -webkit-backdrop-filter: blur(8px) !important;
 }
 .g-card2:hover {
-  border-color: rgba(0,255,128,0.55) !important;
-  box-shadow: inset 0 1px 0 rgba(0,255,128,0.12), 0 0 0 1px rgba(0,255,128,0.22), 0 14px 52px rgba(0,255,128,0.15), 0 0 80px rgba(0,255,128,0.08) !important;
-}
-.g-glow-overlay {
-  background: radial-gradient(circle at var(--cx, 50%) var(--cy, 50%), rgba(0,255,128,0.11) 0%, transparent 62%) !important;
+  border-color: rgba(0,255,128,0.35) !important;
+  transform: translateY(-2px);
 }
 .g-status-badge.live { box-shadow: 0 0 14px rgba(0,255,128,0.35); border-color: rgba(0,255,128,0.5) !important; }
 .g-live-dot { box-shadow: 0 0 6px rgba(0,255,128,0.8); }
@@ -1015,12 +1001,6 @@ function Home({ onNavigate }) {
     return () => document.removeEventListener('click', unlock);
   }, []);
 
-  const handleMouseMove = (e) => {
-    const rect = wrapRef.current.getBoundingClientRect();
-    wrapRef.current.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
-    wrapRef.current.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
-  };
-
   const FEATURES = [
     { num:'01', name:'Live Game Engine',    desc:'PIVOT pulls live scoring, play-by-play, and full box scores from every NBA game simultaneously. Auto-syncs every 30 seconds — no manual refresh, no stale data.',   stat:'30s',   statLabel:'Auto-Refresh' },
     { num:'02', name:'AI Analysis',         desc:'PIVOT runs every query through Claude, delivering structured breakdowns of matchups, slates, and player performance in under 15 seconds. No filler — just signal.',   stat:'~15s',  statLabel:'Response Time' },
@@ -1039,12 +1019,10 @@ function Home({ onNavigate }) {
   return (
     <div>
       {/* ── Hero ── */}
-      <div className="home-wrap" ref={wrapRef} onMouseMove={handleMouseMove}>
+      <div className="home-wrap" ref={wrapRef}>
         <audio ref={audioRef} src="/static/bg.mp4" loop muted preload="auto"/>
         <video className="home-video" src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260309_042944_4a2205b7-b061-490a-852b-92d9e9955ce9.mp4" autoPlay loop muted playsInline/>
         <div className="home-overlay"/>
-        <div className="home-cursor-glow"/>
-        <div className="home-grid-overlay"/>
         <div className="home-hero">
           <div className="home-pivot-text">PIVOT</div>
           <div className="home-tagline">
@@ -1079,13 +1057,7 @@ function Home({ onNavigate }) {
         </div>
         <div className="features-grid">
           {FEATURES.map(f => (
-            <div key={f.num} className="feature-card"
-              onMouseMove={e => {
-                const r = e.currentTarget.getBoundingClientRect();
-                e.currentTarget.style.setProperty('--cx', `${e.clientX - r.left}px`);
-                e.currentTarget.style.setProperty('--cy', `${e.clientY - r.top}px`);
-              }}>
-              <div className="feature-card-glow"/>
+            <div key={f.num} className="feature-card">
               <div className="feature-num">{f.num}</div>
               <div className="feature-name">{f.name}</div>
               <div className="feature-desc">{f.desc}</div>
@@ -2138,16 +2110,8 @@ function GameCard({ g, onSelect, records = {} }) {
   const hasScore = g.home_team_score > 0 || g.visitor_team_score > 0;
   const isLive = type === 'live';
 
-  const handleMouseMove = (e) => {
-    const card = e.currentTarget;
-    const rect = card.getBoundingClientRect();
-    card.style.setProperty('--cx', ((e.clientX - rect.left) / rect.width * 100).toFixed(1) + '%');
-    card.style.setProperty('--cy', ((e.clientY - rect.top) / rect.height * 100).toFixed(1) + '%');
-  };
-
   return (
-    <div className="g-card2" onClick={() => onSelect(g)} onMouseMove={handleMouseMove}>
-      <div className="g-glow-overlay"/>
+    <div className="g-card2" onClick={() => onSelect(g)}>
 
       {/* Status */}
       <div className={`g-status-badge${isLive ? ' live' : ''}`}>
@@ -3593,7 +3557,6 @@ function FrontOffice() {
                     const div = t.division || '';
                     return (
                       <div key={t.abbr} className="g-card2" onClick={()=>runRoster(t.name)} style={{width:240, padding:20, gap:12}}>
-                        <div className="g-glow-overlay"/>
                         {/* Header */}
                         <div style={{display:'flex', alignItems:'center', justifyContent:'space-between'}}>
                           <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:11, fontWeight:700, color:i<3?'var(--green)':i<8?'rgba(255,255,255,0.35)':'rgba(255,255,255,0.18)'}}>#{t.rank}</div>
@@ -3647,7 +3610,6 @@ function FrontOffice() {
                 const lev = getLeverage(t.used);
                 return (
                   <div key={t.abbr} className="g-card2" onClick={()=>runRoster(t.name)} style={{width:240, padding:20, gap:12}}>
-                    <div className="g-glow-overlay"/>
                     {/* Rank + tier */}
                     <div style={{display:'flex', alignItems:'center', justifyContent:'space-between'}}>
                       <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, color:'rgba(255,255,255,0.52)'}}># {i+1} by payroll</div>
@@ -4033,16 +3995,8 @@ function CoachGameCard({ g, onSelect, records = {} }) {
   const hasScore = g.home_team_score > 0 || g.visitor_team_score > 0;
   const isLive = type === 'live';
 
-  const handleMouseMove = (e) => {
-    const card = e.currentTarget;
-    const rect = card.getBoundingClientRect();
-    card.style.setProperty('--cx', ((e.clientX - rect.left) / rect.width * 100).toFixed(1) + '%');
-    card.style.setProperty('--cy', ((e.clientY - rect.top) / rect.height * 100).toFixed(1) + '%');
-  };
-
   return (
-    <div className="g-card2" onClick={() => onSelect(g)} onMouseMove={handleMouseMove} style={{cursor:'pointer'}}>
-      <div className="g-glow-overlay"/>
+    <div className="g-card2" onClick={() => onSelect(g)} style={{cursor:'pointer'}}>
 
       <div className={`g-status-badge${isLive ? ' live' : ''}`}>
         {isLive && <span className="g-live-dot"/>}
@@ -4385,8 +4339,8 @@ function CoachingStylesView() {
               cursor:'pointer', transition:'all 0.15s',
               fontFamily:HV, fontSize:13, lineHeight:1.65, fontWeight:500, letterSpacing:0,
             }}
-              onMouseEnter={e=>{e.currentTarget.style.background='rgba(0,255,128,0.06)';e.currentTarget.style.borderColor='rgba(0,255,128,0.35)';e.currentTarget.style.boxShadow='inset 0 1px 0 rgba(0,255,128,0.12)';e.currentTarget.style.color='var(--white)';}}
-              onMouseLeave={e=>{e.currentTarget.style.background='var(--glass-bg)';e.currentTarget.style.borderColor='var(--glass-border)';e.currentTarget.style.boxShadow='var(--glass-hi)';e.currentTarget.style.color='rgba(255,255,255,0.65)';}}>
+              onMouseEnter={e=>{e.currentTarget.style.borderColor='rgba(0,255,128,0.35)';e.currentTarget.style.color='var(--white)';}}
+              onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--glass-border)';e.currentTarget.style.color='rgba(255,255,255,0.65)';}}>
               <span style={{fontFamily:HV, fontSize:8, letterSpacing:3, color:'rgba(0,255,128,0.4)', marginRight:14, fontWeight:700}}>{String.fromCharCode(65+i)}</span>
               {opt.text}
             </button>
@@ -5645,9 +5599,9 @@ function Compare() {
             <div className="cmp-vs-text" style={{fontFamily:BC, fontSize:52, fontWeight:900, letterSpacing:3, color:'rgba(0,255,128,0.55)', lineHeight:1, userSelect:'none'}}>VS</div>
             {canCompare && !result && !loading && (
               <button onClick={runCompare}
-                style={{marginTop:20, background:'var(--green)', color:'#080A0E', border:'none', padding:'10px 22px', fontSize:12, letterSpacing:3, fontWeight:800, fontFamily:BC, textTransform:'uppercase', cursor:'pointer', borderRadius:6, boxShadow:'0 0 28px rgba(0,255,128,0.5)', transition:'box-shadow 0.15s, transform 0.15s', whiteSpace:'nowrap'}}
-                onMouseEnter={e=>{e.currentTarget.style.boxShadow='0 0 52px rgba(0,255,128,0.75)';e.currentTarget.style.transform='scale(1.04)';}}
-                onMouseLeave={e=>{e.currentTarget.style.boxShadow='0 0 28px rgba(0,255,128,0.5)';e.currentTarget.style.transform='scale(1)';}}>
+                style={{marginTop:20, background:'var(--green)', color:'#080A0E', border:'none', padding:'10px 22px', fontSize:12, letterSpacing:3, fontWeight:800, fontFamily:BC, textTransform:'uppercase', cursor:'pointer', borderRadius:6, transition:'opacity 0.15s', whiteSpace:'nowrap'}}
+                onMouseEnter={e=>e.currentTarget.style.opacity='0.85'}
+                onMouseLeave={e=>e.currentTarget.style.opacity='1'}>
                 RUN →
               </button>
             )}
