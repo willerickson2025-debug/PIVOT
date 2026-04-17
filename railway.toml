@@ -1,0 +1,6 @@
+[project]
+id = "dff48b54-4bd4-4db6-b3ef-c4e794410da3"
+environment = "d5ff9661-1963-40a1-aeac-d5e2dc292aaf"
+
+[service]
+id = "f212ec0e-cde8-4b7f-bb3b-f1e87e92eeee"

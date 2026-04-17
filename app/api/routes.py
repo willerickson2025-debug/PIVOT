@@ -567,15 +567,32 @@ async def _fetch_live_context() -> str:
     return "\n".join(lines)
 
 
-def _strip_markdown(text: str) -> str:
-    """Remove markdown formatting characters from streamed chat text."""
+def _strip_markdown(line: str) -> str:
+    """Strip all markdown from a complete line of text."""
     import re
-    text = re.sub(r'\*{1,3}', '', text)
-    text = re.sub(r'#+\s*', '', text)
-    text = text.replace('\u2014', ',').replace('\u2013', ',')
-    text = re.sub(r'^\s*[-*]\s+', '', text)
-    text = text.replace('_', '')
-    return text
+    # Remove table rows and separators entirely
+    stripped = line.strip()
+    if re.match(r'^\|', stripped) or re.match(r'^[-|:\s]+$', stripped):
+        return ''
+    # Remove horizontal rules
+    if re.match(r'^-{3,}$', stripped):
+        return ''
+    # Remove header markers
+    line = re.sub(r'^#{1,6}\s+', '', line)
+    # Remove bold/italic: **text**, *text*, __text__, _text_
+    line = re.sub(r'\*{1,3}(.*?)\*{1,3}', r'\1', line)
+    line = re.sub(r'_{1,3}(.*?)_{1,3}', r'\1', line)
+    # Remove any remaining stray * # _ characters
+    line = line.replace('*', '').replace('#', '').replace('_', '')
+    # Remove bullet list markers at line start
+    line = re.sub(r'^\s*[-+]\s+', '', line)
+    # Remove numbered list markers at line start
+    line = re.sub(r'^\s*\d+\.\s+', '', line)
+    # Remove em/en dashes
+    line = line.replace('\u2014', ',').replace('\u2013', ',')
+    # Remove pipe characters (table remnants)
+    line = line.replace('|', '')
+    return line
 
 
 @router.post("/chat/message")
@@ -597,16 +614,26 @@ async def chat_message(request: Request, body: dict = Body(...), _key: str = Dep
             client = AsyncAnthropic(api_key=settings.anthropic_api_key)
             live_ctx = await _fetch_live_context()
             system_prompt = live_ctx + _CHAT_SYSTEM_BASE
+            # Buffer by line so regex patterns match complete markdown constructs
+            line_buf = ""
             async with client.messages.stream(
                 model=settings.claude_model,
                 max_tokens=2000,
                 system=system_prompt,
                 messages=messages,
             ) as stream:
-                async for text in stream.text_stream:
-                    clean = _strip_markdown(text)
-                    if clean:
-                        yield f"data: {json.dumps({'type': 'chunk', 'text': clean})}\n\n"
+                async for token in stream.text_stream:
+                    line_buf += token
+                    while '\n' in line_buf:
+                        line, line_buf = line_buf.split('\n', 1)
+                        clean = _strip_markdown(line)
+                        if clean.strip():
+                            yield f"data: {json.dumps({'type': 'chunk', 'text': clean + ' '})}\n\n"
+            # Flush remaining buffer
+            if line_buf.strip():
+                clean = _strip_markdown(line_buf)
+                if clean.strip():
+                    yield f"data: {json.dumps({'type': 'chunk', 'text': clean})}\n\n"
             yield f"data: {json.dumps({'type': 'done'})}\n\n"
         except Exception as e:
             yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
