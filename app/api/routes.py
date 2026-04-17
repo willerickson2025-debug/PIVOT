@@ -490,19 +490,17 @@ async def player_section_analysis_stream(
 # ── Basketball Chat ───────────────────────────────────────────────────────────
 
 _CHAT_SYSTEM = (
-    "You are a basketball analyst. Every answer must be grounded in real stats, numbers, and data. "
-    "Lead with the relevant statistics: points, rebounds, assists, shooting percentages, PER, TS%, "
-    "usage rate, net rating, win shares, contract figures, cap numbers, whatever is most relevant. "
-    "Numbers first, context second. Never make a claim without backing it with a stat. "
-    "Be specific: say '31.2 PPG on 54% TS' not 'he scores a lot efficiently'. "
-    "Keep responses tight and direct. No filler phrases like 'great question', 'certainly', "
-    "'it's worth noting', or 'as an AI'. No hedging. No disclaimer paragraphs. "
-    "FORMATTING: Plain prose only. No markdown of any kind. No asterisks (*), no em dashes, "
-    "no en dashes, no pound signs (#), no bullets, no numbered lists, no bold, no italics, "
-    "no headers, no dashes used as punctuation. Do not use the character * anywhere in your response. "
-    "Do not use the character \u2014 anywhere in your response. If you use any of these forbidden "
-    "characters, the output is rejected. Write in clean sentences and paragraphs only. "
-    "If you don't have a specific stat handy, give the best available number and say what season it's from."
+    "You are a sharp basketball analyst writing for a front office audience. "
+    "Write the way a knowledgeable beat reporter or front office insider talks: confident, direct, "
+    "grounded in numbers, no hype. Every claim needs a stat behind it. "
+    "Say '31.2 PPG on 54.1% true shooting' not 'he is an elite scorer'. "
+    "Use real numbers: PPG, RPG, APG, TS%, PER, net rating, usage rate, win shares, cap figures. "
+    "If you are unsure of an exact number, give the closest estimate and note the season. "
+    "Keep it tight. Two or three paragraphs max unless the question genuinely needs more. "
+    "No filler. No 'great question'. No 'certainly'. No 'it is worth noting'. No AI disclaimers. "
+    "Write in plain flowing prose. No headers. No bullet points. No numbered lists. "
+    "No asterisks, no pound signs, no dashes used as punctuation, no bold, no italics. "
+    "Just sentences and paragraphs, like a well-written column."
 )
 
 @router.post("/chat/message")
@@ -515,6 +513,21 @@ async def chat_message(request: Request, body: dict = Body(...), _key: str = Dep
     messages = body.get("messages") or []
     if not messages:
         raise HTTPException(status_code=400, detail="No messages provided")
+
+    def _strip_markdown(text: str) -> str:
+        """Remove markdown formatting characters from streamed chat text."""
+        import re
+        # Remove bold/italic markers
+        text = re.sub(r'\*{1,3}', '', text)
+        # Remove pound-sign headers (may arrive mid-stream as "## ")
+        text = re.sub(r'#+\s*', '', text)
+        # Remove em dashes and en dashes
+        text = text.replace('\u2014', ',').replace('\u2013', ',')
+        # Remove leading bullet/dash list markers at start of a token
+        text = re.sub(r'^\s*[-*]\s+', '', text)
+        # Remove underscores used for italics
+        text = text.replace('_', '')
+        return text
 
     async def generate():
         try:
@@ -529,7 +542,9 @@ async def chat_message(request: Request, body: dict = Body(...), _key: str = Dep
                 messages=messages,
             ) as stream:
                 async for text in stream.text_stream:
-                    yield f"data: {json.dumps({'type': 'chunk', 'text': text})}\n\n"
+                    clean = _strip_markdown(text)
+                    if clean:
+                        yield f"data: {json.dumps({'type': 'chunk', 'text': clean})}\n\n"
             yield f"data: {json.dumps({'type': 'done'})}\n\n"
         except Exception as e:
             yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
