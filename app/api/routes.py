@@ -483,6 +483,50 @@ async def player_section_analysis_stream(
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 
+# ── Basketball Chat ───────────────────────────────────────────────────────────
+
+_CHAT_SYSTEM = (
+    "You are PIVOT's basketball analyst — an elite NBA expert with encyclopedic knowledge "
+    "of the NBA: current rosters, stats, history, strategy, trades, contracts, draft, "
+    "coaching, analytics, and culture. You answer any basketball question clearly and "
+    "confidently. Be direct and conversational — no filler, no disclaimers, no hedging. "
+    "Format your response with markdown when it helps readability (bullet points, bold "
+    "headers) but keep it tight. Today's date is 2025-26 NBA season."
+)
+
+@router.post("/chat/message")
+@limiter.limit(_CLAUDE_LIMIT)
+async def chat_message(request: Request, body: dict = Body(...), _key: str = Depends(verify_api_key)):
+    """
+    Stream a basketball chat response.
+    Body: { "messages": [{"role": "user"|"assistant", "content": "..."}] }
+    """
+    messages = body.get("messages") or []
+    if not messages:
+        raise HTTPException(status_code=400, detail="No messages provided")
+
+    async def generate():
+        try:
+            from app.core.config import get_settings
+            settings = get_settings()
+            from anthropic import AsyncAnthropic
+            client = AsyncAnthropic(api_key=settings.anthropic_api_key)
+            async with client.messages.stream(
+                model=settings.claude_model,
+                max_tokens=1024,
+                system=_CHAT_SYSTEM,
+                messages=messages,
+            ) as stream:
+                async for text in stream.text_stream:
+                    yield f"data: {json.dumps({'type': 'chunk', 'text': text})}\n\n"
+            yield f"data: {json.dumps({'type': 'done'})}\n\n"
+        except Exception as e:
+            yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+
+    return StreamingResponse(generate(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
 # ── Front Office ──────────────────────────────────────────────────────────────
 
 @router.get("/frontoffice/roster")
