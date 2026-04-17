@@ -886,8 +886,8 @@ const API = "https://web-production-5f6e1.up.railway.app/api/v1";
 function friendlyError(msg) {
   if (!msg) return 'Something went wrong. Try again.';
   const s = msg.toLowerCase();
-  if (s.includes('overloaded') || s.includes('529')) return 'Claude is overloaded right now. Try again in a moment.';
-  if (s.includes('529')) return 'Claude is overloaded right now. Try again in a moment.';
+  if (s.includes('overloaded') || s.includes('529')) return 'AI is overloaded right now. Try again in a moment.';
+  if (s.includes('529')) return 'AI is overloaded right now. Try again in a moment.';
   if (s.includes('timeout') || s.includes('timed out')) return 'Analysis is taking longer than usual. Please try again.';
   if (s.includes('502') || s.includes('bad gateway')) return 'We\'re still building out this data. Try again in a moment.';
   if (s.includes('could not compute') || s.includes('no text content')) return 'We\'re adding more data to support this analysis. Try again in a moment.';
@@ -1041,7 +1041,7 @@ function Home({ onNavigate }) {
 
   const FEATURES = [
     { num:'01', name:'Live Game Engine',    desc:'PIVOT pulls live scoring, play-by-play, and full box scores from every NBA game simultaneously. Auto-syncs every 30 seconds — no manual refresh, no stale data.',   stat:'30s',   statLabel:'Auto-Refresh' },
-    { num:'02', name:'AI Analysis',         desc:'PIVOT runs every query through Claude, delivering structured breakdowns of matchups, slates, and player performance in under 15 seconds. No filler — just signal.',   stat:'~15s',  statLabel:'Response Time' },
+    { num:'02', name:'AI Analysis',         desc:'PIVOT runs every query through its AI engine, delivering structured breakdowns of matchups, slates, and player performance in under 15 seconds. No filler — just signal.',   stat:'~15s',  statLabel:'Response Time' },
     { num:'03', name:'Coach Mode',          desc:'PIVOT reads the live box score in real time and returns tactical adjustments, timeout plays, and lineup calls in seconds. Built for the 20-second huddle.',            stat:'20s',   statLabel:'Huddle Window' },
     { num:'04', name:'Player Intelligence', desc:'PIVOT profiles every player across offense, defense, financials, and off-court factors — 8-stat visual grids with last-10-game trend lines built in.',               stat:'8',     statLabel:'Stat Dimensions' },
     { num:'05', name:'Front Office AI',     desc:'PIVOT surfaces cap exposure, salary leverage, and roster construction gaps for all 30 teams using live 2025-26 data. Built for GMs who move before the market does.',stat:'30',    statLabel:'Teams Covered' },
@@ -3392,7 +3392,7 @@ function FrontOffice() {
       .catch(() => {});
   }, [dashTab]);
 
-  // Generate scout notes for MVP players via Claude (one-shot on tab open, cached server-side)
+  // Generate scout notes for MVP players via AI (one-shot on tab open, cached server-side)
   React.useEffect(() => {
     if (dashTab !== 'mvp' || Object.keys(mvpNotes).length > 0) return;
     MVP_PLAYERS.forEach(p => {
@@ -4184,7 +4184,7 @@ function FrontOffice() {
                       )}
 
                       <div style={{marginTop:20, display:'flex', alignItems:'center', justifyContent:'space-between'}}>
-                        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:3, color:'rgba(255,255,255,0.18)', fontWeight:700, textTransform:'uppercase'}}>Powered by Claude AI</div>
+                        <div style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:9, letterSpacing:3, color:'rgba(255,255,255,0.18)', fontWeight:700, textTransform:'uppercase'}}>Powered by AI</div>
                         <button onClick={runTrade}
                           style={{background:'none', border:'1px solid rgba(0,255,128,0.3)', color:'rgba(0,255,128,0.8)', padding:'8px 20px', fontSize:10, letterSpacing:4, fontWeight:700, fontFamily:'Helvetica Neue, sans-serif', textTransform:'uppercase', cursor:'pointer', borderRadius:6, transition:'border-color 0.15s, color 0.15s'}}
                           onMouseEnter={e=>{e.currentTarget.style.borderColor='rgba(0,255,128,0.7)';e.currentTarget.style.color='var(--green)';}}
@@ -5487,7 +5487,7 @@ function About() {
             Every analysis in PIVOT is grounded in live data. Game scores, injury reports, standings, and salary figures are pulled fresh on each request — not cached from last week, not pulled from a static database. When you ask about a player, we are looking at what they actually did this season, not a summary written months ago.
           </p>
           <p style={{...body, marginBottom:28}}>
-            We use Claude, Anthropic's AI, to interpret that data and turn it into readable analysis. But the AI is working from real numbers we give it — it is not guessing. Coach Mode reads the live box score before generating any suggestion. Player comparisons use official season averages, not computed estimates. Front Office analysis pulls current cap figures and injury status for both sides of any trade conversation.
+            PIVOT uses AI to interpret that data and turn it into readable analysis. But the AI is working from real numbers we give it — it is not guessing. Coach Mode reads the live box score before generating any suggestion. Player comparisons use official season averages, not computed estimates. Front Office analysis pulls current cap figures and injury status for both sides of any trade conversation.
           </p>
           <p style={{...body}}>
             The goal is simple: get from question to answer faster, with fewer tabs open and fewer things you have to just trust someone else got right.
@@ -6304,7 +6304,7 @@ function Compare() {
               )}
 
               <div style={{marginTop:24, display:'flex', alignItems:'center', justifyContent:'space-between'}}>
-                <div style={{fontFamily:BC, fontSize:10, letterSpacing:3, color:'rgba(255,255,255,0.18)', fontWeight:700}}>POWERED BY CLAUDE AI</div>
+                <div style={{fontFamily:BC, fontSize:10, letterSpacing:3, color:'rgba(255,255,255,0.18)', fontWeight:700}}>POWERED BY AI</div>
                 <button onClick={()=>runCompare()}
                   style={{background:'none', border:'1px solid rgba(0,255,128,0.3)', color:'rgba(0,255,128,0.8)', padding:'9px 22px', fontSize:11, letterSpacing:4, fontWeight:700, fontFamily:BC, textTransform:'uppercase', cursor:'pointer', borderRadius:6, transition:'border-color 0.15s, color 0.15s'}}
                   onMouseEnter={e=>{e.currentTarget.style.borderColor='rgba(0,255,128,0.7)';e.currentTarget.style.color='var(--green)';}}
