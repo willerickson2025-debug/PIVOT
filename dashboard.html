@@ -6393,7 +6393,10 @@ function App() {
         </div>
         <div className="nav-tabs">
           {[['games','Games'],['players','Players'],['teams','Teams'],['compare','Compare'],['frontoffice','Front Office'],['coach','Coach Mode'],['chat','Chat'],['about','About PIVOT']].map(([id,label]) => (
-            <button key={id} className={`nav-tab ${tab===id?'active':''}`} onClick={() => setTab(id)}>{label}</button>
+            <button key={id} className={`nav-tab ${tab===id?'active':''}`} onClick={() => setTab(id)} style={{position:'relative'}}>
+              {label}
+              {id === 'chat' && <span style={{position:'absolute',top:10,right:-2,fontSize:7,fontWeight:700,letterSpacing:0.5,background:'var(--green)',color:'#000',borderRadius:3,padding:'1px 4px',lineHeight:1.4,boxShadow:'0 0 10px rgba(0,255,128,0.6)',animation:'glow-pulse 2s ease-in-out infinite'}}>NEW</span>}
+            </button>
           ))}
         </div>
         <button className="nav-cta" onClick={() => setTab('players')}>Try Free</button>
@@ -6435,10 +6438,7 @@ function Chat() {
     setMessages(history);
     setInput('');
     setStreaming(true);
-
-    // Add empty assistant message to stream into
     setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
-
     try {
       const r = await fetch(`${API}/chat/message`, {
         method: 'POST',
@@ -6459,22 +6459,12 @@ function Chat() {
           if (!part.startsWith('data: ')) continue;
           try {
             const evt = JSON.parse(part.slice(6));
-            if (evt.type === 'chunk') {
-              setMessages(prev => {
-                const next = [...prev];
-                next[next.length - 1] = { role: 'assistant', content: (next[next.length - 1].content || '') + evt.text };
-                return next;
-              });
-            }
+            if (evt.type === 'chunk') setMessages(prev => { const n=[...prev]; n[n.length-1]={role:'assistant',content:(n[n.length-1].content||'')+evt.text}; return n; });
           } catch {}
         }
       }
     } catch(e) {
-      setMessages(prev => {
-        const next = [...prev];
-        next[next.length - 1] = { role: 'assistant', content: 'Something went wrong. Try again.' };
-        return next;
-      });
+      setMessages(prev => { const n=[...prev]; n[n.length-1]={role:'assistant',content:'Something went wrong. Try again.'}; return n; });
     } finally {
       setStreaming(false);
       inputRef.current?.focus();
@@ -6484,55 +6474,60 @@ function Chat() {
   const onKey = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } };
 
   const SUGGESTIONS = [
-    "Who are the top MVP candidates this season?",
-    "Break down the Celtics' championship chances",
-    "Explain the second apron rule",
-    "Who are the best young players in the league right now?",
-    "What makes a great point guard in today's NBA?",
-    "Compare LeBron James and Michael Jordan",
+    "Who wins the MVP this year?",
+    "Celtics or Knicks in the playoffs?",
+    "Is Wembanyama already top 5 in the league?",
+    "Best trade the Lakers could make right now",
+    "Who's the most underrated player this season?",
+    "Break down the zone defense",
   ];
 
   return (
-    <div style={{maxWidth:780, margin:'0 auto', padding:'32px 24px 120px', boxSizing:'border-box', height:'calc(100vh - 70px)', display:'flex', flexDirection:'column'}}>
+    <div style={{maxWidth:760, margin:'0 auto', padding:'40px 24px 0', boxSizing:'border-box', height:'calc(100vh - 70px)', display:'flex', flexDirection:'column'}}>
 
-      {/* Header */}
-      <div style={{marginBottom:24, flexShrink:0}}>
-        <div style={{fontFamily:HN, fontSize:9, letterSpacing:4, color:'rgba(0,255,128,0.9)', fontWeight:700, textTransform:'uppercase', marginBottom:6}}>Basketball AI</div>
-        <div style={{fontFamily:HN, fontSize:26, letterSpacing:-0.5, color:'var(--white)', fontWeight:700, textTransform:'none'}}>Ask Anything</div>
-        <div style={{fontFamily:HN, fontSize:13, color:'rgba(255,255,255,0.4)', marginTop:4, textTransform:'none', letterSpacing:0}}>Stats, strategy, history, trades, rosters — anything basketball.</div>
-      </div>
-
-      {/* Message thread */}
-      <div style={{flex:1, overflowY:'auto', marginBottom:16}}>
-        {messages.length === 0 && (
-          <div style={{paddingTop:8}}>
-            <div style={{fontFamily:HN, fontSize:10, letterSpacing:3, color:'rgba(255,255,255,0.2)', textTransform:'uppercase', marginBottom:14}}>Try asking</div>
+      {/* Header — only shown when empty */}
+      {messages.length === 0 && (
+        <div style={{marginBottom:32, flexShrink:0}}>
+          <div style={{fontFamily:HN, fontSize:9, letterSpacing:4, color:'rgba(0,255,128,0.7)', fontWeight:700, textTransform:'uppercase', marginBottom:10}}>PIVOT Intelligence</div>
+          <div style={{fontFamily:HN, fontSize:32, letterSpacing:-1, color:'var(--white)', fontWeight:700, lineHeight:1.1}}>Basketball.<br/>Ask anything.</div>
+          <div style={{fontFamily:HN, fontSize:13, color:'rgba(255,255,255,0.35)', marginTop:12, lineHeight:1.6}}>
+            Players, trades, strategy, history, rules, cap space — whatever's on your mind.
+          </div>
+          <div style={{marginTop:28}}>
+            <div style={{fontFamily:HN, fontSize:9, letterSpacing:3, color:'rgba(255,255,255,0.18)', textTransform:'uppercase', marginBottom:12}}>Start here</div>
             <div style={{display:'flex', flexWrap:'wrap', gap:8}}>
               {SUGGESTIONS.map(s => (
                 <button key={s} onClick={() => { setInput(s); inputRef.current?.focus(); }}
-                  style={{fontFamily:HN, fontSize:12, color:'rgba(255,255,255,0.55)', background:'rgba(255,255,255,0.04)',
-                    border:'1px solid rgba(255,255,255,0.09)', borderRadius:8, padding:'8px 14px',
-                    cursor:'pointer', transition:'all 0.12s', textTransform:'none', letterSpacing:0, textAlign:'left'}}
-                  onMouseEnter={e=>{e.currentTarget.style.background='rgba(0,255,128,0.07)';e.currentTarget.style.borderColor='rgba(0,255,128,0.3)';e.currentTarget.style.color='var(--green)';}}
-                  onMouseLeave={e=>{e.currentTarget.style.background='rgba(255,255,255,0.04)';e.currentTarget.style.borderColor='rgba(255,255,255,0.09)';e.currentTarget.style.color='rgba(255,255,255,0.55)';}}>
+                  style={{fontFamily:HN, fontSize:13, color:'rgba(255,255,255,0.6)', background:'rgba(255,255,255,0.03)',
+                    border:'1px solid rgba(255,255,255,0.08)', borderRadius:6, padding:'9px 15px',
+                    cursor:'pointer', transition:'all 0.12s', textTransform:'none', letterSpacing:0}}
+                  onMouseEnter={e=>{e.currentTarget.style.background='rgba(0,255,128,0.06)';e.currentTarget.style.borderColor='rgba(0,255,128,0.25)';e.currentTarget.style.color='rgba(255,255,255,0.88)';}}
+                  onMouseLeave={e=>{e.currentTarget.style.background='rgba(255,255,255,0.03)';e.currentTarget.style.borderColor='rgba(255,255,255,0.08)';e.currentTarget.style.color='rgba(255,255,255,0.6)';}}>
                   {s}
                 </button>
               ))}
             </div>
           </div>
-        )}
+        </div>
+      )}
 
+      {/* Thread */}
+      <div style={{flex:1, overflowY:'auto', paddingBottom:20}}>
         {messages.map((m, i) => (
-          <div key={i} style={{marginBottom:20, display:'flex', flexDirection:'column', alignItems: m.role==='user' ? 'flex-end' : 'flex-start'}}>
+          <div key={i} style={{marginBottom: m.role==='user' ? 28 : 24}}>
             {m.role === 'user' ? (
-              <div style={{maxWidth:'75%', background:'rgba(0,255,128,0.1)', border:'1px solid rgba(0,255,128,0.25)', borderRadius:12, padding:'12px 16px',
-                fontFamily:HN, fontSize:14, color:'rgba(255,255,255,0.9)', lineHeight:1.6, textTransform:'none', letterSpacing:0}}>
-                {m.content}
+              <div style={{display:'flex', justifyContent:'flex-end'}}>
+                <div style={{
+                  maxWidth:'72%', fontFamily:HN, fontSize:15, color:'var(--white)',
+                  fontWeight:600, lineHeight:1.55, letterSpacing:-0.1,
+                  borderBottom:'1px solid rgba(255,255,255,0.1)', paddingBottom:12,
+                }}>
+                  {m.content}
+                </div>
               </div>
             ) : (
-              <div style={{maxWidth:'90%', background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:12, padding:'16px 18px',
-                fontFamily:HN, fontSize:14, color:'rgba(255,255,255,0.85)', lineHeight:1.8, textTransform:'none', letterSpacing:0, whiteSpace:'pre-wrap'}}>
-                {m.content || <span style={{opacity:0.4, animation:'blink 1s ease-in-out infinite'}}>●</span>}
+              <div style={{fontFamily:HN, fontSize:15, color:'rgba(255,255,255,0.82)', lineHeight:1.85, letterSpacing:-0.1, whiteSpace:'pre-wrap', borderLeft:'2px solid rgba(0,255,128,0.3)', paddingLeft:16}}>
+                {m.content || <span style={{color:'rgba(255,255,255,0.2)', animation:'blink 1s ease-in-out infinite'}}>—</span>}
               </div>
             )}
           </div>
@@ -6540,33 +6535,32 @@ function Chat() {
         <div ref={bottomRef}/>
       </div>
 
-      {/* Input bar — fixed to bottom of container */}
-      <div style={{flexShrink:0, background:'rgba(9,12,16,0.95)', borderTop:'1px solid rgba(255,255,255,0.07)', paddingTop:14}}>
+      {/* Input */}
+      <div style={{flexShrink:0, borderTop:'1px solid rgba(255,255,255,0.06)', paddingTop:16, paddingBottom:24}}>
         <div style={{display:'flex', gap:10, alignItems:'flex-end'}}>
           <textarea ref={inputRef} value={input} onChange={e=>setInput(e.target.value)} onKeyDown={onKey}
-            placeholder="Ask about any player, team, trade, rule, history…"
+            placeholder="Ask about any player, team, trade, or rule…"
             rows={1}
-            style={{flex:1, background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:10,
+            style={{flex:1, background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.09)', borderRadius:8,
               padding:'12px 14px', color:'var(--white)', fontFamily:HN, fontSize:14, outline:'none', resize:'none',
-              lineHeight:1.5, textTransform:'none', letterSpacing:0, transition:'border-color 0.15s',
-              maxHeight:120, overflowY:'auto'}}
-            onFocus={e=>e.target.style.borderColor='rgba(0,255,128,0.4)'}
-            onBlur={e=>e.target.style.borderColor='rgba(255,255,255,0.1)'}
+              lineHeight:1.5, letterSpacing:0, transition:'border-color 0.15s', maxHeight:120, overflowY:'auto'}}
+            onFocus={e=>e.target.style.borderColor='rgba(0,255,128,0.35)'}
+            onBlur={e=>e.target.style.borderColor='rgba(255,255,255,0.09)'}
             onInput={e=>{e.target.style.height='auto';e.target.style.height=Math.min(e.target.scrollHeight,120)+'px';}}
           />
           <button onClick={send} disabled={!input.trim() || streaming}
-            style={{height:44, width:44, borderRadius:10, border:'none', cursor: input.trim()&&!streaming ? 'pointer':'not-allowed',
-              background: input.trim()&&!streaming ? 'var(--green)' : 'rgba(255,255,255,0.08)',
-              color: input.trim()&&!streaming ? '#000' : 'rgba(255,255,255,0.25)',
+            style={{height:44, width:44, borderRadius:8, border:'none', cursor:input.trim()&&!streaming?'pointer':'not-allowed',
+              background:input.trim()&&!streaming?'var(--green)':'rgba(255,255,255,0.06)',
+              color:input.trim()&&!streaming?'#000':'rgba(255,255,255,0.2)',
               fontSize:18, fontWeight:700, flexShrink:0, transition:'all 0.15s', display:'flex', alignItems:'center', justifyContent:'center'}}>
             ↑
           </button>
         </div>
         {messages.length > 0 && (
           <button onClick={()=>setMessages([])}
-            style={{fontFamily:HN, fontSize:10, color:'rgba(255,255,255,0.2)', background:'transparent', border:'none',
-              cursor:'pointer', padding:'8px 2px 0', letterSpacing:1, textTransform:'uppercase'}}>
-            Clear conversation
+            style={{fontFamily:HN, fontSize:10, color:'rgba(255,255,255,0.18)', background:'transparent', border:'none',
+              cursor:'pointer', padding:'10px 0 0', letterSpacing:1, textTransform:'uppercase'}}>
+            Clear
           </button>
         )}
       </div>
