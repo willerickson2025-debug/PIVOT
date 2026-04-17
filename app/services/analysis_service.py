@@ -275,7 +275,7 @@ BOLD TAKES — PERMITTED AND ENCOURAGED:
 When the data genuinely supports it, make the bold call. If a player is on a GOAT trajectory, say so. If a rookie is generational, use that word. If a player is the best at their position right now, declare it. Do not hedge elite talent with "could potentially" or "has shown flashes." The clients pay for conviction. Historical comparisons to all-time greats are appropriate when the statistical case is real — a player averaging elite efficiency numbers and dominant two-way production can be compared to the players they actually resemble. The only requirement is that the data supports the claim.
 
 FORMATTING — NON-NEGOTIABLE:
-Plain prose only. No markdown. No asterisks, no pound signs, no dashes used as bullets, no numbered lists, no bold, no italics, no horizontal rules, no headers. Paragraphs separated by one blank line. Write like a column in The Athletic or a Sharp report — dense, confident, readable."""
+Plain prose only. No markdown of any kind. That means: no asterisks (*), no double asterisks (**), no pound signs (#), no em dashes (—), no en dashes, no hyphens used as list bullets, no numbered lists, no bold, no italics, no horizontal rules, no headers of any kind. Do not use "—" anywhere. Do not use "*" anywhere. Paragraphs separated by one blank line. Write like a column in The Athletic — dense, confident, readable. If you use any of the forbidden characters, the output is rejected."""
 
 
 def _front_office_system_prompt() -> str:
@@ -296,7 +296,7 @@ When analyzing a roster: open with a one-sentence verdict on where this team sta
 
 When evaluating a trade: one sentence on who wins and why — then build every sentence to support that same conclusion.
 
-Plain prose only. No markdown, no bullets, no numbered lists, no headers, no asterisks. Paragraphs separated by one blank line. Dense, confident, readable — like a Sharp memo."""
+Plain prose only. No markdown of any kind. No asterisks (*), no em dashes (—), no en dashes, no pound signs (#), no bullets, no numbered lists, no bold, no italics, no headers. Do not use "—" anywhere. Do not use "*" anywhere. Paragraphs separated by one blank line. Dense, confident, readable."""
 
 
 def _game_analyst_system_prompt() -> str:
@@ -319,7 +319,7 @@ OUTPUT STRUCTURE by game state:
 
 Be specific — name players, cite actual numbers. Dense, confident prose. No hedging.
 
-FORMATTING: Plain prose only. No markdown, no bullets, no asterisks, no headers, no numbered lists. Paragraphs separated by one blank line."""
+FORMATTING: Plain prose only. No markdown of any kind. No asterisks (*), no em dashes (—), no en dashes, no pound signs (#), no bullets, no numbered lists, no bold, no italics, no headers. Do not use "—" anywhere. Do not use "*" anywhere. Paragraphs separated by one blank line."""
 
 
 COACH_SYSTEM_PROMPT: str = """You are an elite NBA head coach with a championship pedigree. You have the live box score in front of you. Coaches pay for your input because you see things others miss and give answers without wasting time.
@@ -332,7 +332,7 @@ When drawing up a timeout play: name the play first. Describe the motion in plai
 
 You never ask for more information. You work with what you have. You give answers, not questions.
 
-FORMATTING: Plain prose only. No markdown, no asterisks, no bullets, no numbered lists, no headers. Dense, decisive prose paragraphs only. Coaches need answers in 20 seconds."""
+FORMATTING: Plain prose only. No markdown of any kind. No asterisks (*), no em dashes (—), no en dashes, no pound signs (#), no bullets, no numbered lists, no bold, no italics, no headers. Do not use "—" anywhere. Do not use "*" anywhere. Dense, decisive prose. Coaches need answers in 20 seconds."""
 
 
 # ---------------------------------------------------------------------------
@@ -3802,7 +3802,7 @@ When analyzing a team's DNA, be specific. Name the plays they run, the coverages
 
 Do not be generic. "They play fast and spread the floor" is not analysis. "They rank top-5 in pace, initiate 40% of possessions from the pick-and-roll with their point guard as the ball handler, and shoot above 40% of their field goal attempts from three" is analysis.
 
-FORMATTING: Plain prose only. No markdown, no bullets, no headers, no asterisks. Dense, expert prose in paragraphs. Write like a scout memo — every sentence earns its place."""
+FORMATTING: Plain prose only. No markdown of any kind. No asterisks (*), no em dashes (—), no en dashes, no pound signs (#), no bullets, no numbered lists, no bold, no italics, no headers. Do not use "—" anywhere. Do not use "*" anywhere. If you use any of the forbidden characters, the output is rejected. Dense, expert prose in paragraphs only. Write like a scout memo: every sentence earns its place."""
 
 
 async def analyze_team_dna(team_name: str):
