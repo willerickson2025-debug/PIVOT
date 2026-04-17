@@ -490,18 +490,20 @@ async def player_section_analysis_stream(
 # ── Basketball Chat ───────────────────────────────────────────────────────────
 
 _CHAT_SYSTEM_BASE = (
-    "You are a sharp basketball analyst writing for a front office audience. "
-    "Write the way a knowledgeable beat reporter or front office insider talks: confident, direct, "
-    "grounded in numbers, no hype. Every claim needs a stat behind it. "
-    "Say '31.2 PPG on 54.1% true shooting' not 'he is an elite scorer'. "
-    "Use real numbers: PPG, RPG, APG, TS%, PER, net rating, usage rate, win shares, cap figures. "
-    "When LIVE DATA is provided above, treat it as ground truth and prioritize it over your training knowledge. "
-    "If you are unsure of an exact number, give the closest estimate and note the season. "
-    "Keep it tight. Two or three paragraphs max unless the question genuinely needs more. "
-    "No filler. No 'great question'. No 'certainly'. No 'it is worth noting'. No AI disclaimers. "
-    "Write in plain flowing prose. No headers. No bullet points. No numbered lists. "
-    "No asterisks, no pound signs, no dashes used as punctuation, no bold, no italics. "
-    "Just sentences and paragraphs, like a well-written column."
+    "You are a sharp basketball analyst. Real-time NBA data has been injected at the top of this "
+    "prompt under LIVE DATA. That data was fetched seconds ago and is current. "
+    "You HAVE the standings. You HAVE recent scores. Use them. "
+    "Never say 'I don't have real-time data' or 'my knowledge has a cutoff' — that is false here. "
+    "Never tell the user to check ESPN or NBA.com — you already have the data they would find there. "
+    "If a question is about current standings, playoff seeding, or recent results, answer it "
+    "directly using the LIVE DATA provided. "
+    "Write like a beat reporter: confident, direct, grounded in numbers, no hype. "
+    "Every claim needs a stat. Say '31.2 PPG on 54.1% TS' not 'he is an elite scorer'. "
+    "Use PPG, RPG, APG, TS%, PER, net rating, usage rate, win shares, cap figures. "
+    "Keep it tight. Two to three paragraphs unless the question genuinely needs more. "
+    "No filler. No 'great question'. No 'certainly'. No AI disclaimers. "
+    "Plain prose only. No headers, no bullets, no numbered lists, no asterisks, "
+    "no pound signs, no bold, no italics. Sentences and paragraphs only."
 )
 
 _ESPN_SCOREBOARD = "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard"
@@ -509,7 +511,9 @@ _ESPN_NEWS = "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/news?
 
 async def _fetch_live_context() -> str:
     """Build a live data block from our standings + ESPN scoreboard to ground the chat model."""
-    lines: list[str] = ["LIVE DATA (treat as ground truth, prioritize over training knowledge):"]
+    import logging
+    _log = logging.getLogger(__name__)
+    lines: list[str] = ["LIVE DATA (fetched right now — treat as ground truth):"]
 
     # 1. Our standings
     try:
@@ -518,9 +522,11 @@ async def _fetch_live_context() -> str:
         west = standings.get("west", [])[:8]
         east_str = ", ".join(f"{t['seed']}. {t['abbr']} ({t['wins']}-{t['losses']})" for t in east)
         west_str = ", ".join(f"{t['seed']}. {t['abbr']} ({t['wins']}-{t['losses']})" for t in west)
-        lines.append(f"2025-26 NBA Standings (top 8): East: {east_str} | West: {west_str}")
-    except Exception:
-        pass
+        lines.append(f"2025-26 NBA Standings top 8 — East: {east_str}")
+        lines.append(f"2025-26 NBA Standings top 8 — West: {west_str}")
+        _log.info("chat live_ctx: standings OK (%d east, %d west)", len(east), len(west))
+    except Exception as exc:
+        _log.warning("chat live_ctx: standings failed: %s", exc)
 
     # 2. ESPN scoreboard — recent results + today's games
     try:
@@ -547,8 +553,13 @@ async def _fetch_live_context() -> str:
                             results.append(f"{a_name} {a_score} @ {h_name} {h_score} ({status})")
                 if results:
                     lines.append("Recent/live NBA scores: " + " | ".join(results))
-    except Exception:
-        pass
+                    _log.info("chat live_ctx: ESPN scores OK (%d games)", len(results))
+                else:
+                    _log.info("chat live_ctx: ESPN scores empty (no final/live games found)")
+            else:
+                _log.warning("chat live_ctx: ESPN scoreboard HTTP %d", resp.status_code)
+    except Exception as exc:
+        _log.warning("chat live_ctx: ESPN scoreboard failed: %s", exc)
 
     # 3. ESPN news headlines for current context
     try:
@@ -560,11 +571,14 @@ async def _fetch_live_context() -> str:
                 headlines = [a.get("headline", "") for a in articles if a.get("headline")]
                 if headlines:
                     lines.append("Recent NBA headlines: " + " | ".join(headlines))
-    except Exception:
-        pass
+                    _log.info("chat live_ctx: ESPN news OK (%d headlines)", len(headlines))
+    except Exception as exc:
+        _log.warning("chat live_ctx: ESPN news failed: %s", exc)
 
-    lines.append("")  # blank line before analyst instructions
-    return "\n".join(lines)
+    lines.append("")
+    ctx = "\n".join(lines)
+    _log.info("chat live_ctx total length: %d chars", len(ctx))
+    return ctx
 
 
 def _strip_markdown(line: str) -> str:
