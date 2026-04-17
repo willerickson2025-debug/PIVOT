@@ -3225,6 +3225,7 @@ function FrontOffice() {
   const [search, setSearch] = React.useState('');
   const [headlines, setHeadlines] = React.useState([]);
   const [dashTab, setDashTab] = React.useState('warboard');
+  const [warSort, setWarSort] = React.useState('rank'); // 'rank' | 'cap_hi' | 'cap_lo' | 'leverage'
 
   const [standings, setStandings] = React.useState(null);
   const [standingsLoading, setStandingsLoading] = React.useState(true);
@@ -3671,9 +3672,34 @@ function FrontOffice() {
               const capMap = {};
               CAP_DATA.forEach(c => { capMap[c.abbr] = c.used; });
               const rows = (standings.league || []).map(t => ({...t, capUsed: capMap[t.abbr] || 150}));
+              const sortedRows = [...rows].sort((a,b) => {
+                if (warSort === 'cap_hi')  return b.capUsed - a.capUsed;
+                if (warSort === 'cap_lo')  return a.capUsed - b.capUsed;
+                if (warSort === 'leverage') return getLeverage(b.capUsed) - getLeverage(a.capUsed);
+                return a.rank - b.rank; // default: win rank
+              });
+              const SORT_OPTS = [
+                {id:'rank',     label:'Win Rank'},
+                {id:'cap_hi',   label:'Cap ↑'},
+                {id:'cap_lo',   label:'Cap ↓'},
+                {id:'leverage', label:'Leverage'},
+              ];
               return (
-                <div style={{display:'flex', flexWrap:'wrap', gap:16, padding:'20px 24px 60px'}}>
-                  {rows.map((t, i) => {
+                <div>
+                <div style={{display:'flex', gap:6, padding:'16px 24px 0', flexWrap:'wrap'}}>
+                  {SORT_OPTS.map(o => (
+                    <button key={o.id} onClick={()=>setWarSort(o.id)}
+                      style={{fontFamily:'Helvetica Neue, sans-serif', fontSize:8, fontWeight:700, letterSpacing:2,
+                        textTransform:'uppercase', padding:'5px 12px', borderRadius:5, cursor:'pointer', transition:'all 0.12s',
+                        background: warSort===o.id ? 'rgba(0,255,128,0.14)' : 'rgba(255,255,255,0.04)',
+                        color:       warSort===o.id ? 'var(--green)'         : 'rgba(255,255,255,0.38)',
+                        border:      warSort===o.id ? '1px solid rgba(0,255,128,0.45)' : '1px solid rgba(255,255,255,0.08)'}}>
+                      {o.label}
+                    </button>
+                  ))}
+                </div>
+                <div style={{display:'flex', flexWrap:'wrap', gap:16, padding:'16px 24px 60px'}}>
+                  {sortedRows.map((t, i) => {
                     const tier = getCapTier(t.capUsed);
                     const lev = getLeverage(t.capUsed);
                     const timeline = getTimeline(t.pct);
@@ -3720,6 +3746,7 @@ function FrontOffice() {
                       </div>
                     );
                   })}
+                </div>
                 </div>
               );
             })()
