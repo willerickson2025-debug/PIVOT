@@ -466,7 +466,7 @@ button {
 .ticker-track-wrap { flex: 1; overflow: hidden; height: 100%; display: flex; align-items: center; }
 .ticker-track {
   display: flex; align-items: center; white-space: nowrap;
-  animation: ticker-scroll 70s linear infinite;
+  animation: ticker-scroll 180s linear infinite;
   will-change: transform;
 }
 .ticker-track:hover { animation-play-state: paused; }
@@ -1262,7 +1262,6 @@ function GameModal({ game, onClose }) {
     ...(isUpcoming ? [] : [{ id: 'boxscore', label: 'Box Score' }]),
     ...(type === 'live' ? [{ id: 'livefeed', label: '● Live Feed' }] : []),
     { id: 'analysis', label: 'Analysis' },
-    ...(isUpcoming ? [{ id: 'predict', label: 'Predict' }] : []),
     { id: 'info', label: 'Game Info' },
   ];
 
