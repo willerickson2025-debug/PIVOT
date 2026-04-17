@@ -584,38 +584,104 @@ async def _fetch_live_context() -> str:
 def _strip_markdown(line: str) -> str:
     """Strip all markdown from a complete line of text."""
     import re
-    # Remove table rows and separators entirely
     stripped = line.strip()
     if re.match(r'^\|', stripped) or re.match(r'^[-|:\s]+$', stripped):
         return ''
-    # Remove horizontal rules
     if re.match(r'^-{3,}$', stripped):
         return ''
-    # Remove header markers
     line = re.sub(r'^#{1,6}\s+', '', line)
-    # Remove bold/italic: **text**, *text*, __text__, _text_
     line = re.sub(r'\*{1,3}(.*?)\*{1,3}', r'\1', line)
     line = re.sub(r'_{1,3}(.*?)_{1,3}', r'\1', line)
-    # Remove any remaining stray * # _ characters
     line = line.replace('*', '').replace('#', '').replace('_', '')
-    # Remove bullet list markers at line start
     line = re.sub(r'^\s*[-+]\s+', '', line)
-    # Remove numbered list markers at line start
     line = re.sub(r'^\s*\d+\.\s+', '', line)
-    # Remove em/en dashes
     line = line.replace('\u2014', ',').replace('\u2013', ',')
-    # Remove pipe characters (table remnants)
     line = line.replace('|', '')
     return line
+
+
+def _stream_text(text: str):
+    """Yield SSE chunk events for a complete text string, line by line, stripped."""
+    for line in text.split('\n'):
+        clean = _strip_markdown(line)
+        if clean.strip():
+            yield json.dumps({'type': 'chunk', 'text': clean + ' '})
+
+
+# ── Search tool for chat ──────────────────────────────────────────────────────
+
+_SEARCH_TOOL_DEF = {
+    "name": "search_nba_info",
+    "description": (
+        "Search for current NBA information. Use this to verify which team a player is on, "
+        "confirm recent trades or transactions, check injury status, or get current season context "
+        "that may have changed since training data. Use it whenever you are not certain a player "
+        "is still on the team you expect, or when a question depends on recent moves."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "query": {
+                "type": "string",
+                "description": "Search query, e.g. 'Jimmy Butler current team 2026' or 'Lakers trade deadline moves'"
+            }
+        },
+        "required": ["query"]
+    }
+}
+
+_ESPN_SEARCH = "https://site.api.espn.com/apis/search/v2"
+
+async def _execute_nba_search(query: str) -> str:
+    """Run query against ESPN search + BallDontLie player API. Returns plain text results."""
+    import logging
+    _log = logging.getLogger(__name__)
+    results: list[str] = []
+
+    # 1. ESPN article search
+    try:
+        async with httpx.AsyncClient(timeout=6.0) as client:
+            resp = await client.get(_ESPN_SEARCH, params={"query": query, "limit": 5, "section": "nba"})
+            if resp.status_code == 200:
+                data = resp.json()
+                for group in data.get("results", []):
+                    for article in (group.get("contents") or [])[:2]:
+                        headline = article.get("headline") or article.get("title") or ""
+                        desc = article.get("description") or article.get("summary") or ""
+                        if headline:
+                            results.append(f"{headline}. {desc}".strip(". "))
+                _log.info("chat search ESPN: %d results for '%s'", len(results), query)
+    except Exception as exc:
+        _log.warning("chat search ESPN failed: %s", exc)
+
+    # 2. BallDontLie player lookup (current team)
+    try:
+        from app.services.nba_service import _fetch_data
+        player_resp = await _fetch_data("/players", params={"search": query[:50], "per_page": 5})
+        for p in (player_resp.get("data") or [])[:3]:
+            team = p.get("team") or {}
+            full_name = f"{p.get('first_name', '')} {p.get('last_name', '')}".strip()
+            if full_name and team.get("full_name"):
+                results.append(
+                    f"{full_name} currently plays for the {team['full_name']} ({team.get('abbreviation', '')})"
+                )
+    except Exception as exc:
+        _log.warning("chat search BDL failed: %s", exc)
+
+    if not results:
+        return "No current information found for this query."
+    return "\n".join(results)
 
 
 @router.post("/chat/message")
 @limiter.limit(_CLAUDE_LIMIT)
 async def chat_message(request: Request, body: dict = Body(...), _key: str = Depends(verify_api_key)):
     """
-    Stream a basketball chat response.
+    Stream a basketball chat response with web search tool use.
     Body: { "messages": [{"role": "user"|"assistant", "content": "..."}] }
     """
+    import logging
+    _log = logging.getLogger(__name__)
     messages = body.get("messages") or []
     if not messages:
         raise HTTPException(status_code=400, detail="No messages provided")
@@ -626,28 +692,48 @@ async def chat_message(request: Request, body: dict = Body(...), _key: str = Dep
             settings = get_settings()
             from anthropic import AsyncAnthropic
             client = AsyncAnthropic(api_key=settings.anthropic_api_key)
+
             live_ctx = await _fetch_live_context()
             system_prompt = live_ctx + _CHAT_SYSTEM_BASE
-            # Buffer by line so regex patterns match complete markdown constructs
-            line_buf = ""
-            async with client.messages.stream(
-                model=settings.claude_model,
-                max_tokens=2000,
-                system=system_prompt,
-                messages=messages,
-            ) as stream:
-                async for token in stream.text_stream:
-                    line_buf += token
-                    while '\n' in line_buf:
-                        line, line_buf = line_buf.split('\n', 1)
-                        clean = _strip_markdown(line)
-                        if clean.strip():
-                            yield f"data: {json.dumps({'type': 'chunk', 'text': clean + ' '})}\n\n"
-            # Flush remaining buffer
-            if line_buf.strip():
-                clean = _strip_markdown(line_buf)
-                if clean.strip():
-                    yield f"data: {json.dumps({'type': 'chunk', 'text': clean})}\n\n"
+            current_messages = list(messages)
+
+            # Tool use loop: model can search up to 4 times before giving final answer
+            for round_num in range(4):
+                resp = await client.messages.create(
+                    model=settings.claude_model,
+                    max_tokens=2000,
+                    system=system_prompt,
+                    messages=current_messages,
+                    tools=[_SEARCH_TOOL_DEF],
+                )
+
+                if resp.stop_reason != "tool_use":
+                    # Final answer — stream it in chunks
+                    for block in resp.content:
+                        if hasattr(block, 'text') and block.text:
+                            for event in _stream_text(block.text):
+                                yield f"data: {event}\n\n"
+                    break
+
+                # Execute each tool call
+                tool_results = []
+                for block in resp.content:
+                    if block.type == "tool_use":
+                        query = block.input.get("query", "")
+                        _log.info("chat tool_use round=%d query='%s'", round_num, query)
+                        yield f"data: {json.dumps({'type': 'status', 'text': f'Checking current info: {query}'})}\n\n"
+                        search_result = await _execute_nba_search(query)
+                        tool_results.append({
+                            "type": "tool_result",
+                            "tool_use_id": block.id,
+                            "content": search_result
+                        })
+
+                current_messages = current_messages + [
+                    {"role": "assistant", "content": [b.model_dump() for b in resp.content]},
+                    {"role": "user", "content": tool_results},
+                ]
+
             yield f"data: {json.dumps({'type': 'done'})}\n\n"
         except Exception as e:
             yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"

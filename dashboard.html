@@ -6423,6 +6423,7 @@ function Chat() {
   const [messages, setMessages] = React.useState([]);
   const [input, setInput] = React.useState('');
   const [streaming, setStreaming] = React.useState(false);
+  const [searchStatus, setSearchStatus] = React.useState('');
   const bottomRef = React.useRef(null);
   const inputRef = React.useRef(null);
 
@@ -6459,7 +6460,8 @@ function Chat() {
           if (!part.startsWith('data: ')) continue;
           try {
             const evt = JSON.parse(part.slice(6));
-            if (evt.type === 'chunk') setMessages(prev => { const n=[...prev]; n[n.length-1]={role:'assistant',content:(n[n.length-1].content||'')+evt.text}; return n; });
+            if (evt.type === 'chunk') { setSearchStatus(''); setMessages(prev => { const n=[...prev]; n[n.length-1]={role:'assistant',content:(n[n.length-1].content||'')+evt.text}; return n; }); }
+            else if (evt.type === 'status') setSearchStatus(evt.text);
           } catch {}
         }
       }
@@ -6467,6 +6469,7 @@ function Chat() {
       setMessages(prev => { const n=[...prev]; n[n.length-1]={role:'assistant',content:'Something went wrong. Try again.'}; return n; });
     } finally {
       setStreaming(false);
+      setSearchStatus('');
       inputRef.current?.focus();
     }
   };
@@ -6534,6 +6537,14 @@ function Chat() {
         ))}
         <div ref={bottomRef}/>
       </div>
+
+      {/* Search status */}
+      {searchStatus && (
+        <div style={{flexShrink:0, paddingBottom:8, display:'flex', alignItems:'center', gap:8}}>
+          <span style={{width:6, height:6, borderRadius:'50%', background:'var(--green)', display:'inline-block', animation:'pulse 1s infinite'}}/>
+          <span style={{fontFamily:HN, fontSize:11, color:'rgba(255,255,255,0.38)', letterSpacing:0.5}}>{searchStatus}</span>
+        </div>
+      )}
 
       {/* Input */}
       <div style={{flexShrink:0, borderTop:'1px solid rgba(255,255,255,0.06)', paddingTop:16, paddingBottom:24}}>
