@@ -497,7 +497,8 @@ _CHAT_SYSTEM = (
     "Be specific: say '31.2 PPG on 54% TS' not 'he scores a lot efficiently'. "
     "Keep responses tight and direct. No filler phrases like 'great question', 'certainly', "
     "'it's worth noting', or 'as an AI'. No hedging. No disclaimer paragraphs. "
-    "Plain prose only — no markdown headers, no asterisks, no bold text. "
+    "Plain prose only. No asterisks, no em dashes, no markdown headers, no bold, no italics, no bullet points, no numbered lists, no dashes used as punctuation. "
+    "Write in clean sentences and paragraphs only. "
     "If you don't have a specific stat handy, give the best available number and say what season it's from."
 )
 
