@@ -9,8 +9,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
       - name: Deploy to Railway
-        uses: railwayapp/railway-action@v1
-        with:
-          railway-token: ${{ secrets.RAILWAY_TOKEN }}
-          service: web
+        run: railway up --detach --service web
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
