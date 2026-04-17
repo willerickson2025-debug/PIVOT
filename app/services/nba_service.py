@@ -549,9 +549,12 @@ async def get_roster_by_abbr(abbr: str) -> list[dict]:
     Return current-roster players for a team by extracting unique players
     from the team's most recent game logs this season.
 
-    Using game-log data (rather than the /players endpoint) avoids returning
-    traded-away or historically-associated players — only players who
-    actually appeared in a recent box score for this team are included.
+    Two-step approach required because BDL free tier ignores team_ids[] on
+    /stats — the filter only works on /games.  We therefore:
+      1. Fetch this season's game schedule for the team via /games (filter works)
+      2. Extract the 3 most-recent completed game IDs
+      3. Fetch /stats for those specific game_ids (both teams returned)
+      4. Client-side filter: keep only rows where stat.team.id == team_id
     """
     # 1. Resolve team ID from abbreviation
     teams_payload = await _fetch_data("/teams", params={"per_page": 100})
@@ -563,53 +566,54 @@ async def get_roster_by_abbr(abbr: str) -> list[dict]:
     if team_id is None:
         raise ValueError(f"No team found with abbreviation '{abbr}'")
 
-    # 2. Fetch recent per-game stats for the team this season.
-    #    /stats with team_ids[] returns only lines where the player was
-    #    actually playing for this team — the most recent 100 entries cover
-    #    roughly the last 7-10 games and give us a clean active roster.
+    # 2. Fetch this season's games for the team.
+    #    /games?team_ids[] correctly filters by team (unlike /stats?team_ids[]).
     current_season = get_current_season()
+    games_payload = await _fetch_data(
+        "/games",
+        params={"team_ids[]": team_id, "seasons[]": current_season, "per_page": 100},
+    )
+    all_games = games_payload.get("data") or []
+
+    # 3. Pick the 3 most-recent completed games (reversed so newest is first).
+    recent_game_ids: list[int] = [
+        g["id"] for g in reversed(all_games) if g.get("status") == "Final"
+    ][:3]
+
+    if not recent_game_ids:
+        logger.warning("No completed games found for abbr=%s season=%s", abbr, current_season)
+        return []
+
+    # 4. Fetch stats for those specific games.
+    #    Both teams' rows are returned — we filter to our team below.
+    #    httpx serialises {"game_ids[]": [G1, G2, G3]} as game_ids[]=G1&game_ids[]=G2&...
     stats_payload = await _fetch_data(
         "/stats",
-        params={"team_ids[]": team_id, "seasons[]": current_season, "per_page": 100},
+        params={"game_ids[]": recent_game_ids, "per_page": 100},
     )
     stats_data = stats_payload.get("data") or []
 
-    # 3. Collect unique players seen across the most recent 5 game IDs.
-    #    Capping at 5 recent games ensures we don't include players who
-    #    played early in the season and were then traded away.
-    from collections import defaultdict as _dd
-    game_order: list[int] = []          # game IDs in appearance order (most-recent first from BDL)
-    game_players: dict[int, dict] = _dd(dict)   # game_id -> {player_id -> player_info}
-
-    for s in stats_data:
-        game = s.get("game") or {}
-        gid = game.get("id")
-        player = s.get("player") or {}
-        pid = player.get("id")
-        if not gid or not pid:
-            continue
-        if gid not in game_order:
-            game_order.append(gid)
-        if pid not in game_players[gid]:
-            game_players[gid][pid] = {
-                "id": pid,
-                "first_name": (player.get("first_name") or "").strip(),
-                "last_name":  (player.get("last_name") or "").strip(),
-                "position":   (player.get("position") or "").strip(),
-            }
-
-    # Union players from the 5 most-recent games
-    recent_games = game_order[:5]
+    # 5. Keep only rows belonging to this team, deduplicate by player ID.
     seen_ids: set[int] = set()
     result: list[dict] = []
-    for gid in recent_games:
-        for pid, pdata in game_players[gid].items():
-            if pid not in seen_ids and (pdata["first_name"] or pdata["last_name"]):
-                seen_ids.add(pid)
-                result.append(pdata)
+    for s in stats_data:
+        stat_team = s.get("team") or {}
+        if stat_team.get("id") != team_id:
+            continue
+        player = s.get("player") or {}
+        pid = player.get("id")
+        if not pid or pid in seen_ids:
+            continue
+        seen_ids.add(pid)
+        result.append({
+            "id": pid,
+            "first_name": (player.get("first_name") or "").strip(),
+            "last_name":  (player.get("last_name") or "").strip(),
+            "position":   (player.get("position") or "").strip(),
+        })
 
     result.sort(key=lambda x: x.get("last_name", ""))
-    logger.debug("Roster for abbr=%s: %d players (from %d recent games)", abbr, len(result), len(recent_games))
+    logger.debug("Roster for abbr=%s: %d players (from %d recent games)", abbr, len(result), len(recent_game_ids))
     return result
 
 
