@@ -489,12 +489,13 @@ async def player_section_analysis_stream(
 
 # ── Basketball Chat ───────────────────────────────────────────────────────────
 
-_CHAT_SYSTEM = (
+_CHAT_SYSTEM_BASE = (
     "You are a sharp basketball analyst writing for a front office audience. "
     "Write the way a knowledgeable beat reporter or front office insider talks: confident, direct, "
     "grounded in numbers, no hype. Every claim needs a stat behind it. "
     "Say '31.2 PPG on 54.1% true shooting' not 'he is an elite scorer'. "
     "Use real numbers: PPG, RPG, APG, TS%, PER, net rating, usage rate, win shares, cap figures. "
+    "When LIVE DATA is provided above, treat it as ground truth and prioritize it over your training knowledge. "
     "If you are unsure of an exact number, give the closest estimate and note the season. "
     "Keep it tight. Two or three paragraphs max unless the question genuinely needs more. "
     "No filler. No 'great question'. No 'certainly'. No 'it is worth noting'. No AI disclaimers. "
@@ -502,6 +503,80 @@ _CHAT_SYSTEM = (
     "No asterisks, no pound signs, no dashes used as punctuation, no bold, no italics. "
     "Just sentences and paragraphs, like a well-written column."
 )
+
+_ESPN_SCOREBOARD = "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard"
+_ESPN_NEWS = "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/news?limit=10"
+
+async def _fetch_live_context() -> str:
+    """Build a live data block from our standings + ESPN scoreboard to ground the chat model."""
+    lines: list[str] = ["LIVE DATA (treat as ground truth, prioritize over training knowledge):"]
+
+    # 1. Our standings
+    try:
+        standings = await standings_service.get_standings()
+        east = standings.get("east", [])[:8]
+        west = standings.get("west", [])[:8]
+        east_str = ", ".join(f"{t['seed']}. {t['abbr']} ({t['wins']}-{t['losses']})" for t in east)
+        west_str = ", ".join(f"{t['seed']}. {t['abbr']} ({t['wins']}-{t['losses']})" for t in west)
+        lines.append(f"2025-26 NBA Standings (top 8): East: {east_str} | West: {west_str}")
+    except Exception:
+        pass
+
+    # 2. ESPN scoreboard — recent results + today's games
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            resp = await client.get(_ESPN_SCOREBOARD)
+            if resp.status_code == 200:
+                data = resp.json()
+                events = data.get("events", [])
+                results: list[str] = []
+                for ev in events[:12]:
+                    comps = ev.get("competitions", [{}])[0]
+                    competitors = comps.get("competitors", [])
+                    if len(competitors) == 2:
+                        home = competitors[0]
+                        away = competitors[1]
+                        status = ev.get("status", {}).get("type", {}).get("description", "")
+                        h_score = home.get("score", "")
+                        a_score = away.get("score", "")
+                        h_name = home.get("team", {}).get("abbreviation", "")
+                        a_name = away.get("team", {}).get("abbreviation", "")
+                        if status == "Final" and h_score and a_score:
+                            results.append(f"{a_name} {a_score} @ {h_name} {h_score} (Final)")
+                        elif status not in ("Final", "Scheduled") and h_score:
+                            results.append(f"{a_name} {a_score} @ {h_name} {h_score} ({status})")
+                if results:
+                    lines.append("Recent/live NBA scores: " + " | ".join(results))
+    except Exception:
+        pass
+
+    # 3. ESPN news headlines for current context
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            resp = await client.get(_ESPN_NEWS)
+            if resp.status_code == 200:
+                data = resp.json()
+                articles = data.get("articles", [])[:5]
+                headlines = [a.get("headline", "") for a in articles if a.get("headline")]
+                if headlines:
+                    lines.append("Recent NBA headlines: " + " | ".join(headlines))
+    except Exception:
+        pass
+
+    lines.append("")  # blank line before analyst instructions
+    return "\n".join(lines)
+
+
+def _strip_markdown(text: str) -> str:
+    """Remove markdown formatting characters from streamed chat text."""
+    import re
+    text = re.sub(r'\*{1,3}', '', text)
+    text = re.sub(r'#+\s*', '', text)
+    text = text.replace('\u2014', ',').replace('\u2013', ',')
+    text = re.sub(r'^\s*[-*]\s+', '', text)
+    text = text.replace('_', '')
+    return text
+
 
 @router.post("/chat/message")
 @limiter.limit(_CLAUDE_LIMIT)
@@ -514,31 +589,18 @@ async def chat_message(request: Request, body: dict = Body(...), _key: str = Dep
     if not messages:
         raise HTTPException(status_code=400, detail="No messages provided")
 
-    def _strip_markdown(text: str) -> str:
-        """Remove markdown formatting characters from streamed chat text."""
-        import re
-        # Remove bold/italic markers
-        text = re.sub(r'\*{1,3}', '', text)
-        # Remove pound-sign headers (may arrive mid-stream as "## ")
-        text = re.sub(r'#+\s*', '', text)
-        # Remove em dashes and en dashes
-        text = text.replace('\u2014', ',').replace('\u2013', ',')
-        # Remove leading bullet/dash list markers at start of a token
-        text = re.sub(r'^\s*[-*]\s+', '', text)
-        # Remove underscores used for italics
-        text = text.replace('_', '')
-        return text
-
     async def generate():
         try:
             from app.core.config import get_settings
             settings = get_settings()
             from anthropic import AsyncAnthropic
             client = AsyncAnthropic(api_key=settings.anthropic_api_key)
+            live_ctx = await _fetch_live_context()
+            system_prompt = live_ctx + _CHAT_SYSTEM_BASE
             async with client.messages.stream(
                 model=settings.claude_model,
                 max_tokens=2000,
-                system=_CHAT_SYSTEM,
+                system=system_prompt,
                 messages=messages,
             ) as stream:
                 async for text in stream.text_stream:
