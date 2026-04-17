@@ -208,12 +208,12 @@ _TOKENS_NOTE:    int = 300    # detailed scout note (player_id + full stats)
 _TOKENS_GAME:    int = 900    # game slate / upcoming matchup analysis prose
 _TOKENS_VERDICT: int = 750    # compare / trade structured JSON verdicts
 _TOKENS_PLAYER:  int = 1000   # single player analysis prose (stream + non-stream)
-_TOKENS_COACH:   int = 950    # coach adjustment & live tactical response
+_TOKENS_COACH:   int = 1400   # coach adjustment & live tactical response
 _TOKENS_PLAY:    int = 1000   # timeout & defensive play draw (prose + diagram JSON)
 _TOKENS_ROSTER:  int = 2200   # team roster / front-office memo
-_TOKENS_DNA:     int = 1400   # team identity / DNA breakdown
+_TOKENS_DNA:     int = 1800   # team identity / DNA breakdown
 _TOKENS_SECTION: int = 1600   # deep player section analysis (offense/defense/financials)
-_TOKENS_PREDICT: int = 2400   # full game prediction (matchup + projection)
+_TOKENS_PREDICT: int = 2800   # full game prediction (matchup + projection)
 _TOKENS_GAME_BOX: int = 3400  # live game box score analysis (both teams, all players)
 
 
@@ -1404,10 +1404,10 @@ async def analyze_trade(body: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-async def analyze_roster(team_name: str) -> dict[str, Any]:
+async def analyze_roster_stream(team_name: str):
     """
-    Generate a front-office assessment of a team's roster, cap situation,
-    and strategic priorities.
+    Stream a front-office assessment of a team's roster, cap situation,
+    and strategic priorities as SSE-style dicts.
 
     Parameters
     ----------
@@ -1507,20 +1507,31 @@ async def analyze_roster(team_name: str) -> dict[str, Any]:
         f"Name specific players. Use real contract figures. Give a real verdict. No hedging."
     )
 
-    result = await claude_service.analyze(
+    logger.info("Roster analysis streaming | team=%r", team_name)
+    yield {"type": "meta", "team": team_name, "team_data": matched_team.model_dump() if matched_team else None}
+    async for chunk in claude_service.analyze_stream(
         prompt=prompt,
         system_prompt=_front_office_system_prompt(),
         override_max_tokens=_TOKENS_ROSTER,
-    )
+    ):
+        yield {"type": "chunk", "text": chunk}
+    yield {"type": "done"}
 
-    logger.info("Roster analysis complete | team=%r tokens=%d", team_name, result.tokens_used)
 
+async def analyze_roster(team_name: str) -> dict[str, Any]:
+    """Non-streaming wrapper kept for backwards compatibility."""
+    full_text = ""
+    meta: dict[str, Any] = {}
+    async for evt in analyze_roster_stream(team_name):
+        if evt["type"] == "meta":
+            meta = evt
+        elif evt["type"] == "chunk":
+            full_text += evt["text"]
+    logger.info("Roster analysis complete | team=%r", team_name)
     return {
-        "team": team_name,
-        "team_data": matched_team.model_dump() if matched_team else None,
-        "analysis": result.analysis,
-        "model": result.model,
-        "tokens_used": result.tokens_used,
+        "team": meta.get("team", team_name),
+        "team_data": meta.get("team_data"),
+        "analysis": full_text,
     }
 
 
@@ -2760,7 +2771,6 @@ async def predict_game(body: dict[str, Any], session_id: Optional[str] = None) -
     result = await claude_service.analyze(
         prompt=prompt,
         system_prompt=system,
-        override_model=_FAST_MODEL,
         override_max_tokens=_TOKENS_PREDICT,
         override_temperature=0.15,
     )
@@ -3720,7 +3730,6 @@ The better_for_context field must be a complete sentence naming the player and t
     result = await claude_service.analyze(
         prompt=prompt,
         system_prompt=COMPARE_SYSTEM,
-        override_model=_FAST_MODEL,
         override_max_tokens=_TOKENS_VERDICT,
         override_temperature=0.1,
     )
@@ -3796,7 +3805,7 @@ Do not be generic. "They play fast and spread the floor" is not analysis. "They 
 FORMATTING: Plain prose only. No markdown, no bullets, no headers, no asterisks. Dense, expert prose in paragraphs. Write like a scout memo — every sentence earns its place."""
 
 
-async def analyze_team_dna(team_name: str) -> dict[str, Any]:
+async def analyze_team_dna(team_name: str):
     """
     Generate a deep team identity breakdown: offense, defense, pace, shot diet,
     scheme tendencies, and vulnerability profile.
@@ -3807,7 +3816,9 @@ async def analyze_team_dna(team_name: str) -> dict[str, Any]:
     cached = analysis_cache.get(cache_key)
     if cached:
         logger.info("team_dna cache hit | team=%s", team_name)
-        return cached
+        yield {"type": "chunk", "text": cached.get("analysis", "")}
+        yield {"type": "done"}
+        return
 
     # Enrich with live standings
     from app.services import standings_service as _standings_svc
@@ -3849,23 +3860,24 @@ async def analyze_team_dna(team_name: str) -> dict[str, Any]:
         "Close with one sentence that captures the essence of who this team is right now."
     )
 
-    result = await claude_service.analyze(
+    full_text = ""
+    async for chunk in claude_service.analyze_stream(
         prompt=prompt,
         system_prompt=TEAM_DNA_SYSTEM_PROMPT,
         override_max_tokens=_TOKENS_DNA,
         override_temperature=0.1,
-    )
+    ):
+        full_text += chunk
+        yield {"type": "chunk", "text": chunk}
 
     response = {
         "team": team_name,
         "standing": standings_ctx,
-        "analysis": result.analysis,
-        "model": result.model,
-        "tokens_used": result.tokens_used,
+        "analysis": full_text,
     }
     analysis_cache.set(cache_key, response, ttl=21600)  # 6-hour cache — team identity is stable
-    logger.info("team_dna complete | team=%s tokens=%d", team_name, result.tokens_used)
-    return response
+    logger.info("team_dna complete | team=%s", team_name)
+    yield {"type": "done"}
 
 
 async def scout_note(

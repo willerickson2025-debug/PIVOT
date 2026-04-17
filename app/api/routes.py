@@ -336,11 +336,15 @@ async def bulk_player_averages(
 @router.get("/analysis/team-dna")
 @limiter.limit(_CLAUDE_LIMIT)
 async def team_dna(request: Request, team_name: str = Query(..., description="Team name"), _key: str = Depends(verify_api_key)):
-    """Deep tactical identity breakdown: offense, defense, pace, shot diet, vulnerabilities."""
-    try:
-        return await analysis_service.analyze_team_dna(team_name)
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=str(e))
+    """Stream deep tactical identity breakdown: offense, defense, pace, shot diet, vulnerabilities."""
+    async def generate():
+        try:
+            async for event in analysis_service.analyze_team_dna(team_name):
+                yield f"data: {json.dumps(event)}\n\n"
+        except Exception as e:
+            yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+    return StreamingResponse(generate(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 
 @router.post("/analysis/scout-note")
@@ -513,7 +517,7 @@ async def chat_message(request: Request, body: dict = Body(...), _key: str = Dep
             client = AsyncAnthropic(api_key=settings.anthropic_api_key)
             async with client.messages.stream(
                 model=settings.claude_model,
-                max_tokens=1024,
+                max_tokens=2000,
                 system=_CHAT_SYSTEM,
                 messages=messages,
             ) as stream:
@@ -529,10 +533,23 @@ async def chat_message(request: Request, body: dict = Body(...), _key: str = Dep
 
 # ── Front Office ──────────────────────────────────────────────────────────────
 
+@router.get("/frontoffice/roster/stream")
+@limiter.limit(_CLAUDE_LIMIT)
+async def get_roster_analysis_stream(request: Request, team_name: str = Query(..., description="Team name"), _key: str = Depends(verify_api_key)):
+    """Stream roster breakdown and financial analysis for a team."""
+    async def generate():
+        try:
+            async for event in analysis_service.analyze_roster_stream(team_name):
+                yield f"data: {json.dumps(event)}\n\n"
+        except Exception as e:
+            yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+    return StreamingResponse(generate(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
 @router.get("/frontoffice/roster")
 @limiter.limit(_CLAUDE_LIMIT)
 async def get_roster_analysis(request: Request, team_name: str = Query(..., description="Team name"), _key: str = Depends(verify_api_key)):
-    """Get roster breakdown and financial analysis for a team."""
+    """Get roster breakdown and financial analysis for a team (non-streaming)."""
     try:
         return await analysis_service.analyze_roster(team_name)
     except Exception as e:
