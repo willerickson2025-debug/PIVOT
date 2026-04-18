@@ -808,59 +808,63 @@ function Games() {
 
   return (
     <div className="page page-pad">
-      <div className="page-hd">
-        <div>
-          <span className="page-module">PIVOT / MODULE 01</span>
-          <h1 className="page-title">GAMES</h1>
-        </div>
-        <div style={{marginLeft:'auto',display:'flex',gap:8,alignItems:'center'}}>
-          <button className="btn btn-wire btn-sm" onClick={()=>setDate(d=>shiftDate(d,-1))}>PREV</button>
-          <div style={{fontFamily:'var(--font)',fontSize:12,fontWeight:900,letterSpacing:'.1em',color:'var(--pulse)',background:'rgba(0,255,102,.07)',border:'1px solid rgba(0,255,102,.2)',padding:'9px 22px',minWidth:132,textAlign:'center'}}>{fmtDateLabel(date)}</div>
-          <button className="btn btn-wire btn-sm" onClick={()=>setDate(d=>shiftDate(d,1))}>NEXT</button>
-          <button className="btn btn-signal btn-sm" onClick={()=>setDate(localDate())}>TODAY</button>
+      <div className="page-header">
+        <div className="page-eyebrow">01 / GAMES</div>
+        <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between',flexWrap:'wrap',gap:20}}>
+          <h1 className="page-headline">TONIGHT'S SLATE.</h1>
+          <div style={{display:'flex',gap:8,alignItems:'center',flexShrink:0}}>
+            <button className="btn btn-secondary btn-sm" onClick={()=>setDate(d=>shiftDate(d,-1))}>PREV</button>
+            <div style={{fontSize:12,fontWeight:900,letterSpacing:'.1em',color:'var(--neon)',border:'1px solid var(--wire)',padding:'9px 22px',minWidth:132,textAlign:'center'}}>{fmtDateLabel(date)}</div>
+            <button className="btn btn-secondary btn-sm" onClick={()=>setDate(d=>shiftDate(d,1))}>NEXT</button>
+            <button className="btn btn-neon btn-sm" onClick={()=>setDate(localDate())}>TODAY</button>
+          </div>
         </div>
       </div>
-      {loading&&<Loader/>}
-      {!loading&&!games.length&&<div style={{fontSize:11,letterSpacing:'.14em',color:'#fff',textTransform:'uppercase',padding:'80px 0',textAlign:'center'}}>NO GAMES SCHEDULED.</div>}
+
+      {loading&&<div className="load-line-wrap"><div className="load-line"/></div>}
+
+      {!loading&&!games.length&&(
+        <div className="empty-state">
+          <div className="empty-headline">NO GAMES.</div>
+          <div className="empty-sub">NOTHING SCHEDULED FOR {fmtDateLabel(date)}.</div>
+        </div>
+      )}
+
       {!loading&&games.length>0&&(
-        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))',gap:12}}>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))',gap:12}}>
           {games.map(g=>{
             const{label,type}=parseStatus(g.status);
             const live=type==='live',final=type==='final';
             const ps=getPostseasonLabel(g);
             const away=g.visitor_team?.abbreviation||'AWY';
             const home=g.home_team?.abbreviation||'HOM';
-            const conf=Math.round(68+Math.random()*31);
             return (
-              <div key={g.id} className="card card-lift" onClick={()=>{setSelected(g);setModalOpen(true);}}
-                   style={{padding:'22px 20px',display:'flex',flexDirection:'column',gap:16,position:'relative',aspectRatio:'1/1',justifyContent:'space-between',
-                     boxShadow:live?'0 0 24px rgba(0,255,102,.12)':'none',
-                     borderColor:live?'rgba(0,255,102,.4)':'rgba(0,255,102,.12)'}}>
+              <div key={g.id} className="game-widget" onClick={()=>{setSelected(g);setModalOpen(true);}}
+                   style={{borderColor:live?'rgba(0,255,102,.40)':'var(--wire)'}}>
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
-                  <span className={`badge badge-${type}`}>{label}</span>
-                  {live&&<span className="pulse-dot"/>}
-                  {ps&&<span className="badge badge-signal">{ps}</span>}
+                  <span className={`badge badge-${type}`}>
+                    {live&&<span className="pulse-dot" style={{width:5,height:5,marginRight:4}}/>}
+                    {label}
+                  </span>
+                  {ps&&<span className="badge badge-signal" style={{fontSize:8}}>{ps}</span>}
                 </div>
-                <div style={{display:'flex',flexDirection:'column',gap:10,flex:1,justifyContent:'center'}}>
+                <div style={{display:'flex',flexDirection:'column',gap:8}}>
                   <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                    <div style={{display:'flex',alignItems:'center',gap:8}}>
-                      <TeamLogo abbr={away} size={24}/>
-                      <span style={{fontWeight:900,fontSize:13,letterSpacing:'.06em'}}>{away}</span>
-                    </div>
-                    {g.visitor_team_score!=null&&<span style={{fontSize:32,fontWeight:900,color:live?'var(--pulse)':'#fff',letterSpacing:'-.04em',textShadow:live?'0 0 16px rgba(0,255,102,.5)':'none'}}>{g.visitor_team_score}</span>}
+                    <span style={{fontSize:16,fontWeight:900,letterSpacing:'-.02em'}}>{away}</span>
+                    {g.visitor_team_score!=null&&(
+                      <span style={{fontSize:28,fontWeight:900,letterSpacing:'-.04em',color:live?'var(--neon)':'var(--bone)'}}>{g.visitor_team_score}</span>
+                    )}
                   </div>
-                  <div style={{height:1,background:'rgba(0,255,102,.1)'}}/>
+                  <div style={{height:1,background:'var(--wire)'}}/>
                   <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                    <div style={{display:'flex',alignItems:'center',gap:8}}>
-                      <TeamLogo abbr={home} size={24}/>
-                      <span style={{fontWeight:900,fontSize:13,letterSpacing:'.06em'}}>{home}</span>
-                    </div>
-                    {g.home_team_score!=null&&<span style={{fontSize:32,fontWeight:900,color:live?'var(--pulse)':'#fff',letterSpacing:'-.04em',textShadow:live?'0 0 16px rgba(0,255,102,.5)':'none'}}>{g.home_team_score}</span>}
+                    <span style={{fontSize:16,fontWeight:900,letterSpacing:'-.02em'}}>{home}</span>
+                    {g.home_team_score!=null&&(
+                      <span style={{fontSize:28,fontWeight:900,letterSpacing:'-.04em',color:live?'var(--neon)':'var(--bone)'}}>{g.home_team_score}</span>
+                    )}
                   </div>
                 </div>
-                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                  <span style={{fontSize:8,letterSpacing:'.12em',color:'rgba(0,255,102,.6)',fontWeight:900}}>{conf}% CONF</span>
-                  {(final||live)&&<span style={{fontSize:9,color:'var(--pulse)',letterSpacing:'.1em',fontWeight:900}}>VIEW BOX</span>}
+                <div style={{display:'flex',justifyContent:'flex-end'}}>
+                  {(final||live)&&<span style={{fontSize:9,color:'var(--smoke)',letterSpacing:'.1em',fontWeight:700}}>BOX SCORE</span>}
                 </div>
               </div>
             );
