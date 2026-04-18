@@ -15,111 +15,117 @@
 <style>
 /* ─── ABLOH SYSTEM ─────────────────────────────────────────────────────────── */
 :root {
-  --signal:#CCFF00; --pulse:#00FF66;
-  --ink:#050505; --graphite:#121212;
+  --signal:#CCFF00; --pulse:#00FF66; --emerald:#00A651; --forest:#003D1F; --mint:#D4FFE1;
+  --ink:#030303; --graphite:rgba(10,10,10,.78);
   --bone:#F4F1EB; --mist:rgba(255,255,255,.04);
-  --wire:rgba(204,255,0,.18); --wire-faint:rgba(204,255,0,.045);
-  --fg:rgba(255,255,255,.95); --fg2:rgba(255,255,255,.6); --fg3:rgba(255,255,255,.3); --fg4:rgba(255,255,255,.1);
-  --glass-bg:rgba(18,18,18,.55); --glass-border:rgba(204,255,0,.14);
-  --font:'Helvetica Neue',Helvetica,'Inter',Arial,sans-serif;
+  --wire:rgba(0,255,102,.2); --wire-faint:rgba(0,255,102,.04);
+  --fg:rgba(255,255,255,.96); --fg2:rgba(255,255,255,.62); --fg3:rgba(255,255,255,.32); --fg4:rgba(255,255,255,.1);
+  --glass-bg:rgba(10,10,10,.72); --glass-border:rgba(0,255,102,.18);
+  --font:'Helvetica Neue','Helvetica','Arial Black',sans-serif;
   --mono:'JetBrains Mono','Berkeley Mono','Courier New',monospace;
   --ease:cubic-bezier(.2,.9,.3,1);
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-html,body{background:var(--ink);color:var(--fg);font-family:var(--font);line-height:1.5;min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased;}
-/* Blueprint grid — always visible */
+html,body{background:#030303;color:var(--fg);font-family:var(--font);line-height:1.5;min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased;font-weight:900;}
+/* Subtle grid overlay */
 body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(var(--wire-faint) 1px,transparent 1px),linear-gradient(90deg,var(--wire-faint) 1px,transparent 1px);background-size:8.333vw 64px;pointer-events:none;z-index:0;}
 #root{position:relative;z-index:1;}
 ::-webkit-scrollbar{width:3px;height:3px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:rgba(204,255,0,.2);}
 img{display:block;}
 /* ─── GLASS ───────────────────────────────────────────────────────────────── */
-.glass{background:var(--glass-bg);backdrop-filter:blur(24px) saturate(140%);-webkit-backdrop-filter:blur(24px) saturate(140%);border:1px solid var(--glass-border);}
-.glass-strong{background:rgba(18,18,18,.75);backdrop-filter:blur(32px) saturate(160%);-webkit-backdrop-filter:blur(32px) saturate(160%);border:1px solid rgba(204,255,0,.2);}
+.glass{background:var(--glass-bg);backdrop-filter:blur(28px) saturate(160%);-webkit-backdrop-filter:blur(28px) saturate(160%);border:1px solid var(--glass-border);}
+.glass-strong{background:rgba(8,8,8,.82);backdrop-filter:blur(36px) saturate(170%);-webkit-backdrop-filter:blur(36px) saturate(170%);border:1px solid rgba(0,255,102,.22);}
 /* ─── TYPOGRAPHY ──────────────────────────────────────────────────────────── */
 .display{font-family:var(--font);font-weight:900;letter-spacing:-.04em;line-height:.88;}
 .mono{font-family:var(--mono);letter-spacing:.04em;}
-.label{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--signal);}
-.sublabel{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--fg3);}
+.label{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--pulse);}
+.sublabel{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--fg3);}
 /* ─── BUTTONS ─────────────────────────────────────────────────────────────── */
 button,input,select,textarea{font-family:var(--font);}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:12px;letter-spacing:.06em;text-transform:uppercase;border:none;cursor:pointer;transition:all 160ms var(--ease);white-space:nowrap;}
-.btn-signal{background:var(--signal);color:var(--ink);padding:11px 28px;}
-.btn-signal:hover:not(:disabled){background:#d6ff1a;box-shadow:0 0 24px rgba(204,255,0,.35);transform:translateY(-1px);}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:900;font-size:12px;letter-spacing:.08em;text-transform:uppercase;border:none;cursor:pointer;transition:all 160ms var(--ease);white-space:nowrap;}
+.btn-signal{background:var(--pulse);color:#000;padding:11px 28px;}
+.btn-signal:hover:not(:disabled){background:#1aff7a;box-shadow:0 0 28px rgba(0,255,102,.4);transform:translateY(-1px);}
 .btn-signal:disabled{opacity:.35;cursor:not-allowed;transform:none;box-shadow:none;}
 .btn-wire{background:transparent;color:var(--fg);border:1px solid var(--wire);padding:10px 26px;}
-.btn-wire:hover:not(:disabled){background:var(--mist);border-color:rgba(204,255,0,.4);}
+.btn-wire:hover:not(:disabled){background:rgba(0,255,102,.06);border-color:rgba(0,255,102,.4);}
 .btn-wire:disabled{opacity:.35;cursor:not-allowed;}
-.btn-ghost{background:transparent;color:var(--fg2);border:none;padding:7px 12px;font-size:12px;font-weight:600;letter-spacing:.03em;cursor:pointer;transition:color 140ms;}
+.btn-ghost{background:transparent;color:var(--fg2);border:none;padding:7px 12px;font-size:12px;font-weight:700;letter-spacing:.04em;cursor:pointer;transition:color 140ms;}
 .btn-ghost:hover{color:var(--fg);}
 .btn-sm{padding:7px 18px;font-size:11px;}
+.btn-accent{background:var(--signal);color:#000;padding:11px 28px;font-weight:900;}
+.btn-accent:hover:not(:disabled){box-shadow:0 0 24px rgba(204,255,0,.35);transform:translateY(-1px);}
 /* ─── INPUTS ──────────────────────────────────────────────────────────────── */
-input,select,textarea{font-size:13px;background:rgba(18,18,18,.8);color:var(--fg);border:1px solid rgba(255,255,255,.1);padding:10px 14px;outline:none;transition:border-color 150ms,box-shadow 150ms;width:100%;font-weight:500;}
-input:focus,select:focus,textarea:focus{border-color:var(--glass-border);box-shadow:0 0 0 3px rgba(204,255,0,.07);}
+input,select,textarea{font-size:13px;background:rgba(6,6,6,.85);backdrop-filter:blur(12px);color:var(--fg);border:1px solid rgba(0,255,102,.14);padding:10px 14px;outline:none;transition:border-color 150ms,box-shadow 150ms;width:100%;font-weight:500;}
+input:focus,select:focus,textarea:focus{border-color:rgba(0,255,102,.35);box-shadow:0 0 0 3px rgba(0,255,102,.07);}
 input::placeholder,textarea::placeholder{color:var(--fg3);font-weight:400;}
-select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%23CCFF00' d='M5 6L0 0h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px;}
+select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%2300FF66' d='M5 6L0 0h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px;}
 /* ─── CARDS ───────────────────────────────────────────────────────────────── */
-.card{background:var(--graphite);border:1px solid rgba(255,255,255,.07);overflow:hidden;position:relative;}
-.card-lift{transition:border-color 200ms,box-shadow 200ms;cursor:pointer;}
-.card-lift:hover{border-color:var(--wire);box-shadow:0 0 32px rgba(204,255,0,.06);}
-.card-signal{background:rgba(204,255,0,.05);border-color:var(--wire) !important;}
+.card{background:var(--graphite);backdrop-filter:blur(20px) saturate(130%);-webkit-backdrop-filter:blur(20px) saturate(130%);border:1px solid rgba(0,255,102,.12);overflow:hidden;position:relative;}
+.card-lift{transition:border-color 220ms,box-shadow 220ms,background 220ms;cursor:pointer;}
+.card-lift:hover{border-color:rgba(0,255,102,.32);box-shadow:0 4px 48px rgba(0,255,102,.12),0 0 0 1px rgba(0,255,102,.12);background:rgba(12,12,12,.88);}
+.card-signal{background:rgba(0,255,102,.07);border-color:rgba(0,255,102,.3) !important;}
 /* ─── NAV ─────────────────────────────────────────────────────────────────── */
-.nav{position:fixed;top:0;left:0;right:0;z-index:1000;height:58px;display:flex;align-items:stretch;padding:0 28px 0 24px;background:rgba(5,5,5,.88);border-bottom:1px solid rgba(204,255,0,.1);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);}
-.nav-logo{display:flex;align-items:center;font-size:18px;font-weight:900;letter-spacing:-.05em;color:var(--signal);text-shadow:0 0 20px rgba(204,255,0,.45);margin-right:20px;flex-shrink:0;cursor:pointer;user-select:none;padding-right:20px;border-right:1px solid rgba(255,255,255,.07);}
+.nav{position:fixed;top:0;left:0;right:0;z-index:1000;height:58px;display:flex;align-items:stretch;padding:0 28px 0 24px;background:rgba(3,3,3,.88);border-bottom:1px solid rgba(0,255,102,.18);backdrop-filter:blur(28px) saturate(160%);-webkit-backdrop-filter:blur(28px) saturate(160%);}
+.nav-logo{display:flex;align-items:center;font-size:20px;font-weight:900;letter-spacing:-.05em;color:#fff;text-shadow:0 0 24px rgba(0,255,102,.35);margin-right:20px;flex-shrink:0;cursor:pointer;user-select:none;padding-right:20px;border-right:1px solid rgba(0,255,102,.12);}
 .nav-links{display:flex;align-items:stretch;flex:1;overflow-x:auto;}
-.nav-link{height:58px;display:flex;align-items:center;padding:0 14px;font-size:10.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--fg3);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;transition:color 140ms,border-color 140ms;white-space:nowrap;font-family:var(--font);}
+.nav-link{height:58px;display:flex;align-items:center;padding:0 14px;font-size:10.5px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;color:var(--fg3);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;transition:color 140ms,border-color 140ms;white-space:nowrap;font-family:var(--font);}
 .nav-link:hover{color:var(--fg2);}
-.nav-link.active{color:var(--fg);border-bottom-color:var(--signal);}
-.nav-right{margin-left:auto;display:flex;align-items:center;gap:12px;flex-shrink:0;padding-left:20px;border-left:1px solid rgba(255,255,255,.07);}
-.pulse-dot{width:7px;height:7px;background:var(--pulse);box-shadow:0 0 8px var(--pulse);animation:blink-glow 2.4s ease-in-out infinite;}
+.nav-link.active{color:var(--pulse);border-bottom-color:var(--pulse);}
+.nav-right{margin-left:auto;display:flex;align-items:center;gap:12px;flex-shrink:0;padding-left:20px;border-left:1px solid rgba(0,255,102,.12);}
+.pulse-dot{width:7px;height:7px;border-radius:50%;background:var(--pulse);box-shadow:0 0 10px var(--pulse);animation:blink-glow 2.4s ease-in-out infinite;}
 /* ─── TICKER ──────────────────────────────────────────────────────────────── */
-.ticker{height:34px;background:var(--graphite);border-bottom:1px solid rgba(204,255,0,.08);overflow:hidden;display:flex;align-items:center;}
-.ticker-tag{flex-shrink:0;padding:0 16px;height:100%;display:flex;align-items:center;gap:8px;border-right:1px solid rgba(204,255,0,.08);font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--signal);}
+.ticker{height:34px;background:rgba(0,0,0,.85);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(0,255,102,.12);overflow:hidden;display:flex;align-items:center;}
+.ticker-tag{flex-shrink:0;padding:0 16px;height:100%;display:flex;align-items:center;gap:8px;border-right:1px solid rgba(0,255,102,.1);font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--pulse);}
 .ticker-content{flex:1;overflow:hidden;}
 .ticker-track{display:inline-flex;align-items:center;white-space:nowrap;animation:ticker-run 90s linear infinite;}
 .ticker-track:hover{animation-play-state:paused;}
 /* ─── BADGES ──────────────────────────────────────────────────────────────── */
 .badge{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:3px 8px;}
-.badge-live{background:rgba(0,255,102,.12);color:var(--pulse);border:1px solid rgba(0,255,102,.28);animation:wire-pulse 2.5s ease-in-out infinite;}
-.badge-final{background:rgba(255,255,255,.05);color:var(--fg3);}
-.badge-sched{background:rgba(255,255,255,.04);color:var(--fg3);}
+.badge-live{background:rgba(0,255,102,.14);color:var(--pulse);border:1px solid rgba(0,255,102,.32);animation:wire-pulse 2.5s ease-in-out infinite;}
+.badge-final{background:rgba(255,255,255,.06);color:var(--fg3);border:1px solid rgba(255,255,255,.08);}
+.badge-sched{background:rgba(255,255,255,.04);color:var(--fg3);border:1px solid rgba(255,255,255,.06);}
 .badge-signal{background:var(--signal);color:var(--ink);font-weight:800;}
 /* ─── BOX TABLE ───────────────────────────────────────────────────────────── */
 .box-table{width:100%;border-collapse:collapse;font-size:12px;}
-.box-table th{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--fg3);padding:8px 10px;text-align:right;border-bottom:1px solid rgba(255,255,255,.06);}
+.box-table th{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--fg3);padding:10px 10px;text-align:right;border-bottom:1px solid rgba(0,255,102,.1);}
 .box-table th:first-child{text-align:left;}
-.box-table td{padding:8px 10px;text-align:right;border-bottom:1px solid rgba(255,255,255,.03);color:var(--fg2);font-size:12px;}
-.box-table td:first-child{text-align:left;font-weight:600;color:var(--fg);}
-.box-table tr:hover td{background:rgba(204,255,0,.02);}
+.box-table td{padding:9px 10px;text-align:right;border-bottom:1px solid rgba(255,255,255,.03);color:var(--fg2);font-size:12px;}
+.box-table td:first-child{text-align:left;font-weight:700;color:var(--fg);}
+.box-table tr:hover td{background:rgba(0,255,102,.03);}
 /* ─── MODAL ───────────────────────────────────────────────────────────────── */
-.modal-overlay{position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.88);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:20px;}
-.modal-box{background:rgba(12,12,12,.95);border:1px solid rgba(204,255,0,.18);width:100%;max-width:860px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 0 60px rgba(204,255,0,.04);}
-.modal-head{display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid rgba(204,255,0,.1);flex-shrink:0;}
+.modal-overlay{position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.9);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;padding:20px;}
+.modal-box{background:rgba(8,8,8,.95);backdrop-filter:blur(32px);-webkit-backdrop-filter:blur(32px);border:1px solid rgba(0,255,102,.2);width:100%;max-width:860px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 0 80px rgba(0,255,102,.06),inset 0 0 40px rgba(0,255,102,.02);}
+.modal-head{display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid rgba(0,255,102,.1);flex-shrink:0;}
 .modal-body{flex:1;overflow-y:auto;padding:24px;}
 /* ─── STREAM BOX ──────────────────────────────────────────────────────────── */
-.stream-box{background:rgba(12,12,12,.8);border:1px solid rgba(255,255,255,.07);padding:18px;font-size:13.5px;line-height:1.85;color:var(--fg2);min-height:60px;max-height:520px;overflow-y:auto;white-space:pre-wrap;word-break:break-word;font-weight:400;}
+.stream-box{background:rgba(4,4,4,.88);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(0,255,102,.1);border-left:3px solid rgba(0,255,102,.25);padding:18px 20px;font-size:13.5px;line-height:1.85;color:var(--fg2);min-height:60px;max-height:520px;overflow-y:auto;white-space:pre-wrap;word-break:break-word;font-weight:400;}
 /* ─── TAB ROW ─────────────────────────────────────────────────────────────── */
-.tab-row{display:flex;border-bottom:1px solid rgba(255,255,255,.07);margin-bottom:22px;}
-.tab-btn{background:none;border:none;border-bottom:2px solid transparent;padding:10px 18px;font-size:10.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--fg3);cursor:pointer;transition:color 140ms,border-color 140ms;font-family:var(--font);}
-.tab-btn.active{color:var(--fg);border-bottom-color:var(--signal);}
+.tab-row{display:flex;border-bottom:1px solid rgba(0,255,102,.1);margin-bottom:24px;}
+.tab-btn{background:none;border:none;border-bottom:2px solid transparent;padding:12px 20px;font-size:10.5px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:var(--fg3);cursor:pointer;transition:color 140ms,border-color 140ms;font-family:var(--font);}
+.tab-btn.active{color:#fff;border-bottom-color:var(--pulse);}
 .tab-btn:hover:not(.active){color:var(--fg2);}
 /* ─── SEG CTRL ────────────────────────────────────────────────────────────── */
-.seg{display:flex;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);gap:0;}
-.seg-btn{background:transparent;border:none;padding:6px 16px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--fg3);cursor:pointer;transition:all 140ms;font-family:var(--font);}
-.seg-btn.active{background:var(--signal);color:var(--ink);}
+.seg{display:flex;background:rgba(0,0,0,.5);border:1px solid rgba(0,255,102,.15);gap:0;}
+.seg-btn{background:transparent;border:none;padding:7px 18px;font-size:11px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:var(--fg3);cursor:pointer;transition:all 160ms;font-family:var(--font);}
+.seg-btn.active{background:var(--pulse);color:#000;}
 /* ─── PAGE ────────────────────────────────────────────────────────────────── */
-.page{padding-top:58px;}
-.page-pad{padding:0 28px 80px;}
-.page-hd{padding:32px 0 24px;border-bottom:1px solid rgba(255,255,255,.06);margin-bottom:28px;display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;}
-/* ─── CONF TAG (Abloh decoration) ─────────────────────────────────────────── */
-.conf-tag{position:absolute;top:10px;right:12px;font-family:var(--mono);font-size:8.5px;color:rgba(204,255,0,.5);letter-spacing:.06em;text-transform:uppercase;pointer-events:none;line-height:1.3;text-align:right;}
+.page{padding-top:92px;}
+.page-pad{padding:0 32px 100px;}
+.page-hd{padding:36px 0 28px;border-bottom:1px solid rgba(0,255,102,.12);margin-bottom:32px;display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;}
+.page-title{font-family:var(--font);font-weight:900;font-size:clamp(38px,5vw,64px);letter-spacing:-.04em;line-height:.92;color:#fff;text-shadow:0 0 48px rgba(0,255,102,.12);}
+.page-module{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--pulse);margin-bottom:10px;display:block;}
+/* ─── CONF TAG (decoration) ───────────────────────────────────────────────── */
+.conf-tag{position:absolute;top:10px;right:12px;font-family:var(--mono);font-size:8.5px;color:rgba(0,255,102,.45);letter-spacing:.06em;text-transform:uppercase;pointer-events:none;line-height:1.3;text-align:right;}
 /* ─── KEYFRAMES ───────────────────────────────────────────────────────────── */
 @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
-@keyframes blink-glow{0%,100%{opacity:1;box-shadow:0 0 8px var(--pulse)}50%{opacity:.3;box-shadow:0 0 2px var(--pulse)}}
-@keyframes wire-pulse{0%,100%{border-color:rgba(0,255,102,.28)}50%{border-color:rgba(0,255,102,.6)}}
-@keyframes fade-up{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes blink-glow{0%,100%{opacity:1;box-shadow:0 0 10px var(--pulse)}50%{opacity:.3;box-shadow:0 0 3px var(--pulse)}}
+@keyframes wire-pulse{0%,100%{border-color:rgba(0,255,102,.28)}50%{border-color:rgba(0,255,102,.65)}}
+@keyframes fade-up{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
 @keyframes ticker-run{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
-@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
-@keyframes glow-pulse{0%,100%{opacity:.6}50%{opacity:1}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+@keyframes float2{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-18px) scale(1.04)}}
+@keyframes float3{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(2%,-2%) scale(1.03)}}
+@keyframes glow-pulse{0%,100%{opacity:.5}50%{opacity:1}}
 .fade-up{animation:fade-up 500ms var(--ease) both;}
 /* ─── HERO ────────────────────────────────────────────────────────────────── */
 .hero{position:relative;min-height:90vh;display:flex;flex-direction:column;justify-content:center;overflow:hidden;padding:80px 28px 60px;}
@@ -251,13 +257,15 @@ function ConfTag({text='98.4% / CONFIDENCE'}) {
   return <div className="conf-tag">{text}</div>;
 }
 
-function Loader({size=34}) {
+function Loader({size=36}) {
   return (
-    <div style={{display:'flex',alignItems:'center',justifyContent:'center',padding:'56px 0'}}>
-      <svg width={size} height={size} viewBox="0 0 34 34" style={{animation:'spin 0.9s linear infinite'}}>
-        <circle cx="17" cy="17" r="13" fill="none" stroke="var(--signal)" strokeWidth="2"
-                strokeDasharray="50 20" strokeLinecap="butt"/>
+    <div style={{display:'flex',alignItems:'center',justifyContent:'center',padding:'64px 0',flexDirection:'column',gap:16}}>
+      <svg width={size} height={size} viewBox="0 0 36 36" style={{animation:'spin 0.85s linear infinite'}}>
+        <circle cx="18" cy="18" r="14" fill="none" stroke="rgba(0,255,102,.2)" strokeWidth="2"/>
+        <circle cx="18" cy="18" r="14" fill="none" stroke="var(--pulse)" strokeWidth="2.5"
+                strokeDasharray="48 44" strokeLinecap="round"/>
       </svg>
+      <span style={{fontFamily:'var(--mono)',fontSize:9,letterSpacing:'.18em',color:'var(--fg3)',textTransform:'uppercase'}}>LOADING</span>
     </div>
   );
 }
@@ -265,9 +273,9 @@ function Loader({size=34}) {
 function Avatar({name,size=44,style:sx={}}) {
   const init=(name||'?').split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
   return (
-    <div style={{width:size,height:size,background:'rgba(204,255,0,.06)',border:'1px solid var(--wire)',
+    <div style={{width:size,height:size,background:'rgba(0,255,102,.08)',border:'1px solid rgba(0,255,102,.22)',
       display:'flex',alignItems:'center',justifyContent:'center',fontSize:size*.32,
-      fontWeight:800,color:'var(--signal)',flexShrink:0,fontFamily:'var(--mono)',...sx}}>{init}</div>
+      fontWeight:900,color:'var(--pulse)',flexShrink:0,fontFamily:'var(--mono)',borderRadius:2,...sx}}>{init}</div>
   );
 }
 
@@ -403,6 +411,35 @@ function Ticker() {
     <div className="ticker">
       <div className="ticker-tag"><span className="pulse-dot"/>SCORES</div>
       <div className="ticker-content"><div className="ticker-track">{items}{items}</div></div>
+    </div>
+  );
+}
+
+// ─── APP BACKGROUND ──────────────────────────────────────────────────────────
+
+function AppBackground() {
+  return (
+    <div style={{position:'fixed',inset:0,zIndex:0,pointerEvents:'none',overflow:'hidden',background:'#030303'}}>
+      {/* Large green aurora — top left */}
+      <div style={{position:'absolute',width:'120vmax',height:'120vmax',borderRadius:'50%',
+        top:'-50vmax',left:'-30vmax',
+        background:'radial-gradient(circle,rgba(0,255,102,.1) 0%,rgba(0,166,81,.06) 28%,rgba(0,61,31,.03) 52%,transparent 68%)',
+        animation:'float3 26s ease-in-out infinite'}}/>
+      {/* Medium acid bubble — bottom right */}
+      <div style={{position:'absolute',width:'80vmax',height:'80vmax',borderRadius:'50%',
+        bottom:'-28vmax',right:'-12vmax',
+        background:'radial-gradient(circle,rgba(204,255,0,.07) 0%,rgba(0,166,81,.04) 38%,transparent 62%)',
+        animation:'float 32s ease-in-out infinite reverse'}}/>
+      {/* Small pulse bubble — mid right */}
+      <div style={{position:'absolute',width:'42vmax',height:'42vmax',borderRadius:'50%',
+        top:'28%',right:'12%',
+        background:'radial-gradient(circle,rgba(0,255,102,.06) 0%,transparent 58%)',
+        animation:'float2 19s ease-in-out infinite 6s'}}/>
+      {/* Very subtle warm glow — center */}
+      <div style={{position:'absolute',width:'60vmax',height:'40vmax',borderRadius:'50%',
+        top:'40%',left:'30%',
+        background:'radial-gradient(circle,rgba(0,255,102,.03) 0%,transparent 55%)',
+        animation:'float 38s ease-in-out infinite 2s'}}/>
     </div>
   );
 }
@@ -563,20 +600,20 @@ function Games() {
     <div className="page page-pad">
       <div className="page-hd">
         <div>
-          <div className="sublabel" style={{marginBottom:6}}>PIVOT / MODULE 01</div>
-          <h1 style={{fontFamily:'var(--font)',fontWeight:900,fontSize:26,letterSpacing:'-.04em'}}>GAMES</h1>
+          <span className="page-module">PIVOT / MODULE 01</span>
+          <h1 className="page-title">GAMES</h1>
         </div>
         <div style={{marginLeft:'auto',display:'flex',gap:8,alignItems:'center'}}>
-          <button className="btn-ghost" onClick={()=>setDate(d=>shiftDate(d,-1))} style={{fontFamily:'var(--mono)',fontSize:14,padding:'8px 12px'}}>←</button>
-          <div style={{fontFamily:'var(--mono)',fontSize:12,fontWeight:700,letterSpacing:'.08em',color:'var(--signal)',background:'rgba(204,255,0,.06)',border:'1px solid var(--wire)',padding:'8px 20px',minWidth:128,textAlign:'center'}}>{fmtDateLabel(date)}</div>
-          <button className="btn-ghost" onClick={()=>setDate(d=>shiftDate(d,1))} style={{fontFamily:'var(--mono)',fontSize:14,padding:'8px 12px'}}>→</button>
+          <button className="btn-ghost" onClick={()=>setDate(d=>shiftDate(d,-1))} style={{fontFamily:'var(--mono)',fontSize:16,padding:'8px 14px',color:'var(--pulse)'}}>←</button>
+          <div style={{fontFamily:'var(--mono)',fontSize:12,fontWeight:900,letterSpacing:'.1em',color:'var(--pulse)',background:'rgba(0,255,102,.07)',border:'1px solid rgba(0,255,102,.2)',padding:'9px 22px',minWidth:132,textAlign:'center'}}>{fmtDateLabel(date)}</div>
+          <button className="btn-ghost" onClick={()=>setDate(d=>shiftDate(d,1))} style={{fontFamily:'var(--mono)',fontSize:16,padding:'8px 14px',color:'var(--pulse)'}}>→</button>
           <button className="btn btn-wire btn-sm" onClick={()=>setDate(localDate())}>TODAY</button>
         </div>
       </div>
       {loading&&<Loader/>}
-      {!loading&&!games.length&&<div style={{fontFamily:'var(--mono)',fontSize:11,letterSpacing:'.1em',color:'var(--fg3)',textTransform:'uppercase',padding:'60px 0',textAlign:'center'}}>NO GAMES SCHEDULED.</div>}
+      {!loading&&!games.length&&<div style={{fontFamily:'var(--mono)',fontSize:11,letterSpacing:'.14em',color:'var(--fg3)',textTransform:'uppercase',padding:'80px 0',textAlign:'center'}}>NO GAMES SCHEDULED.</div>}
       {!loading&&games.length>0&&(
-        <div style={{display:'grid',gap:1}}>
+        <div style={{display:'grid',gap:2}}>
           {games.map(g=>{
             const{label,type}=parseStatus(g.status);
             const live=type==='live',final=type==='final';
@@ -586,26 +623,28 @@ function Games() {
             const conf=Math.round(68+Math.random()*31);
             return (
               <div key={g.id} className="card card-lift" onClick={()=>{setSelected(g);setModalOpen(true);}}
-                   style={{padding:'18px 22px',display:'flex',alignItems:'center',gap:16,flexWrap:'wrap',background:'var(--graphite)',position:'relative'}}>
+                   style={{padding:'20px 24px',display:'flex',alignItems:'center',gap:16,flexWrap:'wrap',position:'relative',
+                     boxShadow:live?'0 0 20px rgba(0,255,102,.08)':'none',
+                     borderColor:live?'rgba(0,255,102,.28)':'rgba(0,255,102,.12)'}}>
                 <ConfTag text={`${conf}.${Math.floor(Math.random()*9)}% / CONF`}/>
                 {ps&&<span className="badge badge-signal">{ps}</span>}
                 <div style={{display:'flex',alignItems:'center',gap:14,flex:1,minWidth:220}}>
                   <div style={{display:'flex',alignItems:'center',gap:10}}>
-                    <TeamLogo abbr={away} size={26}/>
-                    <span style={{fontFamily:'var(--mono)',fontWeight:700,fontSize:12,letterSpacing:'.08em',minWidth:32,color:'var(--fg2)'}}>{away}</span>
-                    {g.visitor_team_score!=null&&<span style={{fontFamily:'var(--mono)',fontSize:24,fontWeight:700,color:live?'var(--pulse)':'var(--fg)',letterSpacing:'-.04em'}}>{g.visitor_team_score}</span>}
+                    <TeamLogo abbr={away} size={30}/>
+                    <span style={{fontFamily:'var(--mono)',fontWeight:900,fontSize:12,letterSpacing:'.08em',minWidth:34,color:'var(--fg2)'}}>{away}</span>
+                    {g.visitor_team_score!=null&&<span style={{fontFamily:'var(--mono)',fontSize:28,fontWeight:900,color:live?'var(--pulse)':'var(--fg)',letterSpacing:'-.04em',textShadow:live?'0 0 16px rgba(0,255,102,.5)':'none'}}>{g.visitor_team_score}</span>}
                   </div>
-                  <span style={{fontFamily:'var(--mono)',color:'rgba(255,255,255,.15)',fontSize:10}}>VS</span>
+                  <span style={{fontFamily:'var(--mono)',color:'rgba(255,255,255,.12)',fontSize:10,fontWeight:900}}>VS</span>
                   <div style={{display:'flex',alignItems:'center',gap:10}}>
-                    <TeamLogo abbr={home} size={26}/>
-                    <span style={{fontFamily:'var(--mono)',fontWeight:700,fontSize:12,letterSpacing:'.08em',minWidth:32,color:'var(--fg2)'}}>{home}</span>
-                    {g.home_team_score!=null&&<span style={{fontFamily:'var(--mono)',fontSize:24,fontWeight:700,color:live?'var(--pulse)':'var(--fg)',letterSpacing:'-.04em'}}>{g.home_team_score}</span>}
+                    <TeamLogo abbr={home} size={30}/>
+                    <span style={{fontFamily:'var(--mono)',fontWeight:900,fontSize:12,letterSpacing:'.08em',minWidth:34,color:'var(--fg2)'}}>{home}</span>
+                    {g.home_team_score!=null&&<span style={{fontFamily:'var(--mono)',fontSize:28,fontWeight:900,color:live?'var(--pulse)':'var(--fg)',letterSpacing:'-.04em',textShadow:live?'0 0 16px rgba(0,255,102,.5)':'none'}}>{g.home_team_score}</span>}
                   </div>
                 </div>
                 <div style={{display:'flex',gap:10,alignItems:'center',marginLeft:'auto'}}>
                   <span className={`badge badge-${type}`}>{label}</span>
                   {live&&<span className="pulse-dot"/>}
-                  {(final||live)&&<span style={{fontFamily:'var(--mono)',fontSize:9,color:'var(--fg3)',letterSpacing:'.1em'}}>BOX SCORE →</span>}
+                  {(final||live)&&<span style={{fontFamily:'var(--mono)',fontSize:9,color:'var(--pulse)',letterSpacing:'.1em'}}>BOX SCORE →</span>}
                 </div>
               </div>
             );
@@ -648,8 +687,8 @@ function Intel() {
     <div className="page page-pad">
       <div className="page-hd">
         <div>
-          <div className="sublabel" style={{marginBottom:6}}>PIVOT / MODULE 02</div>
-          <h1 style={{fontFamily:'var(--font)',fontWeight:900,fontSize:26,letterSpacing:'-.04em'}}>PLAYER INTEL</h1>
+          <span className="page-module">PIVOT / MODULE 02</span>
+          <h1 className="page-title">PLAYER INTEL</h1>
         </div>
         <div style={{marginLeft:'auto',display:'flex',gap:10,alignItems:'center'}}>
           <span style={{fontFamily:'var(--mono)',fontSize:10,color:'var(--fg3)',letterSpacing:'.1em'}}>SEASON</span>
@@ -666,12 +705,14 @@ function Intel() {
       {player&&(
         <div style={{display:'grid',gap:1}}>
           {/* Player card */}
-          <div className="card card-signal" style={{padding:'24px',display:'flex',gap:20,alignItems:'center',flexWrap:'wrap',position:'relative',background:'rgba(204,255,0,.04)'}}>
+          <div className="card card-signal" style={{padding:'28px',display:'flex',gap:24,alignItems:'center',flexWrap:'wrap',position:'relative',
+            background:'rgba(0,255,102,.05)',borderColor:'rgba(0,255,102,.28)',
+            boxShadow:'0 0 40px rgba(0,255,102,.08)'}}>
             <ConfTag text={`${Math.round(82+Math.random()*17)}.${Math.floor(Math.random()*9)}% / ID MATCH`}/>
-            <Headshot playerId={player.id} name={(player.first_name||'')+' '+(player.last_name||'')} w={110} h={80}/>
+            <Headshot playerId={player.id} name={(player.first_name||'')+' '+(player.last_name||'')} w={120} h={88}/>
             <div style={{flex:1}}>
-              <div style={{fontFamily:'var(--mono)',fontSize:9,letterSpacing:'.14em',color:'var(--signal)',textTransform:'uppercase',marginBottom:6}}>{player.team?.abbreviation||'FA'} / {player.position||'—'} / #{player.jersey_number||player.jersey||'?'}</div>
-              <h2 style={{fontWeight:900,fontSize:28,letterSpacing:'-.05em',marginBottom:4,fontFamily:'var(--font)'}}>{player.first_name} {player.last_name}</h2>
+              <div style={{fontFamily:'var(--mono)',fontSize:9,fontWeight:700,letterSpacing:'.16em',color:'var(--pulse)',textTransform:'uppercase',marginBottom:8}}>{player.team?.abbreviation||'FA'} / {player.position||'—'} / #{player.jersey_number||player.jersey||'?'}</div>
+              <h2 style={{fontWeight:900,fontSize:'clamp(26px,3.5vw,42px)',letterSpacing:'-.05em',marginBottom:6,fontFamily:'var(--font)',lineHeight:.95}}>{player.first_name} {player.last_name}</h2>
               {player.height&&<div style={{fontFamily:'var(--mono)',fontSize:10,color:'var(--fg3)',letterSpacing:'.08em'}}>{player.height} · {player.weight||'?'} LBS</div>}
             </div>
           </div>
@@ -771,8 +812,8 @@ function WarRoom() {
   return (
     <div className="page page-pad">
       <div className="page-hd">
-        <div><div className="sublabel" style={{marginBottom:6}}>PIVOT / MODULE 03</div>
-          <h1 style={{fontFamily:'var(--font)',fontWeight:900,fontSize:26,letterSpacing:'-.04em'}}>WAR ROOM</h1></div>
+        <div><span className="page-module">PIVOT / MODULE 03</span>
+          <h1 className="page-title">WAR ROOM</h1></div>
         <div className="seg" style={{marginLeft:'auto'}}>
           {[{id:'teams',l:'TEAMS'},{id:'frontoffice',l:'FRONT OFFICE'},{id:'cap',l:'CAP TABLE'}].map(v=>(
             <button key={v.id} className={`seg-btn${view===v.id?' active':''}`} onClick={()=>setView(v.id)}>{v.l}</button>
@@ -797,13 +838,13 @@ function WarRoom() {
 
           {selectedTeam&&(
             <div style={{display:'grid',gap:1,alignContent:'start'}}>
-              <div className="card card-signal" style={{padding:'24px',background:'rgba(204,255,0,.04)',position:'relative'}}>
+              <div className="card card-signal" style={{padding:'28px',background:'rgba(0,255,102,.05)',borderColor:'rgba(0,255,102,.28)',position:'relative',boxShadow:'0 0 40px rgba(0,255,102,.08)'}}>
                 <ConfTag text={`${Math.round(85+Math.random()*14)}.${Math.floor(Math.random()*9)}% / CONFIDENCE`}/>
-                <div style={{display:'flex',gap:16,alignItems:'center',marginBottom:18}}>
-                  <TeamLogo abbr={selectedTeam.abbr} size={44}/>
+                <div style={{display:'flex',gap:16,alignItems:'center',marginBottom:20}}>
+                  <TeamLogo abbr={selectedTeam.abbr} size={52}/>
                   <div>
-                    <div style={{fontFamily:'var(--mono)',fontSize:9,color:'var(--signal)',letterSpacing:'.12em',marginBottom:4,textTransform:'uppercase'}}>{selectedTeam.conf} / {selectedTeam.div}</div>
-                    <h3 style={{fontWeight:900,fontSize:22,letterSpacing:'-.04em'}}>{selectedTeam.full_name||selectedTeam.name}</h3>
+                    <div style={{fontFamily:'var(--mono)',fontSize:9,fontWeight:700,color:'var(--pulse)',letterSpacing:'.14em',marginBottom:6,textTransform:'uppercase'}}>{selectedTeam.conf} / {selectedTeam.div}</div>
+                    <h3 style={{fontWeight:900,fontSize:'clamp(20px,3vw,32px)',letterSpacing:'-.04em',lineHeight:.95}}>{selectedTeam.full_name||selectedTeam.name}</h3>
                   </div>
                 </div>
                 {teamLoading&&<Loader/>}
@@ -955,8 +996,8 @@ function Compare() {
   return (
     <div className="page page-pad">
       <div className="page-hd">
-        <div><div className="sublabel" style={{marginBottom:6}}>PIVOT / MODULE 04</div>
-          <h1 style={{fontFamily:'var(--font)',fontWeight:900,fontSize:26,letterSpacing:'-.04em'}}>COMPARE</h1></div>
+        <div><span className="page-module">PIVOT / MODULE 04</span>
+          <h1 className="page-title">COMPARE</h1></div>
       </div>
       <div style={{display:'flex',gap:1,marginBottom:14,flexWrap:'wrap'}}>
         <PlayerSlot p={pA} stats={sA} label="PLAYER A" onSet={p=>{setPA(p);compare.reset();}}/>
@@ -998,8 +1039,8 @@ function CoachMode() {
   return (
     <div className="page page-pad">
       <div className="page-hd">
-        <div><div className="sublabel" style={{marginBottom:6}}>PIVOT / MODULE 05</div>
-          <h1 style={{fontFamily:'var(--font)',fontWeight:900,fontSize:26,letterSpacing:'-.04em'}}>COACH MODE</h1></div>
+        <div><span className="page-module">PIVOT / MODULE 05</span>
+          <h1 className="page-title">COACH MODE</h1></div>
         {view!=='home'&&<button className="btn-ghost" onClick={()=>setView('home')} style={{marginLeft:'auto',fontFamily:'var(--mono)',fontSize:10,letterSpacing:'.1em',border:'1px solid rgba(255,255,255,.1)',padding:'7px 14px'}}>← BACK</button>}
       </div>
 
@@ -1106,41 +1147,44 @@ function Chat() {
   }
 
   return (
-    <div className="page" style={{display:'flex',flexDirection:'column',height:'calc(100vh - 58px)'}}>
-      <div style={{padding:'24px 28px 0',borderBottom:'1px solid rgba(255,255,255,.06)',flexShrink:0}}>
-        <div className="sublabel" style={{marginBottom:4}}>PIVOT / MODULE 06</div>
-        <h1 style={{fontFamily:'var(--font)',fontWeight:900,fontSize:22,letterSpacing:'-.04em',marginBottom:16}}>CHAT</h1>
+    <div className="page" style={{display:'flex',flexDirection:'column',height:'calc(100vh - 92px)'}}>
+      <div style={{padding:'28px 32px 0',borderBottom:'1px solid rgba(0,255,102,.1)',flexShrink:0}}>
+        <span className="page-module">PIVOT / MODULE 06</span>
+        <h1 className="page-title" style={{marginBottom:20}}>CHAT</h1>
       </div>
-      <div style={{flex:1,overflowY:'auto',padding:'20px 28px',display:'flex',flexDirection:'column',gap:12}}>
-        {!msgs.length&&<div style={{fontFamily:'var(--mono)',fontSize:11,letterSpacing:'.1em',color:'var(--fg3)',textTransform:'uppercase',textAlign:'center',padding:'60px 0'}}>ASK ANYTHING ABOUT BASKETBALL.</div>}
+      <div style={{flex:1,overflowY:'auto',padding:'24px 32px',display:'flex',flexDirection:'column',gap:14}}>
+        {!msgs.length&&<div style={{fontFamily:'var(--mono)',fontSize:11,letterSpacing:'.14em',color:'var(--fg3)',textTransform:'uppercase',textAlign:'center',padding:'80px 0'}}>ASK ANYTHING ABOUT BASKETBALL.</div>}
         {msgs.map((m,i)=>(
           <div key={i} style={{display:'flex',justifyContent:m.role==='user'?'flex-end':'flex-start'}}>
             <div style={{
-              maxWidth:'80%',padding:'12px 16px',
-              background:m.role==='user'?'var(--signal)':'rgba(18,18,18,.8)',
-              border:m.role==='user'?'none':'1px solid rgba(204,255,0,.12)',
-              color:m.role==='user'?'var(--ink)':'var(--fg2)',
-              fontSize:13.5,lineHeight:1.75,fontWeight:m.role==='user'?600:400,
+              maxWidth:'78%',padding:'14px 18px',borderRadius:2,
+              background:m.role==='user'?'var(--pulse)':'rgba(8,8,8,.82)',
+              backdropFilter:m.role==='user'?'none':'blur(20px)',
+              WebkitBackdropFilter:m.role==='user'?'none':'blur(20px)',
+              border:m.role==='user'?'none':'1px solid rgba(0,255,102,.14)',
+              boxShadow:m.role==='user'?'0 4px 20px rgba(0,255,102,.2)':'none',
+              color:m.role==='user'?'#000':'var(--fg2)',
+              fontSize:13.5,lineHeight:1.8,fontWeight:m.role==='user'?900:400,
               whiteSpace:'pre-wrap',wordBreak:'break-word'
             }}>{m.content}</div>
           </div>
         ))}
         {loading&&stream.length>0&&(
           <div style={{display:'flex',justifyContent:'flex-start'}}>
-            <div style={{maxWidth:'80%',padding:'12px 16px',background:'rgba(18,18,18,.8)',border:'1px solid rgba(204,255,0,.12)',fontSize:13.5,lineHeight:1.75,color:'var(--fg2)',whiteSpace:'pre-wrap',wordBreak:'break-word'}}>
-              {stream.join('')}<span style={{color:'var(--signal)',animation:'blink-glow .8s step-end infinite'}}>▋</span>
+            <div style={{maxWidth:'78%',padding:'14px 18px',background:'rgba(8,8,8,.82)',backdropFilter:'blur(20px)',WebkitBackdropFilter:'blur(20px)',border:'1px solid rgba(0,255,102,.14)',fontSize:13.5,lineHeight:1.8,color:'var(--fg2)',whiteSpace:'pre-wrap',wordBreak:'break-word'}}>
+              {stream.join('')}<span style={{color:'var(--pulse)',animation:'blink-glow .8s step-end infinite'}}>▋</span>
             </div>
           </div>
         )}
-        {loading&&!stream.length&&<div style={{fontFamily:'var(--mono)',fontSize:10,color:'var(--fg3)',letterSpacing:'.12em',textTransform:'uppercase',padding:'8px 0'}}>PROCESSING…</div>}
+        {loading&&!stream.length&&<div style={{fontFamily:'var(--mono)',fontSize:10,color:'var(--fg3)',letterSpacing:'.14em',textTransform:'uppercase',padding:'8px 0'}}>PROCESSING…</div>}
         <div ref={bottom}/>
       </div>
-      <div style={{padding:'14px 28px 20px',borderTop:'1px solid rgba(204,255,0,.08)',display:'flex',gap:10,flexShrink:0}}>
+      <div style={{padding:'16px 32px 24px',borderTop:'1px solid rgba(0,255,102,.1)',display:'flex',gap:12,flexShrink:0}}>
         <input value={input} onChange={e=>setInput(e.target.value)}
                onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}}}
                placeholder="Ask about any player, team, game, or strategy…"
                disabled={loading} style={{flex:1,fontFamily:'var(--mono)',fontSize:13}}/>
-        <button className="btn btn-signal" onClick={send} disabled={loading||!input.trim()} style={{flexShrink:0,padding:'10px 24px',fontSize:12}}>{loading?'…':'SEND'}</button>
+        <button className="btn btn-signal" onClick={send} disabled={loading||!input.trim()} style={{flexShrink:0,padding:'10px 28px',fontSize:12}}>{loading?'…':'SEND'}</button>
       </div>
     </div>
   );
@@ -1158,11 +1202,12 @@ function App() {
   const[tab,setTab]=React.useState('home');
   const isHome=tab==='home';
   return (
-    <div>
+    <div style={{position:'relative',minHeight:'100vh'}}>
+      {!isHome&&<AppBackground/>}
       {!isHome&&(
         <>
-          <nav className="nav">
-            <div className="nav-logo" onClick={()=>setTab('home')}>PIVOT</div>
+          <nav className="nav" style={{zIndex:1000}}>
+            <div className="nav-logo" onClick={()=>setTab('home')}>PIVOT.</div>
             <div className="nav-links">
               {NAV_ITEMS.filter(i=>i.id!=='home').map(item=>(
                 <button key={item.id} className={`nav-link${tab===item.id?' active':''}`} onClick={()=>setTab(item.id)}>{item.label}</button>
@@ -1176,13 +1221,15 @@ function App() {
           <Ticker/>
         </>
       )}
-      {tab==='home'&&<Home setTab={setTab}/>}
-      {tab==='games'&&<Games/>}
-      {tab==='players'&&<Intel/>}
-      {tab==='warroom'&&<WarRoom/>}
-      {tab==='compare'&&<Compare/>}
-      {tab==='coach'&&<CoachMode/>}
-      {tab==='chat'&&<Chat/>}
+      <div style={{position:'relative',zIndex:1}}>
+        {tab==='home'&&<Home setTab={setTab}/>}
+        {tab==='games'&&<Games/>}
+        {tab==='players'&&<Intel/>}
+        {tab==='warroom'&&<WarRoom/>}
+        {tab==='compare'&&<Compare/>}
+        {tab==='coach'&&<CoachMode/>}
+        {tab==='chat'&&<Chat/>}
+      </div>
     </div>
   );
 }
