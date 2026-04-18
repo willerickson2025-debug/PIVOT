@@ -227,28 +227,46 @@ function fmtDateLabel(s){const t=localDate(),y=localDate(-1),tm=localDate(1);if(
 function parseStatus(s){if(!s)return{label:'TBD',type:'sched'};const l=s.toLowerCase();if(l.includes('final')||l==='complete')return{label:'FINAL',type:'final'};if(l.includes('qtr')||l.includes('half')||l==='in progress')return{label:'LIVE',type:'live'};try{const d=new Date(s);if(!isNaN(d))return{label:d.toLocaleTimeString([],{hour:'numeric',minute:'2-digit',timeZoneName:'short'}),type:'sched'};}catch(e){}return{label:s.substring(0,16),type:'sched'};}
 function getPostseasonLabel(g){if(!g.postseason)return null;const d=new Date(g.date);if(d.getMonth()===3&&d.getDate()<=18)return'PLAY-IN';return'PLAYOFFS';}
 
+function _readSSEStream(reader,onToken,onDone){
+  const dec=new TextDecoder();let buf='';
+  function pump(){
+    return reader.read().then(({done,value})=>{
+      if(done){onDone();return;}
+      buf+=dec.decode(value,{stream:true});
+      const parts=buf.split('\n\n');buf=parts.pop();
+      for(const chunk of parts){
+        if(chunk.startsWith('data: ')){try{const obj=JSON.parse(chunk.slice(6));
+          if((obj.type==='token'||obj.type==='chunk')&&obj.text)onToken(obj.text);
+          if(obj.type==='done'){onDone();return;}
+          if(obj.type==='status'&&obj.text)onToken('\n['+obj.text+']\n');
+        }catch(e){}}
+      }
+      return pump();
+    }).catch(()=>onDone());
+  }
+  pump();
+}
 async function streamSSE(url,body,onToken,onDone){
   try{
     const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','X-Pivot-Session':_pivotSessionId},body:JSON.stringify(body)});
     if(!r.ok||!r.body){onDone();return;}
-    const reader=r.body.getReader();const dec=new TextDecoder();let buf='';
-    while(true){
-      const{done,value}=await reader.read();if(done)break;
-      buf+=dec.decode(value,{stream:true});
-      const parts=buf.split('\n\n');buf=parts.pop();
-      for(const chunk of parts){
-        if(chunk.startsWith('data: ')){try{const obj=JSON.parse(chunk.slice(6));if((obj.type==='token'||obj.type==='chunk')&&obj.text)onToken(obj.text);if(obj.type==='done')onDone();}catch(e){}}
-      }
-    }
-  }catch(e){}
-  onDone();
+    _readSSEStream(r.body.getReader(),onToken,onDone);
+  }catch(e){onDone();}
+}
+async function streamSSEGet(url,onToken,onDone){
+  try{
+    const r=await fetch(url,{headers:{'X-Pivot-Session':_pivotSessionId}});
+    if(!r.ok||!r.body){onDone();return;}
+    _readSSEStream(r.body.getReader(),onToken,onDone);
+  }catch(e){onDone();}
 }
 function useStream(){
   const[lines,setLines]=React.useState([]);
   const[loading,setLoading]=React.useState(false);
   const run=React.useCallback((url,body)=>{setLines([]);setLoading(true);streamSSE(url,body,t=>setLines(l=>[...l,t]),()=>setLoading(false));},[]);
+  const runGet=React.useCallback((url)=>{setLines([]);setLoading(true);streamSSEGet(url,t=>setLines(l=>[...l,t]),()=>setLoading(false));},[]);
   const reset=()=>{setLines([]);setLoading(false);};
-  return{lines,loading,run,reset};
+  return{lines,loading,run,runGet,reset};
 }
 
 // ─── SHARED ──────────────────────────────────────────────────────────────────
@@ -561,7 +579,7 @@ function GameModal({game,open,onClose}) {
       </div>
       <div className="tab-row">
         {tabs.map(t=><button key={t.id} className={`tab-btn${tab===t.id?' active':''}`}
-          onClick={()=>{setTab(t.id);if(t.id==='ai'&&!analysis.lines.length&&!analysis.loading)analysis.run(`${API}/analyze-game`,{game_id:game.id});}}>{t.label}</button>)}
+          onClick={()=>{setTab(t.id);if(t.id==='ai'&&!analysis.lines.length&&!analysis.loading)analysis.run(`${API}/chat/message`,{messages:[{role:'user',content:`Analyze this NBA game (ID: ${game.id}): ${away} vs ${home}. Cover key matchups, tactical battles, standout performances, and outcome factors.`}]});}}>{t.label}</button>)}
       </div>
       {tab==='box'&&(
         boxLoading?<Loader/>:
@@ -575,7 +593,7 @@ function GameModal({game,open,onClose}) {
         <div style={{color:'var(--fg3)',fontSize:13,fontFamily:'var(--mono)',letterSpacing:'.04em'}}>BOX SCORE AVAILABLE AFTER TIP-OFF.</div>
       )}
       {tab==='ai'&&<div>
-        {!analysis.lines.length&&!analysis.loading&&<button className="btn btn-signal btn-sm" onClick={()=>analysis.run(`${API}/analyze-game`,{game_id:game.id})} style={{marginBottom:16}}>GENERATE ANALYSIS</button>}
+        {!analysis.lines.length&&!analysis.loading&&<button className="btn btn-signal btn-sm" onClick={()=>analysis.run(`${API}/chat/message`,{messages:[{role:'user',content:`Analyze this NBA game (ID: ${game.id}): ${away} vs ${home}. Cover key matchups, tactical battles, standout performances, and outcome factors.`}]})} style={{marginBottom:16}}>GENERATE ANALYSIS</button>}
         <StreamBox lines={analysis.lines} loading={analysis.loading}/>
       </div>}
     </Modal>
@@ -679,8 +697,12 @@ function Intel() {
   }
   function runAI(){
     if(!player||analysis.loading)return;
-    const ep=analysisMode==='season'?'analyze-player':'analyze-player-live';
-    analysis.run(`${API}/${ep}`,{player_id:player.id,player_name:(player.first_name||'')+' '+(player.last_name||''),season});
+    const seasonInt=season.includes('-')?parseInt(season.split('-')[0])+1:parseInt(season)||2025;
+    if(analysisMode==='season'){
+      analysis.runGet(`${API}/analysis/player/stream?player_id=${player.id}&season=${seasonInt}`);
+    } else {
+      analysis.run(`${API}/chat/message`,{messages:[{role:'user',content:`Analyze ${(player.first_name||'')+' '+(player.last_name||'')} current form and recent performance. Focus on hot/cold streaks, recent game logs, and live season trends.`}]});
+    }
   }
   const seasons=['2024-25','2023-24','2022-23','2021-22'];
 
@@ -858,8 +880,8 @@ function WarRoom() {
                 )}
                 <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
                   <button className="btn-ghost" onClick={()=>loadRoster(selectedTeam)} style={{fontFamily:'var(--mono)',fontSize:10,letterSpacing:'.1em',border:'1px solid rgba(255,255,255,.1)',padding:'7px 14px'}}>VIEW ROSTER</button>
-                  <button className="btn-ghost" onClick={()=>teamAnalysis.run(`${API}/analyze-team`,{team_id:selectedTeam.id,team_name:selectedTeam.full_name||selectedTeam.name})} disabled={teamAnalysis.loading} style={{fontFamily:'var(--mono)',fontSize:10,letterSpacing:'.1em',border:'1px solid rgba(255,255,255,.1)',padding:'7px 14px'}}>{teamAnalysis.loading?'ANALYZING…':'TEAM ANALYSIS'}</button>
-                  <button className="btn-ghost" onClick={()=>dna.run(`${API}/team-dna`,{team_id:selectedTeam.id,team_name:selectedTeam.full_name||selectedTeam.name})} disabled={dna.loading} style={{fontFamily:'var(--mono)',fontSize:10,letterSpacing:'.1em',border:'1px solid rgba(255,255,255,.1)',padding:'7px 14px'}}>{dna.loading?'LOADING…':'TEAM DNA'}</button>
+                  <button className="btn-ghost" onClick={()=>teamAnalysis.runGet(`${API}/frontoffice/roster/stream?team_name=${encodeURIComponent(selectedTeam.full_name||selectedTeam.name)}`)} disabled={teamAnalysis.loading} style={{fontFamily:'var(--mono)',fontSize:10,letterSpacing:'.1em',border:'1px solid rgba(255,255,255,.1)',padding:'7px 14px'}}>{teamAnalysis.loading?'ANALYZING…':'TEAM ANALYSIS'}</button>
+                  <button className="btn-ghost" onClick={()=>dna.runGet(`${API}/analysis/team-dna?team_name=${encodeURIComponent(selectedTeam.full_name||selectedTeam.name)}`)} disabled={dna.loading} style={{fontFamily:'var(--mono)',fontSize:10,letterSpacing:'.1em',border:'1px solid rgba(255,255,255,.1)',padding:'7px 14px'}}>{dna.loading?'LOADING…':'TEAM DNA'}</button>
                 </div>
               </div>
               {(teamAnalysis.lines.length||teamAnalysis.loading)&&<div className="card" style={{padding:'20px 22px',background:'var(--graphite)'}}><div className="label" style={{marginBottom:12}}>Team Analysis</div><StreamBox lines={teamAnalysis.lines} loading={teamAnalysis.loading}/></div>}
@@ -890,7 +912,7 @@ function WarRoom() {
                 <option value='buyout_candidate'>Buyout / waiver claim</option>
                 <option value='salary_dump'>Salary dump trade</option>
               </select>
-              <button className="btn btn-signal btn-sm" onClick={()=>fo.run(`${API}/front-office-eval`,{player_id:foPlayer.id,player_name:(foPlayer.first_name||'')+' '+(foPlayer.last_name||''),context:foCtx})} disabled={fo.loading}>{fo.loading?'EVALUATING…':'RUN FO EVAL'}</button>
+              <button className="btn btn-signal btn-sm" onClick={()=>fo.run(`${API}/chat/message`,{messages:[{role:'user',content:`Provide a front office evaluation of ${(foPlayer.first_name||'')+' '+(foPlayer.last_name||'')} (${foPlayer.team?.full_name||'FA'}). Context: ${foCtx||'general evaluation'}. Cover trade value, contract fit, upside, risk, and fit on a contender.`}]})} disabled={fo.loading}>{fo.loading?'EVALUATING…':'RUN FO EVAL'}</button>
               <div style={{marginTop:14}}><StreamBox lines={fo.lines} loading={fo.loading}/></div>
             </div>
           )}
@@ -961,7 +983,10 @@ function Compare() {
 
   function runCompare(){
     if(!pA||!pB||compare.loading)return;
-    compare.run(`${API}/compare-players`,{player_a_id:pA.id,player_a_name:(pA.first_name||'')+' '+(pA.last_name||''),player_b_id:pB.id,player_b_name:(pB.first_name||'')+' '+(pB.last_name||''),context:ctx});
+    const nameA=(pA.first_name||'')+' '+(pA.last_name||'');
+    const nameB=(pB.first_name||'')+' '+(pB.last_name||'');
+    const ctxLabel=COMPARE_CONTEXTS.find(c=>c.value===ctx)?.label||'general comparison';
+    compare.run(`${API}/chat/message`,{messages:[{role:'user',content:`Compare ${nameA} vs ${nameB} for the 2024-25 season. Context: ${ctxLabel}. Cover stats, role fit, contract value, and which player wins this comparison.`}]});
   }
 
   function PlayerSlot({p,stats,label,onSet}){
@@ -1073,7 +1098,7 @@ function CoachMode() {
         <div className="card" style={{padding:'24px',background:'var(--graphite)',maxWidth:680}}>
           <div className="label" style={{marginBottom:16}}>Play Design</div>
           <textarea value={scenario} onChange={e=>setScenario(e.target.value)} rows={3} placeholder="Describe the scenario (e.g., need a quick bucket, down 2, 30 seconds, full timeout)…" style={{marginBottom:12,resize:'vertical'}}/>
-          <button className="btn btn-signal btn-sm" onClick={()=>play.run(`${API}/coach`,{scenario,archetype})} disabled={play.loading||!scenario}>{play.loading?'DRAWING UP PLAY…':'DRAW UP PLAY'}</button>
+          <button className="btn btn-signal btn-sm" onClick={()=>play.run(`${API}/chat/message`,{messages:[{role:'user',content:`You are an NBA coach${archetype?` (archetype: ${archetype})`:''}. Draw up a play for this situation: ${scenario}. Be specific: name the play, describe player positions, movement, screens, and the primary + secondary options.`}]})} disabled={play.loading||!scenario}>{play.loading?'DRAWING UP PLAY…':'DRAW UP PLAY'}</button>
           <div style={{marginTop:14}}><StreamBox lines={play.lines} loading={play.loading}/></div>
         </div>
       )}
@@ -1086,7 +1111,7 @@ function CoachMode() {
             {[['man_to_man','Man-to-Man'],['zone_2_3','2-3 Zone'],['zone_3_2','3-2 Zone'],['matchup_zone','Matchup Zone'],['full_court_press','Full Court Press'],['switching_man','Switching Man'],['drop_coverage','Drop Coverage'],['hedge_hard','Hard Hedge / ICE']].map(([v,l])=><option key={v} value={v}>{l}</option>)}
           </select>
           <input value={offAction} onChange={e=>setOffAction(e.target.value)} placeholder="Offensive action to defend…" style={{marginBottom:12}}/>
-          <button className="btn btn-signal btn-sm" onClick={()=>def.run(`${API}/defensive-scheme`,{scheme:defScheme,offensive_action:offAction,archetype})} disabled={def.loading||!defScheme}>{def.loading?'ANALYZING…':'ANALYZE SCHEME'}</button>
+          <button className="btn btn-signal btn-sm" onClick={()=>def.run(`${API}/chat/message`,{messages:[{role:'user',content:`Analyze the ${defScheme.replace(/_/g,' ')} defensive scheme${offAction?` against: ${offAction}`:''}${archetype?` (coaching archetype: ${archetype})`:''}. Cover assignments, rotations, vulnerabilities, and how to execute it effectively.`}]})} disabled={def.loading||!defScheme}>{def.loading?'ANALYZING…':'ANALYZE SCHEME'}</button>
           <div style={{marginTop:14}}><StreamBox lines={def.lines} loading={def.loading}/></div>
         </div>
       )}
@@ -1105,8 +1130,7 @@ function CoachMode() {
                 </div>
               ))}
             </div>}
-            {lineupPlayers.length>=2&&<button className="btn btn-signal btn-sm" onClick={()=>lineup.run(`${API}/lineup-analysis`,{players:lineupPlayers.map(p=>({id:p.id,name:(p.first_name||'')+' '+(p.last_name||'')}))})
-            } disabled={lineup.loading}>{lineup.loading?'ANALYZING…':'ANALYZE LINEUP'}</button>}
+            {lineupPlayers.length>=2&&<button className="btn btn-signal btn-sm" onClick={()=>lineup.run(`${API}/chat/message`,{messages:[{role:'user',content:`Analyze this NBA lineup: ${lineupPlayers.map(p=>(p.first_name||'')+' '+(p.last_name||'')).join(', ')}. Cover chemistry, spacing, defensive assignments, weaknesses, and best situations to deploy this lineup.`}]})} disabled={lineup.loading}>{lineup.loading?'ANALYZING…':'ANALYZE LINEUP'}</button>}
             <div style={{marginTop:14}}><StreamBox lines={lineup.lines} loading={lineup.loading}/></div>
           </div>
           <div className="card" style={{padding:'24px',background:'var(--graphite)'}}>
@@ -1117,7 +1141,7 @@ function CoachMode() {
                 <div style={{fontWeight:700,fontSize:13}}>{projPlayer.first_name} {projPlayer.last_name}</div>
                 <div style={{fontFamily:'var(--mono)',fontSize:9,color:'var(--fg3)',letterSpacing:'.08em',marginLeft:'auto'}}>{projPlayer.team?.abbreviation||'FA'}</div>
               </div>
-              <button className="btn btn-signal btn-sm" onClick={()=>proj.run(`${API}/stat-projection`,{player_id:projPlayer.id,player_name:(projPlayer.first_name||'')+' '+(projPlayer.last_name||'')})} disabled={proj.loading}>{proj.loading?'PROJECTING…':'PROJECT STATS'}</button>
+              <button className="btn btn-signal btn-sm" onClick={()=>proj.run(`${API}/chat/message`,{messages:[{role:'user',content:`Project the 2025-26 season stats for ${(projPlayer.first_name||'')+' '+(projPlayer.last_name||'')} (${projPlayer.team?.abbreviation||'FA'}). Include PPG, RPG, APG, shooting splits, and usage. Factor in age, recent trends, team context, and injury history.`}]})} disabled={proj.loading}>{proj.loading?'PROJECTING…':'PROJECT STATS'}</button>
               <div style={{marginTop:12}}><StreamBox lines={proj.lines} loading={proj.loading}/></div>
             </div>}
           </div>
@@ -1144,7 +1168,7 @@ function Chat() {
     const newMsgs=[...msgs,{role:'user',content:text}];
     setMsgs(newMsgs);setStream([]);setLoading(true);
     let assembled=[];
-    await streamSSE(`${API}/chat`,{messages:newMsgs},t=>{assembled=[...assembled,t];setStream([...assembled]);},()=>{setMsgs(m=>[...m,{role:'assistant',content:assembled.join('')}]);setStream([]);setLoading(false);});
+    await streamSSE(`${API}/chat/message`,{messages:newMsgs},t=>{assembled=[...assembled,t];setStream([...assembled]);},()=>{setMsgs(m=>[...m,{role:'assistant',content:assembled.join('')}]);setStream([]);setLoading(false);});
   }
 
   return (
