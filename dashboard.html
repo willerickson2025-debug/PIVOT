@@ -126,6 +126,25 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
 .hero-glow-a{position:absolute;width:700px;height:700px;border-radius:50%;background:radial-gradient(circle,rgba(204,255,0,.07) 0%,transparent 65%);top:10%;left:-100px;pointer-events:none;animation:float 10s ease-in-out infinite;}
 .hero-glow-b{position:absolute;width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,rgba(0,255,102,.04) 0%,transparent 65%);bottom:5%;right:5%;pointer-events:none;animation:float 14s ease-in-out infinite reverse;}
 .hero-rule{position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(204,255,0,.5),transparent);}
+/* ─── LANDING PAGE ────────────────────────────────────────────────────────── */
+.aurora-blob-a{position:absolute;inset:0;z-index:1;background:radial-gradient(ellipse 65% 70% at 28% 62%,#00FF66 0%,#00A651 30%,#003D1F 58%,transparent 78%);animation:blob-a 40s ease-in-out infinite alternate;}
+.aurora-blob-b{position:absolute;inset:0;z-index:2;background:radial-gradient(ellipse 60% 55% at 85% 8%,#CCFF00 0%,rgba(204,255,0,.7) 18%,rgba(212,255,225,.5) 35%,transparent 65%);animation:blob-b 40s ease-in-out infinite alternate;}
+.aurora-blob-c{position:absolute;inset:0;z-index:3;background:radial-gradient(ellipse 40% 52% at 88% 82%,rgba(212,255,225,.65) 0%,transparent 52%);animation:blob-c 40s ease-in-out infinite alternate;}
+@keyframes blob-a{0%{transform:translate(0,0) scale(1)}50%{transform:translate(2%,-1.5%) scale(1.02)}100%{transform:translate(-1%,2%) scale(.99)}}
+@keyframes blob-b{0%{transform:translate(0,0) scale(1)}50%{transform:translate(-1.5%,2%) scale(1.03)}100%{transform:translate(1%,-1%) scale(1.01)}}
+@keyframes blob-c{0%{transform:translate(0,0) scale(1)}50%{transform:translate(1.5%,1%) scale(.98)}100%{transform:translate(-1%,-1.5%) scale(1.02)}}
+.lp-logo{font-family:"Helvetica Neue","Helvetica","Arial Black",sans-serif;font-weight:900;font-size:28px;letter-spacing:-.04em;color:#000000;cursor:pointer;user-select:none;flex-shrink:0;}
+.lp-nav-links{display:flex;align-items:center;gap:40px;position:absolute;left:50%;transform:translateX(-50%);}
+.lp-nav-link{font-family:"Helvetica Neue","Helvetica","Arial Black",sans-serif;font-weight:900;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:#000000;background:none;border:none;cursor:pointer;transition:opacity 120ms;white-space:nowrap;}
+.lp-nav-link:hover{opacity:.55;}
+.lp-contact-btn{font-family:"Helvetica Neue","Helvetica","Arial Black",sans-serif;font-weight:900;font-size:13px;letter-spacing:.06em;text-transform:uppercase;background:#000000;color:#FFFFFF;border:none;border-radius:999px;padding:14px 28px;cursor:pointer;transition:background 120ms,color 120ms;flex-shrink:0;}
+.lp-contact-btn:hover{background:#FFFFFF;color:#000000;outline:2px solid #000000;}
+.lp-tagline{font-family:"Helvetica Neue","Helvetica","Arial Black",sans-serif;font-weight:900;font-size:14px;letter-spacing:.18em;text-transform:uppercase;color:#FFFFFF;margin-bottom:24px;text-shadow:0 1px 12px rgba(0,0,0,.4);}
+.lp-headline{font-family:"Helvetica Neue","Helvetica","Arial Black",sans-serif;font-weight:900;font-size:clamp(64px,10vw,180px);line-height:.95;letter-spacing:-.04em;color:#FFFFFF;margin-bottom:40px;text-align:center;text-shadow:0 2px 40px rgba(0,0,0,.25);}
+.lp-cta{font-family:"Helvetica Neue","Helvetica","Arial Black",sans-serif;font-weight:900;font-size:16px;letter-spacing:.12em;text-transform:uppercase;background:#FFFFFF;color:#000000;border:none;border-radius:999px;padding:22px 44px;cursor:pointer;transition:transform 180ms ease,box-shadow 180ms ease;}
+.lp-cta:hover{transform:scale(1.02);box-shadow:0 8px 32px rgba(0,0,0,.25);}
+.lp-hamburger{display:none;background:#000;border:none;border-radius:999px;padding:14px 20px;cursor:pointer;margin-left:auto;flex-shrink:0;align-items:center;justify-content:center;color:#fff;font-size:18px;line-height:1;}
+@media(max-width:768px){.lp-nav-links,.lp-contact-btn{display:none;}.lp-hamburger{display:flex;}.lp-tagline{font-size:12px;}.lp-headline{font-size:clamp(56px,14vw,100px);}}
 </style>
 </head>
 <body>
@@ -391,175 +410,47 @@ function Ticker() {
 // ─── HOME ─────────────────────────────────────────────────────────────────────
 
 function Home({setTab}) {
-  const[players,setPlayers]=React.useState([]);
-  const[todayGames,setTodayGames]=React.useState([]);
-  React.useEffect(()=>{
-    let c=false;
-    fetch(`${API}/players?page=1&per_page=8`).then(r=>r.json()).then(d=>{if(!c)setPlayers(d.data||[]);}).catch(()=>{});
-    fetch(`${API}/games?date=${localDate()}`).then(r=>r.json()).then(d=>{if(!c)setTodayGames((d.data||d||[]).slice(0,6));}).catch(()=>{});
-    return()=>{c=true;};
-  },[]);
-
-  const features=[
-    {tab:'games', code:'01', label:'GAMES', sub:'Live scores · Box scores · AI game analysis'},
-    {tab:'players', code:'02', label:'INTEL', sub:'Player search · Game logs · AI breakdowns'},
-    {tab:'warroom', code:'03', label:'WAR ROOM', sub:'Team DNA · Cap table · Front office eval'},
-    {tab:'compare', code:'04', label:'COMPARE', sub:'Head-to-head · Fit scoring · Context-aware'},
-    {tab:'coach', code:'05', label:'COACH MODE', sub:'Play design · Defensive schemes · Lineup tools'},
-    {tab:'chat', code:'06', label:'CHAT', sub:'Free-form basketball intelligence dialogue'},
-  ];
-
   return (
-    <div>
-      {/* HERO */}
-      <section className="hero">
-        <div className="hero-rule"/>
-        <div className="hero-glow-a"/><div className="hero-glow-b"/>
-        <div style={{position:'relative',zIndex:1,maxWidth:1200,width:'100%'}} className="fade-up">
-          {/* Abloh tag */}
-          <div style={{display:'inline-flex',alignItems:'center',gap:8,marginBottom:28}}>
-            <span style={{fontFamily:'var(--mono)',fontSize:9,letterSpacing:'.16em',color:'var(--signal)',textTransform:'uppercase',background:'rgba(204,255,0,.08)',border:'1px solid var(--wire)',padding:'5px 12px'}}>
-              "NBA INTELLIGENCE PLATFORM"
-            </span>
-            <span style={{fontFamily:'var(--mono)',fontSize:9,letterSpacing:'.1em',color:'var(--fg3)',textTransform:'uppercase'}}>EST. 2024 / PORTLAND</span>
-          </div>
-
-          {/* Cropped giant type */}
-          <div style={{overflow:'hidden',marginBottom:12}}>
-            <h1 className="display" style={{
-              fontSize:'clamp(80px,18vw,220px)',color:'var(--bone)',
-              whiteSpace:'nowrap',overflow:'visible',
-              textShadow:'0 0 80px rgba(204,255,0,.08)'
-            }}>PIVOT</h1>
-          </div>
-          <div style={{overflow:'hidden',marginBottom:32}}>
-            <h2 className="display" style={{
-              fontSize:'clamp(14px,2.5vw,28px)',color:'var(--fg2)',fontWeight:700,
-              letterSpacing:'.04em',lineHeight:1.3,maxWidth:680
-            }}>THE INTELLIGENCE LAYER<br/>FOR PROFESSIONAL BASKETBALL.</h2>
-          </div>
-
-          {/* Stats strip */}
-          <div style={{display:'flex',gap:0,marginBottom:36,flexWrap:'wrap'}}>
-            {[
-              {n:'30',l:'TEAMS'},
-              {n:'500+',l:'PLAYERS'},
-              {n:'26',l:'AI ENDPOINTS',accent:true},
-              {n:'LIVE',l:'DATA FEED'},
-            ].map((s,i)=>(
-              <div key={i} style={{padding:'14px 28px',borderLeft:i===0?'none':'1px solid rgba(204,255,0,.1)',display:'flex',flexDirection:'column',gap:2}}>
-                <div style={{fontFamily:'var(--mono)',fontSize:'clamp(22px,3vw,38px)',fontWeight:700,color:s.accent?'var(--signal)':'var(--fg)',letterSpacing:'-.03em'}}>{s.n}</div>
-                <div style={{fontFamily:'var(--mono)',fontSize:9,letterSpacing:'.14em',color:'var(--fg3)'}}>{s.l}</div>
-              </div>
-            ))}
-          </div>
-
-          <div style={{display:'flex',gap:12,flexWrap:'wrap'}}>
-            <button className="btn btn-signal" onClick={()=>setTab('games')} style={{padding:'12px 32px',fontSize:12}}>TODAY'S GAMES</button>
-            <button className="btn btn-wire" onClick={()=>setTab('players')} style={{padding:'11px 30px',fontSize:12}}>PLAYER INTEL</button>
-          </div>
-        </div>
-      </section>
-
-      {/* TODAY'S GAMES */}
-      {todayGames.length>0&&(
-        <div style={{padding:'48px 28px 0',borderTop:'1px solid rgba(255,255,255,.05)'}}>
-          <div style={{display:'flex',alignItems:'center',marginBottom:20}}>
-            <span className="label">Today's Games</span>
-            <button className="btn-ghost" onClick={()=>setTab('games')} style={{marginLeft:'auto',fontFamily:'var(--mono)',fontSize:10,letterSpacing:'.1em'}}>VIEW ALL →</button>
-          </div>
-          <div style={{display:'flex',gap:1,overflowX:'auto',paddingBottom:6}}>
-            {todayGames.map((g,i)=>{
-              const{label,type}=parseStatus(g.status);
-              const live=type==='live';
-              const away=g.visitor_team?.abbreviation||'AWY';
-              const home=g.home_team?.abbreviation||'HOM';
-              const conf=Math.round(65+Math.random()*34);
-              return (
-                <div key={i} className="card card-lift" onClick={()=>setTab('games')}
-                     style={{flexShrink:0,minWidth:180,padding:'18px 16px',background:'var(--graphite)',position:'relative'}}>
-                  <ConfTag text={`${conf}.${Math.floor(Math.random()*9)}% / PROJ`}/>
-                  <div style={{marginBottom:16}}>
-                    <span className={`badge badge-${type}`}>{label}</span>
-                    {live&&<span className="pulse-dot" style={{display:'inline-block',marginLeft:8}}/>}
-                  </div>
-                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-around',gap:8}}>
-                    <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:5}}>
-                      <TeamLogo abbr={away} size={28}/>
-                      <span style={{fontFamily:'var(--mono)',fontSize:10,color:'var(--fg3)',letterSpacing:'.08em'}}>{away}</span>
-                      {g.visitor_team_score!=null&&<span style={{fontFamily:'var(--mono)',fontSize:26,fontWeight:700,color:live?'var(--pulse)':'var(--fg)',letterSpacing:'-.03em',lineHeight:1}}>{g.visitor_team_score}</span>}
-                    </div>
-                    <span style={{fontFamily:'var(--mono)',fontSize:10,color:'rgba(255,255,255,.15)'}}>VS</span>
-                    <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:5}}>
-                      <TeamLogo abbr={home} size={28}/>
-                      <span style={{fontFamily:'var(--mono)',fontSize:10,color:'var(--fg3)',letterSpacing:'.08em'}}>{home}</span>
-                      {g.home_team_score!=null&&<span style={{fontFamily:'var(--mono)',fontSize:26,fontWeight:700,color:live?'var(--pulse)':'var(--fg)',letterSpacing:'-.03em',lineHeight:1}}>{g.home_team_score}</span>}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* FEATURES GRID */}
-      <div style={{padding:'52px 28px'}}>
-        <div style={{display:'flex',alignItems:'baseline',gap:16,marginBottom:22}}>
-          <span className="label">Platform Modules</span>
-          <span style={{fontFamily:'var(--mono)',fontSize:9,color:'var(--fg3)',letterSpacing:'.1em'}}>06 / ACTIVE</span>
-        </div>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))',gap:1}}>
-          {features.map(f=>(
-            <div key={f.tab} className="card card-lift" onClick={()=>setTab(f.tab)}
-                 style={{padding:'26px 22px',display:'flex',gap:16,alignItems:'flex-start',background:'var(--graphite)',position:'relative'}}>
-              <ConfTag text={`MODULE ${f.code}`}/>
-              <div style={{
-                width:44,height:44,border:'1px solid var(--wire)',flexShrink:0,
-                display:'flex',alignItems:'center',justifyContent:'center',
-                fontFamily:'var(--mono)',fontSize:12,fontWeight:700,color:'var(--signal)',letterSpacing:'.04em'
-              }}>{f.code}</div>
-              <div>
-                <div style={{fontWeight:900,fontSize:15,letterSpacing:'.03em',marginBottom:6,textTransform:'uppercase',fontFamily:'var(--font)'}}>{f.label}</div>
-                <div style={{fontSize:12.5,color:'var(--fg3)',lineHeight:1.55,fontWeight:400}}>{f.sub}</div>
-              </div>
-            </div>
+    <div style={{height:'100vh',position:'relative',overflow:'hidden',display:'flex',flexDirection:'column'}}>
+      {/* Void base */}
+      <div style={{position:'absolute',inset:0,background:'#000000',zIndex:0}}/>
+      {/* Aurora blobs */}
+      <div className="aurora-blob-a"/>
+      <div className="aurora-blob-b"/>
+      <div className="aurora-blob-c"/>
+      {/* Grain overlay */}
+      <div style={{position:'absolute',inset:0,pointerEvents:'none',mixBlendMode:'overlay',zIndex:4,opacity:1}}>
+        <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" style={{position:'absolute',inset:0,width:'100%',height:'100%'}}>
+          <filter id="grain-lp">
+            <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/>
+            <feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.06 0"/>
+          </filter>
+          <rect width="100%" height="100%" filter="url(#grain-lp)"/>
+        </svg>
+      </div>
+      {/* Nav */}
+      <nav style={{position:'relative',zIndex:10,height:80,display:'flex',alignItems:'center',padding:'0 40px',flexShrink:0}}>
+        <div className="lp-logo" onClick={()=>setTab('games')}>PIVOT.</div>
+        <div className="lp-nav-links">
+          {[
+            {label:'PLATFORM',tab:'games'},
+            {label:'INTELLIGENCE',tab:'players'},
+            {label:'FRONT OFFICE',tab:'warroom'},
+            {label:'COACH MODE',tab:'coach'},
+            {label:'ABOUT',tab:null},
+          ].map((item,i)=>(
+            <button key={i} className="lp-nav-link" onClick={()=>item.tab&&setTab(item.tab)}>{item.label}</button>
           ))}
         </div>
+        <button className="lp-contact-btn" onClick={()=>setTab('games')}>LAUNCH</button>
+        <button className="lp-hamburger" onClick={()=>setTab('games')}>☰</button>
+      </nav>
+      {/* Hero content */}
+      <div style={{position:'relative',zIndex:10,flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',textAlign:'center',padding:'0 32px 48px'}}>
+        <p className="lp-tagline">THE #1 AI SPORTS INTELLIGENCE PLATFORM</p>
+        <h1 className="lp-headline">STOP GUESSING.<br/>START KNOWING.</h1>
+        <button className="lp-cta" onClick={()=>setTab('games')}>GET STARTED</button>
       </div>
-
-      {/* PLAYERS STRIP */}
-      {players.length>0&&(
-        <div style={{padding:'0 28px 56px',borderTop:'1px solid rgba(255,255,255,.05)'}}>
-          <div style={{display:'flex',alignItems:'center',padding:'32px 0 20px'}}>
-            <span className="label">Active Roster</span>
-            <button className="btn-ghost" onClick={()=>setTab('players')} style={{marginLeft:'auto',fontFamily:'var(--mono)',fontSize:10,letterSpacing:'.1em'}}>SEARCH ALL →</button>
-          </div>
-          <div style={{display:'flex',gap:1,overflowX:'auto',paddingBottom:6}}>
-            {players.map((p,i)=>(
-              <div key={p.id||i} className="card card-lift" onClick={()=>setTab('players')}
-                   style={{flexShrink:0,minWidth:140,overflow:'hidden',background:'var(--graphite)',position:'relative'}}>
-                <ConfTag text={`${Math.round(70+Math.random()*29)}.${Math.floor(Math.random()*9)}%`}/>
-                <Headshot playerId={p.id} name={(p.first_name||'')+' '+(p.last_name||'')} w={140} h={100}/>
-                <div style={{padding:'12px 10px 14px'}}>
-                  <div style={{fontWeight:700,fontSize:13,lineHeight:1.25,letterSpacing:'-.01em'}}>{p.first_name} {p.last_name}</div>
-                  <div style={{fontFamily:'var(--mono)',fontSize:9.5,color:'var(--fg3)',marginTop:4,letterSpacing:'.06em'}}>{p.team?.abbreviation||'FA'} / {p.position||'—'}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* c/o FOOTER */}
-      <footer style={{padding:'22px 28px',borderTop:'1px solid rgba(204,255,0,.08)',display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:10}}>
-        <span style={{fontFamily:'var(--mono)',fontSize:9,color:'rgba(255,255,255,.25)',letterSpacing:'.1em',textTransform:'uppercase'}}>
-          c/o PIVOT INTELLIGENCE / PORTLAND / {new Date().getFullYear()}
-        </span>
-        <span style={{fontFamily:'var(--mono)',fontSize:9,color:'rgba(255,255,255,.2)',letterSpacing:'.06em',textTransform:'uppercase'}}>
-          DATA: BALLDONTLIE.IO · AI: CLAUDE (ANTHROPIC)
-        </span>
-      </footer>
     </div>
   );
 }
@@ -1265,21 +1156,26 @@ const NAV_ITEMS=[
 
 function App() {
   const[tab,setTab]=React.useState('home');
+  const isHome=tab==='home';
   return (
     <div>
-      <nav className="nav">
-        <div className="nav-logo" onClick={()=>setTab('home')}>PIVOT</div>
-        <div className="nav-links">
-          {NAV_ITEMS.map(item=>(
-            <button key={item.id} className={`nav-link${tab===item.id?' active':''}`} onClick={()=>setTab(item.id)}>{item.label}</button>
-          ))}
-        </div>
-        <div className="nav-right">
-          <span className="pulse-dot"/>
-          <span style={{fontFamily:'var(--mono)',fontSize:9,letterSpacing:'.12em',color:'var(--fg3)',textTransform:'uppercase'}}>LIVE</span>
-        </div>
-      </nav>
-      <Ticker/>
+      {!isHome&&(
+        <>
+          <nav className="nav">
+            <div className="nav-logo" onClick={()=>setTab('home')}>PIVOT</div>
+            <div className="nav-links">
+              {NAV_ITEMS.filter(i=>i.id!=='home').map(item=>(
+                <button key={item.id} className={`nav-link${tab===item.id?' active':''}`} onClick={()=>setTab(item.id)}>{item.label}</button>
+              ))}
+            </div>
+            <div className="nav-right">
+              <span className="pulse-dot"/>
+              <span style={{fontFamily:'var(--mono)',fontSize:9,letterSpacing:'.12em',color:'var(--fg3)',textTransform:'uppercase'}}>LIVE</span>
+            </div>
+          </nav>
+          <Ticker/>
+        </>
+      )}
       {tab==='home'&&<Home setTab={setTab}/>}
       {tab==='games'&&<Games/>}
       {tab==='players'&&<Intel/>}
