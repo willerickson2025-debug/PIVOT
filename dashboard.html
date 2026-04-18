@@ -26,7 +26,7 @@
   --ease:cubic-bezier(.2,.9,.3,1);
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-html,body{background:#030303;color:var(--fg);font-family:var(--font);line-height:1.5;min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased;font-weight:900;}
+html,body{background:#030303;color:#fff;font-family:var(--font);line-height:1.5;min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased;font-weight:900;text-transform:uppercase;letter-spacing:.04em;}
 /* Subtle grid overlay */
 body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(var(--wire-faint) 1px,transparent 1px),linear-gradient(90deg,var(--wire-faint) 1px,transparent 1px);background-size:8.333vw 64px;pointer-events:none;z-index:0;}
 #root{position:relative;z-index:1;}
@@ -38,10 +38,10 @@ img{display:block;}
 /* ─── TYPOGRAPHY ──────────────────────────────────────────────────────────── */
 .display{font-family:var(--font);font-weight:900;letter-spacing:-.04em;line-height:.88;}
 .mono{font-family:var(--mono);letter-spacing:.04em;}
-.label{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--pulse);}
-.sublabel{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--fg);}
+.label{font-family:var(--font);font-size:10px;font-weight:900;letter-spacing:.18em;text-transform:uppercase;color:var(--pulse);}
+.sublabel{font-family:var(--font);font-size:9px;font-weight:900;letter-spacing:.14em;text-transform:uppercase;color:#fff;}
 /* ─── BUTTONS ─────────────────────────────────────────────────────────────── */
-button,input,select,textarea{font-family:var(--font);}
+button,input,select,textarea{font-family:var(--font);font-weight:900;text-transform:uppercase;color:#fff;letter-spacing:.04em;}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:900;font-size:12px;letter-spacing:.08em;text-transform:uppercase;border:none;cursor:pointer;transition:all 160ms var(--ease);white-space:nowrap;}
 .btn-signal{background:var(--pulse);color:#000;padding:11px 28px;}
 .btn-signal:hover:not(:disabled){background:#1aff7a;box-shadow:0 0 28px rgba(0,255,102,.4);transform:translateY(-1px);}
@@ -65,32 +65,32 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
 .card-lift:hover{border-color:rgba(0,255,102,.32);box-shadow:0 4px 48px rgba(0,255,102,.12),0 0 0 1px rgba(0,255,102,.12);background:rgba(12,12,12,.88);}
 .card-signal{background:rgba(0,255,102,.07);border-color:rgba(0,255,102,.3) !important;}
 /* ─── NAV ─────────────────────────────────────────────────────────────────── */
-.nav{position:fixed;top:0;left:0;right:0;z-index:1000;height:58px;display:flex;align-items:stretch;padding:0 28px 0 24px;background:rgba(3,3,3,.88);border-bottom:1px solid rgba(0,255,102,.18);backdrop-filter:blur(28px) saturate(160%);-webkit-backdrop-filter:blur(28px) saturate(160%);}
-.nav-logo{display:flex;align-items:center;font-size:20px;font-weight:900;letter-spacing:-.05em;color:#fff;text-shadow:0 0 24px rgba(0,255,102,.35);margin-right:20px;flex-shrink:0;cursor:pointer;user-select:none;padding-right:20px;border-right:1px solid rgba(0,255,102,.12);}
+.nav{position:fixed;top:0;left:0;right:0;z-index:1000;height:72px;display:flex;align-items:stretch;padding:0 28px 0 24px;background:rgba(3,3,3,.88);border-bottom:1px solid rgba(0,255,102,.18);backdrop-filter:blur(28px) saturate(160%);-webkit-backdrop-filter:blur(28px) saturate(160%);}
+.nav-logo{display:flex;align-items:center;font-size:24px;font-weight:900;letter-spacing:-.05em;color:#fff;text-shadow:0 0 24px rgba(0,255,102,.35);margin-right:24px;flex-shrink:0;cursor:pointer;user-select:none;padding-right:24px;border-right:1px solid rgba(0,255,102,.12);}
 .nav-links{display:flex;align-items:stretch;flex:1;overflow-x:auto;}
-.nav-link{height:58px;display:flex;align-items:center;padding:0 14px;font-size:10.5px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;color:var(--fg3);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;transition:color 140ms,border-color 140ms;white-space:nowrap;font-family:var(--font);}
-.nav-link:hover{color:var(--fg2);}
+.nav-link{height:72px;display:flex;align-items:center;padding:0 22px;font-size:13px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:#fff;background:none;border:none;border-bottom:3px solid transparent;cursor:pointer;transition:color 140ms,border-color 140ms;white-space:nowrap;font-family:var(--font);}
+.nav-link:hover{color:var(--pulse);}
 .nav-link.active{color:var(--pulse);border-bottom-color:var(--pulse);}
 .nav-right{margin-left:auto;display:flex;align-items:center;gap:12px;flex-shrink:0;padding-left:20px;border-left:1px solid rgba(0,255,102,.12);}
 .pulse-dot{width:7px;height:7px;border-radius:50%;background:var(--pulse);box-shadow:0 0 10px var(--pulse);animation:blink-glow 2.4s ease-in-out infinite;}
 /* ─── TICKER ──────────────────────────────────────────────────────────────── */
 .ticker{height:34px;background:rgba(0,0,0,.85);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(0,255,102,.12);overflow:hidden;display:flex;align-items:center;}
-.ticker-tag{flex-shrink:0;padding:0 16px;height:100%;display:flex;align-items:center;gap:8px;border-right:1px solid rgba(0,255,102,.1);font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--pulse);}
+.ticker-tag{flex-shrink:0;padding:0 16px;height:100%;display:flex;align-items:center;gap:8px;border-right:1px solid rgba(0,255,102,.1);font-family:var(--font);font-size:9px;font-weight:900;letter-spacing:.18em;text-transform:uppercase;color:var(--pulse);}
 .ticker-content{flex:1;overflow:hidden;}
 .ticker-track{display:inline-flex;align-items:center;white-space:nowrap;animation:ticker-run 90s linear infinite;}
 .ticker-track:hover{animation-play-state:paused;}
 /* ─── BADGES ──────────────────────────────────────────────────────────────── */
-.badge{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:3px 8px;}
+.badge{display:inline-flex;align-items:center;gap:5px;font-family:var(--font);font-size:9px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;padding:3px 8px;}
 .badge-live{background:rgba(0,255,102,.14);color:var(--pulse);border:1px solid rgba(0,255,102,.32);animation:wire-pulse 2.5s ease-in-out infinite;}
 .badge-final{background:rgba(255,255,255,.08);color:var(--fg);border:1px solid rgba(255,255,255,.2);}
 .badge-sched{background:rgba(255,255,255,.06);color:var(--fg);border:1px solid rgba(255,255,255,.18);}
 .badge-signal{background:var(--signal);color:var(--ink);font-weight:800;}
 /* ─── BOX TABLE ───────────────────────────────────────────────────────────── */
 .box-table{width:100%;border-collapse:collapse;font-size:12px;}
-.box-table th{font-family:var(--font);font-size:9px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;color:var(--fg);padding:10px 10px;text-align:right;border-bottom:1px solid rgba(0,255,102,.1);}
+.box-table th{font-family:var(--font);font-size:9px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;color:#fff;padding:10px 10px;text-align:right;border-bottom:1px solid rgba(0,255,102,.1);}
 .box-table th:first-child{text-align:left;}
-.box-table td{padding:9px 10px;text-align:right;border-bottom:1px solid rgba(255,255,255,.03);color:var(--fg);font-size:12px;font-weight:700;}
-.box-table td:first-child{text-align:left;font-weight:900;color:var(--fg);}
+.box-table td{padding:9px 10px;text-align:right;border-bottom:1px solid rgba(255,255,255,.03);color:#fff;font-size:12px;font-weight:900;text-transform:uppercase;font-family:var(--font);}
+.box-table td:first-child{text-align:left;font-weight:900;color:#fff;}
 .box-table tr:hover td{background:rgba(0,255,102,.03);}
 /* ─── MODAL ───────────────────────────────────────────────────────────────── */
 .modal-overlay{position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.9);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;padding:20px;}
@@ -98,7 +98,7 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
 .modal-head{display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid rgba(0,255,102,.1);flex-shrink:0;}
 .modal-body{flex:1;overflow-y:auto;padding:24px;}
 /* ─── STREAM BOX ──────────────────────────────────────────────────────────── */
-.stream-box{background:rgba(4,4,4,.88);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(0,255,102,.1);border-left:3px solid rgba(0,255,102,.25);padding:18px 20px;font-size:13.5px;line-height:1.85;color:var(--fg);min-height:60px;max-height:520px;overflow-y:auto;white-space:pre-wrap;word-break:break-word;font-weight:700;font-family:var(--font);}
+.stream-box{background:rgba(4,4,4,.88);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(0,255,102,.1);border-left:3px solid rgba(0,255,102,.25);padding:18px 20px;font-size:13px;line-height:1.85;color:#fff;min-height:60px;max-height:520px;overflow-y:auto;white-space:pre-wrap;word-break:break-word;font-weight:900;font-family:var(--font);text-transform:uppercase;letter-spacing:.04em;}
 /* ─── TAB ROW ─────────────────────────────────────────────────────────────── */
 .tab-row{display:flex;border-bottom:1px solid rgba(0,255,102,.1);margin-bottom:24px;}
 .tab-btn{background:none;border:none;border-bottom:2px solid transparent;padding:12px 20px;font-size:10.5px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:var(--fg3);cursor:pointer;transition:color 140ms,border-color 140ms;font-family:var(--font);}
@@ -109,13 +109,13 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
 .seg-btn{background:transparent;border:none;padding:7px 18px;font-size:11px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:var(--fg3);cursor:pointer;transition:all 160ms;font-family:var(--font);}
 .seg-btn.active{background:var(--pulse);color:#000;}
 /* ─── PAGE ────────────────────────────────────────────────────────────────── */
-.page{padding-top:92px;}
+.page{padding-top:106px;}
 .page-pad{padding:0 32px 100px;}
 .page-hd{padding:36px 0 28px;border-bottom:1px solid rgba(0,255,102,.12);margin-bottom:32px;display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;}
 .page-title{font-family:var(--font);font-weight:900;font-size:clamp(38px,5vw,64px);letter-spacing:-.04em;line-height:.92;color:#fff;text-shadow:0 0 48px rgba(0,255,102,.12);}
-.page-module{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--pulse);margin-bottom:10px;display:block;}
+.page-module{font-family:var(--font);font-size:9px;font-weight:900;letter-spacing:.18em;text-transform:uppercase;color:var(--pulse);margin-bottom:10px;display:block;}
 /* ─── CONF TAG (decoration) ───────────────────────────────────────────────── */
-.conf-tag{position:absolute;top:10px;right:12px;font-family:var(--mono);font-size:8.5px;color:rgba(0,255,102,.45);letter-spacing:.06em;text-transform:uppercase;pointer-events:none;line-height:1.3;text-align:right;}
+.conf-tag{position:absolute;top:10px;right:12px;font-family:var(--font);font-size:8.5px;font-weight:900;color:#fff;letter-spacing:.08em;text-transform:uppercase;pointer-events:none;line-height:1.3;text-align:right;}
 /* ─── KEYFRAMES ───────────────────────────────────────────────────────────── */
 @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 @keyframes blink-glow{0%,100%{opacity:1;box-shadow:0 0 10px var(--pulse)}50%{opacity:.3;box-shadow:0 0 3px var(--pulse)}}
@@ -225,7 +225,7 @@ function localDate(o=0){const d=new Date();d.setDate(d.getDate()+o);return[d.get
 function shiftDate(s,n){const d=new Date(s+'T12:00:00');d.setDate(d.getDate()+n);return[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');}
 function fmtDateLabel(s){const t=localDate(),y=localDate(-1),tm=localDate(1);if(s===t)return'TODAY';if(s===y)return'YESTERDAY';if(s===tm)return'TOMORROW';return new Date(s+'T12:00:00').toLocaleDateString([],{weekday:'short',month:'short',day:'numeric'}).toUpperCase();}
 function parseStatus(s){if(!s)return{label:'TBD',type:'sched'};const l=s.toLowerCase();if(l.includes('final')||l==='complete')return{label:'FINAL',type:'final'};if(l.includes('qtr')||l.includes('half')||l==='in progress')return{label:'LIVE',type:'live'};try{const d=new Date(s);if(!isNaN(d))return{label:d.toLocaleTimeString([],{hour:'numeric',minute:'2-digit',timeZoneName:'short'}),type:'sched'};}catch(e){}return{label:s.substring(0,16),type:'sched'};}
-function getPostseasonLabel(g){if(!g.postseason)return null;const d=new Date(g.date);if(d.getMonth()===3&&d.getDate()<=18)return'PLAY-IN';return'PLAYOFFS';}
+function getPostseasonLabel(g){if(!g.postseason)return null;return'PLAYOFFS';}
 
 function _readSSEStream(reader,onToken,onDone){
   const dec=new TextDecoder();let buf='';
@@ -283,7 +283,7 @@ function Loader({size=36}) {
         <circle cx="18" cy="18" r="14" fill="none" stroke="var(--pulse)" strokeWidth="2.5"
                 strokeDasharray="48 44" strokeLinecap="round"/>
       </svg>
-      <span style={{fontFamily:'var(--mono)',fontSize:9,letterSpacing:'.18em',color:'var(--fg3)',textTransform:'uppercase'}}>LOADING</span>
+      <span style={{fontFamily:'var(--font)',fontSize:9,letterSpacing:'.18em',color:'#fff',textTransform:'uppercase'}}>LOADING</span>
     </div>
   );
 }
@@ -293,7 +293,7 @@ function Avatar({name,size=44,style:sx={}}) {
   return (
     <div style={{width:size,height:size,background:'rgba(0,255,102,.08)',border:'1px solid rgba(0,255,102,.22)',
       display:'flex',alignItems:'center',justifyContent:'center',fontSize:size*.32,
-      fontWeight:900,color:'var(--pulse)',flexShrink:0,fontFamily:'var(--mono)',borderRadius:2,...sx}}>{init}</div>
+      fontWeight:900,color:'var(--pulse)',flexShrink:0,fontFamily:'var(--font)',borderRadius:2,...sx}}>{init}</div>
   );
 }
 
@@ -302,7 +302,7 @@ function TeamLogo({abbr,size=32}) {
   if(!ok||!abbr) return (
     <div style={{width:size,height:size,background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.08)',
       display:'flex',alignItems:'center',justifyContent:'center',fontSize:size*.28,
-      fontWeight:800,color:'var(--fg3)',flexShrink:0,fontFamily:'var(--mono)'}}>
+      fontWeight:900,color:'#fff',flexShrink:0,fontFamily:'var(--font)'}}>
       {(abbr||'?').substring(0,3)}
     </div>
   );
@@ -331,10 +331,10 @@ function Modal({open,onClose,title,children,maxW=860}) {
       <div className="modal-box" style={{maxWidth:maxW}}>
         <div className="modal-head">
           <div>
-            <div style={{fontFamily:'var(--font)',fontSize:9,fontWeight:900,color:'var(--fg)',letterSpacing:'.12em',textTransform:'uppercase',marginBottom:4}}>PIVOT / DETAIL VIEW</div>
-            <div style={{fontWeight:900,fontSize:16,letterSpacing:'-.03em',color:'var(--fg)'}}>{title}</div>
+            <div style={{fontFamily:'var(--font)',fontSize:9,fontWeight:900,color:'#fff',letterSpacing:'.12em',textTransform:'uppercase',marginBottom:4}}>PIVOT / DETAIL VIEW</div>
+            <div style={{fontWeight:900,fontSize:16,letterSpacing:'-.03em',color:'#fff'}}>{title}</div>
           </div>
-          <button onClick={onClose} style={{background:'none',border:'1px solid rgba(255,255,255,.1)',color:'var(--fg2)',cursor:'pointer',fontSize:20,width:34,height:34,display:'flex',alignItems:'center',justifyContent:'center'}}>×</button>
+          <button onClick={onClose} style={{background:'none',border:'1px solid rgba(255,255,255,.1)',color:'#fff',cursor:'pointer',fontSize:20,width:34,height:34,display:'flex',alignItems:'center',justifyContent:'center'}}>×</button>
         </div>
         <div className="modal-body">{children}</div>
       </div>
@@ -372,12 +372,12 @@ function PlayerSearchBox({onSelect,placeholder='Search player name…'}) {
   return (
     <div style={{position:'relative'}}>
       <input value={q} onChange={e=>setQ(e.target.value)} placeholder={placeholder}
-             style={{paddingLeft:38,fontFamily:'var(--mono)',fontSize:13}}/>
+             style={{paddingLeft:38,fontFamily:'var(--font)',fontSize:13}}/>
       <svg width="14" height="14" viewBox="0 0 16 16" fill="none" style={{position:'absolute',left:13,top:'50%',transform:'translateY(-50%)',pointerEvents:'none'}}>
         <circle cx="7" cy="7" r="5" stroke="var(--fg3)" strokeWidth="1.5"/>
         <path d="M11 11l3 3" stroke="var(--fg3)" strokeWidth="1.5" strokeLinecap="round"/>
       </svg>
-      {loading&&<span style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',color:'var(--signal)',fontFamily:'var(--mono)',fontSize:11}}>_</span>}
+      {loading&&<span style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',color:'var(--signal)',fontFamily:'var(--font)',fontSize:11}}>_</span>}
       {results.length>0&&(
         <div style={{position:'absolute',top:'calc(100% + 4px)',left:0,right:0,background:'rgba(10,10,10,.98)',border:'1px solid var(--wire)',zIndex:300,maxHeight:280,overflowY:'auto',boxShadow:'0 8px 32px rgba(0,0,0,.6)'}}>
           {results.map(p=>(
@@ -385,10 +385,9 @@ function PlayerSearchBox({onSelect,placeholder='Search player name…'}) {
                  onMouseDown={()=>{onSelect(p);setQ('');setResults([]);}}
                  onMouseEnter={e=>e.currentTarget.style.background='rgba(204,255,0,.04)'}
                  onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
-              <Avatar name={(p.first_name||'')+' '+(p.last_name||'')} size={34}/>
               <div>
-                <div style={{fontWeight:700,fontSize:13,letterSpacing:'-.01em'}}>{p.first_name} {p.last_name}</div>
-                <div style={{fontFamily:'var(--mono)',fontSize:10,color:'var(--fg3)',marginTop:1,letterSpacing:'.06em'}}>{p.team?.abbreviation||'FA'} / {p.position||'—'}</div>
+                <div style={{fontWeight:900,fontSize:13,letterSpacing:'-.01em'}}>{p.first_name} {p.last_name}</div>
+                <div style={{fontFamily:'var(--font)',fontSize:10,color:'#fff',marginTop:1,letterSpacing:'.06em'}}>{p.team?.abbreviation||'FA'} / {p.position||'—'}</div>
               </div>
             </div>
           ))}
@@ -414,12 +413,12 @@ function Ticker() {
     const away=g.visitor_team?.abbreviation||'AWY';
     const home=g.home_team?.abbreviation||'HOM';
     return (
-      <span key={i} style={{display:'inline-flex',gap:8,alignItems:'center',padding:'0 24px',fontFamily:'var(--mono)',fontSize:11}}>
-        <span style={{color:'var(--fg3)',letterSpacing:'.06em'}}>{away}</span>
-        {g.visitor_team_score!=null&&<span style={{fontWeight:700,color:live?'var(--pulse)':'var(--fg)'}}>{g.visitor_team_score}</span>}
+      <span key={i} style={{display:'inline-flex',gap:8,alignItems:'center',padding:'0 24px',fontFamily:'var(--font)',fontSize:11}}>
+        <span style={{color:'#fff',letterSpacing:'.06em'}}>{away}</span>
+        {g.visitor_team_score!=null&&<span style={{fontWeight:900,color:live?'var(--pulse)':'var(--fg)'}}>{g.visitor_team_score}</span>}
         <span style={{color:'rgba(255,255,255,.15)',fontSize:9}}>vs</span>
-        {g.home_team_score!=null&&<span style={{fontWeight:700,color:live?'var(--pulse)':'var(--fg)'}}>{g.home_team_score}</span>}
-        <span style={{color:'var(--fg3)',letterSpacing:'.06em'}}>{home}</span>
+        {g.home_team_score!=null&&<span style={{fontWeight:900,color:live?'var(--pulse)':'var(--fg)'}}>{g.home_team_score}</span>}
+        <span style={{color:'#fff',letterSpacing:'.06em'}}>{home}</span>
         <span className={`badge badge-${type}`}>{label}</span>
         {i<games.length-1&&<span style={{color:'rgba(204,255,0,.2)'}}>|</span>}
       </span>
@@ -485,7 +484,7 @@ function Home({setTab}) {
       </div>
       {/* Nav */}
       <nav style={{position:'relative',zIndex:10,height:80,display:'flex',alignItems:'center',padding:'0 40px',flexShrink:0}}>
-        <div className="lp-logo" onClick={()=>setTab('games')}>PIVOT.</div>
+        <div className="lp-logo" onClick={()=>setTab('games')}>PIVOT</div>
         <div className="lp-nav-links">
           {[
             {label:'PLATFORM',tab:'games'},
@@ -538,7 +537,7 @@ function GameModal({game,open,onClose}) {
     const cols=['MIN','PTS','REB','AST','STL','BLK','FG%','3P%','TO'];
     return (
       <div style={{marginBottom:28}}>
-        <div style={{fontFamily:'var(--mono)',fontSize:9,fontWeight:700,letterSpacing:'.14em',color:'var(--signal)',marginBottom:10,textTransform:'uppercase'}}>{teamName}</div>
+        <div style={{fontFamily:'var(--font)',fontSize:9,fontWeight:900,letterSpacing:'.14em',color:'var(--signal)',marginBottom:10,textTransform:'uppercase'}}>{teamName}</div>
         <div style={{overflowX:'auto'}}>
           <table className="box-table">
             <thead><tr><th style={{textAlign:'left',minWidth:130}}>PLAYER</th>{cols.map(c=><th key={c}>{c}</th>)}</tr></thead>
@@ -568,12 +567,12 @@ function GameModal({game,open,onClose}) {
       <div style={{display:'flex',alignItems:'center',gap:14,marginBottom:22,flexWrap:'wrap'}}>
         <span className={`badge badge-${st}`}>{sl}</span>
         {game.home_team_score!=null&&(
-          <div style={{fontFamily:'var(--mono)',display:'flex',alignItems:'center',gap:10}}>
-            <span style={{fontSize:11,letterSpacing:'.08em',color:'var(--fg3)'}}>{game.visitor_team?.abbreviation}</span>
-            <span style={{fontSize:28,fontWeight:700,color:live?'var(--pulse)':'var(--fg)',letterSpacing:'-.04em'}}>{game.visitor_team_score}</span>
+          <div style={{fontFamily:'var(--font)',display:'flex',alignItems:'center',gap:10}}>
+            <span style={{fontSize:11,letterSpacing:'.08em',color:'#fff'}}>{game.visitor_team?.abbreviation}</span>
+            <span style={{fontSize:28,fontWeight:900,color:live?'var(--pulse)':'var(--fg)',letterSpacing:'-.04em'}}>{game.visitor_team_score}</span>
             <span style={{color:'rgba(255,255,255,.15)'}}>—</span>
-            <span style={{fontSize:28,fontWeight:700,color:live?'var(--pulse)':'var(--fg)',letterSpacing:'-.04em'}}>{game.home_team_score}</span>
-            <span style={{fontSize:11,letterSpacing:'.08em',color:'var(--fg3)'}}>{game.home_team?.abbreviation}</span>
+            <span style={{fontSize:28,fontWeight:900,color:live?'var(--pulse)':'var(--fg)',letterSpacing:'-.04em'}}>{game.home_team_score}</span>
+            <span style={{fontSize:11,letterSpacing:'.08em',color:'#fff'}}>{game.home_team?.abbreviation}</span>
           </div>
         )}
       </div>
@@ -589,8 +588,8 @@ function GameModal({game,open,onClose}) {
           const ap=all.filter(p=>(p.team?.abbreviation||p.team_abbreviation)===game.visitor_team?.abbreviation);
           return <><BoxTable players={hp} teamName={home}/><BoxTable players={ap} teamName={away}/></>;
         })():
-        (final||live)?<div style={{color:'var(--fg3)',fontSize:13,fontFamily:'var(--mono)',letterSpacing:'.04em'}}>NO BOX SCORE DATA.</div>:
-        <div style={{color:'var(--fg3)',fontSize:13,fontFamily:'var(--mono)',letterSpacing:'.04em'}}>BOX SCORE AVAILABLE AFTER TIP-OFF.</div>
+        (final||live)?<div style={{color:'#fff',fontSize:13,fontFamily:'var(--font)',letterSpacing:'.04em'}}>NO BOX SCORE DATA.</div>:
+        <div style={{color:'#fff',fontSize:13,fontFamily:'var(--font)',letterSpacing:'.04em'}}>BOX SCORE AVAILABLE AFTER TIP-OFF.</div>
       )}
       {tab==='ai'&&<div>
         {!analysis.lines.length&&!analysis.loading&&<button className="btn btn-signal btn-sm" onClick={()=>analysis.run(`${API}/chat/message`,{messages:[{role:'user',content:`Analyze this NBA game (ID: ${game.id}): ${away} vs ${home}. Cover key matchups, tactical battles, standout performances, and outcome factors.`}]})} style={{marginBottom:16}}>GENERATE ANALYSIS</button>}
@@ -622,14 +621,14 @@ function Games() {
           <h1 className="page-title">GAMES</h1>
         </div>
         <div style={{marginLeft:'auto',display:'flex',gap:8,alignItems:'center'}}>
-          <button className="btn-ghost" onClick={()=>setDate(d=>shiftDate(d,-1))} style={{fontFamily:'var(--mono)',fontSize:16,padding:'8px 14px',color:'var(--pulse)'}}>←</button>
-          <div style={{fontFamily:'var(--mono)',fontSize:12,fontWeight:900,letterSpacing:'.1em',color:'var(--pulse)',background:'rgba(0,255,102,.07)',border:'1px solid rgba(0,255,102,.2)',padding:'9px 22px',minWidth:132,textAlign:'center'}}>{fmtDateLabel(date)}</div>
-          <button className="btn-ghost" onClick={()=>setDate(d=>shiftDate(d,1))} style={{fontFamily:'var(--mono)',fontSize:16,padding:'8px 14px',color:'var(--pulse)'}}>→</button>
+          <button className="btn-ghost" onClick={()=>setDate(d=>shiftDate(d,-1))} style={{fontFamily:'var(--font)',fontSize:16,padding:'8px 14px',color:'var(--pulse)'}}>←</button>
+          <div style={{fontFamily:'var(--font)',fontSize:12,fontWeight:900,letterSpacing:'.1em',color:'var(--pulse)',background:'rgba(0,255,102,.07)',border:'1px solid rgba(0,255,102,.2)',padding:'9px 22px',minWidth:132,textAlign:'center'}}>{fmtDateLabel(date)}</div>
+          <button className="btn-ghost" onClick={()=>setDate(d=>shiftDate(d,1))} style={{fontFamily:'var(--font)',fontSize:16,padding:'8px 14px',color:'var(--pulse)'}}>→</button>
           <button className="btn btn-wire btn-sm" onClick={()=>setDate(localDate())}>TODAY</button>
         </div>
       </div>
       {loading&&<Loader/>}
-      {!loading&&!games.length&&<div style={{fontFamily:'var(--mono)',fontSize:11,letterSpacing:'.14em',color:'var(--fg3)',textTransform:'uppercase',padding:'80px 0',textAlign:'center'}}>NO GAMES SCHEDULED.</div>}
+      {!loading&&!games.length&&<div style={{fontFamily:'var(--font)',fontSize:11,letterSpacing:'.14em',color:'#fff',textTransform:'uppercase',padding:'80px 0',textAlign:'center'}}>NO GAMES SCHEDULED.</div>}
       {!loading&&games.length>0&&(
         <div style={{display:'grid',gap:2}}>
           {games.map(g=>{
@@ -649,20 +648,20 @@ function Games() {
                 <div style={{display:'flex',alignItems:'center',gap:14,flex:1,minWidth:220}}>
                   <div style={{display:'flex',alignItems:'center',gap:10}}>
                     <TeamLogo abbr={away} size={30}/>
-                    <span style={{fontFamily:'var(--mono)',fontWeight:900,fontSize:12,letterSpacing:'.08em',minWidth:34,color:'var(--fg2)'}}>{away}</span>
-                    {g.visitor_team_score!=null&&<span style={{fontFamily:'var(--mono)',fontSize:28,fontWeight:900,color:live?'var(--pulse)':'var(--fg)',letterSpacing:'-.04em',textShadow:live?'0 0 16px rgba(0,255,102,.5)':'none'}}>{g.visitor_team_score}</span>}
+                    <span style={{fontFamily:'var(--font)',fontWeight:900,fontSize:12,letterSpacing:'.08em',minWidth:34,color:'#fff'}}>{away}</span>
+                    {g.visitor_team_score!=null&&<span style={{fontFamily:'var(--font)',fontSize:28,fontWeight:900,color:live?'var(--pulse)':'var(--fg)',letterSpacing:'-.04em',textShadow:live?'0 0 16px rgba(0,255,102,.5)':'none'}}>{g.visitor_team_score}</span>}
                   </div>
-                  <span style={{fontFamily:'var(--mono)',color:'rgba(255,255,255,.12)',fontSize:10,fontWeight:900}}>VS</span>
+                  <span style={{fontFamily:'var(--font)',color:'rgba(255,255,255,.12)',fontSize:10,fontWeight:900}}>VS</span>
                   <div style={{display:'flex',alignItems:'center',gap:10}}>
                     <TeamLogo abbr={home} size={30}/>
-                    <span style={{fontFamily:'var(--mono)',fontWeight:900,fontSize:12,letterSpacing:'.08em',minWidth:34,color:'var(--fg2)'}}>{home}</span>
-                    {g.home_team_score!=null&&<span style={{fontFamily:'var(--mono)',fontSize:28,fontWeight:900,color:live?'var(--pulse)':'var(--fg)',letterSpacing:'-.04em',textShadow:live?'0 0 16px rgba(0,255,102,.5)':'none'}}>{g.home_team_score}</span>}
+                    <span style={{fontFamily:'var(--font)',fontWeight:900,fontSize:12,letterSpacing:'.08em',minWidth:34,color:'#fff'}}>{home}</span>
+                    {g.home_team_score!=null&&<span style={{fontFamily:'var(--font)',fontSize:28,fontWeight:900,color:live?'var(--pulse)':'var(--fg)',letterSpacing:'-.04em',textShadow:live?'0 0 16px rgba(0,255,102,.5)':'none'}}>{g.home_team_score}</span>}
                   </div>
                 </div>
                 <div style={{display:'flex',gap:10,alignItems:'center',marginLeft:'auto'}}>
                   <span className={`badge badge-${type}`}>{label}</span>
                   {live&&<span className="pulse-dot"/>}
-                  {(final||live)&&<span style={{fontFamily:'var(--mono)',fontSize:9,color:'var(--pulse)',letterSpacing:'.1em'}}>BOX SCORE →</span>}
+                  {(final||live)&&<span style={{fontFamily:'var(--font)',fontSize:9,color:'var(--pulse)',letterSpacing:'.1em'}}>BOX SCORE →</span>}
                 </div>
               </div>
             );
@@ -714,8 +713,8 @@ function Intel() {
           <h1 className="page-title">PLAYER INTEL</h1>
         </div>
         <div style={{marginLeft:'auto',display:'flex',gap:10,alignItems:'center'}}>
-          <span style={{fontFamily:'var(--mono)',fontSize:10,color:'var(--fg3)',letterSpacing:'.1em'}}>SEASON</span>
-          <select style={{width:130,fontFamily:'var(--mono)',fontSize:12}} value={season} onChange={e=>{setSeason(e.target.value);if(player)load(player,e.target.value);}}>
+          <span style={{fontFamily:'var(--font)',fontSize:10,color:'#fff',letterSpacing:'.1em'}}>SEASON</span>
+          <select style={{width:130,fontFamily:'var(--font)',fontSize:12}} value={season} onChange={e=>{setSeason(e.target.value);if(player)load(player,e.target.value);}}>
             {seasons.map(s=><option key={s} value={s}>{s}</option>)}
           </select>
         </div>
@@ -723,7 +722,7 @@ function Intel() {
       <div style={{marginBottom:18}}>
         <PlayerSearchBox onSelect={select}/>
       </div>
-      {!player&&<div style={{fontFamily:'var(--mono)',fontSize:11,letterSpacing:'.1em',color:'var(--fg3)',textTransform:'uppercase',textAlign:'center',padding:'72px 0'}}>SEARCH FOR A PLAYER TO BEGIN.</div>}
+      {!player&&<div style={{fontFamily:'var(--font)',fontSize:11,letterSpacing:'.1em',color:'#fff',textTransform:'uppercase',textAlign:'center',padding:'72px 0'}}>SEARCH FOR A PLAYER TO BEGIN.</div>}
 
       {player&&(
         <div style={{display:'grid',gap:1}}>
@@ -732,11 +731,10 @@ function Intel() {
             background:'rgba(0,255,102,.05)',borderColor:'rgba(0,255,102,.28)',
             boxShadow:'0 0 40px rgba(0,255,102,.08)'}}>
             <ConfTag text={`${Math.round(82+Math.random()*17)}.${Math.floor(Math.random()*9)}% / ID MATCH`}/>
-            <Headshot playerId={player.id} name={(player.first_name||'')+' '+(player.last_name||'')} w={120} h={88}/>
             <div style={{flex:1}}>
-              <div style={{fontFamily:'var(--mono)',fontSize:9,fontWeight:700,letterSpacing:'.16em',color:'var(--pulse)',textTransform:'uppercase',marginBottom:8}}>{player.team?.abbreviation||'FA'} / {player.position||'—'} / #{player.jersey_number||player.jersey||'?'}</div>
+              <div style={{fontFamily:'var(--font)',fontSize:9,fontWeight:900,letterSpacing:'.16em',color:'var(--pulse)',textTransform:'uppercase',marginBottom:8}}>{player.team?.abbreviation||'FA'} / {player.position||'—'} / #{player.jersey_number||player.jersey||'?'}</div>
               <h2 style={{fontWeight:900,fontSize:'clamp(26px,3.5vw,42px)',letterSpacing:'-.05em',marginBottom:6,fontFamily:'var(--font)',lineHeight:.95}}>{player.first_name} {player.last_name}</h2>
-              {player.height&&<div style={{fontFamily:'var(--mono)',fontSize:10,color:'var(--fg3)',letterSpacing:'.08em'}}>{player.height} · {player.weight||'?'} LBS</div>}
+              {player.height&&<div style={{fontFamily:'var(--font)',fontSize:10,color:'#fff',letterSpacing:'.08em'}}>{player.height} · {player.weight||'?'} LBS</div>}
             </div>
           </div>
 
@@ -752,8 +750,8 @@ function Intel() {
                       const fg=s.fg_pct!=null?Math.round(s.fg_pct*100)+'%':s.fgm!=null&&s.fga?Math.round(s.fgm/s.fga*100)+'%':'—';
                       const tp=s.fg3_pct!=null?Math.round(s.fg3_pct*100)+'%':s.fg3m!=null&&s.fg3a?Math.round(s.fg3m/s.fg3a*100)+'%':'—';
                       return <tr key={i}>
-                        <td style={{textAlign:'left',fontFamily:'var(--mono)',fontSize:10}}>{(s.game?.date||s.date||'—').substring(0,10)}</td>
-                        <td style={{textAlign:'left',fontFamily:'var(--mono)',fontSize:10,color:'var(--fg3)'}}>{s.game?.home_team?.abbreviation||s.opp||'—'}</td>
+                        <td style={{textAlign:'left',fontFamily:'var(--font)',fontSize:10}}>{(s.game?.date||s.date||'—').substring(0,10)}</td>
+                        <td style={{textAlign:'left',fontFamily:'var(--font)',fontSize:10,color:'#fff'}}>{s.game?.home_team?.abbreviation||s.opp||'—'}</td>
                         <td>{s.min||'—'}</td>
                         <td style={{fontWeight:s.pts>=20?700:400,color:s.pts>=20?'var(--signal)':'inherit'}}>{s.pts??'—'}</td>
                         <td>{s.reb??'—'}</td><td>{s.ast??'—'}</td><td>{s.stl??'—'}</td><td>{s.blk??'—'}</td>
@@ -773,8 +771,8 @@ function Intel() {
               <div style={{display:'flex',gap:24,flexWrap:'wrap'}}>
                 {Object.entries(adv).filter(([k])=>!['player_id','player','season','id'].includes(k)).slice(0,12).map(([k,v])=>(
                   <div key={k} style={{display:'flex',flexDirection:'column',gap:4,minWidth:64}}>
-                    <div style={{fontFamily:'var(--mono)',fontSize:8.5,letterSpacing:'.12em',textTransform:'uppercase',color:'var(--fg3)'}}>{k.replace(/_/g,' ')}</div>
-                    <div style={{fontFamily:'var(--mono)',fontSize:22,fontWeight:700,color:'var(--fg)',letterSpacing:'-.03em'}}>{typeof v==='number'?v.toFixed(1):v??'—'}</div>
+                    <div style={{fontFamily:'var(--font)',fontSize:8.5,letterSpacing:'.12em',textTransform:'uppercase',color:'#fff'}}>{k.replace(/_/g,' ')}</div>
+                    <div style={{fontFamily:'var(--font)',fontSize:22,fontWeight:900,color:'#fff',letterSpacing:'-.03em'}}>{typeof v==='number'?v.toFixed(1):v??'—'}</div>
                   </div>
                 ))}
               </div>
@@ -852,8 +850,8 @@ function WarRoom() {
                    style={{padding:'12px 16px',display:'flex',alignItems:'center',gap:12,background:selectedTeam?.id===t.id?'rgba(204,255,0,.06)':'var(--graphite)',borderColor:selectedTeam?.id===t.id?'var(--wire)':'rgba(255,255,255,.07)'}}>
                 <TeamLogo abbr={t.abbr} size={26}/>
                 <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontWeight:700,fontSize:13,letterSpacing:'-.01em',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{t.full_name||t.name}</div>
-                  <div style={{fontFamily:'var(--mono)',fontSize:9,color:'var(--fg3)',letterSpacing:'.08em',marginTop:2}}>{t.conf?.toUpperCase()} / {t.div?.toUpperCase()}</div>
+                  <div style={{fontWeight:900,fontSize:13,letterSpacing:'-.01em',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{t.full_name||t.name}</div>
+                  <div style={{fontFamily:'var(--font)',fontSize:9,color:'#fff',letterSpacing:'.08em',marginTop:2}}>{t.conf?.toUpperCase()} / {t.div?.toUpperCase()}</div>
                 </div>
               </div>
             ))}
@@ -866,22 +864,22 @@ function WarRoom() {
                 <div style={{display:'flex',gap:16,alignItems:'center',marginBottom:20}}>
                   <TeamLogo abbr={selectedTeam.abbr} size={52}/>
                   <div>
-                    <div style={{fontFamily:'var(--mono)',fontSize:9,fontWeight:700,color:'var(--pulse)',letterSpacing:'.14em',marginBottom:6,textTransform:'uppercase'}}>{selectedTeam.conf} / {selectedTeam.div}</div>
+                    <div style={{fontFamily:'var(--font)',fontSize:9,fontWeight:900,color:'var(--pulse)',letterSpacing:'.14em',marginBottom:6,textTransform:'uppercase'}}>{selectedTeam.conf} / {selectedTeam.div}</div>
                     <h3 style={{fontWeight:900,fontSize:'clamp(20px,3vw,32px)',letterSpacing:'-.04em',lineHeight:.95}}>{selectedTeam.full_name||selectedTeam.name}</h3>
                   </div>
                 </div>
                 {teamLoading&&<Loader/>}
                 {teamData&&(
                   <div style={{display:'flex',gap:20,flexWrap:'wrap',marginBottom:18}}>
-                    {teamData.wins!=null&&<div><div style={{fontFamily:'var(--mono)',fontSize:8,color:'var(--fg3)',letterSpacing:'.12em',textTransform:'uppercase',marginBottom:3}}>WINS</div><div style={{fontFamily:'var(--mono)',fontSize:28,fontWeight:700,color:'var(--pulse)'}}>{teamData.wins}</div></div>}
-                    {teamData.losses!=null&&<div><div style={{fontFamily:'var(--mono)',fontSize:8,color:'var(--fg3)',letterSpacing:'.12em',textTransform:'uppercase',marginBottom:3}}>LOSSES</div><div style={{fontFamily:'var(--mono)',fontSize:28,fontWeight:700}}>{teamData.losses}</div></div>}
-                    {teamData.conference_rank!=null&&<div><div style={{fontFamily:'var(--mono)',fontSize:8,color:'var(--fg3)',letterSpacing:'.12em',textTransform:'uppercase',marginBottom:3}}>CONF RANK</div><div style={{fontFamily:'var(--mono)',fontSize:28,fontWeight:700,color:'var(--signal)'}}>{teamData.conference_rank}</div></div>}
+                    {teamData.wins!=null&&<div><div style={{fontFamily:'var(--font)',fontSize:8,color:'#fff',letterSpacing:'.12em',textTransform:'uppercase',marginBottom:3}}>WINS</div><div style={{fontFamily:'var(--font)',fontSize:28,fontWeight:900,color:'var(--pulse)'}}>{teamData.wins}</div></div>}
+                    {teamData.losses!=null&&<div><div style={{fontFamily:'var(--font)',fontSize:8,color:'#fff',letterSpacing:'.12em',textTransform:'uppercase',marginBottom:3}}>LOSSES</div><div style={{fontFamily:'var(--font)',fontSize:28,fontWeight:900}}>{teamData.losses}</div></div>}
+                    {teamData.conference_rank!=null&&<div><div style={{fontFamily:'var(--font)',fontSize:8,color:'#fff',letterSpacing:'.12em',textTransform:'uppercase',marginBottom:3}}>CONF RANK</div><div style={{fontFamily:'var(--font)',fontSize:28,fontWeight:900,color:'var(--signal)'}}>{teamData.conference_rank}</div></div>}
                   </div>
                 )}
                 <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-                  <button className="btn-ghost" onClick={()=>loadRoster(selectedTeam)} style={{fontFamily:'var(--mono)',fontSize:10,letterSpacing:'.1em',border:'1px solid rgba(255,255,255,.1)',padding:'7px 14px'}}>VIEW ROSTER</button>
-                  <button className="btn-ghost" onClick={()=>teamAnalysis.runGet(`${API}/frontoffice/roster/stream?team_name=${encodeURIComponent(selectedTeam.full_name||selectedTeam.name)}`)} disabled={teamAnalysis.loading} style={{fontFamily:'var(--mono)',fontSize:10,letterSpacing:'.1em',border:'1px solid rgba(255,255,255,.1)',padding:'7px 14px'}}>{teamAnalysis.loading?'ANALYZING…':'TEAM ANALYSIS'}</button>
-                  <button className="btn-ghost" onClick={()=>dna.runGet(`${API}/analysis/team-dna?team_name=${encodeURIComponent(selectedTeam.full_name||selectedTeam.name)}`)} disabled={dna.loading} style={{fontFamily:'var(--mono)',fontSize:10,letterSpacing:'.1em',border:'1px solid rgba(255,255,255,.1)',padding:'7px 14px'}}>{dna.loading?'LOADING…':'TEAM DNA'}</button>
+                  <button className="btn-ghost" onClick={()=>loadRoster(selectedTeam)} style={{fontFamily:'var(--font)',fontSize:10,letterSpacing:'.1em',border:'1px solid rgba(255,255,255,.1)',padding:'7px 14px'}}>VIEW ROSTER</button>
+                  <button className="btn-ghost" onClick={()=>teamAnalysis.runGet(`${API}/frontoffice/roster/stream?team_name=${encodeURIComponent(selectedTeam.full_name||selectedTeam.name)}`)} disabled={teamAnalysis.loading} style={{fontFamily:'var(--font)',fontSize:10,letterSpacing:'.1em',border:'1px solid rgba(255,255,255,.1)',padding:'7px 14px'}}>{teamAnalysis.loading?'ANALYZING…':'TEAM ANALYSIS'}</button>
+                  <button className="btn-ghost" onClick={()=>dna.runGet(`${API}/analysis/team-dna?team_name=${encodeURIComponent(selectedTeam.full_name||selectedTeam.name)}`)} disabled={dna.loading} style={{fontFamily:'var(--font)',fontSize:10,letterSpacing:'.1em',border:'1px solid rgba(255,255,255,.1)',padding:'7px 14px'}}>{dna.loading?'LOADING…':'TEAM DNA'}</button>
                 </div>
               </div>
               {(teamAnalysis.lines.length||teamAnalysis.loading)&&<div className="card" style={{padding:'20px 22px',background:'var(--graphite)'}}><div className="label" style={{marginBottom:12}}>Team Analysis</div><StreamBox lines={teamAnalysis.lines} loading={teamAnalysis.loading}/></div>}
@@ -894,18 +892,17 @@ function WarRoom() {
       {view==='frontoffice'&&(
         <div className="card" style={{padding:'24px',background:'var(--graphite)',maxWidth:640}}>
           <div className="label" style={{marginBottom:8}}>Front Office Evaluation</div>
-          <p style={{fontSize:13,color:'var(--fg)',marginBottom:20,lineHeight:1.6,fontWeight:700}}>Search a player for a front-office-lens evaluation: trade value, contract fit, upside, and risk.</p>
+          <p style={{fontSize:13,color:'#fff',marginBottom:20,lineHeight:1.6,fontWeight:900}}>Search a player for a front-office-lens evaluation: trade value, contract fit, upside, and risk.</p>
           <div style={{marginBottom:16}}><PlayerSearchBox onSelect={p=>{setFoPlayer(p);fo.reset();}}/></div>
           {foPlayer&&(
             <div>
               <div style={{display:'flex',gap:12,alignItems:'center',padding:'12px 16px',background:'rgba(204,255,0,.04)',border:'1px solid var(--wire)',marginBottom:14}}>
-                <Headshot playerId={foPlayer.id} name={(foPlayer.first_name||'')+' '+(foPlayer.last_name||'')} w={56} h={40}/>
                 <div>
-                  <div style={{fontWeight:700,fontSize:14}}>{foPlayer.first_name} {foPlayer.last_name}</div>
-                  <div style={{fontFamily:'var(--mono)',fontSize:9,color:'var(--fg3)',letterSpacing:'.08em',marginTop:2}}>{foPlayer.team?.full_name||'FA'}</div>
+                  <div style={{fontWeight:900,fontSize:14}}>{foPlayer.first_name} {foPlayer.last_name}</div>
+                  <div style={{fontFamily:'var(--font)',fontSize:9,color:'#fff',letterSpacing:'.08em',marginTop:2}}>{foPlayer.team?.full_name||'FA'}</div>
                 </div>
               </div>
-              <select style={{width:'100%',marginBottom:14,fontFamily:'var(--mono)',fontSize:12}} value={foCtx} onChange={e=>setFoCtx(e.target.value)}>
+              <select style={{width:'100%',marginBottom:14,fontFamily:'var(--font)',fontSize:12}} value={foCtx} onChange={e=>setFoCtx(e.target.value)}>
                 <option value=''>General evaluation</option>
                 <option value='max_extension'>Max contract extension</option>
                 <option value='trade_target'>Trade target evaluation</option>
@@ -932,12 +929,12 @@ function WarRoom() {
                 const pct=Math.round(pay/taxLine*100);
                 return <tr key={i}>
                   <td style={{textAlign:'left'}}><div style={{display:'flex',gap:10,alignItems:'center'}}><TeamLogo abbr={t.abbr} size={18}/>{t.name||t.abbr}</div></td>
-                  <td style={{fontFamily:'var(--mono)',fontWeight:700}}>${t.used}M</td>
-                  <td style={{fontFamily:'var(--mono)',color:over?'var(--signal)':'var(--fg3)'}}>${Math.round(taxLine/1e6)}M</td>
-                  <td style={{fontFamily:'var(--mono)',color:!over&&!near?'var(--pulse)':'var(--fg3)'}}>
+                  <td style={{fontFamily:'var(--font)',fontWeight:900}}>${t.used}M</td>
+                  <td style={{fontFamily:'var(--font)',color:over?'var(--signal)':'var(--fg3)'}}>${Math.round(taxLine/1e6)}M</td>
+                  <td style={{fontFamily:'var(--font)',color:!over&&!near?'var(--pulse)':'var(--fg3)'}}>
                     {pay<capLine?'+$'+Math.round((capLine-pay)/1e6)+'M':'−$'+Math.round((pay-capLine)/1e6)+'M'}
                   </td>
-                  <td style={{textAlign:'right'}}><span style={{fontFamily:'var(--mono)',fontSize:9,padding:'3px 8px',background:over?'rgba(204,255,0,.1)':near?'rgba(255,200,0,.08)':'rgba(0,255,102,.08)',color:over?'var(--signal)':near?'#FFC800':'var(--pulse)',letterSpacing:'.1em',fontWeight:700}}>{over?'TAX PAYER':near?'NEAR TAX':'UNDER CAP'}</span></td>
+                  <td style={{textAlign:'right'}}><span style={{fontFamily:'var(--font)',fontSize:9,padding:'3px 8px',background:over?'rgba(204,255,0,.1)':near?'rgba(255,200,0,.08)':'rgba(0,255,102,.08)',color:over?'var(--signal)':near?'#FFC800':'var(--pulse)',letterSpacing:'.1em',fontWeight:900}}>{over?'TAX PAYER':near?'NEAR TAX':'UNDER CAP'}</span></td>
                 </tr>;
               })}
             </tbody>
@@ -948,13 +945,12 @@ function WarRoom() {
       <Modal open={rosterModal} onClose={()=>setRosterModal(false)} title={(selectedTeam?.full_name||'Roster')+' — Roster'} maxW={580}>
         {rosterLoading?<Loader/>:roster.length?<div>{roster.map((p,i)=>(
           <div key={i} style={{display:'flex',gap:14,alignItems:'center',padding:'10px 0',borderBottom:'1px solid rgba(255,255,255,.05)'}}>
-            <Headshot playerId={p.id} name={(p.first_name||'')+' '+(p.last_name||'')} w={48} h={35}/>
             <div style={{flex:1}}>
-              <div style={{fontWeight:700,fontSize:13}}>{p.first_name} {p.last_name}</div>
-              <div style={{fontFamily:'var(--mono)',fontSize:9,color:'var(--fg3)',marginTop:2,letterSpacing:'.08em'}}>{p.position||'—'} / #{p.jersey_number||p.jersey||'?'}</div>
+              <div style={{fontWeight:900,fontSize:13}}>{p.first_name} {p.last_name}</div>
+              <div style={{fontFamily:'var(--font)',fontSize:9,color:'#fff',marginTop:2,letterSpacing:'.08em'}}>{p.position||'—'} / #{p.jersey_number||p.jersey||'?'}</div>
             </div>
           </div>
-        ))}</div>:<div style={{fontFamily:'var(--mono)',fontSize:11,color:'var(--fg3)',letterSpacing:'.1em',textTransform:'uppercase'}}>NO ROSTER DATA.</div>}
+        ))}</div>:<div style={{fontFamily:'var(--font)',fontSize:11,color:'#fff',letterSpacing:'.1em',textTransform:'uppercase'}}>NO ROSTER DATA.</div>}
       </Modal>
     </div>
   );
@@ -993,26 +989,25 @@ function Compare() {
     return (
       <div className="card" style={{flex:1,minWidth:220,padding:'22px',background:'var(--graphite)',position:'relative'}}>
         <ConfTag text={label}/>
-        <div style={{fontFamily:'var(--mono)',fontSize:9,color:'var(--signal)',letterSpacing:'.14em',marginBottom:14,textTransform:'uppercase'}}>{label}</div>
+        <div style={{fontFamily:'var(--font)',fontSize:9,color:'var(--signal)',letterSpacing:'.14em',marginBottom:14,textTransform:'uppercase'}}>{label}</div>
         {!p&&<PlayerSearchBox onSelect={onSet} placeholder={`Select ${label}…`}/>}
         {p&&(
           <div>
             <div style={{display:'flex',gap:12,alignItems:'center',marginBottom:14}}>
-              <Headshot playerId={p.id} name={(p.first_name||'')+' '+(p.last_name||'')} w={70} h={51}/>
               <div>
-                <div style={{fontWeight:800,fontSize:16,letterSpacing:'-.03em'}}>{p.first_name} {p.last_name}</div>
-                <div style={{fontFamily:'var(--mono)',fontSize:9,color:'var(--fg3)',marginTop:3,letterSpacing:'.08em'}}>{p.team?.abbreviation||'FA'} / {p.position||'—'}</div>
+                <div style={{fontWeight:900,fontSize:16,letterSpacing:'-.03em'}}>{p.first_name} {p.last_name}</div>
+                <div style={{fontFamily:'var(--font)',fontSize:9,color:'#fff',marginTop:3,letterSpacing:'.08em'}}>{p.team?.abbreviation||'FA'} / {p.position||'—'}</div>
               </div>
             </div>
             {stats&&<div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,marginBottom:12}}>
               {[['PTS',stats.pts],['REB',stats.reb],['AST',stats.ast],['STL',stats.stl],['BLK',stats.blk],['FG%',stats.fg+'%']].map(([k,v])=>(
                 <div key={k} style={{textAlign:'center'}}>
-                  <div style={{fontFamily:'var(--mono)',fontSize:18,fontWeight:700,letterSpacing:'-.03em'}}>{v||'—'}</div>
-                  <div style={{fontFamily:'var(--mono)',fontSize:8,color:'var(--fg3)',letterSpacing:'.1em',textTransform:'uppercase',marginTop:2}}>{k}</div>
+                  <div style={{fontFamily:'var(--font)',fontSize:18,fontWeight:900,letterSpacing:'-.03em'}}>{v||'—'}</div>
+                  <div style={{fontFamily:'var(--font)',fontSize:8,color:'#fff',letterSpacing:'.1em',textTransform:'uppercase',marginTop:2}}>{k}</div>
                 </div>
               ))}
             </div>}
-            <button className="btn-ghost" onClick={()=>{onSet(null);compare.reset();}} style={{fontFamily:'var(--mono)',fontSize:9,letterSpacing:'.1em',border:'1px solid rgba(255,255,255,.08)',padding:'5px 12px'}}>CHANGE</button>
+            <button className="btn-ghost" onClick={()=>{onSet(null);compare.reset();}} style={{fontFamily:'var(--font)',fontSize:9,letterSpacing:'.1em',border:'1px solid rgba(255,255,255,.08)',padding:'5px 12px'}}>CHANGE</button>
           </div>
         )}
       </div>
@@ -1027,11 +1022,11 @@ function Compare() {
       </div>
       <div style={{display:'flex',gap:1,marginBottom:14,flexWrap:'wrap'}}>
         <PlayerSlot p={pA} stats={sA} label="PLAYER A" onSet={p=>{setPA(p);compare.reset();}}/>
-        <div style={{display:'flex',alignItems:'center',justifyContent:'center',padding:'0 10px',fontFamily:'var(--mono)',fontSize:14,color:'var(--fg4)',fontWeight:700}}>VS</div>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'center',padding:'0 10px',fontFamily:'var(--font)',fontSize:14,color:'var(--fg4)',fontWeight:900}}>VS</div>
         <PlayerSlot p={pB} stats={sB} label="PLAYER B" onSet={p=>{setPB(p);compare.reset();}}/>
       </div>
       <div style={{display:'flex',gap:12,alignItems:'center',marginBottom:16,flexWrap:'wrap'}}>
-        <select value={ctx} onChange={e=>setCtx(e.target.value)} style={{flex:1,maxWidth:400,fontFamily:'var(--mono)',fontSize:12}}>
+        <select value={ctx} onChange={e=>setCtx(e.target.value)} style={{flex:1,maxWidth:400,fontFamily:'var(--font)',fontSize:12}}>
           {COMPARE_CONTEXTS.map(c=><option key={c.value} value={c.value}>{c.label}</option>)}
         </select>
         {pA&&pB&&<button className="btn btn-signal" onClick={runCompare} disabled={compare.loading}>{compare.loading?'COMPARING…':'COMPARE'}</button>}
@@ -1067,14 +1062,14 @@ function CoachMode() {
       <div className="page-hd">
         <div><span className="page-module">PIVOT / MODULE 05</span>
           <h1 className="page-title">COACH MODE</h1></div>
-        {view!=='home'&&<button className="btn-ghost" onClick={()=>setView('home')} style={{marginLeft:'auto',fontFamily:'var(--mono)',fontSize:10,letterSpacing:'.1em',border:'1px solid rgba(255,255,255,.1)',padding:'7px 14px'}}>← BACK</button>}
+        {view!=='home'&&<button className="btn-ghost" onClick={()=>setView('home')} style={{marginLeft:'auto',fontFamily:'var(--font)',fontSize:10,letterSpacing:'.1em',border:'1px solid rgba(255,255,255,.1)',padding:'7px 14px'}}>← BACK</button>}
       </div>
 
       {view==='home'&&(
         <div>
           <div style={{marginBottom:24}}>
-            <div style={{fontFamily:'var(--mono)',fontSize:9,color:'var(--fg3)',letterSpacing:'.12em',marginBottom:8,textTransform:'uppercase'}}>ARCHETYPE</div>
-            <select value={archetype} onChange={e=>setArchetype(e.target.value)} style={{width:'100%',maxWidth:380,fontFamily:'var(--mono)',fontSize:12}}>
+            <div style={{fontFamily:'var(--font)',fontSize:9,color:'#fff',letterSpacing:'.12em',marginBottom:8,textTransform:'uppercase'}}>ARCHETYPE</div>
+            <select value={archetype} onChange={e=>setArchetype(e.target.value)} style={{width:'100%',maxWidth:380,fontFamily:'var(--font)',fontSize:12}}>
               {COACHING_ARCHETYPES.map(a=><option key={a.value} value={a.value}>{a.label}</option>)}
             </select>
           </div>
@@ -1083,10 +1078,10 @@ function CoachMode() {
               <div key={m.id} className="card card-lift" onClick={()=>setView(m.id)}
                    style={{padding:'24px',display:'flex',gap:14,background:'var(--graphite)',position:'relative'}}>
                 <ConfTag text={`MODULE ${m.code}`}/>
-                <div style={{width:42,height:42,border:'1px solid var(--wire)',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'var(--mono)',fontSize:13,fontWeight:700,color:'var(--signal)',flexShrink:0}}>{m.code}</div>
+                <div style={{width:42,height:42,border:'1px solid var(--wire)',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'var(--font)',fontSize:13,fontWeight:900,color:'var(--signal)',flexShrink:0}}>{m.code}</div>
                 <div>
-                  <div style={{fontWeight:800,fontSize:14,letterSpacing:'.02em',textTransform:'uppercase',marginBottom:5}}>{m.label}</div>
-                  <div style={{fontSize:12,color:'var(--fg)',lineHeight:1.5,fontWeight:700}}>{m.sub}</div>
+                  <div style={{fontWeight:900,fontSize:14,letterSpacing:'.02em',textTransform:'uppercase',marginBottom:5}}>{m.label}</div>
+                  <div style={{fontSize:12,color:'#fff',lineHeight:1.5,fontWeight:900}}>{m.sub}</div>
                 </div>
               </div>
             ))}
@@ -1106,7 +1101,7 @@ function CoachMode() {
       {view==='defense'&&(
         <div className="card" style={{padding:'24px',background:'var(--graphite)',maxWidth:680}}>
           <div className="label" style={{marginBottom:16}}>Defensive Scheme</div>
-          <select value={defScheme} onChange={e=>setDefScheme(e.target.value)} style={{width:'100%',marginBottom:12,fontFamily:'var(--mono)',fontSize:12}}>
+          <select value={defScheme} onChange={e=>setDefScheme(e.target.value)} style={{width:'100%',marginBottom:12,fontFamily:'var(--font)',fontSize:12}}>
             <option value=''>Select scheme…</option>
             {[['man_to_man','Man-to-Man'],['zone_2_3','2-3 Zone'],['zone_3_2','3-2 Zone'],['matchup_zone','Matchup Zone'],['full_court_press','Full Court Press'],['switching_man','Switching Man'],['drop_coverage','Drop Coverage'],['hedge_hard','Hard Hedge / ICE']].map(([v,l])=><option key={v} value={v}>{l}</option>)}
           </select>
@@ -1120,13 +1115,13 @@ function CoachMode() {
         <div style={{display:'grid',gap:1}}>
           <div className="card" style={{padding:'24px',background:'var(--graphite)'}}>
             <div className="label" style={{marginBottom:14}}>Lineup Analysis</div>
-            <p style={{fontSize:13,color:'var(--fg)',marginBottom:16,lineHeight:1.6,fontWeight:700}}>Add up to 5 players to analyze chemistry, spacing, and matchup fit.</p>
+            <p style={{fontSize:13,color:'#fff',marginBottom:16,lineHeight:1.6,fontWeight:900}}>Add up to 5 players to analyze chemistry, spacing, and matchup fit.</p>
             <PlayerSearchBox onSelect={p=>{if(lineupPlayers.length>=5||lineupPlayers.find(x=>x.id===p.id))return;setLineupPlayers(l=>[...l,p]);lineup.reset();}}/>
             {lineupPlayers.length>0&&<div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:12,marginBottom:14}}>
               {lineupPlayers.map((p,i)=>(
                 <div key={i} style={{display:'flex',gap:8,alignItems:'center',background:'rgba(204,255,0,.06)',border:'1px solid var(--wire)',padding:'5px 10px'}}>
                   <span style={{fontSize:12,fontWeight:600}}>{p.first_name} {p.last_name}</span>
-                  <button onClick={()=>{setLineupPlayers(l=>l.filter((_,j)=>j!==i));lineup.reset();}} style={{background:'none',border:'none',color:'var(--fg3)',cursor:'pointer',fontSize:16,lineHeight:1}}>×</button>
+                  <button onClick={()=>{setLineupPlayers(l=>l.filter((_,j)=>j!==i));lineup.reset();}} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:16,lineHeight:1}}>×</button>
                 </div>
               ))}
             </div>}
@@ -1138,8 +1133,8 @@ function CoachMode() {
             <PlayerSearchBox onSelect={p=>{setProjPlayer(p);proj.reset();}}/>
             {projPlayer&&<div style={{marginTop:14}}>
               <div style={{display:'flex',gap:12,alignItems:'center',padding:'10px 14px',background:'rgba(204,255,0,.04)',border:'1px solid var(--wire)',marginBottom:12}}>
-                <div style={{fontWeight:700,fontSize:13}}>{projPlayer.first_name} {projPlayer.last_name}</div>
-                <div style={{fontFamily:'var(--mono)',fontSize:9,color:'var(--fg3)',letterSpacing:'.08em',marginLeft:'auto'}}>{projPlayer.team?.abbreviation||'FA'}</div>
+                <div style={{fontWeight:900,fontSize:13}}>{projPlayer.first_name} {projPlayer.last_name}</div>
+                <div style={{fontFamily:'var(--font)',fontSize:9,color:'#fff',letterSpacing:'.08em',marginLeft:'auto'}}>{projPlayer.team?.abbreviation||'FA'}</div>
               </div>
               <button className="btn btn-signal btn-sm" onClick={()=>proj.run(`${API}/chat/message`,{messages:[{role:'user',content:`Project the 2025-26 season stats for ${(projPlayer.first_name||'')+' '+(projPlayer.last_name||'')} (${projPlayer.team?.abbreviation||'FA'}). Include PPG, RPG, APG, shooting splits, and usage. Factor in age, recent trends, team context, and injury history.`}]})} disabled={proj.loading}>{proj.loading?'PROJECTING…':'PROJECT STATS'}</button>
               <div style={{marginTop:12}}><StreamBox lines={proj.lines} loading={proj.loading}/></div>
@@ -1178,7 +1173,7 @@ function Chat() {
         <h1 className="page-title" style={{marginBottom:20}}>CHAT</h1>
       </div>
       <div style={{flex:1,overflowY:'auto',padding:'24px 32px',display:'flex',flexDirection:'column',gap:14}}>
-        {!msgs.length&&<div style={{fontFamily:'var(--mono)',fontSize:11,letterSpacing:'.14em',color:'var(--fg3)',textTransform:'uppercase',textAlign:'center',padding:'80px 0'}}>ASK ANYTHING ABOUT BASKETBALL.</div>}
+        {!msgs.length&&<div style={{fontFamily:'var(--font)',fontSize:11,letterSpacing:'.14em',color:'#fff',textTransform:'uppercase',textAlign:'center',padding:'80px 0'}}>ASK ANYTHING ABOUT BASKETBALL.</div>}
         {msgs.map((m,i)=>(
           <div key={i} style={{display:'flex',justifyContent:m.role==='user'?'flex-end':'flex-start'}}>
             <div style={{
@@ -1196,19 +1191,19 @@ function Chat() {
         ))}
         {loading&&stream.length>0&&(
           <div style={{display:'flex',justifyContent:'flex-start'}}>
-            <div style={{maxWidth:'78%',padding:'14px 18px',background:'rgba(8,8,8,.82)',backdropFilter:'blur(20px)',WebkitBackdropFilter:'blur(20px)',border:'1px solid rgba(0,255,102,.14)',fontSize:13.5,lineHeight:1.8,color:'var(--fg)',fontWeight:900,whiteSpace:'pre-wrap',wordBreak:'break-word'}}>
+            <div style={{maxWidth:'78%',padding:'14px 18px',background:'rgba(8,8,8,.82)',backdropFilter:'blur(20px)',WebkitBackdropFilter:'blur(20px)',border:'1px solid rgba(0,255,102,.14)',fontSize:13.5,lineHeight:1.8,color:'#fff',fontWeight:900,whiteSpace:'pre-wrap',wordBreak:'break-word'}}>
               {stream.join('')}<span style={{color:'var(--pulse)',animation:'blink-glow .8s step-end infinite'}}>▋</span>
             </div>
           </div>
         )}
-        {loading&&!stream.length&&<div style={{fontFamily:'var(--mono)',fontSize:10,color:'var(--fg3)',letterSpacing:'.14em',textTransform:'uppercase',padding:'8px 0'}}>PROCESSING…</div>}
+        {loading&&!stream.length&&<div style={{fontFamily:'var(--font)',fontSize:10,color:'#fff',letterSpacing:'.14em',textTransform:'uppercase',padding:'8px 0'}}>PROCESSING…</div>}
         <div ref={bottom}/>
       </div>
       <div style={{padding:'16px 32px 24px',borderTop:'1px solid rgba(0,255,102,.1)',display:'flex',gap:12,flexShrink:0}}>
         <input value={input} onChange={e=>setInput(e.target.value)}
                onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}}}
                placeholder="Ask about any player, team, game, or strategy…"
-               disabled={loading} style={{flex:1,fontFamily:'var(--mono)',fontSize:13}}/>
+               disabled={loading} style={{flex:1,fontFamily:'var(--font)',fontSize:13}}/>
         <button className="btn btn-signal" onClick={send} disabled={loading||!input.trim()} style={{flexShrink:0,padding:'10px 28px',fontSize:12}}>{loading?'…':'SEND'}</button>
       </div>
     </div>
@@ -1232,7 +1227,7 @@ function App() {
       {!isHome&&(
         <>
           <nav className="nav" style={{zIndex:1000}}>
-            <div className="nav-logo" onClick={()=>setTab('home')}>PIVOT.</div>
+            <div className="nav-logo" onClick={()=>setTab('home')}>PIVOT</div>
             <div className="nav-links">
               {NAV_ITEMS.filter(i=>i.id!=='home').map(item=>(
                 <button key={item.id} className={`nav-link${tab===item.id?' active':''}`} onClick={()=>setTab(item.id)}>{item.label}</button>
@@ -1240,7 +1235,7 @@ function App() {
             </div>
             <div className="nav-right">
               <span className="pulse-dot"/>
-              <span style={{fontFamily:'var(--mono)',fontSize:9,letterSpacing:'.12em',color:'var(--fg3)',textTransform:'uppercase'}}>LIVE</span>
+              <span style={{fontFamily:'var(--font)',fontSize:9,letterSpacing:'.12em',color:'#fff',textTransform:'uppercase'}}>LIVE</span>
             </div>
           </nav>
           <Ticker/>
