@@ -488,8 +488,10 @@ function Home({setTab}) {
             <button key={i} className="lp-nav-link" onClick={()=>setTab(m.id)}>{m.label}</button>
           ))}
         </div>
-        <button className="lp-contact-btn" onClick={()=>setTab('games')}>LAUNCH</button>
-        <button className="lp-hamburger" onClick={()=>setTab('games')}>☰</button>
+        <div style={{marginLeft:'auto'}}>
+          <button className="lp-contact-btn" onClick={()=>setTab('games')}>LAUNCH</button>
+          <button className="lp-hamburger" onClick={()=>setTab('games')}>☰</button>
+        </div>
       </nav>
 
       {/* ── HERO ── */}
