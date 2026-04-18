@@ -346,8 +346,8 @@ function PlayerSearchBox({onSelect,placeholder='Search player name…'}) {
     if(q.trim().length<2){setResults([]);return;}
     timer.current=setTimeout(()=>{
       setLoading(true);
-      fetch(`${API}/players?search=${encodeURIComponent(q.trim())}&per_page=10`)
-        .then(r=>r.json()).then(d=>{setResults(d.data||[]);setLoading(false);}).catch(()=>setLoading(false));
+      fetch(`${API}/nba/players?name=${encodeURIComponent(q.trim())}`)
+        .then(r=>r.json()).then(d=>{setResults(d.players||d.data||[]);setLoading(false);}).catch(()=>setLoading(false));
     },280);
     return()=>clearTimeout(timer.current);
   },[q]);
@@ -386,7 +386,7 @@ function Ticker() {
   const[games,setGames]=React.useState([]);
   React.useEffect(()=>{
     let c=false;
-    fetch(`${API}/games?date=${localDate()}`).then(r=>r.json()).then(d=>{if(!c)setGames(d.data||d||[]);}).catch(()=>{});
+    fetch(`${API}/nba/games?date=${localDate()}`).then(r=>r.json()).then(d=>{if(!c)setGames(d.data||d.games||[]);}).catch(()=>{});
     return()=>{c=true;};
   },[]);
   if(!games.length) return null;
@@ -509,7 +509,7 @@ function GameModal({game,open,onClose}) {
     setTab('box');setBox(null);analysis.reset();
     if(final||live){
       setBoxLoading(true);
-      fetch(`${API}/games/${game.id}/stats`).then(r=>r.json()).then(d=>{setBox(d);setBoxLoading(false);}).catch(()=>setBoxLoading(false));
+      fetch(`${API}/nba/games/${game.id}/boxscore`).then(r=>r.json()).then(d=>{setBox(d);setBoxLoading(false);}).catch(()=>setBoxLoading(false));
     }
   },[open,game?.id]);
 
@@ -592,7 +592,7 @@ function Games() {
   const[modalOpen,setModalOpen]=React.useState(false);
   React.useEffect(()=>{
     let c=false;setLoading(true);setGames([]);
-    fetch(`${API}/games?date=${date}`).then(r=>r.json()).then(d=>{if(!c){setGames(d.data||d||[]);setLoading(false);}}).catch(()=>{if(!c)setLoading(false);});
+    fetch(`${API}/nba/games?date=${date}`).then(r=>r.json()).then(d=>{if(!c){setGames(d.data||d.games||[]);setLoading(false);}}).catch(()=>{if(!c)setLoading(false);});
     return()=>{c=true;};
   },[date]);
 
@@ -673,8 +673,9 @@ function Intel() {
   }
   function load(p,s){
     setStatsLoading(true);
-    fetch(`${API}/players/${p.id}/stats?season=${s}&per_page=10`).then(r=>r.json()).then(d=>{setStats(d.data||d||[]);setStatsLoading(false);}).catch(()=>setStatsLoading(false));
-    fetch(`${API}/players/${p.id}/advanced-stats?season=${s}`,{headers:{'X-Pivot-Session':_pivotSessionId}}).then(r=>r.json()).then(d=>setAdv(d)).catch(()=>{});
+    const seasonInt=s.includes('-')?parseInt(s.split('-')[0])+1:parseInt(s)||2025;
+    fetch(`${API}/nba/players/${p.id}/stats?season=${seasonInt}`).then(r=>r.json()).then(d=>{setStats(d.stats||d.data||[]);setStatsLoading(false);}).catch(()=>setStatsLoading(false));
+    fetch(`${API}/nba/stats/advanced?player_ids=${p.id}&seasons=${seasonInt}`,{headers:{'X-Pivot-Session':_pivotSessionId}}).then(r=>r.json()).then(d=>setAdv(d.stats?.[0]||null)).catch(()=>{});
   }
   function runAI(){
     if(!player||analysis.loading)return;
@@ -799,11 +800,11 @@ function WarRoom() {
   function selectTeam(t){
     setSelectedTeam(t);setTeamData(null);teamAnalysis.reset();dna.reset();
     setTeamLoading(true);
-    fetch(`${API}/teams/${t.id}`).then(r=>r.json()).then(d=>{setTeamData(d);setTeamLoading(false);}).catch(()=>setTeamLoading(false));
+    fetch(`${API}/nba/teams/${t.id}`).then(r=>r.json()).then(d=>{setTeamData(d);setTeamLoading(false);}).catch(()=>setTeamLoading(false));
   }
   function loadRoster(t){
     setRoster([]);setRosterLoading(true);setRosterModal(true);
-    fetch(`${API}/players?team_ids=${t.id}&per_page=30`).then(r=>r.json()).then(d=>{setRoster(d.data||[]);setRosterLoading(false);}).catch(()=>setRosterLoading(false));
+    fetch(`${API}/nba/teams/roster?abbr=${t.abbr}`).then(r=>r.json()).then(d=>{setRoster(d.players||d.data||[]);setRosterLoading(false);}).catch(()=>setRosterLoading(false));
   }
   const sortedTeams=[...NBA_TEAMS].sort((a,b)=>(a.full_name||a.name).localeCompare(b.full_name||b.name));
   const taxLine=(NBA_CAP?.luxuryTaxM||170.814)*1e6;
@@ -949,8 +950,8 @@ function Compare() {
 
   function loadStats(p,setter){
     if(!p)return;
-    fetch(`${API}/players/${p.id}/stats?season=2024-25&per_page=82`).then(r=>r.json()).then(d=>{
-      const g=d.data||d||[];if(!g.length){setter(null);return;}
+    fetch(`${API}/nba/players/${p.id}/stats?season=2025`).then(r=>r.json()).then(d=>{
+      const g=d.stats||d.data||[];if(!g.length){setter(null);return;}
       const avg=k=>g.reduce((s,x)=>s+(x[k]||0),0)/g.length;
       setter({pts:avg('pts').toFixed(1),reb:avg('reb').toFixed(1),ast:avg('ast').toFixed(1),stl:avg('stl').toFixed(1),blk:avg('blk').toFixed(1),fg:(g.reduce((s,x)=>s+(x.fg_pct||0),0)/g.length*100).toFixed(1),games:g.length});
     }).catch(()=>setter(null));
