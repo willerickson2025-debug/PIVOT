@@ -139,12 +139,12 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
 @keyframes blob-a{0%{transform:translate(0,0) scale(1)}50%{transform:translate(2%,-1.5%) scale(1.02)}100%{transform:translate(-1%,2%) scale(.99)}}
 @keyframes blob-b{0%{transform:translate(0,0) scale(1)}50%{transform:translate(-1.5%,2%) scale(1.03)}100%{transform:translate(1%,-1%) scale(1.01)}}
 @keyframes blob-c{0%{transform:translate(0,0) scale(1)}50%{transform:translate(1.5%,1%) scale(.98)}100%{transform:translate(-1%,-1.5%) scale(1.02)}}
-.lp-logo{font-family:"Helvetica Neue","Helvetica","Arial Black",sans-serif;font-weight:900;font-size:28px;letter-spacing:-.04em;color:#000000;cursor:pointer;user-select:none;flex-shrink:0;}
+.lp-logo{font-family:"Helvetica Neue","Helvetica","Arial Black",sans-serif;font-weight:900;font-size:28px;letter-spacing:-.04em;color:#fff;cursor:pointer;user-select:none;flex-shrink:0;}
 .lp-nav-links{display:flex;align-items:center;gap:40px;position:absolute;left:50%;transform:translateX(-50%);}
-.lp-nav-link{font-family:"Helvetica Neue","Helvetica","Arial Black",sans-serif;font-weight:900;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:#000000;background:none;border:none;cursor:pointer;transition:opacity 120ms;white-space:nowrap;}
-.lp-nav-link:hover{opacity:.55;}
-.lp-contact-btn{font-family:"Helvetica Neue","Helvetica","Arial Black",sans-serif;font-weight:900;font-size:13px;letter-spacing:.06em;text-transform:uppercase;background:#000000;color:#FFFFFF;border:none;border-radius:999px;padding:14px 28px;cursor:pointer;transition:background 120ms,color 120ms;flex-shrink:0;}
-.lp-contact-btn:hover{background:#FFFFFF;color:#000000;outline:2px solid #000000;}
+.lp-nav-link{font-family:"Helvetica Neue","Helvetica","Arial Black",sans-serif;font-weight:900;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:#fff;background:none;border:none;cursor:pointer;transition:opacity 120ms;white-space:nowrap;}
+.lp-nav-link:hover{opacity:.65;}
+.lp-contact-btn{font-family:"Helvetica Neue","Helvetica","Arial Black",sans-serif;font-weight:900;font-size:13px;letter-spacing:.06em;text-transform:uppercase;background:#fff;color:#000;border:none;border-radius:999px;padding:14px 28px;cursor:pointer;transition:background 120ms,color 120ms;flex-shrink:0;}
+.lp-contact-btn:hover{background:rgba(255,255,255,.8);}
 .lp-tagline{font-family:"Helvetica Neue","Helvetica","Arial Black",sans-serif;font-weight:900;font-size:14px;letter-spacing:.18em;text-transform:uppercase;color:#FFFFFF;margin-bottom:24px;text-shadow:0 1px 12px rgba(0,0,0,.4);}
 .lp-headline{font-family:"Helvetica Neue","Helvetica","Arial Black",sans-serif;font-weight:900;font-size:clamp(64px,10vw,180px);line-height:.95;letter-spacing:-.04em;color:#FFFFFF;margin-bottom:40px;text-align:center;text-shadow:0 2px 40px rgba(0,0,0,.25);}
 .lp-cta{font-family:"Helvetica Neue","Helvetica","Arial Black",sans-serif;font-weight:900;font-size:16px;letter-spacing:.12em;text-transform:uppercase;background:#FFFFFF;color:#000000;border:none;border-radius:999px;padding:22px 44px;cursor:pointer;transition:transform 180ms ease,box-shadow 180ms ease;}
@@ -621,16 +621,16 @@ function Games() {
           <h1 className="page-title">GAMES</h1>
         </div>
         <div style={{marginLeft:'auto',display:'flex',gap:8,alignItems:'center'}}>
-          <button className="btn-ghost" onClick={()=>setDate(d=>shiftDate(d,-1))} style={{fontFamily:'var(--font)',fontSize:16,padding:'8px 14px',color:'var(--pulse)'}}>←</button>
+          <button className="btn btn-wire btn-sm" onClick={()=>setDate(d=>shiftDate(d,-1))}>PREV</button>
           <div style={{fontFamily:'var(--font)',fontSize:12,fontWeight:900,letterSpacing:'.1em',color:'var(--pulse)',background:'rgba(0,255,102,.07)',border:'1px solid rgba(0,255,102,.2)',padding:'9px 22px',minWidth:132,textAlign:'center'}}>{fmtDateLabel(date)}</div>
-          <button className="btn-ghost" onClick={()=>setDate(d=>shiftDate(d,1))} style={{fontFamily:'var(--font)',fontSize:16,padding:'8px 14px',color:'var(--pulse)'}}>→</button>
-          <button className="btn btn-wire btn-sm" onClick={()=>setDate(localDate())}>TODAY</button>
+          <button className="btn btn-wire btn-sm" onClick={()=>setDate(d=>shiftDate(d,1))}>NEXT</button>
+          <button className="btn btn-signal btn-sm" onClick={()=>setDate(localDate())}>TODAY</button>
         </div>
       </div>
       {loading&&<Loader/>}
-      {!loading&&!games.length&&<div style={{fontFamily:'var(--font)',fontSize:11,letterSpacing:'.14em',color:'#fff',textTransform:'uppercase',padding:'80px 0',textAlign:'center'}}>NO GAMES SCHEDULED.</div>}
+      {!loading&&!games.length&&<div style={{fontSize:11,letterSpacing:'.14em',color:'#fff',textTransform:'uppercase',padding:'80px 0',textAlign:'center'}}>NO GAMES SCHEDULED.</div>}
       {!loading&&games.length>0&&(
-        <div style={{display:'grid',gap:2}}>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))',gap:12}}>
           {games.map(g=>{
             const{label,type}=parseStatus(g.status);
             const live=type==='live',final=type==='final';
@@ -640,28 +640,34 @@ function Games() {
             const conf=Math.round(68+Math.random()*31);
             return (
               <div key={g.id} className="card card-lift" onClick={()=>{setSelected(g);setModalOpen(true);}}
-                   style={{padding:'20px 24px',display:'flex',alignItems:'center',gap:16,flexWrap:'wrap',position:'relative',
-                     boxShadow:live?'0 0 20px rgba(0,255,102,.08)':'none',
-                     borderColor:live?'rgba(0,255,102,.28)':'rgba(0,255,102,.12)'}}>
-                <ConfTag text={`${conf}.${Math.floor(Math.random()*9)}% / CONF`}/>
-                {ps&&<span className="badge badge-signal">{ps}</span>}
-                <div style={{display:'flex',alignItems:'center',gap:14,flex:1,minWidth:220}}>
-                  <div style={{display:'flex',alignItems:'center',gap:10}}>
-                    <TeamLogo abbr={away} size={30}/>
-                    <span style={{fontFamily:'var(--font)',fontWeight:900,fontSize:12,letterSpacing:'.08em',minWidth:34,color:'#fff'}}>{away}</span>
-                    {g.visitor_team_score!=null&&<span style={{fontFamily:'var(--font)',fontSize:28,fontWeight:900,color:live?'var(--pulse)':'var(--fg)',letterSpacing:'-.04em',textShadow:live?'0 0 16px rgba(0,255,102,.5)':'none'}}>{g.visitor_team_score}</span>}
-                  </div>
-                  <span style={{fontFamily:'var(--font)',color:'rgba(255,255,255,.12)',fontSize:10,fontWeight:900}}>VS</span>
-                  <div style={{display:'flex',alignItems:'center',gap:10}}>
-                    <TeamLogo abbr={home} size={30}/>
-                    <span style={{fontFamily:'var(--font)',fontWeight:900,fontSize:12,letterSpacing:'.08em',minWidth:34,color:'#fff'}}>{home}</span>
-                    {g.home_team_score!=null&&<span style={{fontFamily:'var(--font)',fontSize:28,fontWeight:900,color:live?'var(--pulse)':'var(--fg)',letterSpacing:'-.04em',textShadow:live?'0 0 16px rgba(0,255,102,.5)':'none'}}>{g.home_team_score}</span>}
-                  </div>
-                </div>
-                <div style={{display:'flex',gap:10,alignItems:'center',marginLeft:'auto'}}>
+                   style={{padding:'22px 20px',display:'flex',flexDirection:'column',gap:16,position:'relative',aspectRatio:'1/1',justifyContent:'space-between',
+                     boxShadow:live?'0 0 24px rgba(0,255,102,.12)':'none',
+                     borderColor:live?'rgba(0,255,102,.4)':'rgba(0,255,102,.12)'}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
                   <span className={`badge badge-${type}`}>{label}</span>
                   {live&&<span className="pulse-dot"/>}
-                  {(final||live)&&<span style={{fontFamily:'var(--font)',fontSize:9,color:'var(--pulse)',letterSpacing:'.1em'}}>BOX SCORE →</span>}
+                  {ps&&<span className="badge badge-signal">{ps}</span>}
+                </div>
+                <div style={{display:'flex',flexDirection:'column',gap:10,flex:1,justifyContent:'center'}}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                    <div style={{display:'flex',alignItems:'center',gap:8}}>
+                      <TeamLogo abbr={away} size={24}/>
+                      <span style={{fontWeight:900,fontSize:13,letterSpacing:'.06em'}}>{away}</span>
+                    </div>
+                    {g.visitor_team_score!=null&&<span style={{fontSize:32,fontWeight:900,color:live?'var(--pulse)':'#fff',letterSpacing:'-.04em',textShadow:live?'0 0 16px rgba(0,255,102,.5)':'none'}}>{g.visitor_team_score}</span>}
+                  </div>
+                  <div style={{height:1,background:'rgba(0,255,102,.1)'}}/>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                    <div style={{display:'flex',alignItems:'center',gap:8}}>
+                      <TeamLogo abbr={home} size={24}/>
+                      <span style={{fontWeight:900,fontSize:13,letterSpacing:'.06em'}}>{home}</span>
+                    </div>
+                    {g.home_team_score!=null&&<span style={{fontSize:32,fontWeight:900,color:live?'var(--pulse)':'#fff',letterSpacing:'-.04em',textShadow:live?'0 0 16px rgba(0,255,102,.5)':'none'}}>{g.home_team_score}</span>}
+                  </div>
+                </div>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                  <span style={{fontSize:8,letterSpacing:'.12em',color:'rgba(0,255,102,.6)',fontWeight:900}}>{conf}% CONF</span>
+                  {(final||live)&&<span style={{fontSize:9,color:'var(--pulse)',letterSpacing:'.1em',fontWeight:900}}>VIEW BOX</span>}
                 </div>
               </div>
             );
@@ -744,18 +750,17 @@ function Intel() {
               <div className="label" style={{marginBottom:16}}>Game Log</div>
               <div style={{overflowX:'auto'}}>
                 <table className="box-table">
-                  <thead><tr>{['DATE','OPP','MIN','PTS','REB','AST','STL','BLK','FG%','3P%','TO'].map(c=><th key={c} style={{textAlign:c==='DATE'||c==='OPP'?'left':'right'}}>{c}</th>)}</tr></thead>
+                  <thead><tr>{['GAME','MIN','PTS','REB','AST','STL','BLK','FG%','3P%'].map(c=><th key={c} style={{textAlign:c==='GAME'?'left':'right'}}>{c}</th>)}</tr></thead>
                   <tbody>
                     {stats.slice(0,10).map((s,i)=>{
-                      const fg=s.fg_pct!=null?Math.round(s.fg_pct*100)+'%':s.fgm!=null&&s.fga?Math.round(s.fgm/s.fga*100)+'%':'—';
-                      const tp=s.fg3_pct!=null?Math.round(s.fg3_pct*100)+'%':s.fg3m!=null&&s.fg3a?Math.round(s.fg3m/s.fg3a*100)+'%':'—';
+                      const fg=s.fg_pct!=null?Math.round(s.fg_pct*100)+'%':'—';
+                      const tp=s.fg3_pct!=null?Math.round(s.fg3_pct*100)+'%':'—';
                       return <tr key={i}>
-                        <td style={{textAlign:'left',fontFamily:'var(--font)',fontSize:10}}>{(s.game?.date||s.date||'—').substring(0,10)}</td>
-                        <td style={{textAlign:'left',fontFamily:'var(--font)',fontSize:10,color:'#fff'}}>{s.game?.home_team?.abbreviation||s.opp||'—'}</td>
-                        <td>{s.min||'—'}</td>
-                        <td style={{fontWeight:s.pts>=20?700:400,color:s.pts>=20?'var(--signal)':'inherit'}}>{s.pts??'—'}</td>
-                        <td>{s.reb??'—'}</td><td>{s.ast??'—'}</td><td>{s.stl??'—'}</td><td>{s.blk??'—'}</td>
-                        <td>{fg}</td><td>{tp}</td><td>{s.turnover??s.to??'—'}</td>
+                        <td style={{textAlign:'left',fontSize:10}}>#{i+1}</td>
+                        <td style={{textAlign:'right'}}>{s.minutes||'—'}</td>
+                        <td style={{fontWeight:s.points>=20?900:900,color:s.points>=20?'var(--signal)':'#fff'}}>{s.points??'—'}</td>
+                        <td>{s.rebounds??'—'}</td><td>{s.assists??'—'}</td><td>{s.steals??'—'}</td><td>{s.blocks??'—'}</td>
+                        <td>{fg}</td><td>{tp}</td>
                       </tr>;
                     })}
                   </tbody>
@@ -769,10 +774,10 @@ function Intel() {
             <div className="card" style={{padding:'22px 24px',background:'var(--graphite)'}}>
               <div className="label" style={{marginBottom:16}}>Advanced</div>
               <div style={{display:'flex',gap:24,flexWrap:'wrap'}}>
-                {Object.entries(adv).filter(([k])=>!['player_id','player','season','id'].includes(k)).slice(0,12).map(([k,v])=>(
-                  <div key={k} style={{display:'flex',flexDirection:'column',gap:4,minWidth:64}}>
-                    <div style={{fontFamily:'var(--font)',fontSize:8.5,letterSpacing:'.12em',textTransform:'uppercase',color:'#fff'}}>{k.replace(/_/g,' ')}</div>
-                    <div style={{fontFamily:'var(--font)',fontSize:22,fontWeight:900,color:'#fff',letterSpacing:'-.03em'}}>{typeof v==='number'?v.toFixed(1):v??'—'}</div>
+                {[['NET RTG','net_rating'],['OFF RTG','offensive_rating'],['DEF RTG','defensive_rating'],['TS%','true_shooting_percentage'],['EFG%','effective_field_goal_percentage'],['USG%','usage_percentage'],['AST%','assist_percentage'],['REB%','rebound_percentage'],['PIE','pie'],['PACE','pace']].filter(([,k])=>adv[k]!=null).map(([label,k])=>(
+                  <div key={k} style={{display:'flex',flexDirection:'column',gap:4,minWidth:72}}>
+                    <div style={{fontSize:8.5,letterSpacing:'.12em',textTransform:'uppercase',color:'var(--pulse)',fontWeight:900}}>{label}</div>
+                    <div style={{fontSize:24,fontWeight:900,color:'#fff',letterSpacing:'-.03em'}}>{typeof adv[k]==='number'?(adv[k]<2?Math.round(adv[k]*100)+'%':adv[k].toFixed(1)):adv[k]??'—'}</div>
                   </div>
                 ))}
               </div>
@@ -971,7 +976,7 @@ function Compare() {
     fetch(`${API}/nba/players/${p.id}/stats?season=2025`).then(r=>r.json()).then(d=>{
       const g=d.stats||d.data||[];if(!g.length){setter(null);return;}
       const avg=k=>g.reduce((s,x)=>s+(x[k]||0),0)/g.length;
-      setter({pts:avg('pts').toFixed(1),reb:avg('reb').toFixed(1),ast:avg('ast').toFixed(1),stl:avg('stl').toFixed(1),blk:avg('blk').toFixed(1),fg:(g.reduce((s,x)=>s+(x.fg_pct||0),0)/g.length*100).toFixed(1),games:g.length});
+      setter({pts:avg('points').toFixed(1),reb:avg('rebounds').toFixed(1),ast:avg('assists').toFixed(1),stl:avg('steals').toFixed(1),blk:avg('blocks').toFixed(1),fg:(g.reduce((s,x)=>s+(x.fg_pct||0),0)/g.length*100).toFixed(1),games:g.length});
     }).catch(()=>setter(null));
   }
   React.useEffect(()=>{loadStats(pA,setSA);},[pA?.id]);
@@ -1062,7 +1067,7 @@ function CoachMode() {
       <div className="page-hd">
         <div><span className="page-module">PIVOT / MODULE 05</span>
           <h1 className="page-title">COACH MODE</h1></div>
-        {view!=='home'&&<button className="btn-ghost" onClick={()=>setView('home')} style={{marginLeft:'auto',fontFamily:'var(--font)',fontSize:10,letterSpacing:'.1em',border:'1px solid rgba(255,255,255,.1)',padding:'7px 14px'}}>← BACK</button>}
+        {view!=='home'&&<button className="btn btn-wire btn-sm" onClick={()=>setView('home')} style={{marginLeft:'auto'}}>BACK</button>}
       </div>
 
       {view==='home'&&(
