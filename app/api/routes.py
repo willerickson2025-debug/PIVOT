@@ -928,3 +928,517 @@ async def agent_quality_pass(date: Optional[str] = Query(None)):
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e))
 
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# LEGACY COMPATIBILITY ROUTES
+# Match the URL contract used by dashboard.html so all features work without
+# changing the frontend API base path.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def _season_to_int(season) -> int:
+    """Convert '2024-25' → 2025, or pass-through integers."""
+    s = str(season).strip()
+    if '-' in s:
+        try:
+            return int(s.split('-')[0]) + 1
+        except ValueError:
+            pass
+    try:
+        return int(float(s))
+    except (ValueError, TypeError):
+        return 2025
+
+
+def _tok(text: str) -> str:
+    return f"data: {json.dumps({'type': 'token', 'text': text})}\n\n"
+
+
+def _done() -> str:
+    return f"data: {json.dumps({'type': 'done'})}\n\n"
+
+
+# ── Data endpoints ────────────────────────────────────────────────────────────
+
+@router.get("/games")
+@limiter.limit(_DATA_LIMIT)
+async def compat_games(request: Request, response: Response, date: Optional[str] = Query(None)):
+    """Legacy /games → /nba/games. Returns {data: [...]} for dashboard compatibility."""
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+    if date and not validate_date_string(date):
+        raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD.")
+    try:
+        games = await nba_service.get_games_by_date(date)
+        return {"data": [g.model_dump() for g in games]}
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+
+@router.get("/players")
+@limiter.limit(_DATA_LIMIT)
+async def compat_players(
+    request: Request,
+    search: Optional[str] = Query(None),
+    page: int = Query(1),
+    per_page: int = Query(25),
+    team_ids: Optional[int] = Query(None),
+):
+    """Legacy /players — handles search=, team_ids=, and pagination."""
+    try:
+        from app.services.nba_service import _fetch_data, _parse_player
+        if team_ids is not None:
+            payload = await _fetch_data("/players", params={"team_ids[]": team_ids, "per_page": min(per_page, 100)})
+            players = [_parse_player(p) for p in payload.get("data") or []]
+            return {"data": [p.model_dump() for p in players]}
+        if search:
+            query = search.strip()
+            tokens = query.split()
+            players: list = []
+            if len(tokens) >= 2:
+                players = await nba_service.search_players(query, first_name=tokens[0], last_name=" ".join(tokens[1:]))
+            if not players:
+                players = await nba_service.search_players(query)
+            return {"data": [p.model_dump() for p in players[:per_page]]}
+        # Generic list — page through BDL directly
+        payload = await _fetch_data("/players", params={"per_page": min(per_page, 100), "page": page})
+        players = [_parse_player(p) for p in payload.get("data") or []]
+        return {"data": [p.model_dump() for p in players]}
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+
+@router.get("/players/{player_id}/stats")
+@limiter.limit(_DATA_LIMIT)
+async def compat_player_stats(
+    request: Request,
+    player_id: int,
+    season: str = Query("2024-25"),
+    per_page: int = Query(25),
+):
+    """Legacy /players/{id}/stats — converts season string, returns {data: [...]}."""
+    try:
+        season_int = _season_to_int(season)
+        stats = await nba_service.get_player_stats(player_id, season_int)
+        return {"data": [s.model_dump() for s in stats[:per_page]]}
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+
+@router.get("/players/{player_id}/advanced-stats")
+@limiter.limit(_DATA_LIMIT)
+async def compat_player_advanced_stats(
+    request: Request,
+    player_id: int,
+    season: str = Query("2024-25"),
+):
+    """Legacy /players/{id}/advanced-stats — fails silently (optional data)."""
+    try:
+        season_int = _season_to_int(season)
+        stats = await nba_service.get_advanced_stats(player_ids=[player_id], seasons=[season_int], per_page=1)
+        if stats:
+            return stats[0].model_dump()
+        return {}
+    except Exception:
+        return {}
+
+
+@router.get("/games/{game_id}/stats")
+@limiter.limit(_DATA_LIMIT)
+async def compat_game_stats(request: Request, game_id: int):
+    """Legacy /games/{id}/stats → /nba/games/{id}/boxscore."""
+    try:
+        return await nba_service.get_game_boxscore(game_id)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+
+@router.get("/teams/{team_id}")
+@limiter.limit(_DATA_LIMIT)
+async def compat_team(request: Request, team_id: int):
+    """Legacy /teams/{id} → /nba/teams/{id}."""
+    try:
+        team = await nba_service.get_team_by_id(team_id)
+        return team.model_dump()
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+
+# ── Streaming AI endpoints ────────────────────────────────────────────────────
+
+@router.post("/analyze-game")
+@limiter.limit(_CLAUDE_LIMIT)
+async def compat_analyze_game(request: Request):
+    """Legacy SSE: stream game analysis. Accepts {game_id} or full game object."""
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+
+    # Normalise game_id key — dashboard sends game_id, service expects id
+    if "game_id" in body and "id" not in body:
+        body = dict(body)
+        body["id"] = body["game_id"]
+
+    async def generate():
+        try:
+            result = await analysis_service.analyze_game(body)
+            text = result.get("analysis") or result.get("content") or str(result)
+            for i in range(0, len(text), 8):
+                yield _tok(text[i:i+8])
+            yield _done()
+        except Exception as e:
+            yield _tok(f"Analysis unavailable: {e}")
+            yield _done()
+
+    return StreamingResponse(generate(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+@router.post("/analyze-player")
+@limiter.limit(_CLAUDE_LIMIT)
+async def compat_analyze_player(request: Request):
+    """Legacy SSE: stream season player analysis."""
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+
+    player_id = int(body.get("player_id") or 0)
+    season_int = _season_to_int(body.get("season") or "2025")
+
+    async def generate():
+        try:
+            async for event in analysis_service.analyze_player_stream(player_id, season_int):
+                t = event.get("type", "")
+                if t in ("chunk", "token") and event.get("text"):
+                    yield _tok(event["text"])
+                elif t == "done":
+                    yield _done()
+                    return
+        except Exception as e:
+            yield _tok(f"Analysis unavailable: {e}")
+            yield _done()
+
+    return StreamingResponse(generate(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+@router.post("/analyze-player-live")
+@limiter.limit(_CLAUDE_LIMIT)
+async def compat_analyze_player_live(request: Request):
+    """Legacy SSE: stream live-form player analysis (same pipeline as season)."""
+    return await compat_analyze_player(request)
+
+
+@router.post("/analyze-team")
+@limiter.limit(_CLAUDE_LIMIT)
+async def compat_analyze_team(request: Request):
+    """Legacy SSE: stream team roster analysis."""
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+
+    team_name = body.get("team_name") or ""
+
+    async def generate():
+        try:
+            async for event in analysis_service.analyze_roster_stream(team_name):
+                t = event.get("type", "")
+                if t in ("chunk", "token") and event.get("text"):
+                    yield _tok(event["text"])
+                elif t == "done":
+                    yield _done()
+                    return
+        except Exception as e:
+            yield _tok(f"Analysis unavailable: {e}")
+            yield _done()
+
+    return StreamingResponse(generate(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+@router.post("/team-dna")
+@limiter.limit(_CLAUDE_LIMIT)
+async def compat_team_dna(request: Request):
+    """Legacy SSE: stream deep team DNA breakdown."""
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+
+    team_name = body.get("team_name") or ""
+
+    async def generate():
+        try:
+            async for event in analysis_service.analyze_team_dna(team_name):
+                t = event.get("type", "")
+                if t in ("chunk", "token") and event.get("text"):
+                    yield _tok(event["text"])
+                elif t == "done":
+                    yield _done()
+                    return
+        except Exception as e:
+            yield _tok(f"Analysis unavailable: {e}")
+            yield _done()
+
+    return StreamingResponse(generate(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+@router.post("/front-office-eval")
+@limiter.limit(_CLAUDE_LIMIT)
+async def compat_front_office_eval(request: Request):
+    """Legacy SSE: stream front-office player evaluation."""
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+
+    player_name = body.get("player_name") or "Unknown Player"
+    context = body.get("context") or ""
+    ctx_labels = {
+        "max_extension": "maximum contract extension decision",
+        "trade_target": "trade target evaluation",
+        "buyout_candidate": "buyout / waiver claim decision",
+        "salary_dump": "salary dump trade",
+    }
+    ctx_label = ctx_labels.get(context, "general front-office evaluation")
+
+    prompt = (
+        f"FRONT OFFICE EVALUATION — {player_name.upper()}\nContext: {ctx_label}\n\n"
+        "Write a concise GM-level evaluation covering:\n"
+        "1. TRADE VALUE — current market, what they command in a deal\n"
+        "2. CONTRACT FIT — value relative to their likely salary tier\n"
+        "3. UPSIDE — ceiling, development trajectory, age factor\n"
+        "4. RISK — injury history, performance volatility, contract risks\n"
+        "5. RECOMMENDATION — one clear directive (acquire / retain / move / avoid)\n\n"
+        "Write like a GM memo. Specific. Stats required. No fluff."
+    )
+
+    async def generate():
+        try:
+            async for chunk in claude_service.analyze_stream(
+                prompt=prompt,
+                system_prompt="You are a senior NBA GM. Be direct, data-driven, and decisive. Every claim needs a stat.",
+                override_max_tokens=800,
+            ):
+                if chunk:
+                    yield _tok(chunk)
+            yield _done()
+        except Exception as e:
+            yield _tok(f"Evaluation unavailable: {e}")
+            yield _done()
+
+    return StreamingResponse(generate(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+@router.post("/compare-players")
+@limiter.limit(_CLAUDE_LIMIT)
+async def compat_compare_players(request: Request):
+    """Legacy SSE: stream player comparison."""
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+
+    player_a_id = int(body.get("player_a_id") or 0)
+    player_b_id = int(body.get("player_b_id") or 0)
+    context = body.get("context") or None
+
+    async def generate():
+        try:
+            result = await analysis_service.compare_players(
+                player_a_id, player_b_id, 2025,
+                compare_context=context,
+            )
+            text = result.get("analysis") or ""
+            structured = result.get("structured") or {}
+            if not text and structured:
+                text = structured.get("reasoning") or structured.get("better_for_context") or str(result)
+            for i in range(0, len(text), 8):
+                yield _tok(text[i:i+8])
+            yield _done()
+        except Exception as e:
+            yield _tok(f"Comparison unavailable: {e}")
+            yield _done()
+
+    return StreamingResponse(generate(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+_COACH_SYS = (
+    "You are an elite NBA head coach. Be specific about player movements, spacing, screens, reads. "
+    "Name the play, describe it concisely, give 1-2 quick alternatives. Every sentence is actionable."
+)
+
+@router.post("/coach")
+@limiter.limit(_CLAUDE_LIMIT)
+async def compat_coach(request: Request):
+    """Legacy SSE: stream play design for a scenario."""
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+
+    scenario = body.get("scenario") or ""
+    archetype = body.get("archetype") or ""
+    arch_str = f"\nCoaching archetype: {archetype}" if archetype else ""
+    prompt = f"PLAY DESIGN\nScenario: {scenario}{arch_str}\n\nDraw up the play."
+
+    async def generate():
+        try:
+            async for chunk in claude_service.analyze_stream(
+                prompt=prompt, system_prompt=_COACH_SYS, override_max_tokens=700):
+                if chunk:
+                    yield _tok(chunk)
+            yield _done()
+        except Exception as e:
+            yield _tok(f"Play design unavailable: {e}")
+            yield _done()
+
+    return StreamingResponse(generate(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+_DEF_SYS = (
+    "You are an elite NBA defensive coordinator. "
+    "Give specific player-by-player assignments, rotations, and adjustments. Precise. Actionable."
+)
+
+@router.post("/defensive-scheme")
+@limiter.limit(_CLAUDE_LIMIT)
+async def compat_defensive_scheme(request: Request):
+    """Legacy SSE: stream defensive scheme analysis."""
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+
+    scheme = body.get("scheme") or "man_to_man"
+    offensive_action = body.get("offensive_action") or "general half-court offense"
+    archetype = body.get("archetype") or ""
+    arch_str = f"\nCoaching archetype: {archetype}" if archetype else ""
+    names = {
+        "man_to_man": "Man-to-Man", "zone_2_3": "2-3 Zone", "zone_3_2": "3-2 Zone",
+        "matchup_zone": "Matchup Zone", "full_court_press": "Full-Court Press",
+        "switching_man": "Switching Man", "drop_coverage": "Drop Coverage",
+        "hedge_hard": "Hard Hedge / ICE",
+    }
+    scheme_label = names.get(scheme, scheme.replace("_", " ").title())
+    prompt = (
+        f"DEFENSIVE SCHEME — {scheme_label}{arch_str}\n"
+        f"Offensive action to defend: {offensive_action}\n\n"
+        "Analyze this scheme: how it works, player responsibilities, rotations, strengths, vulnerabilities. "
+        "Then explain exactly how to deploy it against the given offensive action."
+    )
+
+    async def generate():
+        try:
+            async for chunk in claude_service.analyze_stream(
+                prompt=prompt, system_prompt=_DEF_SYS, override_max_tokens=800):
+                if chunk:
+                    yield _tok(chunk)
+            yield _done()
+        except Exception as e:
+            yield _tok(f"Scheme analysis unavailable: {e}")
+            yield _done()
+
+    return StreamingResponse(generate(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+_LINEUP_SYS = (
+    "You are an NBA analytics expert in lineup construction. "
+    "Analyze spacing, defensive versatility, play-type fit, and chemistry. Specific. Data-driven."
+)
+
+@router.post("/lineup-analysis")
+@limiter.limit(_CLAUDE_LIMIT)
+async def compat_lineup_analysis(request: Request):
+    """Legacy SSE: stream lineup chemistry and fit analysis."""
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+
+    players = body.get("players") or []
+    roster_str = ", ".join(p.get("name", "Unknown") for p in players) or "No players"
+    prompt = (
+        f"LINEUP ANALYSIS — {roster_str}\n\n"
+        "Analyze across:\n"
+        "1. SPACING — shooters, paint crowders, 3PT distribution\n"
+        "2. BALL HANDLING — initiators, secondary playmakers\n"
+        "3. DEFENSIVE VERSATILITY — switches, weak links, best matchups\n"
+        "4. CHEMISTRY FIT — play-type compatibility, role overlap\n"
+        "5. OPTIMAL USE CASE — when and against what to deploy this lineup\n"
+        "6. WEAKNESSES — what attacks this lineup"
+    )
+
+    async def generate():
+        try:
+            async for chunk in claude_service.analyze_stream(
+                prompt=prompt, system_prompt=_LINEUP_SYS, override_max_tokens=800):
+                if chunk:
+                    yield _tok(chunk)
+            yield _done()
+        except Exception as e:
+            yield _tok(f"Lineup analysis unavailable: {e}")
+            yield _done()
+
+    return StreamingResponse(generate(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+_PROJ_SYS = (
+    "You are an NBA statistician and projection analyst. "
+    "Use historical trends, age curve, team context, and role trajectory. "
+    "Specific projected ranges. Show your reasoning."
+)
+
+@router.post("/stat-projection")
+@limiter.limit(_CLAUDE_LIMIT)
+async def compat_stat_projection(request: Request):
+    """Legacy SSE: stream stat projection for a player."""
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+
+    player_name = body.get("player_name") or "Unknown Player"
+    prompt = (
+        f"STAT PROJECTION — {player_name.upper()}\n\n"
+        "Project stats for the rest of this season and next season:\n"
+        "1. CURRENT SEASON — PPG, RPG, APG, TS%, usage (projected final line)\n"
+        "2. NEXT SEASON — same metrics, factoring age curve and team context\n"
+        "3. UPSIDE SCENARIO — best realistic outcome\n"
+        "4. DOWNSIDE SCENARIO — worst realistic outcome\n"
+        "5. KEY VARIABLES — what drives projection variance\n\n"
+        "Specific numbers. Show a projected stat line for each scenario."
+    )
+
+    async def generate():
+        try:
+            async for chunk in claude_service.analyze_stream(
+                prompt=prompt, system_prompt=_PROJ_SYS, override_max_tokens=700):
+                if chunk:
+                    yield _tok(chunk)
+            yield _done()
+        except Exception as e:
+            yield _tok(f"Projection unavailable: {e}")
+            yield _done()
+
+    return StreamingResponse(generate(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+@router.post("/chat")
+@limiter.limit(_CLAUDE_LIMIT)
+async def compat_chat(request: Request):
+    """Legacy /chat → /chat/message. Re-uses the same streaming logic."""
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    return await chat_message(request, body)
+
