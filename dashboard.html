@@ -436,74 +436,123 @@ function Ticker() {
 
 function AppBackground() {
   return (
-    <div style={{position:'fixed',inset:0,zIndex:0,pointerEvents:'none',overflow:'hidden',background:'#030303'}}>
-      {/* Large green aurora — top left */}
-      <div style={{position:'absolute',width:'120vmax',height:'120vmax',borderRadius:'50%',
-        top:'-50vmax',left:'-30vmax',
-        background:'radial-gradient(circle,rgba(0,255,102,.1) 0%,rgba(0,166,81,.06) 28%,rgba(0,61,31,.03) 52%,transparent 68%)',
-        animation:'float3 26s ease-in-out infinite'}}/>
-      {/* Medium acid bubble — bottom right */}
-      <div style={{position:'absolute',width:'80vmax',height:'80vmax',borderRadius:'50%',
-        bottom:'-28vmax',right:'-12vmax',
-        background:'radial-gradient(circle,rgba(204,255,0,.07) 0%,rgba(0,166,81,.04) 38%,transparent 62%)',
-        animation:'float 32s ease-in-out infinite reverse'}}/>
-      {/* Small pulse bubble — mid right */}
-      <div style={{position:'absolute',width:'42vmax',height:'42vmax',borderRadius:'50%',
-        top:'28%',right:'12%',
-        background:'radial-gradient(circle,rgba(0,255,102,.06) 0%,transparent 58%)',
-        animation:'float2 19s ease-in-out infinite 6s'}}/>
-      {/* Very subtle warm glow — center */}
-      <div style={{position:'absolute',width:'60vmax',height:'40vmax',borderRadius:'50%',
-        top:'40%',left:'30%',
-        background:'radial-gradient(circle,rgba(0,255,102,.03) 0%,transparent 55%)',
-        animation:'float 38s ease-in-out infinite 2s'}}/>
+    <div style={{position:'fixed',inset:0,zIndex:0,pointerEvents:'none',overflow:'hidden',background:'#000'}}>
+      {/* Aurora blob A — large green sweep, bottom-left */}
+      <div style={{position:'absolute',inset:0,
+        background:'radial-gradient(ellipse 65% 70% at 28% 62%,rgba(0,255,102,.18) 0%,rgba(0,166,81,.10) 30%,rgba(0,61,31,.04) 58%,transparent 78%)',
+        animation:'blob-a 40s ease-in-out infinite alternate'}}/>
+      {/* Aurora blob B — acid yellow, top-right */}
+      <div style={{position:'absolute',inset:0,
+        background:'radial-gradient(ellipse 55% 50% at 85% 8%,rgba(204,255,0,.13) 0%,rgba(204,255,0,.06) 22%,rgba(0,255,102,.04) 45%,transparent 65%)',
+        animation:'blob-b 40s ease-in-out infinite alternate'}}/>
+      {/* Aurora blob C — mint, bottom-right */}
+      <div style={{position:'absolute',inset:0,
+        background:'radial-gradient(ellipse 40% 52% at 88% 82%,rgba(212,255,225,.1) 0%,transparent 52%)',
+        animation:'blob-c 40s ease-in-out infinite alternate'}}/>
     </div>
   );
 }
 
 // ─── HOME ─────────────────────────────────────────────────────────────────────
 
+const HOME_MODULES=[
+  {id:'games',label:'GAMES',code:'01',desc:'Live scores, real-time box scores, and full game schedules across every NBA game — updated play by play.'},
+  {id:'players',label:'PLAYER INTEL',code:'02',desc:'Search any player. Pull game logs, advanced stats, and AI-generated scouting reports in seconds.'},
+  {id:'warroom',label:'WAR ROOM',code:'03',desc:'Team DNA breakdowns, cap table analysis, and front office evaluations powered by Claude AI.'},
+  {id:'compare',label:'COMPARE',code:'04',desc:'Head-to-head player comparisons with AI analysis across any context — trade, contract, playoff fit.'},
+  {id:'coach',label:'COACH MODE',code:'05',desc:'Draw up plays, design defensive schemes, analyze lineups, and project stats like a real coaching staff.'},
+  {id:'chat',label:'CHAT',code:'06',desc:'Ask anything. PIVOT has live NBA data and uses it. No stale cutoffs. No guessing. Just answers.'},
+];
+
 function Home({setTab}) {
   return (
-    <div style={{height:'100vh',position:'relative',overflow:'hidden',display:'flex',flexDirection:'column'}}>
-      {/* Void base */}
-      <div style={{position:'absolute',inset:0,background:'#000000',zIndex:0}}/>
-      {/* Aurora blobs */}
-      <div className="aurora-blob-a"/>
-      <div className="aurora-blob-b"/>
-      <div className="aurora-blob-c"/>
-      {/* Grain overlay */}
-      <div style={{position:'absolute',inset:0,pointerEvents:'none',mixBlendMode:'overlay',zIndex:4,opacity:1}}>
+    <div style={{position:'relative',background:'#000',minHeight:'100vh',overflowY:'auto'}}>
+      {/* Aurora background — fixed */}
+      <div style={{position:'fixed',inset:0,zIndex:0,pointerEvents:'none',overflow:'hidden'}}>
+        <div style={{position:'absolute',inset:0,background:'radial-gradient(ellipse 65% 70% at 28% 62%,rgba(0,255,102,.22) 0%,rgba(0,166,81,.12) 30%,rgba(0,61,31,.04) 58%,transparent 78%)',animation:'blob-a 40s ease-in-out infinite alternate'}}/>
+        <div style={{position:'absolute',inset:0,background:'radial-gradient(ellipse 60% 55% at 85% 8%,rgba(204,255,0,.16) 0%,rgba(204,255,0,.07) 22%,rgba(212,255,225,.06) 40%,transparent 65%)',animation:'blob-b 40s ease-in-out infinite alternate'}}/>
+        <div style={{position:'absolute',inset:0,background:'radial-gradient(ellipse 40% 52% at 88% 82%,rgba(212,255,225,.12) 0%,transparent 52%)',animation:'blob-c 40s ease-in-out infinite alternate'}}/>
+      </div>
+      {/* Grain */}
+      <div style={{position:'fixed',inset:0,zIndex:1,pointerEvents:'none',mixBlendMode:'overlay',opacity:1}}>
         <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" style={{position:'absolute',inset:0,width:'100%',height:'100%'}}>
-          <filter id="grain-lp">
-            <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/>
-            <feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.06 0"/>
-          </filter>
+          <filter id="grain-lp"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.06 0"/></filter>
           <rect width="100%" height="100%" filter="url(#grain-lp)"/>
         </svg>
       </div>
       {/* Nav */}
       <nav style={{position:'relative',zIndex:10,height:80,display:'flex',alignItems:'center',padding:'0 40px',flexShrink:0}}>
-        <div className="lp-logo" onClick={()=>setTab('games')}>PIVOT</div>
+        <div className="lp-logo">PIVOT</div>
         <div className="lp-nav-links">
-          {[
-            {label:'PLATFORM',tab:'games'},
-            {label:'INTELLIGENCE',tab:'players'},
-            {label:'FRONT OFFICE',tab:'warroom'},
-            {label:'COACH MODE',tab:'coach'},
-            {label:'ABOUT',tab:null},
-          ].map((item,i)=>(
-            <button key={i} className="lp-nav-link" onClick={()=>item.tab&&setTab(item.tab)}>{item.label}</button>
+          {HOME_MODULES.map((m,i)=>(
+            <button key={i} className="lp-nav-link" onClick={()=>setTab(m.id)}>{m.label}</button>
           ))}
         </div>
         <button className="lp-contact-btn" onClick={()=>setTab('games')}>LAUNCH</button>
         <button className="lp-hamburger" onClick={()=>setTab('games')}>☰</button>
       </nav>
-      {/* Hero content */}
-      <div style={{position:'relative',zIndex:10,flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',textAlign:'center',padding:'0 32px 48px'}}>
+
+      {/* ── HERO ── */}
+      <div style={{position:'relative',zIndex:10,minHeight:'calc(100vh - 80px)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',textAlign:'center',padding:'0 32px 80px'}}>
         <p className="lp-tagline">THE #1 AI SPORTS INTELLIGENCE PLATFORM</p>
         <h1 className="lp-headline">STOP GUESSING.<br/>START KNOWING.</h1>
         <button className="lp-cta" onClick={()=>setTab('games')}>GET STARTED</button>
+        <div style={{marginTop:64,fontSize:10,fontWeight:900,letterSpacing:'.2em',color:'rgba(255,255,255,.5)',textTransform:'uppercase',animation:'float 3s ease-in-out infinite'}}>SCROLL TO EXPLORE</div>
+      </div>
+
+      {/* ── STAT BAR ── */}
+      <div style={{position:'relative',zIndex:10,borderTop:'1px solid rgba(0,255,102,.15)',borderBottom:'1px solid rgba(0,255,102,.15)',background:'rgba(0,0,0,.6)',backdropFilter:'blur(20px)',padding:'40px 64px',display:'flex',justifyContent:'center',gap:'clamp(40px,8vw,120px)',flexWrap:'wrap'}}>
+        {[['30','NBA TEAMS TRACKED'],['6','AI MODULES'],['LIVE','GAME DATA'],['ZERO','GUESSWORK']].map(([n,l])=>(
+          <div key={l} style={{textAlign:'center'}}>
+            <div style={{fontSize:'clamp(36px,5vw,64px)',fontWeight:900,letterSpacing:'-.04em',color:'var(--pulse)',lineHeight:1}}>{n}</div>
+            <div style={{fontSize:9,fontWeight:900,letterSpacing:'.2em',color:'#fff',marginTop:8,textTransform:'uppercase'}}>{l}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── MODULES ── */}
+      <div style={{position:'relative',zIndex:10,padding:'100px 40px'}}>
+        <div style={{textAlign:'center',marginBottom:64}}>
+          <div style={{fontSize:10,fontWeight:900,letterSpacing:'.22em',color:'var(--pulse)',marginBottom:16,textTransform:'uppercase'}}>THE PLATFORM</div>
+          <h2 style={{fontFamily:'var(--font)',fontSize:'clamp(36px,5vw,72px)',fontWeight:900,letterSpacing:'-.04em',color:'#fff',lineHeight:.95}}>EVERY EDGE,<br/>ONE PLATFORM.</h2>
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))',gap:2,maxWidth:1200,margin:'0 auto'}}>
+          {HOME_MODULES.map(m=>(
+            <div key={m.id} onClick={()=>setTab(m.id)}
+              style={{padding:'36px 32px',background:'rgba(0,0,0,.55)',backdropFilter:'blur(24px)',border:'1px solid rgba(0,255,102,.12)',cursor:'pointer',position:'relative',transition:'border-color 220ms,background 220ms'}}
+              onMouseEnter={e=>{e.currentTarget.style.borderColor='rgba(0,255,102,.4)';e.currentTarget.style.background='rgba(0,255,102,.06)';}}
+              onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(0,255,102,.12)';e.currentTarget.style.background='rgba(0,0,0,.55)';}}>
+              <div style={{fontSize:9,fontWeight:900,letterSpacing:'.2em',color:'rgba(0,255,102,.5)',marginBottom:20,textTransform:'uppercase'}}>MODULE {m.code}</div>
+              <div style={{fontSize:'clamp(22px,2.5vw,32px)',fontWeight:900,letterSpacing:'-.03em',color:'#fff',marginBottom:16,lineHeight:.95,textTransform:'uppercase'}}>{m.label}</div>
+              <div style={{fontSize:12,fontWeight:900,letterSpacing:'.04em',color:'rgba(255,255,255,.7)',lineHeight:1.7,textTransform:'uppercase'}}>{m.desc}</div>
+              <div style={{marginTop:28,fontSize:9,fontWeight:900,letterSpacing:'.18em',color:'var(--pulse)',textTransform:'uppercase'}}>OPEN MODULE</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── HOW IT WORKS ── */}
+      <div style={{position:'relative',zIndex:10,padding:'80px 40px 100px',borderTop:'1px solid rgba(0,255,102,.1)'}}>
+        <div style={{textAlign:'center',marginBottom:64}}>
+          <div style={{fontSize:10,fontWeight:900,letterSpacing:'.22em',color:'var(--pulse)',marginBottom:16,textTransform:'uppercase'}}>THE PROCESS</div>
+          <h2 style={{fontFamily:'var(--font)',fontSize:'clamp(32px,4vw,60px)',fontWeight:900,letterSpacing:'-.04em',color:'#fff',lineHeight:.95}}>HOW IT WORKS.</h2>
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:2,maxWidth:960,margin:'0 auto'}}>
+          {[['01','LIVE DATA IN','PIVOT pulls real-time NBA data — scores, stats, rosters, standings — every time you open the app. No refresh needed.'],['02','AI PROCESSES IT','Claude AI analyzes the data through the lens of your request — scouting, coaching, front office, or pure analysis.'],['03','YOU DECIDE','Sharp, direct intelligence delivered in seconds. Use it for fantasy, betting, coaching, or just knowing more than everyone else.']].map(([n,h,d])=>(
+            <div key={n} style={{padding:'40px 32px',background:'rgba(0,0,0,.4)',backdropFilter:'blur(20px)',border:'1px solid rgba(0,255,102,.1)'}}>
+              <div style={{fontSize:10,fontWeight:900,letterSpacing:'.2em',color:'rgba(0,255,102,.4)',marginBottom:16,textTransform:'uppercase'}}>STEP {n}</div>
+              <div style={{fontSize:'clamp(18px,2vw,26px)',fontWeight:900,letterSpacing:'-.02em',color:'#fff',marginBottom:14,lineHeight:1,textTransform:'uppercase'}}>{h}</div>
+              <div style={{fontSize:12,fontWeight:900,letterSpacing:'.04em',color:'rgba(255,255,255,.65)',lineHeight:1.75,textTransform:'uppercase'}}>{d}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── BOTTOM CTA ── */}
+      <div style={{position:'relative',zIndex:10,textAlign:'center',padding:'80px 32px 120px',borderTop:'1px solid rgba(0,255,102,.1)'}}>
+        <div style={{fontSize:10,fontWeight:900,letterSpacing:'.22em',color:'var(--pulse)',marginBottom:20,textTransform:'uppercase'}}>READY?</div>
+        <h2 style={{fontFamily:'var(--font)',fontSize:'clamp(36px,6vw,88px)',fontWeight:900,letterSpacing:'-.04em',color:'#fff',lineHeight:.9,marginBottom:40,textTransform:'uppercase'}}>SEE IT FOR<br/>YOURSELF.</h2>
+        <button className="lp-cta" onClick={()=>setTab('games')}>LAUNCH PIVOT</button>
       </div>
     </div>
   );
