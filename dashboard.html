@@ -4201,8 +4201,21 @@ function Chat() {
     <div className="page" style={{display:'flex',flexDirection:'column',height:'calc(100vh - 92px)'}}>
       <div style={{padding:'0 32px',borderBottom:'1px solid var(--wire)',flexShrink:0,height:0}}></div>
       <div style={{flex:1,overflowY:'auto',padding:'24px 32px',display:'flex',flexDirection:'column',gap:14}}>
-        {!msgs.length&&<div style={{fontFamily:'var(--font)',fontSize:11,letterSpacing:'.14em',color:'#fff',textTransform:'uppercase',textAlign:'center',padding:'80px 0'}}>ASK ANYTHING ABOUT BASKETBALL.</div>}
-        {msgs.map((m,i)=>(
+{!msgs.length&&(
+          <div style={{padding:'60px 0',display:'flex',flexDirection:'column',alignItems:'center',gap:24}}>
+            <div style={{fontFamily:'var(--font)',fontSize:11,letterSpacing:'.14em',color:'#fff',textTransform:'uppercase'}}>ASK ANYTHING ABOUT BASKETBALL.</div>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(260px,1fr))',gap:10,maxWidth:720,width:'100%',padding:'0 20px'}}>
+              {[
+                'Who are the best 3-and-D wings available this summer?',
+                'Compare SGA and Luka as franchise anchors',
+                "What's OKC's cap situation for next summer?",
+                'Design a play for a final possession down 2'
+              ].map(prompt=>(
+                <button key={prompt} onClick={()=>setInput(prompt)} style={{padding:'14px 16px',background:'rgba(0,255,102,.04)',border:'1px solid rgba(0,255,102,.18)',color:'var(--bone)',fontSize:11,textAlign:'left',cursor:'pointer',fontFamily:'var(--font)',letterSpacing:'.02em',lineHeight:1.5,textTransform:'none',borderRadius:2,transition:'border-color 160ms,background 160ms'}} onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--neon)';e.currentTarget.style.background='rgba(0,255,102,.08)';}} onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(0,255,102,.18)';e.currentTarget.style.background='rgba(0,255,102,.04)';}}>{prompt}</button>
+              ))}
+            </div>
+          </div>
+        )}        {msgs.map((m,i)=>(
           <div key={i} style={{display:'flex',justifyContent:m.role==='user'?'flex-end':'flex-start'}}>
             <div style={{
               maxWidth:'78%',padding:'14px 18px',borderRadius:2,
