@@ -96,8 +96,8 @@ button,input,select,textarea{font-family:var(--font);font-weight:700;text-transf
 
 /* ─── TICKER ────────────────────────────────────────────────────────────────── */
 .ticker{
-  position:fixed;top:72px;left:0;right:0;z-index:999;
-  height:32px;background:var(--void);border-bottom:1px solid var(--wire);
+  position:fixed;bottom:0;left:0;right:0;z-index:999;
+  height:32px;background:rgba(0,0,0,.96);border-top:1px solid var(--wire);
   overflow:hidden;display:flex;align-items:center;
 }
 .ticker-tag{
@@ -106,12 +106,12 @@ button,input,select,textarea{font-family:var(--font);font-weight:700;text-transf
   font-size:9px;font-weight:700;letter-spacing:.18em;color:var(--neon);
 }
 .ticker-content{flex:1;overflow:hidden;}
-.ticker-track{display:inline-flex;align-items:center;white-space:nowrap;animation:ticker-run 90s linear infinite;}
+.ticker-track{display:inline-flex;align-items:center;white-space:nowrap;animation:ticker-run 120s linear infinite;}
 .ticker-track:hover{animation-play-state:paused;}
 
 /* ─── PAGE LAYOUT ───────────────────────────────────────────────────────────── */
-.page{padding-top:104px;}
-.page-pad{padding:0 40px 120px;}
+.page{padding-top:80px;}
+.page-pad{padding:0 40px 64px;}
 .page-header{padding:64px 0 48px;border-bottom:1px solid var(--wire);margin-bottom:48px;}
 .page-eyebrow{font-size:11px;font-weight:700;letter-spacing:.18em;color:var(--neon);margin-bottom:16px;}
 .page-headline{
@@ -559,33 +559,66 @@ function PlayerSearchBox({onSelect,placeholder='Search player name…'}) {
 
 function Ticker() {
   const[games,setGames]=React.useState([]);
+  const[headlines,setHeadlines]=React.useState([]);
+
   React.useEffect(()=>{
     let c=false;
-    fetch(`${API}/nba/games?date=${localDate()}`).then(r=>r.json()).then(d=>{if(!c)setGames(d.data||d.games||[]);}).catch(()=>{});
+    // Live scores
+    fetch(`${API}/nba/games?date=${localDate()}`)
+      .then(r=>r.json()).then(d=>{if(!c)setGames(d.data||d.games||[]);}).catch(()=>{});
+    // ESPN NBA news (public, no key required)
+    fetch('https://site.api.espn.com/apis/site/v2/sports/basketball/nba/news?limit=20')
+      .then(r=>r.json()).then(d=>{
+        if(!c&&d.articles){
+          setHeadlines(d.articles.map(a=>a.headline||a.title).filter(Boolean).slice(0,15));
+        }
+      }).catch(()=>{});
     return()=>{c=true;};
   },[]);
-  if(!games.length) return null;
-  const items=games.map((g,i)=>{
+
+  const sep = <span style={{color:'var(--wire)',padding:'0 20px',fontSize:11}}>◆</span>;
+
+  const scoreItems = games.map((g,i)=>{
     const{label,type}=parseStatus(g.status);
     const live=type==='live';
     const away=g.visitor_team?.abbreviation||'AWY';
     const home=g.home_team?.abbreviation||'HOM';
+    const hasScore=g.visitor_team_score!=null&&g.home_team_score!=null;
     return (
-      <span key={i} style={{display:'inline-flex',gap:8,alignItems:'center',padding:'0 24px',fontFamily:'var(--font)',fontSize:11}}>
-        <span style={{color:'#fff',letterSpacing:'.06em'}}>{away}</span>
-        {g.visitor_team_score!=null&&<span style={{fontWeight:900,color:live?'var(--pulse)':'var(--fg)'}}>{g.visitor_team_score}</span>}
-        <span style={{color:'rgba(255,255,255,.15)',fontSize:9}}>vs</span>
-        {g.home_team_score!=null&&<span style={{fontWeight:900,color:live?'var(--pulse)':'var(--fg)'}}>{g.home_team_score}</span>}
-        <span style={{color:'#fff',letterSpacing:'.06em'}}>{home}</span>
-        <span className={`badge badge-${type}`}>{label}</span>
-        {i<games.length-1&&<span style={{color:'rgba(204,255,0,.2)'}}>|</span>}
+      <span key={`g${i}`} style={{display:'inline-flex',gap:6,alignItems:'center',padding:'0 20px'}}>
+        <span style={{fontSize:9,fontWeight:700,letterSpacing:'.12em',color:'var(--neon)'}}>
+          {live&&<span className="pulse-dot" style={{width:5,height:5,display:'inline-block',marginRight:5,verticalAlign:'middle'}}/>}
+          {label}
+        </span>
+        <span style={{fontSize:11,fontWeight:900,letterSpacing:'-.01em'}}>{away}</span>
+        {hasScore&&<span style={{fontSize:11,fontWeight:900,color:live?'var(--neon)':'var(--bone)'}}>{g.visitor_team_score}–{g.home_team_score}</span>}
+        {!hasScore&&<span style={{fontSize:9,color:'var(--smoke)'}}>vs</span>}
+        <span style={{fontSize:11,fontWeight:900,letterSpacing:'-.01em'}}>{home}</span>
+        {sep}
       </span>
     );
   });
+
+  const newsItems = headlines.map((h,i)=>(
+    <span key={`n${i}`} style={{display:'inline-flex',gap:10,alignItems:'center',padding:'0 20px'}}>
+      <span style={{fontSize:9,fontWeight:700,letterSpacing:'.14em',color:'var(--acid)'}}>NEWS</span>
+      <span style={{fontSize:11,fontWeight:700,letterSpacing:'.04em',color:'var(--bone)'}}>{h.toUpperCase()}</span>
+      {sep}
+    </span>
+  ));
+
+  const allItems=[...scoreItems,...newsItems];
+  if(!allItems.length) return null;
+
   return (
     <div className="ticker">
-      <div className="ticker-tag"><span className="pulse-dot"/>SCORES</div>
-      <div className="ticker-content"><div className="ticker-track">{items}{items}</div></div>
+      <div className="ticker-tag">
+        <span className="pulse-dot"/>
+        LIVE
+      </div>
+      <div className="ticker-content">
+        <div className="ticker-track">{allItems}{allItems}</div>
+      </div>
     </div>
   );
 }
