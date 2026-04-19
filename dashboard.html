@@ -40,6 +40,12 @@
   --font:"Helvetica Neue","Helvetica","Arial Black",sans-serif;
   --mono:"JetBrains Mono","Berkeley Mono","Courier New",monospace;
   --ease:cubic-bezier(.2,.9,.3,1);
+  /* ═══ BRAND SYSTEM v1.1 TOKENS (coexist with legacy vars above) ═══ */
+  --obsidian:#000000; --steel:#141414; --mist:#888888; --fog:#B8B8B8; --paper:#FFFFFF;
+  --lp-signal:#39FF14; --lp-signal-60:rgba(57,255,20,0.6); --lp-signal-30:rgba(57,255,20,0.3);
+  --lp-signal-10:rgba(57,255,20,0.1); --lp-signal-dim:#1B7A0A; --lp-graphite:#222222;
+  --s1:8px;--s2:16px;--s3:24px;--s4:32px;--s5:48px;--s6:64px;--s7:96px;--s8:128px;
+  --maxw:1440px;--gutter:48px;--lp-rule:1px solid #222222;
 }
 
 /* ─── RESET & BASE ──────────────────────────────────────────────────────────── */
@@ -319,6 +325,71 @@ select{
 .lp-cta:hover{transform:scale(1.02);box-shadow:0 8px 32px rgba(0,0,0,.25);}
 .lp-hamburger{display:none;background:#000;border:none;border-radius:999px;padding:14px 20px;cursor:pointer;margin-left:auto;flex-shrink:0;align-items:center;justify-content:center;color:#fff;font-size:18px;line-height:1;}
 @media(max-width:768px){.lp-nav-links,.lp-contact-btn{display:none;}.lp-hamburger{display:flex;}.lp-tagline{font-size:12px;}.lp-headline{font-size:clamp(56px,14vw,100px);}}
+
+/* ═══════════════════════════════════════════════════════════
+   PIVOT BRAND SYSTEM v1.1 — ESTABLISHED BY LANDING PAGE
+   COLORS:   OBSIDIAN / VOID / STEEL / GRAPHITE / ASH / MIST
+             / FOG / PAPER / SIGNAL #39FF14
+   TYPE:     HELVETICA NEUE 700, ALL CAPS EVERYWHERE
+   SPACING:  8 / 16 / 24 / 32 / 48 / 64 / 96 / 128
+   RATIO:    OBSIDIAN 78% / PAPER 15% / SIGNAL 7%
+   BUTTONS:  .lp-v2-btn-primary, .lp-v2-btn-ghost
+   RULES:    1px #222222
+   ═══════════════════════════════════════════════════════════ */
+.lp-v2-root{position:relative;background:#000;min-height:100vh;font-family:"Helvetica Neue","Helvetica","Arial Black",Arial,sans-serif;font-weight:700;text-transform:uppercase;-webkit-font-smoothing:antialiased;text-rendering:geometricPrecision;font-synthesis:none;overflow-x:hidden;}
+.lp-v2-root *::selection{background:#39FF14;color:#000;}
+.lp-v2-bg{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;}
+.lp-v2-bg::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.02) 1px,transparent 1px);background-size:72px 72px;}
+.lp-v2-content{position:relative;z-index:1;}
+.lp-v2-live{position:fixed;top:24px;right:32px;z-index:20;display:flex;align-items:center;gap:8px;pointer-events:none;}
+.lp-v2-live-dot{width:7px;height:7px;border-radius:50%;background:#39FF14;box-shadow:0 0 8px #39FF14;animation:lp-v2-pulse 2.4s ease-in-out infinite;flex-shrink:0;}
+.lp-v2-live-label{font-size:10px;font-weight:700;letter-spacing:0.28em;color:#888;font-family:"Helvetica Neue","Helvetica","Arial Black",Arial,sans-serif;}
+.lp-v2-hero{position:relative;height:100vh;min-height:640px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 48px;}
+.lp-v2-statement{font-family:"Helvetica Neue","Helvetica","Arial Black",Arial,sans-serif;font-weight:900;font-size:clamp(72px,11vw,180px);letter-spacing:-0.06em;line-height:0.86;color:#fff;text-transform:uppercase;margin:0 0 96px;max-width:95vw;}
+.lp-v2-btn-primary{font-family:"Helvetica Neue","Helvetica","Arial Black",Arial,sans-serif;font-weight:900;font-size:13px;letter-spacing:0.22em;text-transform:uppercase;background:transparent;color:#fff;border:1px solid rgba(255,255,255,0.3);padding:16px 48px;cursor:pointer;transition:border-color 160ms,color 160ms;}
+.lp-v2-btn-primary:hover{border-color:#39FF14;color:#39FF14;}
+.lp-v2-btn-ghost{font-family:"Helvetica Neue","Helvetica","Arial Black",Arial,sans-serif;font-weight:700;font-size:12px;letter-spacing:0.18em;text-transform:uppercase;background:transparent;color:#888;border:none;cursor:pointer;transition:color 140ms;}
+.lp-v2-btn-ghost:hover{color:#fff;}
+.lp-v2-section{position:relative;padding:120px 48px;max-width:1440px;margin:0 auto;box-sizing:border-box;}
+.lp-v2-section-divider{width:100%;height:1px;background:#222;}
+.lp-v2-hi{color:#39FF14;}
+.lp-v2-thesis-statement{font-family:"Helvetica Neue","Helvetica","Arial Black",Arial,sans-serif;font-weight:900;font-size:clamp(34px,5vw,76px);letter-spacing:-0.045em;line-height:0.98;color:#fff;text-transform:uppercase;max-width:960px;}
+.lp-v2-pillars-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;border:1px solid #222;margin-top:80px;}
+.lp-v2-pillar{padding:48px 40px;border-right:1px solid #222;}
+.lp-v2-pillar:last-child{border-right:none;}
+.lp-v2-pillar-eyebrow{font-size:10px;font-weight:700;letter-spacing:0.22em;color:#39FF14;margin-bottom:24px;}
+.lp-v2-pillar-headline{font-size:20px;font-weight:900;letter-spacing:-0.02em;color:#fff;line-height:1;margin-bottom:20px;}
+.lp-v2-pillar-body{font-size:12px;font-weight:700;letter-spacing:0.04em;line-height:1.75;color:#B8B8B8;}
+.lp-v2-proof-inner{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid #222;margin-top:64px;max-width:880px;}
+.lp-v2-proof-stats{padding:40px;border-right:1px solid #222;background:#080808;}
+.lp-v2-proof-narrative{padding:40px;background:#000;}
+.lp-v2-proof-player{font-size:10px;font-weight:700;letter-spacing:0.18em;color:#39FF14;margin-bottom:24px;}
+.lp-v2-stat-row{display:flex;justify-content:space-between;align-items:baseline;padding:9px 0;border-bottom:1px solid #222;}
+.lp-v2-stat-label{font-size:9px;font-weight:700;letter-spacing:0.14em;color:#888;}
+.lp-v2-stat-val{font-size:14px;font-weight:900;letter-spacing:-0.01em;color:#fff;font-variant-numeric:tabular-nums;}
+.lp-v2-narrative-label{font-size:9px;font-weight:700;letter-spacing:0.18em;color:#39FF14;margin-bottom:20px;}
+.lp-v2-narrative-text{font-size:13px;font-weight:700;letter-spacing:0.03em;line-height:1.8;color:#B8B8B8;}
+.lp-v2-model-tag{display:inline-flex;align-items:center;gap:6px;font-size:9px;font-weight:700;letter-spacing:0.14em;color:#555;margin-top:28px;padding-top:20px;border-top:1px solid #222;width:100%;}
+.lp-v2-stack-row{display:flex;align-items:stretch;border:1px solid #222;margin-top:56px;overflow-x:auto;}
+.lp-v2-stack-cell{padding:32px 40px;border-right:1px solid #222;flex:1;min-width:160px;}
+.lp-v2-stack-cell:last-child{border-right:none;}
+.lp-v2-stack-label{font-size:9px;font-weight:700;letter-spacing:0.18em;color:#888;margin-bottom:12px;}
+.lp-v2-stack-value{font-size:14px;font-weight:900;letter-spacing:0.02em;color:#fff;}
+.lp-v2-final{padding:140px 48px 160px;text-align:center;max-width:100%;}
+.lp-v2-final-statement{font-family:"Helvetica Neue","Helvetica","Arial Black",Arial,sans-serif;font-weight:900;font-size:clamp(32px,5vw,72px);letter-spacing:-0.045em;line-height:0.95;color:#fff;text-transform:uppercase;margin-bottom:64px;}
+@keyframes lp-v2-pulse{0%,100%{opacity:1;box-shadow:0 0 8px #39FF14;}50%{opacity:0.25;box-shadow:0 0 2px #39FF14;}}
+@media(max-width:900px){
+  .lp-v2-pillars-grid{grid-template-columns:1fr;}
+  .lp-v2-pillar{border-right:none;border-bottom:1px solid #222;}
+  .lp-v2-pillar:last-child{border-bottom:none;}
+  .lp-v2-proof-inner{grid-template-columns:1fr;}
+  .lp-v2-proof-stats{border-right:none;border-bottom:1px solid #222;}
+  .lp-v2-section{padding:80px 24px;}
+  .lp-v2-live{top:16px;right:20px;gap:6px;}
+  .lp-v2-live-dot{width:6px;height:6px;}
+  .lp-v2-live-label{font-size:9px;}
+}
+
 /* ─── INTEL MODULES ─────────────────────────────────────────────────────────── */
 .intel-cmd{position:sticky;top:62px;z-index:200;background:var(--void);border-bottom:1px solid var(--divider);}
 .intel-cmd-row{display:flex;align-items:center;padding:0 40px;height:44px;gap:16px;overflow-x:auto;}
@@ -1140,94 +1211,158 @@ const HOME_MODULES=[
 
 function Home({setTab}) {
   return (
-    <div style={{position:'relative',background:'#000',minHeight:'100vh',overflowY:'auto'}}>
-      {/* Aurora background — fixed */}
-      <div style={{position:'fixed',inset:0,zIndex:0,pointerEvents:'none',overflow:'hidden'}}>
-        <div style={{position:'absolute',inset:0,background:'radial-gradient(ellipse 65% 70% at 28% 62%,rgba(0,255,102,.22) 0%,rgba(0,166,81,.12) 30%,rgba(0,61,31,.04) 58%,transparent 78%)',animation:'blob-a 40s ease-in-out infinite alternate'}}/>
-        <div style={{position:'absolute',inset:0,background:'radial-gradient(ellipse 60% 55% at 85% 8%,rgba(204,255,0,.16) 0%,rgba(204,255,0,.07) 22%,rgba(212,255,225,.06) 40%,transparent 65%)',animation:'blob-b 40s ease-in-out infinite alternate'}}/>
-        <div style={{position:'absolute',inset:0,background:'radial-gradient(ellipse 40% 52% at 88% 82%,rgba(212,255,225,.12) 0%,transparent 52%)',animation:'blob-c 40s ease-in-out infinite alternate'}}/>
-      </div>
-      {/* Grain */}
-      <div style={{position:'fixed',inset:0,zIndex:1,pointerEvents:'none',mixBlendMode:'overlay',opacity:1}}>
-        <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" style={{position:'absolute',inset:0,width:'100%',height:'100%'}}>
-          <filter id="grain-lp"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.06 0"/></filter>
-          <rect width="100%" height="100%" filter="url(#grain-lp)"/>
+    <div className="lp-v2-root">
+
+      {/* ── BACKGROUND: Orbital rings + grid overlay ── */}
+      <div className="lp-v2-bg">
+        <svg
+          width="100%" height="100%"
+          viewBox="-720 -450 1440 900"
+          preserveAspectRatio="xMidYMid slice"
+          style={{position:'absolute',inset:0,display:'block'}}
+          aria-hidden="true"
+        >
+          {/* Static concentric rings */}
+          <circle cx="0" cy="0" r="160" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="0.6"/>
+          <circle cx="0" cy="0" r="290" fill="none" stroke="rgba(255,255,255,0.032)" strokeWidth="0.6"/>
+          <circle cx="0" cy="0" r="430" fill="none" stroke="rgba(255,255,255,0.024)" strokeWidth="0.6"/>
+          <circle cx="0" cy="0" r="580" fill="none" stroke="rgba(255,255,255,0.016)" strokeWidth="0.6"/>
+          <circle cx="0" cy="0" r="730" fill="none" stroke="rgba(255,255,255,0.01)" strokeWidth="0.6"/>
+          {/* Crosshairs */}
+          <line x1="-720" y1="0" x2="720" y2="0" stroke="rgba(255,255,255,0.016)" strokeWidth="0.4"/>
+          <line x1="0" y1="-450" x2="0" y2="450" stroke="rgba(255,255,255,0.016)" strokeWidth="0.4"/>
+          {/* Ring 1 — innermost, clockwise 80s */}
+          <g>
+            <animateTransform attributeName="transform" type="rotate" from="0 0 0" to="360 0 0" dur="80s" repeatCount="indefinite"/>
+            <circle cx="160" cy="0" r="2.5" fill="rgba(255,255,255,0.18)"/>
+            <circle cx="-113" cy="-113" r="1.6" fill="rgba(255,255,255,0.1)"/>
+          </g>
+          {/* Ring 2 — counterclockwise 110s, carries the signal dot */}
+          <g>
+            <animateTransform attributeName="transform" type="rotate" from="72 0 0" to="-288 0 0" dur="110s" repeatCount="indefinite"/>
+            <circle cx="290" cy="0" r="3" fill="#39FF14">
+              <animate attributeName="opacity" values="0.2;0.75;0.2" dur="4.2s" repeatCount="indefinite"/>
+              <animate attributeName="r" values="2.4;3.6;2.4" dur="4.2s" repeatCount="indefinite"/>
+            </circle>
+            <circle cx="-205" cy="-205" r="1.8" fill="rgba(255,255,255,0.1)"/>
+            <circle cx="145" cy="-248" r="1.5" fill="rgba(255,255,255,0.07)"/>
+          </g>
+          {/* Ring 3 — clockwise 140s */}
+          <g>
+            <animateTransform attributeName="transform" type="rotate" from="144 0 0" to="504 0 0" dur="140s" repeatCount="indefinite"/>
+            <circle cx="430" cy="0" r="2" fill="rgba(255,255,255,0.08)"/>
+            <circle cx="-430" cy="0" r="1.5" fill="rgba(255,255,255,0.05)"/>
+            <circle cx="0" cy="-430" r="1.5" fill="rgba(255,255,255,0.05)"/>
+          </g>
+          {/* Ring 4 — counterclockwise 200s */}
+          <g>
+            <animateTransform attributeName="transform" type="rotate" from="216 0 0" to="-144 0 0" dur="200s" repeatCount="indefinite"/>
+            <circle cx="580" cy="0" r="1.8" fill="rgba(255,255,255,0.07)"/>
+            <circle cx="-410" cy="-410" r="1.4" fill="rgba(255,255,255,0.04)"/>
+          </g>
+          {/* Ring 5 — outermost, clockwise 260s */}
+          <g>
+            <animateTransform attributeName="transform" type="rotate" from="288 0 0" to="648 0 0" dur="260s" repeatCount="indefinite"/>
+            <circle cx="730" cy="0" r="1.5" fill="rgba(255,255,255,0.06)"/>
+            <circle cx="0" cy="-730" r="1.4" fill="rgba(255,255,255,0.04)"/>
+          </g>
         </svg>
       </div>
-      {/* Nav */}
-      <nav style={{position:'relative',zIndex:10,height:80,display:'flex',alignItems:'center',padding:'0 40px',flexShrink:0}}>
-        <div className="lp-logo">PIVOT</div>
-        <div className="lp-nav-links">
-          {HOME_MODULES.map((m,i)=>(
-            <button key={i} className="lp-nav-link" onClick={()=>setTab(m.id)}>{m.label}</button>
-          ))}
-        </div>
-        <div style={{marginLeft:'auto'}}>
-          <button className="lp-contact-btn" onClick={()=>setTab('games')}>LAUNCH</button>
-          <button className="lp-hamburger" onClick={()=>setTab('games')}>☰</button>
-        </div>
-      </nav>
 
-      {/* ── HERO ── */}
-      <div style={{position:'relative',zIndex:10,minHeight:'calc(100vh - 80px)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',textAlign:'center',padding:'0 32px 80px'}}>
-        <h1 className="lp-headline">STOP GUESSING.<br/>START KNOWING.</h1>
-        <button className="lp-cta" onClick={()=>setTab('games')}>GET STARTED</button>
-        <div style={{marginTop:64,fontSize:10,fontWeight:900,letterSpacing:'.2em',color:'rgba(255,255,255,.5)',textTransform:'uppercase',animation:'float 3s ease-in-out infinite'}}>SCROLL TO EXPLORE</div>
+      {/* ── LIVE DOT ── */}
+      <div className="lp-v2-live">
+        <span className="lp-v2-live-dot"/>
+        <span className="lp-v2-live-label">LIVE</span>
       </div>
 
-      {/* ── STAT BAR ── */}
-      <div style={{position:'relative',zIndex:10,borderTop:'1px solid rgba(0,255,102,.15)',borderBottom:'1px solid rgba(0,255,102,.15)',background:'rgba(0,0,0,.6)',backdropFilter:'blur(20px)',padding:'40px 64px',display:'flex',justifyContent:'center',gap:'clamp(40px,8vw,120px)',flexWrap:'wrap'}}>
-        {[['30','NBA TEAMS TRACKED'],['6','AI MODULES'],['LIVE','GAME DATA'],['ZERO','GUESSWORK']].map(([n,l])=>(
-          <div key={l} style={{textAlign:'center'}}>
-            <div style={{fontSize:'clamp(36px,5vw,64px)',fontWeight:900,letterSpacing:'-.04em',color:'var(--pulse)',lineHeight:1}}>{n}</div>
-            <div style={{fontSize:9,fontWeight:900,letterSpacing:'.2em',color:'#fff',marginTop:8,textTransform:'uppercase'}}>{l}</div>
+      <div className="lp-v2-content">
+
+        {/* ── HERO ── */}
+        <section className="lp-v2-hero">
+          <h1 className="lp-v2-statement">THE NEWEST<br/>WAY TO WIN</h1>
+          <button className="lp-v2-btn-primary" onClick={()=>setTab('games')}>ENTER</button>
+        </section>
+
+        {/* ── THESIS ── */}
+        <div className="lp-v2-section-divider"/>
+        <section className="lp-v2-section">
+          <p className="lp-v2-thesis-statement">
+            PIVOT IS <span className="lp-v2-hi">THE DECISION ENGINE</span> FOR BASKETBALL. BUILT ON PROPRIETARY INTELLIGENCE. ENGINEERED FOR THE SECONDS THAT MATTER.
+          </p>
+        </section>
+
+        {/* ── PILLARS ── */}
+        <div className="lp-v2-section-divider"/>
+        <section className="lp-v2-section">
+          <div className="lp-v2-pillars-grid">
+            {[
+              {tag:'MISSION',headline:'TURN DATA INTO DECISIONS.',body:'PIVOT CLOSES THE GAP BETWEEN RAW INFORMATION AND SHARP ACTION. EVERY QUERY RETURNS SOMETHING USABLE.'},
+              {tag:'VISION',headline:'INTELLIGENCE, EVERYWHERE IN THE GAME.',body:'A CONNECTED SURFACE LAYER ACROSS IN-GAME, PLAYER, FRONT OFFICE, AND COACH MODE. ONE PLATFORM. EVERY ANGLE.'},
+              {tag:'POSITIONING',headline:'THE ANALYST THAT NEVER LEAVES THE BENCH.',body:'NOT A DASHBOARD. NOT A CHART LIBRARY. PIVOT READS THE GAME AND TELLS YOU WHAT TO DO ABOUT IT.'},
+            ].map(({tag,headline,body})=>(
+              <div key={tag} className="lp-v2-pillar">
+                <div className="lp-v2-pillar-eyebrow">{tag}</div>
+                <div className="lp-v2-pillar-headline">{headline}</div>
+                <div className="lp-v2-pillar-body">{body}</div>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        </section>
 
-      {/* ── MODULES ── */}
-      <div style={{position:'relative',zIndex:10,padding:'100px 40px'}}>
-        <div style={{textAlign:'center',marginBottom:64}}>
-          <div style={{fontSize:10,fontWeight:900,letterSpacing:'.22em',color:'var(--pulse)',marginBottom:16,textTransform:'uppercase'}}>THE PLATFORM</div>
-          <h2 style={{fontFamily:'var(--font)',fontSize:'clamp(36px,5vw,72px)',fontWeight:900,letterSpacing:'-.04em',color:'#fff',lineHeight:.95}}>EVERY EDGE,<br/>ONE PLATFORM.</h2>
-        </div>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))',gap:2,maxWidth:1200,margin:'0 auto'}}>
-          {HOME_MODULES.map(m=>(
-            <div key={m.id} onClick={()=>setTab(m.id)}
-              style={{padding:'36px 32px',background:'rgba(0,0,0,.55)',backdropFilter:'blur(24px)',border:'1px solid rgba(0,255,102,.12)',cursor:'pointer',position:'relative',transition:'border-color 220ms,background 220ms'}}
-              onMouseEnter={e=>{e.currentTarget.style.borderColor='rgba(0,255,102,.4)';e.currentTarget.style.background='rgba(0,255,102,.06)';}}
-              onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(0,255,102,.12)';e.currentTarget.style.background='rgba(0,0,0,.55)';}}>
-              <div style={{fontSize:9,fontWeight:900,letterSpacing:'.2em',color:'rgba(0,255,102,.5)',marginBottom:20,textTransform:'uppercase'}}>MODULE {m.code}</div>
-              <div style={{fontSize:'clamp(22px,2.5vw,32px)',fontWeight:900,letterSpacing:'-.03em',color:'#fff',marginBottom:16,lineHeight:.95,textTransform:'uppercase'}}>{m.label}</div>
-              <div style={{fontSize:12,fontWeight:900,letterSpacing:'.04em',color:'rgba(255,255,255,.7)',lineHeight:1.7,textTransform:'uppercase'}}>{m.desc}</div>
-              <div style={{marginTop:28,fontSize:9,fontWeight:900,letterSpacing:'.18em',color:'var(--pulse)',textTransform:'uppercase'}}>OPEN MODULE</div>
+        {/* ── PROOF ── */}
+        <div className="lp-v2-section-divider"/>
+        <section className="lp-v2-section">
+          <div style={{fontSize:10,fontWeight:700,letterSpacing:'.22em',color:'#888',marginBottom:0}}>THE ENGINE, LIVE</div>
+          <div className="lp-v2-proof-inner">
+            <div className="lp-v2-proof-stats">
+              <div className="lp-v2-proof-player">NIKOLA JOKIC / DEN / C / 2024-25</div>
+              {[['PTS','27.7'],['REB','12.9'],['AST','10.7'],['TS%','68.6%'],['USAGE','28.3%'],['ORTG','126.5'],['DRTG','115.1'],['PIE','20.8%']].map(([label,val])=>(
+                <div key={label} className="lp-v2-stat-row">
+                  <span className="lp-v2-stat-label">{label}</span>
+                  <span className="lp-v2-stat-val">{val}</span>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      </div>
-
-      {/* ── HOW IT WORKS ── */}
-      <div style={{position:'relative',zIndex:10,padding:'80px 40px 100px',borderTop:'1px solid rgba(0,255,102,.1)'}}>
-        <div style={{textAlign:'center',marginBottom:64}}>
-          <div style={{fontSize:10,fontWeight:900,letterSpacing:'.22em',color:'var(--pulse)',marginBottom:16,textTransform:'uppercase'}}>THE PROCESS</div>
-          <h2 style={{fontFamily:'var(--font)',fontSize:'clamp(32px,4vw,60px)',fontWeight:900,letterSpacing:'-.04em',color:'#fff',lineHeight:.95}}>HOW IT WORKS.</h2>
-        </div>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:2,maxWidth:960,margin:'0 auto'}}>
-          {[['01','LIVE DATA IN','PIVOT pulls real-time NBA data — scores, stats, rosters, standings — every time you open the app. No refresh needed.'],['02','AI PROCESSES IT','Claude AI analyzes the data through the lens of your request — scouting, coaching, front office, or pure analysis.'],['03','YOU DECIDE','Sharp, direct intelligence delivered in seconds. Use it for fantasy, betting, coaching, or just knowing more than everyone else.']].map(([n,h,d])=>(
-            <div key={n} style={{padding:'40px 32px',background:'rgba(0,0,0,.4)',backdropFilter:'blur(20px)',border:'1px solid rgba(0,255,102,.1)'}}>
-              <div style={{fontSize:10,fontWeight:900,letterSpacing:'.2em',color:'rgba(0,255,102,.4)',marginBottom:16,textTransform:'uppercase'}}>STEP {n}</div>
-              <div style={{fontSize:'clamp(18px,2vw,26px)',fontWeight:900,letterSpacing:'-.02em',color:'#fff',marginBottom:14,lineHeight:1,textTransform:'uppercase'}}>{h}</div>
-              <div style={{fontSize:12,fontWeight:900,letterSpacing:'.04em',color:'rgba(255,255,255,.65)',lineHeight:1.75,textTransform:'uppercase'}}>{d}</div>
+            <div className="lp-v2-proof-narrative">
+              <div className="lp-v2-narrative-label">PIVOT INTEL</div>
+              <p className="lp-v2-narrative-text">
+                JOKIC IS OPERATING AT A LEVEL OF EFFICIENCY THAT BORDERS ON ABSURD. TRUE SHOOTING 68.6% ON 28.3% USAGE. OFFENSIVE RATING 126.5. THE TRIPLE DOUBLE IS THE FLOOR, NOT THE CEILING. NO CENTER IN THE MODERN ERA HAS SUSTAINED THIS. THE ENGINE HAS READ THE NUMBERS.
+              </p>
+              <div className="lp-v2-model-tag">
+                <span style={{width:6,height:6,borderRadius:'50%',background:'#39FF14',display:'inline-block',flexShrink:0}}/>
+                CLAUDE OPUS 4.6 ON LIVE BALLDONTLIE DATA
+              </div>
             </div>
-          ))}
-        </div>
-      </div>
+          </div>
+        </section>
 
-      {/* ── BOTTOM CTA ── */}
-      <div style={{position:'relative',zIndex:10,textAlign:'center',padding:'80px 32px 120px',borderTop:'1px solid rgba(0,255,102,.1)'}}>
-        <div style={{fontSize:10,fontWeight:900,letterSpacing:'.22em',color:'var(--pulse)',marginBottom:20,textTransform:'uppercase'}}>READY?</div>
-        <h2 style={{fontFamily:'var(--font)',fontSize:'clamp(36px,6vw,88px)',fontWeight:900,letterSpacing:'-.04em',color:'#fff',lineHeight:.9,marginBottom:40,textTransform:'uppercase'}}>SEE IT FOR<br/>YOURSELF.</h2>
-        <button className="lp-cta" onClick={()=>setTab('games')}>LAUNCH PIVOT</button>
+        {/* ── STACK ── */}
+        <div className="lp-v2-section-divider"/>
+        <section className="lp-v2-section" style={{padding:'80px 48px'}}>
+          <div className="lp-v2-stack-row">
+            {[
+              {label:'MODEL',value:'CLAUDE OPUS 4.6'},
+              {label:'DATA',value:'BALLDONTLIE STATS'},
+              {label:'LATENCY',value:'LIVE'},
+              {label:'COVERAGE',value:'ALL 30 TEAMS'},
+            ].map(({label,value})=>(
+              <div key={label} className="lp-v2-stack-cell">
+                <div className="lp-v2-stack-label">{label}</div>
+                <div className="lp-v2-stack-value">{value}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ── FINAL CTA ── */}
+        <div className="lp-v2-section-divider"/>
+        <section className="lp-v2-final">
+          <p className="lp-v2-final-statement">
+            SECONDS MATTER.<br/><span className="lp-v2-hi">WE BUILT FOR SECONDS.</span>
+          </p>
+          <button className="lp-v2-btn-primary" onClick={()=>setTab('games')}>ENTER</button>
+        </section>
+
       </div>
     </div>
   );
