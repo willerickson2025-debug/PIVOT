@@ -54,7 +54,7 @@ export default function PlayerSearch() {
     startTransition(async () => {
       try {
         const res = await fetch(
-          `/api/v1/analysis/player?player_name=${encodeURIComponent(name)}&season=2025`
+          `${process.env.NEXT_PUBLIC_API_URL}/analysis/player?player_name=${encodeURIComponent(name)}&season=2025`
         );
         if (!res.ok) {
           const body = await res.text();
