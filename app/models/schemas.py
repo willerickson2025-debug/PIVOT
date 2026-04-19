@@ -123,6 +123,20 @@ class PlayerStats(BaseModel):
     fg3_pct: float | None = Field(default=None, description="Three-point field goal percentage")
     ft_pct: float | None = Field(default=None, description="Free throw percentage")
 
+    fgm: int | None = None
+    fga: int | None = None
+    fg3m: int | None = None
+    fg3a: int | None = None
+    ftm: int | None = None
+    fta: int | None = None
+    turnover: int | None = None
+
+    game_date: str | None = None
+    game_home_team_id: int | None = None
+    game_visitor_team_id: int | None = None
+    game_home_score: int | None = None
+    game_visitor_score: int | None = None
+
 
 # ---------------------------------------------------------------------------
 # Analysis API Models

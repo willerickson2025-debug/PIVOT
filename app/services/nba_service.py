@@ -292,6 +292,16 @@ def _parse_game(raw: dict[str, Any]) -> Game:
     )
 
 
+def _int_or_none(v: Any) -> int | None:
+    """Return int if value is a non-zero integer-like, else None."""
+    if v is None:
+        return None
+    try:
+        return int(v)
+    except (ValueError, TypeError):
+        return None
+
+
 def _has_real_minutes(m: Any) -> bool:
     """Return True only when a player actually played (minutes > 0).
 
@@ -1159,6 +1169,18 @@ async def get_player_stats(player_id: int, season: int = 0) -> list[PlayerStats]
                     fg_pct=s.get("fg_pct"),
                     fg3_pct=s.get("fg3_pct"),
                     ft_pct=s.get("ft_pct"),
+                    fgm=_int_or_none(s.get("fgm")),
+                    fga=_int_or_none(s.get("fga")),
+                    fg3m=_int_or_none(s.get("fg3m")),
+                    fg3a=_int_or_none(s.get("fg3a")),
+                    ftm=_int_or_none(s.get("ftm")),
+                    fta=_int_or_none(s.get("fta")),
+                    turnover=_int_or_none(s.get("turnover")),
+                    game_date=game_raw.get("date"),
+                    game_home_team_id=_int_or_none(game_raw.get("home_team_id")),
+                    game_visitor_team_id=_int_or_none(game_raw.get("visitor_team_id")),
+                    game_home_score=_int_or_none(game_raw.get("home_team_score")),
+                    game_visitor_score=_int_or_none(game_raw.get("visitor_team_score")),
                 )
             )
 
@@ -1222,6 +1244,18 @@ async def get_recent_stats(player_id: int, season: int = 0, n: int = 10) -> list
                 fg_pct=s.get("fg_pct"),
                 fg3_pct=s.get("fg3_pct"),
                 ft_pct=s.get("ft_pct"),
+                fgm=_int_or_none(s.get("fgm")),
+                fga=_int_or_none(s.get("fga")),
+                fg3m=_int_or_none(s.get("fg3m")),
+                fg3a=_int_or_none(s.get("fg3a")),
+                ftm=_int_or_none(s.get("ftm")),
+                fta=_int_or_none(s.get("fta")),
+                turnover=_int_or_none(s.get("turnover")),
+                game_date=game_raw.get("date"),
+                game_home_team_id=_int_or_none(game_raw.get("home_team_id")),
+                game_visitor_team_id=_int_or_none(game_raw.get("visitor_team_id")),
+                game_home_score=_int_or_none(game_raw.get("home_team_score")),
+                game_visitor_score=_int_or_none(game_raw.get("visitor_team_score")),
             )
         )
     results = [r for r in results if _has_real_minutes(r.minutes)]

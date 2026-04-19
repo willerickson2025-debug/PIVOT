@@ -1114,8 +1114,12 @@ function FeaturedCard({data,onSelect}){
 // ─── INTEL ────────────────────────────────────────────────────────────────────
 
 function Intel(){
-  const[season,setSeason]=React.useState('2024-25');
-  const seasonInt=React.useMemo(()=>season.includes('-')?parseInt(season.split('-')[0])+1:parseInt(season)||2025,[season]);
+  const[season,setSeason]=React.useState('2025-26');
+  const seasonInt=React.useMemo(()=>{
+    const map={'2025-26':2025};
+    if(map[season])return map[season];
+    return season.includes('-')?parseInt(season.split('-')[0])+1:parseInt(season)||2025;
+  },[season]);
   const[poolData,setPoolData]=React.useState({});
   const[poolLoading,setPoolLoading]=React.useState(true);
   const[posFilter,setPosFilter]=React.useState('ALL');
@@ -1206,7 +1210,9 @@ function Intel(){
       return termSort.dir==='desc'?v(b)-v(a):v(a)-v(b);
     });
 
-  const seasons=['2024-25','2023-24','2022-23','2021-22'];
+  const seasons=['2025-26','2024-25','2023-24','2022-23','2021-22'];
+  // Map display season to BDL API int: 2025-26 uses the same data as 2024-25 (BDL season 2025)
+  const SEASON_API_MAP={'2025-26':2025};
 
   return(
     <div className="page" style={{paddingBottom:56}}>
@@ -1217,13 +1223,14 @@ function Intel(){
           <div style={{fontSize:10,fontWeight:700,letterSpacing:'.1em',color:'var(--smoke)'}}>PLAYER INTELLIGENCE</div>
           <select style={{width:120,height:32,fontSize:11,background:'var(--carbon)',border:'1px solid var(--wire)',color:'var(--bone)'}}
                   value={season} onChange={e=>setSeason(e.target.value)}>
-            {seasons.map(s=><option key={s} value={s}>{s}</option>)}
+            {seasons.map(s=><option key={s} value={s}>{s}{s==='2025-26'?' (CURRENT)':''}</option>)}
           </select>
         </div>
+        {/* Search row: NO overflow-x so dropdown is never clipped */}
+        <div style={{padding:'6px 40px',borderBottom:'1px solid var(--divider)',position:'relative',zIndex:201}}>
+          <PlayerSearchBox onSelect={openDetail} placeholder="SEARCH PLAYER NAME..."/>
+        </div>
         <div className="intel-cmd-row">
-          <div style={{flex:'1 1 200px',maxWidth:300,position:'relative'}}>
-            <PlayerSearchBox onSelect={openDetail} placeholder="SEARCH PLAYER, TEAM, TAG"/>
-          </div>
           <div style={{display:'flex',gap:4,flexShrink:0}}>
             {['ALL','PG','SG','SF','PF','C'].map(p=>(
               <button key={p} className={`intel-chip${posFilter===p?' active':''}`} onClick={()=>setPosFilter(p)}>{p}</button>
@@ -1420,12 +1427,95 @@ function Intel(){
       </div>
 
       {/* DETAIL MODAL */}
-      {selected&&(
+      {selected&&(()=>{
+        // Build a team ID lookup from NBA_TEAMS
+        const teamById={};
+        NBA_TEAMS.forEach(t=>{teamById[t.id]=t.abbr;});
+
+        // Sorted newest-first
+        const logs=[...(detailStats||[])].reverse();
+
+        // Compute season highs across all games
+        const maxPts=logs.length?Math.max(...logs.map(s=>s.points||0)):0;
+        const maxReb=logs.length?Math.max(...logs.map(s=>s.rebounds||0)):0;
+        const maxAst=logs.length?Math.max(...logs.map(s=>s.assists||0)):0;
+
+        // Advanced stat formatters -- NO percentage on rating metrics
+        const RATING_KEYS=new Set(['net_rating','offensive_rating','defensive_rating']);
+        const PCT_KEYS=new Set(['true_shooting_percentage','effective_field_goal_percentage','usage_percentage','assist_percentage','pie']);
+        function fmtAdv(key,val){
+          if(val==null)return'--';
+          if(RATING_KEYS.has(key)){
+            const n=parseFloat(val);
+            if(isNaN(n))return'--';
+            return(n>0?'+':'')+n.toFixed(1);
+          }
+          if(PCT_KEYS.has(key)){
+            const n=parseFloat(val);
+            if(isNaN(n))return'--';
+            // BDL returns 0-1 range for most; PIE is also 0-1
+            return Math.round(n*100)+'%';
+          }
+          return typeof val==='number'?val.toFixed(1):'--';
+        }
+        function advColor(key,val){
+          if(val==null)return'var(--smoke)';
+          if(key==='net_rating'){
+            const n=parseFloat(val);
+            if(n>0)return'var(--trend-up)';
+            if(n<0)return'var(--trend-down)';
+          }
+          if(key==='defensive_rating'){
+            const n=parseFloat(val);
+            if(n<100)return'var(--trend-up)';
+            if(n>115)return'var(--trend-down)';
+          }
+          return'var(--bone)';
+        }
+
+        // The ADVANCED window: season mode uses detailAdv (season avgs); live mode uses L10 computed stats
+        const activeAdv=detailAdv;
+        const advWindow=analysisMode==='live'?'LAST 10':'SEASON';
+
+        // Shot line formatter: "8-17" or "--" if both null
+        const shotLine=(m,a)=>(m!=null&&a!=null)?`${m}-${a}`:'--';
+        // Safe pct formatter
+        const safePct=(pct)=>pct!=null&&pct>0?Math.round(pct*100)+'%':'--';
+
+        // OPP derivation from game metadata
+        function getOpp(s){
+          if(!s.game_home_team_id||!s.game_visitor_team_id)return'--';
+          const myTeamId=s.player?.team?.id;
+          const oppId=s.game_home_team_id===myTeamId?s.game_visitor_team_id:s.game_home_team_id;
+          const oppAbbr=teamById[oppId];
+          const isHome=s.game_visitor_team_id===myTeamId;
+          return oppAbbr?(isHome?`vs ${oppAbbr}`:`@ ${oppAbbr}`):'--';
+        }
+
+        // RESULT derivation
+        function getResult(s){
+          if(s.game_home_score==null||s.game_visitor_score==null)return null;
+          const myTeamId=s.player?.team?.id;
+          const myScore=s.game_home_team_id===myTeamId?s.game_home_score:s.game_visitor_score;
+          const oppScore=s.game_home_team_id===myTeamId?s.game_visitor_score:s.game_home_score;
+          const win=myScore>oppScore;
+          return{win,label:(win?'W':'L')+' '+myScore+'-'+oppScore};
+        }
+
+        // DATE formatter: MM/DD from ISO string
+        function fmtDate(d){
+          if(!d)return'--';
+          try{const dt=new Date(d+'T12:00:00Z');return(dt.getUTCMonth()+1)+'/'+(dt.getUTCDate());}catch(e){return'--';}
+        }
+
+        const fp=[...FEATURED_PLAYERS,...MOVERS_POOL].find(f=>f.search.toLowerCase().includes((selected.last_name||'').toLowerCase()));
+
+        return(
         <div className="modal-overlay" onClick={closeDetail}>
-          <div className="modal-box" style={{maxWidth:880}} onClick={e=>e.stopPropagation()}>
+          <div className="modal-box" style={{maxWidth:980}} onClick={e=>e.stopPropagation()}>
             <div className="modal-head">
               <div style={{display:'flex',gap:14,alignItems:'center'}}>
-                {(()=>{const fp=[...FEATURED_PLAYERS,...MOVERS_POOL].find(f=>f.search.toLowerCase().includes((selected.last_name||'').toLowerCase()));return fp&&<PlayerPhoto nbaId={fp.nbaId} name={`${selected.first_name} ${selected.last_name}`} size={44} circle={true}/>;})()}
+                {fp&&<PlayerPhoto nbaId={fp.nbaId} name={`${selected.first_name} ${selected.last_name}`} size={44} circle={true}/>}
                 <div>
                   <div style={{fontSize:9,fontWeight:700,letterSpacing:'.12em',color:'var(--neon)',marginBottom:4}}>{selected.team?.abbreviation||'--'} / {selected.position||'--'}</div>
                   <div style={{fontSize:22,fontWeight:900,letterSpacing:'-.04em',lineHeight:1}}>{selected.first_name} {selected.last_name}</div>
@@ -1435,65 +1525,146 @@ function Intel(){
             </div>
             <div className="modal-body">
               {detailLoading&&<div className="load-line-wrap"><div className="load-line"/></div>}
-              {!detailLoading&&detailStats&&detailStats.length>0&&(
+
+              {/* GAME LOG */}
+              {!detailLoading&&logs.length>0&&(
                 <div style={{marginBottom:24}}>
-                  <div style={{fontSize:9,fontWeight:700,letterSpacing:'.12em',color:'var(--smoke)',marginBottom:12}}>GAME LOG</div>
-                  <div style={{overflowX:'auto'}}>
-                    <table className="box-table">
-                      <thead><tr>{['#','MIN','PTS','REB','AST','STL','BLK','FG%','3P%'].map(c=><th key={c} style={{textAlign:c==='#'?'left':'right'}}>{c}</th>)}</tr></thead>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:8}}>
+                    <div style={{fontSize:9,fontWeight:700,letterSpacing:'.12em',color:'var(--smoke)'}}>GAME LOG</div>
+                    <div style={{fontSize:9,letterSpacing:'.08em',color:'var(--smoke)'}}>MOST RECENT FIRST</div>
+                  </div>
+                  <div style={{overflowX:'auto',position:'relative'}}>
+                    <table className="box-table" style={{minWidth:720}}>
+                      <thead>
+                        <tr>
+                          <th style={{textAlign:'left',minWidth:28,position:'sticky',left:0,background:'var(--graphite)'}}>#</th>
+                          <th style={{textAlign:'right',minWidth:44}}>DATE</th>
+                          <th style={{textAlign:'left',minWidth:72}}>OPP</th>
+                          <th style={{textAlign:'right',minWidth:88}}>RESULT</th>
+                          <th style={{textAlign:'right',minWidth:44}}>MIN</th>
+                          <th style={{textAlign:'right',minWidth:40}}>PTS</th>
+                          <th style={{textAlign:'right',minWidth:40}}>REB</th>
+                          <th style={{textAlign:'right',minWidth:40}}>AST</th>
+                          <th style={{textAlign:'right',minWidth:36}}>STL</th>
+                          <th style={{textAlign:'right',minWidth:36}}>BLK</th>
+                          <th style={{textAlign:'right',minWidth:36}}>TO</th>
+                          <th style={{textAlign:'right',minWidth:56}}>FGM-A</th>
+                          <th style={{textAlign:'right',minWidth:52}}>3PM-A</th>
+                          <th style={{textAlign:'right',minWidth:52}}>FTM-A</th>
+                          <th style={{textAlign:'right',minWidth:48}}>FG%</th>
+                          <th style={{textAlign:'right',minWidth:44}}>3P%</th>
+                          <th style={{textAlign:'right',minWidth:44}}>FT%</th>
+                        </tr>
+                      </thead>
                       <tbody>
-                        {detailStats.slice(0,10).map((s,i)=>(
-                          <tr key={i}>
-                            <td style={{textAlign:'left',fontSize:10,color:'var(--smoke)'}}>{i+1}</td>
-                            <td style={{textAlign:'right'}}>{s.minutes||'--'}</td>
-                            <td className="stat-num" style={{textAlign:'right',color:s.points>=25?'var(--neon)':s.points>=20?'var(--acid)':'var(--bone)'}}>{s.points??'--'}</td>
-                            <td className="stat-num" style={{textAlign:'right'}}>{s.rebounds??'--'}</td>
-                            <td className="stat-num" style={{textAlign:'right'}}>{s.assists??'--'}</td>
-                            <td className="stat-num" style={{textAlign:'right'}}>{s.steals??'--'}</td>
-                            <td className="stat-num" style={{textAlign:'right'}}>{s.blocks??'--'}</td>
-                            <td className="stat-num" style={{textAlign:'right'}}>{s.fg_pct!=null?Math.round(s.fg_pct*100)+'%':'--'}</td>
-                            <td className="stat-num" style={{textAlign:'right'}}>{s.fg3_pct!=null?Math.round(s.fg3_pct*100)+'%':'--'}</td>
-                          </tr>
-                        ))}
+                        {logs.slice(0,15).map((s,i)=>{
+                          const isSeasonHighPts=s.points>0&&s.points===maxPts;
+                          const isSeasonHighReb=s.rebounds>0&&s.rebounds===maxReb;
+                          const isSeasonHighAst=s.assists>0&&s.assists===maxAst;
+                          const isSeasonHigh=isSeasonHighPts||isSeasonHighReb||isSeasonHighAst;
+                          const notable=s.points>=20||isSeasonHigh;
+                          const opp=getOpp(s);
+                          const res=getResult(s);
+                          const rowBg=notable?'rgba(0,255,136,0.06)':'transparent';
+                          return(
+                            <tr key={i} style={{background:rowBg}}>
+                              <td style={{textAlign:'left',fontSize:10,color:'var(--smoke)',position:'sticky',left:0,background:rowBg}}>
+                                {i+1}{isSeasonHigh&&<span style={{width:5,height:5,borderRadius:'50%',background:'var(--neon)',display:'inline-block',marginLeft:4,verticalAlign:'middle'}}/>}
+                              </td>
+                              <td className="stat-num" style={{textAlign:'right',fontSize:11,color:'var(--smoke)'}}>{fmtDate(s.game_date)}</td>
+                              <td style={{textAlign:'left',fontSize:11,color:'var(--smoke)'}}>{opp}</td>
+                              <td style={{textAlign:'right',fontSize:11,fontWeight:700}}>
+                                {res?<span style={{color:res.win?'var(--trend-up)':'var(--trend-down)'}}>{res.label}</span>:'--'}
+                              </td>
+                              <td className="stat-num" style={{textAlign:'right'}}>{s.minutes||'--'}</td>
+                              <td className="stat-num" style={{textAlign:'right',fontWeight:900}}>{s.points??'--'}</td>
+                              <td className="stat-num" style={{textAlign:'right'}}>{s.rebounds??'--'}</td>
+                              <td className="stat-num" style={{textAlign:'right'}}>{s.assists??'--'}</td>
+                              <td className="stat-num" style={{textAlign:'right'}}>{s.steals??'--'}</td>
+                              <td className="stat-num" style={{textAlign:'right'}}>{s.blocks??'--'}</td>
+                              <td className="stat-num" style={{textAlign:'right'}}>{s.turnover??'--'}</td>
+                              <td className="stat-num" style={{textAlign:'right'}}>{shotLine(s.fgm,s.fga)}</td>
+                              <td className="stat-num" style={{textAlign:'right'}}>{shotLine(s.fg3m,s.fg3a)}</td>
+                              <td className="stat-num" style={{textAlign:'right'}}>{shotLine(s.ftm,s.fta)}</td>
+                              <td className="stat-num" style={{textAlign:'right'}}>{safePct(s.fg_pct)}</td>
+                              <td className="stat-num" style={{textAlign:'right'}}>{s.fg3a>0?safePct(s.fg3_pct):'--'}</td>
+                              <td className="stat-num" style={{textAlign:'right'}}>{s.fta>0?safePct(s.ft_pct):'--'}</td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
                 </div>
               )}
-              {detailAdv&&(
+
+              {/* ADVANCED STATS */}
+              {activeAdv&&(
                 <div style={{marginBottom:24}}>
-                  <div style={{fontSize:9,fontWeight:700,letterSpacing:'.12em',color:'var(--smoke)',marginBottom:12}}>ADVANCED</div>
-                  <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(88px,1fr))',gap:16}}>
-                    {[['NET RTG','net_rating'],['OFF RTG','offensive_rating'],['DEF RTG','defensive_rating'],['TS%','true_shooting_percentage'],['EFG%','effective_field_goal_percentage'],['USG%','usage_percentage'],['AST%','assist_percentage'],['PIE','pie']].filter(([,k])=>detailAdv[k]!=null).map(([lbl,k])=>(
-                      <div key={k}>
-                        <div style={{fontSize:9,letterSpacing:'.12em',color:'var(--neon)',fontWeight:700,marginBottom:4}}>{lbl}</div>
-                        <div className="stat-num" style={{fontSize:20,fontWeight:900,letterSpacing:'-.02em'}}>
-                          {typeof detailAdv[k]==='number'?(detailAdv[k]<2?Math.round(detailAdv[k]*100)+'%':detailAdv[k].toFixed(1)):detailAdv[k]??'--'}
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:12}}>
+                    <div style={{fontSize:9,fontWeight:700,letterSpacing:'.12em',color:'var(--smoke)'}}>ADVANCED</div>
+                    <div style={{fontSize:9,letterSpacing:'.08em',color:'var(--smoke)'}}>{advWindow}</div>
+                  </div>
+                  <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(96px,1fr))',gap:16}}>
+                    {[
+                      {lbl:'NET RTG',key:'net_rating',sub:'PER 100 POSS'},
+                      {lbl:'OFF RTG',key:'offensive_rating',sub:'PER 100 POSS'},
+                      {lbl:'DEF RTG',key:'defensive_rating',sub:'PER 100 POSS'},
+                      {lbl:'TS%',key:'true_shooting_percentage',sub:null},
+                      {lbl:'EFG%',key:'effective_field_goal_percentage',sub:null},
+                      {lbl:'USG%',key:'usage_percentage',sub:null},
+                      {lbl:'AST%',key:'assist_percentage',sub:null},
+                      {lbl:'PIE',key:'pie',sub:null},
+                    ].filter(({key})=>activeAdv[key]!=null).map(({lbl,key,sub})=>{
+                      const val=activeAdv[key];
+                      const disp=fmtAdv(key,val);
+                      const clr=advColor(key,val);
+                      return(
+                        <div key={key}>
+                          <div style={{fontSize:9,letterSpacing:'.12em',color:'var(--smoke)',fontWeight:700,marginBottom:2}}>{lbl}</div>
+                          {sub&&<div style={{fontSize:8,letterSpacing:'.06em',color:'rgba(255,255,255,.25)',marginBottom:4}}>{sub}</div>}
+                          <div className="stat-num" style={{fontSize:20,fontWeight:900,letterSpacing:'-.02em',color:clr}}>{disp}</div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
+
+              {/* PIVOT INTEL */}
               <div>
                 <div style={{display:'flex',gap:12,alignItems:'center',flexWrap:'wrap',marginBottom:16}}>
-                  <div style={{fontSize:9,fontWeight:700,letterSpacing:'.12em',color:'var(--smoke)'}}>AI ANALYSIS</div>
+                  <div style={{fontSize:9,fontWeight:700,letterSpacing:'.12em',color:'var(--smoke)'}}>PIVOT INTEL</div>
                   <div className="seg" style={{marginLeft:'auto'}}>
                     {[{id:'season',label:'SEASON'},{id:'live',label:'LIVE FORM'}].map(m=>(
                       <button key={m.id} className={`seg-btn${analysisMode===m.id?' active':''}`}
                               onClick={()=>{setAnalysisMode(m.id);analysis.reset();}}>{m.label}</button>
                     ))}
                   </div>
-                  <button className="btn btn-neon btn-sm" onClick={runAI} disabled={analysis.loading}>
-                    {analysis.loading?'PROCESSING':'RUN ANALYSIS'}
-                  </button>
+                  {!analysis.lines.length&&!analysis.loading&&(
+                    <button className="btn btn-secondary btn-sm" onClick={runAI}>RUN INTEL</button>
+                  )}
+                  {analysis.loading&&(
+                    <div style={{display:'flex',alignItems:'center',gap:6}}>
+                      <span className="pulse-dot" style={{width:6,height:6}}/>
+                      <span style={{fontSize:9,letterSpacing:'.08em',color:'var(--smoke)'}}>PROCESSING</span>
+                    </div>
+                  )}
+                  {!analysis.loading&&analysis.lines.length>0&&(
+                    <button className="btn-ghost" style={{fontSize:9,letterSpacing:'.08em',border:'1px solid rgba(255,255,255,.08)',padding:'4px 10px'}}
+                            onClick={()=>{analysis.reset();runAI();}}>REFRESH</button>
+                  )}
                 </div>
-                <StreamBox lines={analysis.lines} loading={analysis.loading}/>
+                {analysis.lines.length>0&&<StreamBox lines={analysis.lines} loading={analysis.loading}/>}
+                {!analysis.lines.length&&!analysis.loading&&(
+                  <div style={{fontSize:11,color:'var(--smoke)',letterSpacing:'.06em'}}>SELECT SEASON OR LIVE FORM, THEN RUN INTEL.</div>
+                )}
               </div>
             </div>
           </div>
         </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
