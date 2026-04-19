@@ -392,15 +392,13 @@ select{
   .lp-v2-section{padding:80px 24px;}
 }
 /* ── INTRO OVERLAY ── */
-.lp-intro-overlay{position:fixed;inset:0;z-index:200;background:#000;display:flex;align-items:center;justify-content:center;pointer-events:all;transition:opacity 500ms ease;}
+.lp-intro-overlay{position:fixed;inset:0;z-index:200;background:#000;display:flex;align-items:center;justify-content:center;pointer-events:all;transition:opacity 700ms ease;}
 .lp-intro-overlay.lp-intro-out{opacity:0;pointer-events:none;}
-.lp-intro-wordmark{font-family:"Helvetica Neue","Helvetica","Arial Black",Arial,sans-serif;font-weight:900;font-size:clamp(72px,12vw,160px);letter-spacing:-0.04em;color:#fff;text-transform:uppercase;clip-path:inset(0 100% 0 0);animation:lp-intro-draw 750ms cubic-bezier(0.22,1,0.36,1) 100ms forwards;}
+.lp-intro-wordmark{font-family:"Helvetica Neue","Helvetica","Arial Black",Arial,sans-serif;font-weight:900;font-size:clamp(72px,12vw,160px);letter-spacing:-0.04em;color:#fff;text-transform:uppercase;clip-path:inset(0 100% 0 0);animation:lp-intro-draw 1200ms cubic-bezier(0.22,1,0.36,1) 200ms forwards;}
 @keyframes lp-intro-draw{to{clip-path:inset(0 0% 0 0);}}
 /* ── SCROLL REVEALS ── */
-[data-reveal]{opacity:0;transform:translateY(28px);transition:opacity 400ms ease,transform 400ms ease;}
-[data-reveal].lp-revealed{opacity:1;transform:translateY(0);}
-[data-delay="1"]{transition-delay:80ms;}
-[data-delay="2"]{transition-delay:160ms;}
+.lp-reveal{opacity:0;transform:translateY(28px);transition:opacity 400ms ease,transform 400ms ease;}
+.lp-reveal.lp-in{opacity:1;transform:translateY(0);}
 
 /* ─── INTEL MODULES ─────────────────────────────────────────────────────────── */
 .intel-cmd{position:sticky;top:62px;z-index:200;background:var(--void);border-bottom:1px solid var(--divider);}
@@ -1227,29 +1225,29 @@ function Home({setTab}) {
   },[]);
   const [intro,setIntro] = React.useState(seen?'done':'show');
 
-  // Intro timing: 100ms delay + 750ms draw + 200ms hold = 1050ms, then 500ms fade out
+  // Intro timing: 200ms delay + 1200ms draw + 500ms hold = 1900ms, then 700ms fade out
   React.useEffect(()=>{
     if(intro!=='show')return;
-    const t1=setTimeout(()=>setIntro('out'),1050);
+    const t1=setTimeout(()=>setIntro('out'),1900);
     const t2=setTimeout(()=>{
       setIntro('done');
       try{sessionStorage.setItem('piv_seen','1');}catch(e){}
-    },1550);
+    },2600);
     return()=>{clearTimeout(t1);clearTimeout(t2);};
   },[intro]);
 
-  // Scroll reveals — wire up after intro completes
+  // Scroll reveals — class-based, fires after intro done
   React.useEffect(()=>{
     if(intro!=='done')return;
     const obs=new IntersectionObserver(entries=>{
       entries.forEach(entry=>{
         if(entry.isIntersecting){
-          entry.target.classList.add('lp-revealed');
+          entry.target.classList.add('lp-in');
           obs.unobserve(entry.target);
         }
       });
-    },{threshold:0.12});
-    document.querySelectorAll('[data-reveal]').forEach(el=>obs.observe(el));
+    },{threshold:0.1,rootMargin:'0px 0px -40px 0px'});
+    document.querySelectorAll('.lp-reveal').forEach(el=>obs.observe(el));
     return()=>obs.disconnect();
   },[intro]);
 
@@ -1300,7 +1298,7 @@ function Home({setTab}) {
 
         {/* ── THESIS ── */}
         <section className="lp-v2-section">
-          <p className="lp-v2-thesis-statement" data-reveal="">
+          <p className="lp-v2-thesis-statement lp-reveal">
             PIVOT IS <span className="lp-v2-hi">THE DECISION ENGINE</span> FOR BASKETBALL. BUILT ON PROPRIETARY INTELLIGENCE. ENGINEERED FOR THE SECONDS THAT MATTER.
           </p>
         </section>
@@ -1313,7 +1311,7 @@ function Home({setTab}) {
               {tag:'VISION',headline:'INTELLIGENCE, EVERYWHERE IN THE GAME.',body:'A CONNECTED SURFACE LAYER ACROSS IN-GAME, PLAYER, FRONT OFFICE, AND COACH MODE. ONE PLATFORM. EVERY ANGLE.'},
               {tag:'POSITIONING',headline:'THE ANALYST THAT NEVER LEAVES THE BENCH.',body:'NOT A DASHBOARD. NOT A CHART LIBRARY. PIVOT READS THE GAME AND TELLS YOU WHAT TO DO ABOUT IT.'},
             ].map(({tag,headline,body},i)=>(
-              <div key={tag} className="lp-v2-pillar" data-reveal="" {...(i>0?{'data-delay':String(i)}:{})}>
+              <div key={tag} className="lp-v2-pillar lp-reveal" style={{transitionDelay:`${i*100}ms`}}>
                 <div className="lp-v2-pillar-eyebrow">{tag}</div>
                 <div className="lp-v2-pillar-headline">{headline}</div>
                 <div className="lp-v2-pillar-body">{body}</div>
@@ -1323,7 +1321,7 @@ function Home({setTab}) {
         </section>
 
         {/* ── STACK ── */}
-        <section className="lp-v2-section" style={{padding:'80px 48px'}} data-reveal="">
+        <section className="lp-v2-section lp-reveal" style={{padding:'80px 48px'}}>
           <div className="lp-v2-stack-row">
             {[
               {label:'INTELLIGENCE',value:'PIVOT ENGINE'},
@@ -1340,7 +1338,7 @@ function Home({setTab}) {
         </section>
 
         {/* ── FINAL CTA ── */}
-        <section className="lp-v2-final" data-reveal="">
+        <section className="lp-v2-final lp-reveal">
           <p className="lp-v2-final-statement">
             DECISION TIME.<br/><span className="lp-v2-hi">IT'S TIME TO PIVOT.</span>
           </p>
