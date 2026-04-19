@@ -1240,15 +1240,16 @@ function IntroOverlay({out}) {
     <div className={`lp-intro-overlay${out?' lp-intro-out':''}`}>
       <div style={{display:'flex',alignItems:'center',gap:2}}>
         <span style={{
-          fontFamily:'"JetBrains Mono","Courier New",monospace',
-          fontWeight:700,fontSize:'clamp(32px,6vw,80px)',
-          color:'#fff',letterSpacing:'0.08em',
+          fontFamily:'"Helvetica Neue","Helvetica",Arial,sans-serif',
+          fontWeight:700,fontSize:18,
+          color:'#fff',letterSpacing:'0.55em',textTransform:'uppercase',
         }}>{typed}</span>
         <span style={{
           display:'inline-block',
-          width:'0.55em',height:'1.1em',
+          width:2,height:18,
           background:'#39FF14',
           verticalAlign:'middle',
+          marginLeft:2,
           animation:`lp-cursor ${cursorFast?'200ms':'620ms'} step-end infinite`,
         }}/>
       </div>
