@@ -391,6 +391,16 @@ select{
   .lp-v2-proof-stats{border-right:none;border-bottom:1px solid #222;}
   .lp-v2-section{padding:80px 24px;}
 }
+/* ── INTRO OVERLAY ── */
+.lp-intro-overlay{position:fixed;inset:0;z-index:200;background:#000;display:flex;align-items:center;justify-content:center;pointer-events:all;transition:opacity 500ms ease;}
+.lp-intro-overlay.lp-intro-out{opacity:0;pointer-events:none;}
+.lp-intro-wordmark{font-family:"Helvetica Neue","Helvetica","Arial Black",Arial,sans-serif;font-weight:900;font-size:clamp(72px,12vw,160px);letter-spacing:-0.04em;color:#fff;text-transform:uppercase;clip-path:inset(0 100% 0 0);animation:lp-intro-draw 750ms cubic-bezier(0.22,1,0.36,1) 100ms forwards;}
+@keyframes lp-intro-draw{to{clip-path:inset(0 0% 0 0);}}
+/* ── SCROLL REVEALS ── */
+[data-reveal]{opacity:0;transform:translateY(28px);transition:opacity 400ms ease,transform 400ms ease;}
+[data-reveal].lp-revealed{opacity:1;transform:translateY(0);}
+[data-delay="1"]{transition-delay:80ms;}
+[data-delay="2"]{transition-delay:160ms;}
 
 /* ─── INTEL MODULES ─────────────────────────────────────────────────────────── */
 .intel-cmd{position:sticky;top:62px;z-index:200;background:var(--void);border-bottom:1px solid var(--divider);}
@@ -1212,39 +1222,75 @@ const HOME_MODULES=[
 ];
 
 function Home({setTab}) {
+  const seen = React.useMemo(()=>{
+    try{return !!sessionStorage.getItem('piv_seen');}catch(e){return true;}
+  },[]);
+  const [intro,setIntro] = React.useState(seen?'done':'show');
+
+  // Intro timing: 100ms delay + 750ms draw + 200ms hold = 1050ms, then 500ms fade out
+  React.useEffect(()=>{
+    if(intro!=='show')return;
+    const t1=setTimeout(()=>setIntro('out'),1050);
+    const t2=setTimeout(()=>{
+      setIntro('done');
+      try{sessionStorage.setItem('piv_seen','1');}catch(e){}
+    },1550);
+    return()=>{clearTimeout(t1);clearTimeout(t2);};
+  },[intro]);
+
+  // Scroll reveals — wire up after intro completes
+  React.useEffect(()=>{
+    if(intro!=='done')return;
+    const obs=new IntersectionObserver(entries=>{
+      entries.forEach(entry=>{
+        if(entry.isIntersecting){
+          entry.target.classList.add('lp-revealed');
+          obs.unobserve(entry.target);
+        }
+      });
+    },{threshold:0.12});
+    document.querySelectorAll('[data-reveal]').forEach(el=>obs.observe(el));
+    return()=>obs.disconnect();
+  },[intro]);
+
+  const visible = intro!=='show';
+
   return (
     <div className="lp-v2-root">
 
-      {/* ── AURORA — fixed full-page backdrop ── */}
-      <div className="lp-v2-aurora" aria-hidden="true">
-        {/* Core blobs — brightened */}
+      {/* ── INTRO OVERLAY — session-gated, removed from DOM after fade ── */}
+      {intro!=='done'&&(
+        <div className={`lp-intro-overlay${intro==='out'?' lp-intro-out':''}`}>
+          <div className="lp-intro-wordmark">PIVOT</div>
+        </div>
+      )}
+
+      {/* ── AURORA — fades in as intro fades out ── */}
+      <div className="lp-v2-aurora" style={{opacity:visible?1:0,transition:'opacity 500ms ease 100ms'}} aria-hidden="true">
         <div className="lp-v2-aurora-blob" style={{width:800,height:600,top:'-15%',left:'-20%',background:'radial-gradient(circle, rgba(57,255,20,0.95) 0%, rgba(57,255,20,0.5) 35%, transparent 70%)',filter:'blur(110px)',opacity:0.75,animation:'lp-v2-blob-a 20s ease-in-out infinite'}}/>
         <div className="lp-v2-aurora-blob" style={{width:600,height:700,top:'5%',right:'-15%',background:'radial-gradient(circle, rgba(180,255,30,0.9) 0%, rgba(120,230,20,0.45) 40%, transparent 70%)',filter:'blur(130px)',opacity:0.7,animation:'lp-v2-blob-b 26s ease-in-out infinite'}}/>
         <div className="lp-v2-aurora-blob" style={{width:900,height:500,bottom:'-10%',left:'15%',background:'radial-gradient(circle, rgba(57,255,20,0.8) 0%, rgba(40,180,10,0.4) 45%, transparent 70%)',filter:'blur(150px)',opacity:0.65,animation:'lp-v2-blob-c 32s ease-in-out infinite'}}/>
         <div className="lp-v2-aurora-blob" style={{width:400,height:400,top:'8%',right:'22%',background:'radial-gradient(circle, rgba(204,255,0,0.9) 0%, rgba(140,230,0,0.45) 40%, transparent 70%)',filter:'blur(90px)',opacity:0.62,animation:'lp-v2-blob-d 17s ease-in-out infinite'}}/>
         <div className="lp-v2-aurora-blob" style={{width:650,height:500,top:'35%',left:'-5%',background:'radial-gradient(circle, rgba(57,255,20,0.7) 0%, rgba(30,160,5,0.35) 45%, transparent 70%)',filter:'blur(120px)',opacity:0.65,animation:'lp-v2-blob-e 24s ease-in-out infinite'}}/>
         <div className="lp-v2-aurora-blob" style={{width:1000,height:700,top:'18%',left:'12%',background:'radial-gradient(ellipse 60% 50% at 50% 50%, rgba(57,255,20,0.4) 0%, rgba(20,80,5,0.18) 50%, transparent 70%)',filter:'blur(160px)',opacity:0.78,animation:'lp-v2-blob-f 36s ease-in-out infinite'}}/>
-        {/* Extra coverage blobs */}
         <div className="lp-v2-aurora-blob" style={{width:700,height:600,top:'50%',left:'30%',background:'radial-gradient(circle, rgba(57,255,20,0.8) 0%, rgba(40,200,10,0.35) 40%, transparent 70%)',filter:'blur(130px)',opacity:0.6,animation:'lp-v2-blob-g 29s ease-in-out infinite'}}/>
         <div className="lp-v2-aurora-blob" style={{width:550,height:550,top:'25%',left:'45%',background:'radial-gradient(circle, rgba(160,255,20,0.85) 0%, rgba(80,220,10,0.4) 38%, transparent 70%)',filter:'blur(100px)',opacity:0.58,animation:'lp-v2-blob-h 22s ease-in-out infinite'}}/>
-        {/* Texture blobs — tighter blur for visible definition */}
         <div className="lp-v2-aurora-blob" style={{width:280,height:280,top:'20%',left:'20%',background:'radial-gradient(circle, rgba(57,255,20,0.95) 0%, transparent 65%)',filter:'blur(48px)',opacity:0.5,animation:'lp-v2-blob-i 16s ease-in-out infinite'}}/>
         <div className="lp-v2-aurora-blob" style={{width:200,height:200,top:'65%',right:'30%',background:'radial-gradient(circle, rgba(204,255,0,0.95) 0%, transparent 60%)',filter:'blur(38px)',opacity:0.45,animation:'lp-v2-blob-d 19s ease-in-out infinite'}}/>
-        {/* Subtle noise grain overlay */}
         <svg style={{position:'absolute',inset:0,width:'100%',height:'100%',opacity:0.04,pointerEvents:'none'}} aria-hidden="true">
           <filter id="lp-noise"><feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/></filter>
           <rect width="100%" height="100%" filter="url(#lp-noise)"/>
         </svg>
-        {/* Radial vignette — protects hero text legibility */}
         <div style={{position:'absolute',inset:0,background:'radial-gradient(ellipse 60% 50% at 50% 50%, rgba(0,0,0,0.52) 0%, transparent 68%)'}}/>
       </div>
 
-      {/* ── LOGO ── */}
-      <div style={{position:'fixed',top:28,left:36,zIndex:10,pointerEvents:'none'}}>
+      {/* ── LOGO — fades in with content ── */}
+      <div style={{position:'fixed',top:28,left:36,zIndex:10,pointerEvents:'none',opacity:visible?1:0,transition:'opacity 500ms ease 300ms'}}>
         <img src="/static/logo.png" style={{height:44,width:'auto'}} alt="PIVOT"/>
       </div>
 
-      <div className="lp-v2-content">
+      {/* ── CONTENT — fades in as intro fades out ── */}
+      <div className="lp-v2-content" style={{opacity:visible?1:0,transition:'opacity 500ms ease 200ms'}}>
 
         {/* ── HERO ── */}
         <section className="lp-v2-hero">
@@ -1254,20 +1300,20 @@ function Home({setTab}) {
 
         {/* ── THESIS ── */}
         <section className="lp-v2-section">
-          <p className="lp-v2-thesis-statement">
+          <p className="lp-v2-thesis-statement" data-reveal="">
             PIVOT IS <span className="lp-v2-hi">THE DECISION ENGINE</span> FOR BASKETBALL. BUILT ON PROPRIETARY INTELLIGENCE. ENGINEERED FOR THE SECONDS THAT MATTER.
           </p>
         </section>
 
-        {/* ── PILLARS ── */}
+        {/* ── PILLARS — each pillar staggers in ── */}
         <section className="lp-v2-section">
           <div className="lp-v2-pillars-grid">
             {[
               {tag:'MISSION',headline:'TURN DATA INTO DECISIONS.',body:'PIVOT CLOSES THE GAP BETWEEN RAW INFORMATION AND SHARP ACTION. EVERY QUERY RETURNS SOMETHING USABLE.'},
               {tag:'VISION',headline:'INTELLIGENCE, EVERYWHERE IN THE GAME.',body:'A CONNECTED SURFACE LAYER ACROSS IN-GAME, PLAYER, FRONT OFFICE, AND COACH MODE. ONE PLATFORM. EVERY ANGLE.'},
               {tag:'POSITIONING',headline:'THE ANALYST THAT NEVER LEAVES THE BENCH.',body:'NOT A DASHBOARD. NOT A CHART LIBRARY. PIVOT READS THE GAME AND TELLS YOU WHAT TO DO ABOUT IT.'},
-            ].map(({tag,headline,body})=>(
-              <div key={tag} className="lp-v2-pillar">
+            ].map(({tag,headline,body},i)=>(
+              <div key={tag} className="lp-v2-pillar" data-reveal="" {...(i>0?{'data-delay':String(i)}:{})}>
                 <div className="lp-v2-pillar-eyebrow">{tag}</div>
                 <div className="lp-v2-pillar-headline">{headline}</div>
                 <div className="lp-v2-pillar-body">{body}</div>
@@ -1277,11 +1323,11 @@ function Home({setTab}) {
         </section>
 
         {/* ── STACK ── */}
-        <section className="lp-v2-section" style={{padding:'80px 48px'}}>
+        <section className="lp-v2-section" style={{padding:'80px 48px'}} data-reveal="">
           <div className="lp-v2-stack-row">
             {[
               {label:'INTELLIGENCE',value:'PIVOT ENGINE'},
-              {label:'DATA',value:'LIVE NBA FEED'},
+              {label:'DATA',value:'LIVE SPORTS DATA'},
               {label:'LATENCY',value:'LIVE'},
               {label:'COVERAGE',value:'ALL 30 TEAMS'},
             ].map(({label,value})=>(
@@ -1294,7 +1340,7 @@ function Home({setTab}) {
         </section>
 
         {/* ── FINAL CTA ── */}
-        <section className="lp-v2-final">
+        <section className="lp-v2-final" data-reveal="">
           <p className="lp-v2-final-statement">
             DECISION TIME.<br/><span className="lp-v2-hi">IT'S TIME TO PIVOT.</span>
           </p>
