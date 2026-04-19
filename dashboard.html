@@ -1271,31 +1271,35 @@ function Home({setTab}) {
   return (
     <div className="lp-v2-root">
 
-      {/* ── INTRO OVERLAY — session-gated, handwritten SVG draw-on ── */}
+      {/* ── INTRO OVERLAY — session-gated, thick marker draw-on ── */}
       {intro!=='done'&&(
         <div className={`lp-intro-overlay${intro==='out'?' lp-intro-out':''}`}>
-          <svg viewBox="0 0 540 160" style={{width:'min(85vw,540px)',overflow:'visible',display:'block'}} aria-hidden="true">
+          <svg viewBox="0 0 560 170" style={{width:'min(92vw,580px)',overflow:'visible',display:'block'}} aria-hidden="true">
             {[
-              /* P — upstroke then bowl */
-              {d:"M 42,128 C 40,100 37,60 40,22 C 42,10 51,5 63,10 C 78,17 84,38 80,64 C 76,88 59,95 40,87"},
-              /* I — top loop then downstroke */
-              {d:"M 116,30 C 114,22 108,8 115,4 C 122,1 128,10 126,26 C 124,44 118,78 116,128"},
-              /* V — down then up */
-              {d:"M 152,20 C 158,54 169,96 178,128 C 190,92 206,50 222,18"},
-              /* O — full oval, closes on itself */
-              {d:"M 298,20 C 326,6 366,14 377,50 C 388,86 366,130 332,133 C 298,136 267,110 270,78 C 273,48 280,26 298,20"},
-              /* T — crossbar */
-              {d:"M 412,44 C 434,36 458,33 486,37 C 494,39 500,46 497,53"},
-              /* T — vertical */
-              {d:"M 455,16 C 454,46 451,90 448,128"},
-            ].map(({d},i,arr)=>{
-              const delays=[0.1,0.72,1.1,1.56,2.14,2.18];
-              const durs=  [0.58,0.38,0.42,0.54,0.3,0.42];
+              /* P — vertical downstroke */
+              {d:"M 40,158 C 39,122 37,74 40,18"},
+              /* P — bowl: off stem top, round forward, back to stem mid */
+              {d:"M 40,18 C 78,6 106,26 103,62 C 100,96 76,114 40,104"},
+              /* I — downstroke, slight lean */
+              {d:"M 132,18 C 130,60 128,108 127,158"},
+              /* V — left leg down */
+              {d:"M 162,18 C 168,58 178,104 194,158"},
+              /* V — right leg up */
+              {d:"M 194,158 C 208,104 222,58 238,18"},
+              /* O — single continuous loop */
+              {d:"M 306,24 C 340,4 386,18 390,62 C 394,106 368,158 328,160 C 288,162 260,130 266,88 C 272,50 278,38 306,24"},
+              /* T — crossbar left to right */
+              {d:"M 368,24 C 396,18 428,16 462,22"},
+              /* T — downstroke from crossbar */
+              {d:"M 414,22 C 411,66 408,112 406,158"},
+            ].map(({d},i)=>{
+              const delays=[0.08, 0.42, 0.90, 1.22, 1.54, 1.86, 2.46, 2.74];
+              const durs=  [0.30, 0.44, 0.26, 0.28, 0.28, 0.56, 0.24, 0.28];
               return(
-                <path key={i} d={d} stroke="#39FF14" strokeWidth="3.5" fill="none"
+                <path key={i} d={d} stroke="#39FF14" strokeWidth="16" fill="none"
                   strokeLinecap="round" strokeLinejoin="round"
-                  style={{strokeDasharray:2000,strokeDashoffset:2000,
-                    animation:`lp-draw ${durs[i]}s cubic-bezier(0.4,0,0.2,1) ${delays[i]}s forwards`}}/>
+                  style={{strokeDasharray:4000,strokeDashoffset:4000,
+                    animation:`lp-draw ${durs[i]}s cubic-bezier(0.25,0,0.1,1) ${delays[i]}s forwards`}}/>
               );
             })}
           </svg>
