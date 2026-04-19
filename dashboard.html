@@ -399,6 +399,8 @@ select{
 /* ── SCROLL REVEALS ── */
 .lp-reveal{opacity:0;transform:translateY(28px);transition:opacity 400ms ease,transform 400ms ease;}
 .lp-reveal.lp-in{opacity:1;transform:translateY(0);}
+.lp-reveal-d1{transition-delay:100ms;}
+.lp-reveal-d2{transition-delay:200ms;}
 
 /* ─── INTEL MODULES ─────────────────────────────────────────────────────────── */
 .intel-cmd{position:sticky;top:62px;z-index:200;background:var(--void);border-bottom:1px solid var(--divider);}
@@ -1236,19 +1238,19 @@ function Home({setTab}) {
     return()=>{clearTimeout(t1);clearTimeout(t2);};
   },[intro]);
 
-  // Scroll reveals — class-based, fires after intro done
+  // Scroll reveals — getBoundingClientRect on scroll + immediate check
   React.useEffect(()=>{
     if(intro!=='done')return;
-    const obs=new IntersectionObserver(entries=>{
-      entries.forEach(entry=>{
-        if(entry.isIntersecting){
-          entry.target.classList.add('lp-in');
-          obs.unobserve(entry.target);
+    function reveal(){
+      document.querySelectorAll('.lp-reveal:not(.lp-in)').forEach(el=>{
+        if(el.getBoundingClientRect().top<window.innerHeight-60){
+          el.classList.add('lp-in');
         }
       });
-    },{threshold:0.1,rootMargin:'0px 0px -40px 0px'});
-    document.querySelectorAll('.lp-reveal').forEach(el=>obs.observe(el));
-    return()=>obs.disconnect();
+    }
+    reveal();
+    window.addEventListener('scroll',reveal,{passive:true});
+    return()=>window.removeEventListener('scroll',reveal);
   },[intro]);
 
   const visible = intro!=='show';
@@ -1311,7 +1313,7 @@ function Home({setTab}) {
               {tag:'VISION',headline:'INTELLIGENCE, EVERYWHERE IN THE GAME.',body:'A CONNECTED SURFACE LAYER ACROSS IN-GAME, PLAYER, FRONT OFFICE, AND COACH MODE. ONE PLATFORM. EVERY ANGLE.'},
               {tag:'POSITIONING',headline:'THE ANALYST THAT NEVER LEAVES THE BENCH.',body:'NOT A DASHBOARD. NOT A CHART LIBRARY. PIVOT READS THE GAME AND TELLS YOU WHAT TO DO ABOUT IT.'},
             ].map(({tag,headline,body},i)=>(
-              <div key={tag} className="lp-v2-pillar lp-reveal" style={{transitionDelay:`${i*100}ms`}}>
+              <div key={tag} className={`lp-v2-pillar lp-reveal${i>0?' lp-reveal-d'+i:''}`}>
                 <div className="lp-v2-pillar-eyebrow">{tag}</div>
                 <div className="lp-v2-pillar-headline">{headline}</div>
                 <div className="lp-v2-pillar-body">{body}</div>
