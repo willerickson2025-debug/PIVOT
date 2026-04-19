@@ -348,7 +348,7 @@ select{
 @keyframes lp-v2-blob-e{0%,100%{transform:translate(0,0) scale(1);}45%{transform:translate(14%,8%) scale(1.07);}80%{transform:translate(-4%,-10%) scale(0.96);}}
 @keyframes lp-v2-blob-f{0%,100%{transform:translate(0,0) scale(1);}35%{transform:translate(-8%,16%) scale(1.04);}65%{transform:translate(12%,-4%) scale(0.88);}}
 .lp-v2-hero{position:relative;height:100vh;min-height:640px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 48px;}
-.lp-v2-statement{font-family:"Helvetica Neue","Helvetica","Arial Black",Arial,sans-serif;font-weight:900;font-size:clamp(72px,11vw,180px);letter-spacing:-0.02em;line-height:0.86;color:#fff;text-transform:uppercase;margin:0 0 48px;max-width:95vw;}
+.lp-v2-statement{font-family:"Helvetica Neue","Helvetica","Arial Black",Arial,sans-serif;font-weight:900;font-size:clamp(72px,11vw,180px);letter-spacing:-0.02em;line-height:0.86;color:#fff;text-transform:uppercase;margin:0 0 96px;max-width:95vw;}
 .lp-v2-btn-primary{font-family:"Helvetica Neue","Helvetica","Arial Black",Arial,sans-serif;font-weight:900;font-size:13px;letter-spacing:0.22em;text-transform:uppercase;background:transparent;color:#fff;border:1px solid rgba(255,255,255,0.3);padding:16px 48px;cursor:pointer;transition:border-color 160ms,color 160ms;}
 .lp-v2-btn-primary:hover{border-color:#39FF14;color:#39FF14;}
 .lp-v2-btn-ghost{font-family:"Helvetica Neue","Helvetica","Arial Black",Arial,sans-serif;font-weight:700;font-size:12px;letter-spacing:0.18em;text-transform:uppercase;background:transparent;color:#888;border:none;cursor:pointer;transition:color 140ms;}
@@ -1234,9 +1234,7 @@ function Home({setTab}) {
         {/* ── HERO ── */}
         <section className="lp-v2-hero">
           <h1 className="lp-v2-statement">THE NEWEST<br/>WAY TO WIN</h1>
-          <div style={{fontFamily:'"Helvetica Neue","Helvetica","Arial Black",Arial,sans-serif',fontWeight:700,fontSize:'clamp(14px,1.4vw,20px)',letterSpacing:'0.28em',color:'#B8B8B8',textTransform:'uppercase',marginBottom:32}}>DECISION TIME...</div>
           <button className="lp-v2-btn-primary" onClick={()=>setTab('games')}>ENTER</button>
-          <div style={{fontFamily:'"Helvetica Neue","Helvetica","Arial Black",Arial,sans-serif',fontWeight:700,fontSize:'clamp(14px,1.4vw,20px)',letterSpacing:'0.28em',color:'#39FF14',textTransform:'uppercase',marginTop:32}}>IT'S TIME TO PIVOT</div>
         </section>
 
         {/* ── THESIS ── */}
@@ -1283,7 +1281,7 @@ function Home({setTab}) {
         {/* ── FINAL CTA ── */}
         <section className="lp-v2-final">
           <p className="lp-v2-final-statement">
-            SECONDS MATTER.<br/><span className="lp-v2-hi">WE BUILT FOR SECONDS.</span>
+            DECISION TIME.<br/><span className="lp-v2-hi">IT'S TIME TO PIVOT.</span>
           </p>
           <button className="lp-v2-btn-primary" onClick={()=>setTab('games')}>ENTER</button>
         </section>
