@@ -1134,12 +1134,8 @@ function TeamLogo({abbr,size=32}) {
 }
 
 function Headshot({playerId,name,w=110,h=80}) {
-  const[ok,setOk]=React.useState(true);
-  if(!ok||!playerId) return <Avatar name={name} size={Math.min(w,h)}/>;
-  return <img src={`https://cdn.nba.com/headshots/nba/latest/260x190/${playerId}.png`}
-              alt={name||''} width={w} height={h}
-              style={{objectFit:'cover',objectPosition:'top center',background:'var(--graphite)'}}
-              onError={()=>setOk(false)}/>;
+  // Photos disabled — player IDs need verification before re-enabling
+  return <Avatar name={name} size={Math.min(w,h)}/>;
 }
 
 function Modal({open,onClose,title,children,maxW=860}) {
@@ -2498,21 +2494,15 @@ function computeAvg(games){
 // ─── INTEL PRIMITIVES ─────────────────────────────────────────────────────────
 
 function PlayerPhoto({nbaId,name,size=40,circle=false}){
-  const[err,setErr]=React.useState(false);
+  // Photos disabled — nbaId values need verification before re-enabling
   const init=(name||'?').split(' ').filter(Boolean).map(w=>w[0]).join('').substring(0,2).toUpperCase();
   const r=circle?'50%':0;
-  if(err)return(
+  return(
     <div style={{width:size,height:size,borderRadius:r,background:'var(--graphite)',
                  display:'flex',alignItems:'center',justifyContent:'center',
                  fontSize:Math.round(size*.32),fontWeight:900,color:'var(--smoke)',flexShrink:0}}>
       {init}
     </div>
-  );
-  return(
-    <img src={`https://cdn.nba.com/headshots/nba/latest/260x190/${nbaId}.png`}
-         alt={name} onError={()=>setErr(true)}
-         style={{width:size,height:size,objectFit:'cover',objectPosition:'top center',
-                 display:'block',flexShrink:0,borderRadius:r,background:'var(--graphite)'}}/>
   );
 }
 
