@@ -1300,7 +1300,7 @@ function Home({setTab}) {
 
         {/* ── THESIS ── */}
         <section className="lp-v2-section">
-          <p className="lp-v2-thesis-statement lp-reveal">
+          <p className="lp-v2-thesis-statement">
             PIVOT IS <span className="lp-v2-hi">THE DECISION ENGINE</span> FOR BASKETBALL. BUILT ON PROPRIETARY INTELLIGENCE. ENGINEERED FOR THE SECONDS THAT MATTER.
           </p>
         </section>
@@ -1313,7 +1313,7 @@ function Home({setTab}) {
               {tag:'VISION',headline:'INTELLIGENCE, EVERYWHERE IN THE GAME.',body:'A CONNECTED SURFACE LAYER ACROSS IN-GAME, PLAYER, FRONT OFFICE, AND COACH MODE. ONE PLATFORM. EVERY ANGLE.'},
               {tag:'POSITIONING',headline:'THE ANALYST THAT NEVER LEAVES THE BENCH.',body:'NOT A DASHBOARD. NOT A CHART LIBRARY. PIVOT READS THE GAME AND TELLS YOU WHAT TO DO ABOUT IT.'},
             ].map(({tag,headline,body},i)=>(
-              <div key={tag} className={`lp-v2-pillar lp-reveal${i>0?' lp-reveal-d'+i:''}`}>
+              <div key={tag} className="lp-v2-pillar">
                 <div className="lp-v2-pillar-eyebrow">{tag}</div>
                 <div className="lp-v2-pillar-headline">{headline}</div>
                 <div className="lp-v2-pillar-body">{body}</div>
@@ -1323,7 +1323,7 @@ function Home({setTab}) {
         </section>
 
         {/* ── STACK ── */}
-        <section className="lp-v2-section lp-reveal" style={{padding:'80px 48px'}}>
+        <section className="lp-v2-section" style={{padding:'80px 48px'}}>
           <div className="lp-v2-stack-row">
             {[
               {label:'INTELLIGENCE',value:'PIVOT ENGINE'},
@@ -1340,7 +1340,7 @@ function Home({setTab}) {
         </section>
 
         {/* ── FINAL CTA ── */}
-        <section className="lp-v2-final lp-reveal">
+        <section className="lp-v2-final">
           <p className="lp-v2-final-statement">
             DECISION TIME.<br/><span className="lp-v2-hi">IT'S TIME TO PIVOT.</span>
           </p>
