@@ -6,18 +6,36 @@ Data access layer for the BallDontLie NBA API.
 Responsibilities
 ----------------
 - All HTTP communication with the BallDontLie REST API
-- Domain object hydration (raw dict → typed schema)
+- Domain object hydration (raw dict to typed schema)
 - Retry / timeout / error-propagation policy
 - Box score aggregation and player-stat retrieval
+- V2 advanced stats ingestion and season aggregation
 
 This module is intentionally free of business logic. Analysis logic lives in
 analysis_service.py; Claude integration lives in claude_service.py.
+
+V2 Advanced Stats
+-----------------
+get_v2_advanced_stats() fetches per-game rows from the V2 endpoint
+(https://api.balldontlie.io/nba/v2/stats/advanced). It handles cursor
+pagination and 429 retry automatically.
+
+aggregate_season_advanced(player_id, season) pulls all rows for one
+player-season and collapses them into a single flat dict. Rate stats
+(percentages, ratings) are averaged across games; counting stats
+(deflections, touches, distance, etc.) are summed to season totals.
+The returned dict also includes per-game averages (_pg suffix) for each
+counting stat and carries every field present in the V2 response.
+
+get_advanced_stats() is kept as a thin deprecation shim so existing callers
+do not break while the migration to get_v2_advanced_stats proceeds.
 """
 
 from __future__ import annotations
 
 import asyncio
 import logging
+import time
 from datetime import datetime
 from typing import Any, Optional
 from zoneinfo import ZoneInfo
@@ -35,6 +53,27 @@ from app.models.schemas import Game, Player, PlayerStats, Team
 
 logger = logging.getLogger(__name__)
 
+
+# ---------------------------------------------------------------------------
+# Player Resolution Errors
+# ---------------------------------------------------------------------------
+
+class PlayerResolutionError(Exception):
+    """Base class for player name resolution failures."""
+
+
+class PlayerNotFoundError(PlayerResolutionError):
+    """No player matched the given name in the requested scope."""
+
+
+class AmbiguousPlayerError(PlayerResolutionError):
+    """Multiple active players share the given name."""
+
+    def __init__(self, message: str, candidates: list[dict]) -> None:
+        super().__init__(message)
+        self.candidates: list[dict] = candidates
+
+
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
@@ -43,14 +82,17 @@ _DEFAULT_PER_PAGE: int = 100
 _REQUEST_TIMEOUT: float = 30.0          # seconds per attempt
 _MAX_RETRIES: int = 3                   # total attempts before raising
 _RETRY_BACKOFF_BASE: float = 0.5        # seconds; multiplied by attempt index
-# Season is computed at call time — see get_current_season() in app/core/season.py
+# Season is computed at call time -- see get_current_season() in app/core/season.py
 _CENTRAL_TZ: str = "America/Chicago"
 
+# V2 advanced stats endpoint (absolute URL -- bypasses base URL construction).
+_BDL_V2_ADV_URL: str = "https://api.balldontlie.io/nba/v2/stats/advanced"
+
 # NBA.com player ID lookup by full name for headshot CDN URLs.
-# Only include verified IDs — never add unverified entries.
+# Only include verified IDs -- never add unverified entries.
 _NBA_ID_BY_NAME: dict[str, int] = {
     # Only NBA.com player IDs that have been individually verified.
-    # Do NOT add entries from memory — a wrong ID shows the wrong player photo.
+    # Do NOT add entries from memory -- a wrong ID shows the wrong player photo.
     # Verified via NBA.com stats pages:
     "LeBron James": 2544,
     "Stephen Curry": 201939,
@@ -111,6 +153,12 @@ _NBA_ID_BY_NAME: dict[str, int] = {
     "Domantas Sabonis": 1627734,
 }
 
+# In-memory cache for aggregate_season_advanced results.
+# Keyed by "player_id:season:postseason". Cleared on process restart.
+_ADV_SEASON_CACHE: dict[str, dict[str, Any]] = {}
+_ADV_CACHE_EXPIRY: dict[str, float] = {}      # unix timestamps; 30-min TTL
+_ADV_CACHE_TTL: float = 1800.0                # 30 minutes in seconds
+
 
 # ---------------------------------------------------------------------------
 # Internal HTTP Layer
@@ -124,16 +172,18 @@ async def _fetch_data(
     Execute an authenticated GET request against the BallDontLie API.
 
     Centralises:
-    - Base URL & authentication header injection
+    - Base URL and authentication header injection
     - Per-request timeout enforcement
     - Exponential-ish back-off retry on transient network/server errors
+    - 429 rate-limit retry with Retry-After header support
     - Structured logging of every outbound request and its outcome
     - JSON decoding with a meaningful error on malformed payloads
 
     Parameters
     ----------
     endpoint:
-        Path relative to the configured base URL, e.g. ``"/games"``.
+        Path relative to the configured base URL (e.g. "/games") or an
+        absolute URL for namespaced endpoints like the V2 advanced stats path.
     params:
         Optional query-string parameters forwarded verbatim to httpx.
 
@@ -145,7 +195,7 @@ async def _fetch_data(
     Raises
     ------
     httpx.HTTPStatusError
-        Propagated after all retries are exhausted for 4xx/5xx responses.
+        Propagated after all retries are exhausted for non-429 4xx/5xx responses.
     httpx.RequestError
         Propagated after all retries are exhausted for connection failures.
     ValueError
@@ -166,7 +216,7 @@ async def _fetch_data(
             )
 
             client = GlobalHTTPClient.get_client()
-            # Allow passing an absolute URL (useful for the /nba/v1 namespace)
+            # Allow passing an absolute URL (useful for the /nba/v2 namespace)
             url = endpoint if endpoint.startswith("http") else settings.balldontlie_base_url + endpoint
             response = await client.get(
                 url,
@@ -214,16 +264,32 @@ async def _fetch_data(
                 )
 
         except httpx.HTTPStatusError as exc:
-            # 4xx errors are not retried — retrying a 404 or 422 won't help.
-            # 5xx errors could be retried, but we surface them immediately so
-            # callers can make that decision at a higher layer.
-            logger.error(
-                "BallDontLie HTTP error | endpoint=%s status=%d body=%s",
-                endpoint,
-                exc.response.status_code,
-                exc.response.text[:500],
-            )
-            raise
+            status = exc.response.status_code
+            if status == 429 and attempt < _MAX_RETRIES:
+                # Rate limited -- back off and retry, honoring Retry-After when present.
+                try:
+                    header_val = float(exc.response.headers.get("Retry-After", 0))
+                except (TypeError, ValueError):
+                    header_val = 0.0
+                backoff = max(header_val, _RETRY_BACKOFF_BASE * attempt * 2)
+                last_exc = exc
+                logger.warning(
+                    "BallDontLie rate limited (429) | attempt=%d endpoint=%s | "
+                    "retrying in %.1fs",
+                    attempt,
+                    endpoint,
+                    backoff,
+                )
+                await asyncio.sleep(backoff)
+            else:
+                # Non-429 4xx and all 5xx are not retried further.
+                logger.error(
+                    "BallDontLie HTTP error | endpoint=%s status=%d body=%s",
+                    endpoint,
+                    status,
+                    exc.response.text[:500],
+                )
+                raise
 
     # All retries exhausted for transient errors
     assert last_exc is not None
@@ -305,7 +371,7 @@ def _int_or_none(v: Any) -> int | None:
 def _has_real_minutes(m: Any) -> bool:
     """Return True only when a player actually played (minutes > 0).
 
-    BDL represents DNPs as None, '0', '0:00', or '00' — all map to False.
+    BDL represents DNPs as None, '0', '0:00', or '00' -- all map to False.
     """
     if not m:
         return False
@@ -319,7 +385,7 @@ def _parse_player(raw: dict[str, Any]) -> Player:
     """
     Hydrate a ``Player`` domain object from a raw BallDontLie player payload.
 
-    The nested ``team`` object is optional — players without a current team
+    The nested ``team`` object is optional -- players without a current team
     assignment (free agents, two-way contracts in flux) are handled gracefully.
     """
     team_raw: dict[str, Any] | None = raw.get("team")
@@ -361,7 +427,7 @@ def _parse_stat_line(s: dict[str, Any]) -> dict[str, Any]:
 
     return {
         "player": full_name,
-        "pos": player_raw.get("position") or "—",
+        "pos": player_raw.get("position") or "--",
         "min": s.get("min") or "0",
         "pts": int(s.get("pts") or 0),
         "reb": int(s.get("reb") or 0),
@@ -383,7 +449,7 @@ def _parse_stat_line(s: dict[str, Any]) -> dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
-# Public Service Layer — Queries
+# Public Service Layer -- Queries
 # ---------------------------------------------------------------------------
 
 async def get_games_by_date(target_date: Optional[str] = None) -> list[Game]:
@@ -483,6 +549,7 @@ async def search_players(
     name: str,
     first_name: Optional[str] = None,
     last_name: Optional[str] = None,
+    include_inactive: bool = False,
 ) -> list[Player]:
     """
     Search NBA players by name.
@@ -490,7 +557,7 @@ async def search_players(
     Parameters
     ----------
     name:
-        Full or partial player name — used as the ``search=`` fallback and
+        Full or partial player name -- used as the ``search=`` fallback and
         for logging context.
     first_name:
         When provided (together with ``last_name``), passed directly to
@@ -502,19 +569,25 @@ async def search_players(
         parameter.  This avoids the pagination issue where a common last name
         like "James" fills page 1 with wrong players before the intended
         result appears.
+    include_inactive:
+        When False (default), hits ``/players/active`` so retired players are
+        never returned.  Set to True to search the full historical player
+        pool via ``/players``.
 
     Search priority
     ---------------
-    1. Both first_name + last_name → ``?first_name=…&last_name=…``
-    2. last_name only              → ``?last_name=…``
-    3. first_name only             → ``?first_name=…``
-    4. Neither                     → ``?search=name``  (fuzzy fallback)
+    1. Both first_name + last_name: ``?first_name=...&last_name=...``
+    2. last_name only             : ``?last_name=...``
+    3. first_name only            : ``?first_name=...``
+    4. Neither                    : ``?search=name``  (fuzzy fallback)
 
     Returns
     -------
     list[Player]
         Matching players, ordered by API relevance. Empty list on no match.
     """
+    endpoint = "/players" if include_inactive else "/players/active"
+
     if first_name and last_name:
         params: dict[str, Any] = {"first_name": first_name.strip(), "last_name": last_name.strip(), "per_page": 50}
         mode = f"first_name={first_name!r} last_name={last_name!r}"
@@ -528,11 +601,73 @@ async def search_players(
         params = {"search": name.strip(), "per_page": 50}
         mode = f"search={name!r}"
 
-    logger.debug("Searching players | %s", mode)
-    payload = await _fetch_data("/players", params=params)
+    logger.debug("Searching players | endpoint=%s %s", endpoint, mode)
+    payload = await _fetch_data(endpoint, params=params)
     players = [_parse_player(p) for p in payload.get("data") or []]
-    logger.debug("Player search (%s) returned %d result(s)", mode, len(players))
+    logger.debug("Player search (%s %s) returned %d result(s)", endpoint, mode, len(players))
     return players
+
+
+async def resolve_player_exact(name: str, active_only: bool = True) -> Player:
+    """
+    Resolve a full player name to exactly one Player object.
+
+    Hits ``/players/active`` (or ``/players`` when ``active_only=False``) by
+    last name, then filters to case-insensitive full-name equality.
+
+    Parameters
+    ----------
+    name:
+        Full player name, e.g. "Nikola Jokic".  Single-token names are
+        treated as last names.
+    active_only:
+        When True (default), only currently rostered players are searched.
+        When False, the historical player pool is included.
+
+    Returns
+    -------
+    Player
+        The single matching player.
+
+    Raises
+    ------
+    PlayerNotFoundError
+        Zero players matched the name in the requested scope.
+    AmbiguousPlayerError
+        Two or more active players share the exact same full name.
+    """
+    clean = name.strip()
+    tokens = clean.split(None, 1)
+    last = tokens[1] if len(tokens) >= 2 else tokens[0]
+
+    players = await search_players(clean, last_name=last, include_inactive=not active_only)
+
+    target = clean.lower()
+    matches = [p for p in players if f"{p.first_name} {p.last_name}".lower() == target]
+
+    if len(matches) == 0:
+        scope = "active" if active_only else "active or historical"
+        raise PlayerNotFoundError(
+            f"No {scope} player found with name '{clean}'. "
+            "Check spelling or use active_only=False to include retired players."
+        )
+
+    if len(matches) > 1:
+        candidates = [
+            {
+                "name": f"{p.first_name} {p.last_name}",
+                "team": (p.team.abbreviation if p.team and hasattr(p.team, "abbreviation") else str(p.team or "?")),
+                "player_id": p.id,
+            }
+            for p in matches
+        ]
+        raise AmbiguousPlayerError(
+            f"Multiple players match '{clean}': "
+            + ", ".join(f"{c['name']} ({c['team']})" for c in candidates),
+            candidates=candidates,
+        )
+
+    return matches[0]
 
 
 async def get_team_roster_last_names(team_id: int) -> set[str]:
@@ -560,7 +695,7 @@ async def get_roster_by_abbr(abbr: str) -> list[dict]:
     from the team's most recent game logs this season.
 
     Two-step approach required because BDL free tier ignores team_ids[] on
-    /stats — the filter only works on /games.  We therefore:
+    /stats -- the filter only works on /games.  We therefore:
       1. Fetch this season's game schedule for the team via /games (filter works)
       2. Extract the 3 most-recent completed game IDs
       3. Fetch /stats for those specific game_ids (both teams returned)
@@ -595,8 +730,7 @@ async def get_roster_by_abbr(abbr: str) -> list[dict]:
         return []
 
     # 4. Fetch stats for those specific games.
-    #    Both teams' rows are returned — we filter to our team below.
-    #    httpx serialises {"game_ids[]": [G1, G2, G3]} as game_ids[]=G1&game_ids[]=G2&...
+    #    Both teams' rows are returned -- we filter to our team below.
     stats_payload = await _fetch_data(
         "/stats",
         params={"game_ids[]": recent_game_ids, "per_page": 100},
@@ -632,7 +766,7 @@ async def get_roster_by_abbr(abbr: str) -> list[dict]:
 # ---------------------------------------------------------------------------
 
 
-def _parse_contract(raw: dict[str, Any]) -> Contract:  # type: ignore[name-defined]
+def _parse_contract(raw: dict[str, Any]) -> "Contract":  # type: ignore[name-defined]
     from app.models.schemas import Contract as _Contract  # local import to avoid cycle
 
     player_raw = raw.get("player") or {}
@@ -652,7 +786,12 @@ def _parse_contract(raw: dict[str, Any]) -> Contract:  # type: ignore[name-defin
     )
 
 
-async def get_player_contracts(player_id: int, seasons: Optional[list[int]] = None, per_page: int = 25, cursor: int | None = None) -> list["Contract"]:  # type: ignore[name-defined]
+async def get_player_contracts(
+    player_id: int,
+    seasons: Optional[list[int]] = None,
+    per_page: int = 25,
+    cursor: int | None = None,
+) -> list["Contract"]:  # type: ignore[name-defined]
     """Retrieve contract entries for a given player.
 
     Parameters
@@ -675,7 +814,11 @@ async def get_player_contracts(player_id: int, seasons: Optional[list[int]] = No
     return contracts
 
 
-def _parse_advanced_stat(raw: dict[str, Any]) -> AdvancedStat:  # type: ignore[name-defined]
+def _parse_advanced_stat(raw: dict[str, Any]) -> "AdvancedStat":  # type: ignore[name-defined]
+    """
+    Hydrate an AdvancedStat schema object from a raw V2 advanced stats row.
+    The V2 schema is a superset of V1, so all V1 fields are still present.
+    """
     from app.models.schemas import AdvancedStat as _AdvancedStat  # local import
 
     return _AdvancedStat(
@@ -700,30 +843,366 @@ def _parse_advanced_stat(raw: dict[str, Any]) -> AdvancedStat:  # type: ignore[n
     )
 
 
-async def get_advanced_stats(seasons: Optional[list[int]] = None, player_ids: Optional[list[int]] = None, per_page: int = 25, cursor: int | None = None) -> list["AdvancedStat"]:  # type: ignore[name-defined]
-    """Fetch advanced stats from the NBA namespace.
-
-    Note: advanced stats are served under the `/nba/v1` namespace on the
-    BallDontLie host; we build the absolute endpoint accordingly.
+async def get_v2_advanced_stats(
+    player_ids: Optional[list[int]] = None,
+    seasons: Optional[list[int]] = None,
+    game_ids: Optional[list[int]] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    postseason: Optional[bool] = None,
+    period: int = 0,
+    per_page: int = 100,
+) -> list[dict[str, Any]]:
     """
-    params: dict[str, Any] = {"per_page": per_page}
-    if seasons:
-        params.update({"seasons[]": seasons})
-    if player_ids:
-        params.update({"player_ids[]": player_ids})
-    if cursor:
-        params["cursor"] = cursor
+    Fetch per-game advanced stats rows from the BDL V2 endpoint.
 
-    settings = get_settings()
-    endpoint = settings.balldontlie_base_url.replace("/v1", "/nba/v1") + "/stats/advanced"
-    payload = await _fetch_data(endpoint, params=params)
-    data = payload.get("data") or []
-    stats = [_parse_advanced_stat(s) for s in data]
-    logger.debug("Advanced stats query returned %d rows", len(stats))
+    Handles cursor pagination automatically -- returns ALL matching rows
+    across all pages in a single call. Rate-limit (429) retry is handled
+    by the underlying _fetch_data layer.
+
+    Parameters
+    ----------
+    player_ids:
+        BallDontLie player IDs to filter. None means no filter (all players).
+    seasons:
+        Season start years (e.g. [2024] for the 2024-25 season).
+    game_ids:
+        Specific game IDs to fetch.
+    start_date:
+        ISO-8601 date string (inclusive lower bound on game date).
+    end_date:
+        ISO-8601 date string (inclusive upper bound on game date).
+    postseason:
+        True for playoff games only, False for regular-season only, None for both.
+    period:
+        0 = full game (default, required for hustle/tracking fields to be populated).
+        1-4 = individual quarter.
+    per_page:
+        Page size for each BDL request. Max 100 (BDL hard limit).
+
+    Returns
+    -------
+    list[dict]
+        One raw dict per game row, preserving all V2 fields. Nested objects
+        (player, team, game) are included as-is.
+    """
+    params: dict[str, Any] = {"per_page": min(per_page, 100), "period": period}
+
+    if player_ids:
+        params["player_ids[]"] = player_ids
+    if seasons:
+        params["seasons[]"] = seasons
+    if game_ids:
+        params["game_ids[]"] = game_ids
+    if start_date:
+        params["start_date"] = start_date
+    if end_date:
+        params["end_date"] = end_date
+    if postseason is not None:
+        params["postseason"] = str(postseason).lower()
+
+    all_rows: list[dict[str, Any]] = []
+    cursor: int | None = None
+    page = 0
+    _PAGE_SAFETY_CAP = 50  # 50 pages x 100 per page = 5000 rows max
+
+    while page < _PAGE_SAFETY_CAP:
+        page_params = dict(params)
+        if cursor is not None:
+            page_params["cursor"] = cursor
+
+        payload = await _fetch_data(_BDL_V2_ADV_URL, params=page_params)
+        data: list[dict[str, Any]] = payload.get("data") or []
+        all_rows.extend(data)
+
+        cursor = (payload.get("meta") or {}).get("next_cursor")
+        logger.debug(
+            "get_v2_advanced_stats | page=%d rows_this_page=%d total=%d next_cursor=%s",
+            page, len(data), len(all_rows), cursor,
+        )
+
+        if not cursor or not data:
+            break
+        page += 1
+
+    logger.info(
+        "get_v2_advanced_stats | total_rows=%d player_ids=%s seasons=%s postseason=%s",
+        len(all_rows), player_ids, seasons, postseason,
+    )
+    return all_rows
+
+
+async def get_advanced_stats(
+    seasons: Optional[list[int]] = None,
+    player_ids: Optional[list[int]] = None,
+    per_page: int = 25,
+    cursor: int | None = None,
+) -> list["AdvancedStat"]:  # type: ignore[name-defined]
+    """
+    DEPRECATED shim -- calls get_v2_advanced_stats internally.
+
+    Kept for backward compatibility during migration. New code should call
+    get_v2_advanced_stats() directly and work with raw dicts.
+
+    Returns at most per_page AdvancedStat objects (one-page contract preserved).
+    """
+    logger.warning(
+        "get_advanced_stats: deprecated -- migrate callers to get_v2_advanced_stats"
+    )
+    rows = await get_v2_advanced_stats(
+        player_ids=player_ids,
+        seasons=seasons,
+        per_page=per_page,
+    )
+    # Honor the original one-page contract: cap at per_page results.
+    rows = rows[:per_page]
+    stats = [_parse_advanced_stat(r) for r in rows]
+    logger.debug("get_advanced_stats (shim) returned %d rows", len(stats))
     return stats
 
 
-def _parse_lineup(raw: dict[str, Any]) -> LineupEntry:  # type: ignore[name-defined]
+# ---------------------------------------------------------------------------
+# V2 Season Aggregation
+# ---------------------------------------------------------------------------
+
+# V2 fields that represent per-game rates or ratios: averaged across games.
+_V2_RATE_FIELDS: tuple[str, ...] = (
+    "pie",
+    "assist_percentage", "assist_ratio", "assist_to_turnover",
+    "defensive_rating", "defensive_rebound_percentage",
+    "effective_field_goal_percentage",
+    "estimated_defensive_rating", "estimated_net_rating",
+    "estimated_offensive_rating", "estimated_pace", "estimated_usage_percentage",
+    "net_rating", "offensive_rating", "offensive_rebound_percentage",
+    "pace", "pace_per_40",
+    "rebound_percentage", "true_shooting_percentage",
+    "turnover_ratio", "usage_percentage",
+    "pct_assisted_2pt", "pct_assisted_3pt", "pct_assisted_fgm",
+    "pct_fga_2pt", "pct_fga_3pt",
+    "pct_pts_2pt", "pct_pts_3pt", "pct_pts_fast_break",
+    "pct_pts_free_throw", "pct_pts_midrange_2pt",
+    "pct_pts_off_turnovers", "pct_pts_paint",
+    "pct_unassisted_2pt", "pct_unassisted_3pt", "pct_unassisted_fgm",
+    "four_factors_efg_pct", "free_throw_attempt_rate",
+    "four_factors_oreb_pct",
+    "opp_efg_pct", "opp_free_throw_attempt_rate",
+    "opp_oreb_pct", "opp_turnover_pct",
+    "team_turnover_pct",
+    "matchup_fg_pct", "matchup_3pt_pct",
+    "contested_fg_pct", "uncontested_fg_pct", "defended_at_rim_fg_pct",
+    "speed",
+    "pct_blocks", "pct_blocks_allowed",
+    "pct_fga", "pct_fgm", "pct_fta", "pct_ftm",
+    "pct_personal_fouls", "pct_personal_fouls_drawn", "pct_points",
+    "pct_rebounds_def", "pct_rebounds_off", "pct_rebounds_total",
+    "pct_steals", "pct_3pa", "pct_3pm", "pct_turnovers",
+)
+
+# V2 fields that are per-game counting stats: summed to season totals.
+# Per-game averages are also included in the output with a _pg suffix.
+_V2_COUNT_FIELDS: tuple[str, ...] = (
+    "blocks_against", "fouls_drawn",
+    "points_fast_break", "points_off_turnovers", "points_paint", "points_second_chance",
+    "opp_points_fast_break", "opp_points_off_turnovers",
+    "opp_points_paint", "opp_points_second_chance",
+    "box_outs", "box_out_player_rebounds", "box_out_player_team_rebounds",
+    "defensive_box_outs", "offensive_box_outs",
+    "charges_drawn",
+    "contested_shots", "contested_shots_2pt", "contested_shots_3pt",
+    "deflections",
+    "loose_balls_recovered_def", "loose_balls_recovered_off", "loose_balls_recovered_total",
+    "screen_assists", "screen_assist_points",
+    "matchup_fga", "matchup_fgm", "matchup_3pa", "matchup_3pm",
+    "matchup_assists", "matchup_turnovers", "matchup_player_points",
+    "switches_on",
+    "possessions", "partial_possessions",
+    "passes", "secondary_assists", "free_throw_assists",
+    "contested_fga", "contested_fgm",
+    "uncontested_fga", "uncontested_fgm",
+    "defended_at_rim_fga", "defended_at_rim_fgm",
+    "rebound_chances_def", "rebound_chances_off", "rebound_chances_total",
+    "touches", "distance",
+)
+
+
+def _mean(values: list[float]) -> Optional[float]:
+    """Return the arithmetic mean of a non-empty list, else None."""
+    clean = [v for v in values if v is not None]
+    return round(sum(clean) / len(clean), 4) if clean else None
+
+
+def _parse_matchup_minutes(val: Any) -> Optional[float]:
+    """
+    Parse a matchup_minutes string like '15:01' to fractional minutes.
+    Returns None if the value is absent or unparseable.
+    """
+    if val is None:
+        return None
+    try:
+        parts = str(val).strip().split(":")
+        return float(parts[0]) + (float(parts[1]) / 60 if len(parts) == 2 else 0.0)
+    except (ValueError, IndexError):
+        return None
+
+
+async def aggregate_season_advanced(
+    player_id: int,
+    season: int = 0,
+    postseason: bool = False,
+) -> dict[str, Any]:
+    """
+    Pull all V2 advanced stats game rows for one player-season and aggregate
+    them into a single flat dict.
+
+    Rate stats (percentages, ratings, ratios) are averaged across games.
+    Counting stats (deflections, touches, distance, etc.) are summed to
+    season totals; per-game averages for each count field are also included
+    under the same key with a _pg suffix.
+
+    All V2 fields present in the response are included in the output.
+    Spec-required alias keys (ts_pct, usage_pct, off_rtg, etc.) are added
+    alongside the original V2 field names for convenience.
+
+    Results are cached in _ADV_SEASON_CACHE (memory, process-scoped).
+
+    Parameters
+    ----------
+    player_id:
+        BallDontLie player ID.
+    season:
+        Season start year (2024 = 2024-25 season). Defaults to current season.
+    postseason:
+        If True, aggregate playoff games only. If False, regular season only.
+
+    Returns
+    -------
+    dict
+        Flat dict with games_played, all rate-stat averages, all count-stat
+        totals plus _pg averages, spec-required alias keys, and metadata.
+        Returns {"games_played": 0} when no data is available for the season.
+    """
+    season = season or get_current_season()
+    cache_key = f"{player_id}:{season}:{postseason}"
+    if cache_key in _ADV_SEASON_CACHE:
+        age = time.time() - _ADV_CACHE_EXPIRY.get(cache_key, 0.0)
+        if age < _ADV_CACHE_TTL:
+            logger.debug("aggregate_season_advanced cache hit | %s (age=%.0fs)", cache_key, age)
+            return _ADV_SEASON_CACHE[cache_key]
+        logger.debug("aggregate_season_advanced cache expired | %s (age=%.0fs)", cache_key, age)
+
+    logger.info(
+        "aggregate_season_advanced | player_id=%d season=%d postseason=%s",
+        player_id, season, postseason,
+    )
+
+    rows = await get_v2_advanced_stats(
+        player_ids=[player_id],
+        seasons=[season],
+        postseason=postseason,
+        period=0,  # full game only -- required for hustle/tracking fields
+        per_page=100,
+    )
+
+    if not rows:
+        logger.warning(
+            "aggregate_season_advanced: no V2 rows | player_id=%d season=%d postseason=%s",
+            player_id, season, postseason,
+        )
+        result: dict[str, Any] = {
+            "player_id": player_id,
+            "season": season,
+            "postseason": postseason,
+            "games_played": 0,
+        }
+        _ADV_SEASON_CACHE[cache_key] = result
+        _ADV_CACHE_EXPIRY[cache_key] = time.time()
+        return result
+
+    games_played = len(rows)
+
+    # ---- Rate stats: mean across games ----
+    rate_avgs: dict[str, Any] = {}
+    for field in _V2_RATE_FIELDS:
+        vals = [r[field] for r in rows if r.get(field) is not None]
+        rate_avgs[field] = _mean(vals)  # type: ignore[assignment]
+
+    # ---- Count stats: season totals + per-game averages ----
+    count_totals: dict[str, Any] = {}
+    count_pg: dict[str, Any] = {}
+    for field in _V2_COUNT_FIELDS:
+        vals = [r[field] for r in rows if r.get(field) is not None]
+        if vals:
+            total = sum(vals)
+            count_totals[field] = round(total, 2)
+            count_pg[f"{field}_pg"] = round(total / games_played, 2)
+        else:
+            count_totals[field] = None
+            count_pg[f"{field}_pg"] = None
+
+    # ---- matchup_minutes: special string field, aggregate separately ----
+    mm_vals = [_parse_matchup_minutes(r.get("matchup_minutes")) for r in rows]
+    mm_vals_clean = [v for v in mm_vals if v is not None]
+    matchup_minutes_total = round(sum(mm_vals_clean), 2) if mm_vals_clean else None
+    matchup_minutes_pg = round(matchup_minutes_total / games_played, 2) if matchup_minutes_total is not None else None
+
+    # ---- Assemble output dict ----
+    result = {
+        # Metadata
+        "player_id": player_id,
+        "season": season,
+        "postseason": postseason,
+        "games_played": games_played,
+
+        # All rate fields (V2 original names)
+        **rate_avgs,
+
+        # All count fields as season totals (V2 original names)
+        **count_totals,
+
+        # Per-game averages for count fields (_pg suffix)
+        **count_pg,
+
+        # matchup_minutes as total and per-game
+        "matchup_minutes_total": matchup_minutes_total,
+        "matchup_minutes_pg": matchup_minutes_pg,
+
+        # -------------------------------------------------------------------
+        # Spec-required alias keys for Claude payload consumption.
+        # These duplicate the V2 field names above for a cleaner interface.
+        # -------------------------------------------------------------------
+        "ts_pct":                 rate_avgs.get("true_shooting_percentage"),
+        "efg_pct":                rate_avgs.get("effective_field_goal_percentage"),
+        "usage_pct":              rate_avgs.get("usage_percentage"),
+        "off_rtg":                rate_avgs.get("offensive_rating"),
+        "def_rtg":                rate_avgs.get("defensive_rating"),
+        "net_rtg":                rate_avgs.get("net_rating"),
+        "pace":                   rate_avgs.get("pace"),
+        "ast_pct":                rate_avgs.get("assist_percentage"),
+        "ast_to_tov":             rate_avgs.get("assist_to_turnover"),
+        "reb_pct":                rate_avgs.get("rebound_percentage"),
+        "pie":                    rate_avgs.get("pie"),
+        "pct_pts_paint":          rate_avgs.get("pct_pts_paint"),
+        "pct_pts_3pt":            rate_avgs.get("pct_pts_3pt"),
+        "pct_assisted_fgm":       rate_avgs.get("pct_assisted_fgm"),
+        "contested_fg_pct":       rate_avgs.get("contested_fg_pct"),
+        "uncontested_fg_pct":     rate_avgs.get("uncontested_fg_pct"),
+        "defended_at_rim_fg_pct": rate_avgs.get("defended_at_rim_fg_pct"),
+    }
+
+    _ADV_SEASON_CACHE[cache_key] = result
+    _ADV_CACHE_EXPIRY[cache_key] = time.time()
+    logger.info(
+        "aggregate_season_advanced complete | player_id=%d season=%d games=%d "
+        "ts_pct=%.3f usage_pct=%.3f off_rtg=%.1f",
+        player_id, season, games_played,
+        result["ts_pct"] or 0,
+        result["usage_pct"] or 0,
+        result["off_rtg"] or 0,
+    )
+    return result
+
+
+def _parse_lineup(raw: dict[str, Any]) -> "LineupEntry":  # type: ignore[name-defined]
     from app.models.schemas import LineupEntry as _LineupEntry
 
     player_raw = raw.get("player") or {}
@@ -759,8 +1238,8 @@ async def get_game_boxscore(game_id: int) -> dict[str, Any]:
     """
     Retrieve and aggregate a full box score for a completed or in-progress game.
 
-    Fires two concurrent API requests — one for game metadata and one for
-    per-player statistics — and merges them into a single normalised payload.
+    Fires two concurrent API requests -- one for game metadata and one for
+    per-player statistics -- and merges them into a single normalised payload.
 
     The returned dict is guaranteed to have all top-level keys present even
     when no player stats are available yet (e.g. a game that has not tipped off).
@@ -848,7 +1327,7 @@ async def get_game_boxscore(game_id: int) -> dict[str, Any]:
                 team_id,
             )
 
-    # Sort by points descending — highest scorers first in each list.
+    # Sort by points descending -- highest scorers first in each list.
     home_players.sort(key=lambda x: x["pts"], reverse=True)
     away_players.sort(key=lambda x: x["pts"], reverse=True)
 
@@ -889,22 +1368,22 @@ async def get_live_game_state(game_id: int) -> dict[str, Any]:
     Keys
     ----
     game_id, clock, period, period_label, home_score, away_score,
-    home_team, away_team,                       — team objects
-    home_q_scores, away_q_scores,               — list[int|None] per period
-    home_timeouts, away_timeouts,               — int remaining
-    home_in_bonus, away_in_bonus,               — bool
-    score_diff,                                 — int (home − away)
-    momentum,                                   — "home" | "away" | "even"
-    current_run,                                — dict with team/points/periods
-    quarter_summary,                            — list of period deltas
-    top_performers,                             — top 3 players by impact
-    foul_trouble,                               — players with ≥3 PF
-    hot_shooters,                               — players on 50%+ FG with ≥6 FGA
-    cold_shooters,                              — players on ≤25% FG with ≥6 FGA
-    high_turnover_players,                      — players with ≥4 TO
-    home_players, away_players,                 — full stat lines
-    is_live,                                    — bool
-    status,                                     — raw status string
+    home_team, away_team,                       -- team objects
+    home_q_scores, away_q_scores,               -- list[int|None] per period
+    home_timeouts, away_timeouts,               -- int remaining
+    home_in_bonus, away_in_bonus,               -- bool
+    score_diff,                                 -- int (home minus away)
+    momentum,                                   -- "home" | "away" | "even"
+    current_run,                                -- dict with team/points/periods
+    quarter_summary,                            -- list of period deltas
+    top_performers,                             -- top 3 players by impact
+    foul_trouble,                               -- players with 3+ PF
+    hot_shooters,                               -- players on 50%+ FG with 6+ FGA
+    cold_shooters,                              -- players on 25% or below FG with 6+ FGA
+    high_turnover_players,                      -- players with 4+ TO
+    home_players, away_players,                 -- full stat lines
+    is_live,                                    -- bool
+    status,                                     -- raw status string
     """
     logger.info("Fetching live game state | game_id=%d", game_id)
 
@@ -916,7 +1395,7 @@ async def get_live_game_state(game_id: int) -> dict[str, Any]:
     game_raw: dict[str, Any] = game_payload.get("data") or {}
     stats_raw: list[dict] = stats_payload.get("data") or []
 
-    # ── Basic game fields ──────────────────────────────────────────────────
+    # Basic game fields
     period   = int(game_raw.get("period") or 0)
     clock    = str(game_raw.get("time") or "")
     status   = str(game_raw.get("status") or "")
@@ -940,7 +1419,7 @@ async def get_live_game_state(game_id: int) -> dict[str, Any]:
     home_team = _team(home_raw)
     away_team = _team(away_raw)
 
-    # ── Period label ──────────────────────────────────────────────────────
+    # Period label
     if period == 0:
         period_label = "PRE-GAME"
     elif period <= 4:
@@ -950,7 +1429,7 @@ async def get_live_game_state(game_id: int) -> dict[str, Any]:
     else:
         period_label = f"OT{period - 4}"
 
-    # ── Quarter scores ────────────────────────────────────────────────────
+    # Quarter scores
     def _q_scores(prefix: str) -> list[int | None]:
         quarters = []
         for q in ["q1", "q2", "q3", "q4", "ot1", "ot2", "ot3"]:
@@ -961,7 +1440,7 @@ async def get_live_game_state(game_id: int) -> dict[str, Any]:
     home_q = _q_scores("home")
     away_q = _q_scores("visitor")
 
-    # ── Quarter summary (deltas per period) ───────────────────────────────
+    # Quarter summary (deltas per period)
     quarter_summary = []
     labels = ["Q1", "Q2", "Q3", "Q4", "OT1", "OT2", "OT3"]
     for i, lbl in enumerate(labels):
@@ -976,7 +1455,7 @@ async def get_live_game_state(game_id: int) -> dict[str, Any]:
             "margin": abs(h - a),
         })
 
-    # ── Momentum: which team won the most recent two completed periods ─────
+    # Momentum: which team won the most recent two completed periods
     momentum = "even"
     if len(quarter_summary) >= 2:
         recent = quarter_summary[-2:]
@@ -987,7 +1466,7 @@ async def get_live_game_state(game_id: int) -> dict[str, Any]:
         elif away_won > home_won:
             momentum = "away"
 
-    # ── Current run: score in the most recent completed period ─────────────
+    # Current run: score in the most recent completed period
     current_run: dict[str, Any] = {}
     if quarter_summary:
         last = quarter_summary[-1]
@@ -999,7 +1478,7 @@ async def get_live_game_state(game_id: int) -> dict[str, Any]:
                 "period": last["period"],
             }
 
-    # ── Player stat lines ─────────────────────────────────────────────────
+    # Player stat lines
     home_id = home_raw.get("id")
     away_id = away_raw.get("id")
 
@@ -1048,7 +1527,7 @@ async def get_live_game_state(game_id: int) -> dict[str, Any]:
     away_players.sort(key=lambda x: x["pts"], reverse=True)
     all_players = home_players + away_players
 
-    # ── Derived player flags ──────────────────────────────────────────────
+    # Derived player flags
     def _impact(p: dict) -> float:
         return p["pts"] + p["reb"] * 0.7 + p["ast"] * 0.7 + p["stl"] * 1.5 + p["blk"] * 1.5 - p["to"] * 1.2
 
@@ -1128,7 +1607,7 @@ async def get_player_stats(player_id: int, season: int = 0) -> list[PlayerStats]
     player_id:
         BallDontLie internal player identifier.
     season:
-        NBA season year (the year the season *starts* in; 2024 = 2024–25).
+        NBA season year (the year the season *starts* in; 2024 = 2024-25).
 
     Returns
     -------
@@ -1141,7 +1620,7 @@ async def get_player_stats(player_id: int, season: int = 0) -> list[PlayerStats]
     results: list[PlayerStats] = []
     cursor: int | None = None
 
-    for _page in range(10):  # safety cap — 82 games / 100 per page = 1 page normally
+    for _page in range(10):  # safety cap -- 82 games / 100 per page = 1 page normally
         params: dict[str, Any] = {
             "player_ids[]": player_id,
             "seasons[]": season,
@@ -1189,8 +1668,7 @@ async def get_player_stats(player_id: int, season: int = 0) -> list[PlayerStats]
             break
         cursor = next_cursor
 
-    # Strip DNP entries — BDL returns '0', '0:00', or '00' for non-playing rows.
-    # Including them collapses averages (e.g. 22 DNP rows drops LeBron from ~23 PPG to 15).
+    # Strip DNP entries -- BDL returns '0', '0:00', or '00' for non-playing rows.
     results = [r for r in results if _has_real_minutes(r.minutes)]
 
     # Sort ascending by game_id so recent-form slicing (stats[-10:]) is valid.
@@ -1274,7 +1752,7 @@ async def get_recent_stats_full(
     dreb, turnover, pf, etc.).
 
     Used by enrich_player() in analysis_service so derived metrics (TS%, AST/TO,
-    usage proxy) can be computed for the L10 window — not just pts/reb/ast.
+    usage proxy) can be computed for the L10 window -- not just pts/reb/ast.
     DNPs are filtered out the same way get_recent_stats() does.
     """
     season = season or get_current_season()
@@ -1292,6 +1770,14 @@ async def get_recent_stats_full(
         logger.warning("Full recent stats fetch failed | player_id=%d error=%s", player_id, exc)
         return []
 
+    def _to_float_inner(v: Any) -> Optional[float]:
+        if v is None:
+            return None
+        try:
+            return float(v)
+        except (TypeError, ValueError):
+            return None
+
     results = []
     for s in payload.get("data") or []:
         raw_min = s.get("min")
@@ -1300,21 +1786,21 @@ async def get_recent_stats_full(
         game_raw = s.get("game") or {}
         results.append({
             "game_id":  int(game_raw.get("id") or 0),
-            "pts":      _to_float(s.get("pts")),
-            "reb":      _to_float(s.get("reb")),
-            "ast":      _to_float(s.get("ast")),
-            "stl":      _to_float(s.get("stl")),
-            "blk":      _to_float(s.get("blk")),
-            "tov":      _to_float(s.get("turnover")),
-            "pf":       _to_float(s.get("pf")),
-            "oreb":     _to_float(s.get("oreb")),
-            "dreb":     _to_float(s.get("dreb")),
-            "fga":      _to_float(s.get("fga")),
-            "fgm":      _to_float(s.get("fgm")),
-            "fg3a":     _to_float(s.get("fg3a")),
-            "fg3m":     _to_float(s.get("fg3m")),
-            "fta":      _to_float(s.get("fta")),
-            "ftm":      _to_float(s.get("ftm")),
+            "pts":      _to_float_inner(s.get("pts")),
+            "reb":      _to_float_inner(s.get("reb")),
+            "ast":      _to_float_inner(s.get("ast")),
+            "stl":      _to_float_inner(s.get("stl")),
+            "blk":      _to_float_inner(s.get("blk")),
+            "tov":      _to_float_inner(s.get("turnover")),
+            "pf":       _to_float_inner(s.get("pf")),
+            "oreb":     _to_float_inner(s.get("oreb")),
+            "dreb":     _to_float_inner(s.get("dreb")),
+            "fga":      _to_float_inner(s.get("fga")),
+            "fgm":      _to_float_inner(s.get("fgm")),
+            "fg3a":     _to_float_inner(s.get("fg3a")),
+            "fg3m":     _to_float_inner(s.get("fg3m")),
+            "fta":      _to_float_inner(s.get("fta")),
+            "ftm":      _to_float_inner(s.get("ftm")),
             "min":      raw_min,
         })
 
@@ -1383,7 +1869,7 @@ async def get_season_averages(player_id: int, season: int = 0) -> dict[str, Any]
 
     except Exception as exc:
         # Season averages are supplementary data. A failure here degrades
-        # gracefully — callers fall back to computing averages from game logs.
+        # gracefully -- callers fall back to computing averages from game logs.
         logger.warning(
             "Season averages fetch failed | player_id=%d season=%d error=%s",
             player_id,
@@ -1481,22 +1967,21 @@ async def get_trending_players(days: int = 5, top_n: int = 8) -> list[dict[str, 
     qualified.sort(key=lambda x: x["pts"], reverse=True)
     top = qualified[:top_n]
 
-    # Batch-fetch full player records to get nba_player_id (not present in /stats payloads).
+    # Batch-fetch full player records to resolve nba_player_id for headshot URLs.
+    # Routed through _fetch_data for consistent auth, retry, and rate-limit handling.
     missing_ids = [p["id"] for p in top if p["nba_id"] is None]
     if missing_ids:
         try:
-            settings = get_settings()
-            client = GlobalHTTPClient.get_client()
-            resp = await client.get(
-                settings.balldontlie_base_url + "/players",
-                headers={"Authorization": settings.balldontlie_api_key},
-                params=[("per_page", len(missing_ids) + 1)] + [("ids[]", pid) for pid in missing_ids],
-                timeout=_REQUEST_TIMEOUT,
+            batch_payload = await _fetch_data(
+                "/players",
+                params={
+                    "per_page": len(missing_ids) + 1,
+                    "ids[]": missing_ids,
+                },
             )
-            resp.raise_for_status()
             id_to_nba: dict[int, int] = {
                 pr["id"]: pr["nba_player_id"]
-                for pr in (resp.json().get("data") or [])
+                for pr in (batch_payload.get("data") or [])
                 if pr.get("nba_player_id")
             }
             for p in top:

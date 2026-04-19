@@ -9,6 +9,7 @@ from typing import Optional, List
 
 from app.services import nba_service, claude_service, analysis_service, agent_service
 from app.services import standings_service
+from app.services.nba_service import PlayerResolutionError
 from app.models.schemas import (
     AnalysisRequest,
     AnalysisResponse,
@@ -98,7 +99,10 @@ async def get_team(team_id: int):
 
 
 @router.get("/nba/players")
-async def search_players(name: str = Query(..., description="Player name to search")):
+async def search_players(
+    name: str = Query(..., description="Player name to search"),
+    include_inactive: bool = Query(False, description="Include retired/inactive players"),
+):
     try:
         query = name.strip()
         tokens = query.split()
@@ -106,18 +110,27 @@ async def search_players(name: str = Query(..., description="Player name to sear
         if len(tokens) >= 2:
             first_tok = tokens[0]
             last_tok = " ".join(tokens[1:])
-            players = await nba_service.search_players(query, first_name=first_tok, last_name=last_tok)
+            players = await nba_service.search_players(query, first_name=first_tok, last_name=last_tok, include_inactive=include_inactive)
             if not players:
-                players = await nba_service.search_players(query, last_name=last_tok)
+                players = await nba_service.search_players(query, last_name=last_tok, include_inactive=include_inactive)
         else:
-            players = await nba_service.search_players(query, first_name=query)
+            players = await nba_service.search_players(query, first_name=query, include_inactive=include_inactive)
             if not players:
-                players = await nba_service.search_players(query, last_name=query)
+                players = await nba_service.search_players(query, last_name=query, include_inactive=include_inactive)
 
         if not players:
-            players = await nba_service.search_players(query)
+            players = await nba_service.search_players(query, include_inactive=include_inactive)
 
         return {"players": [p.model_dump() for p in players], "count": len(players)}
+    except PlayerResolutionError as e:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": "player_resolution",
+                "message": str(e),
+                "candidates": getattr(e, "candidates", None),
+            },
+        )
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"BallDontLie API error: {str(e)}")
 
@@ -387,9 +400,9 @@ async def mvp_odds():
 @limiter.limit(_CLAUDE_LIMIT)
 async def compare_players(
     request: Request,
-    player_a: int = Query(..., description="BallDontLie player ID for player A"),
-    player_b: int = Query(..., description="BallDontLie player ID for player B"),
-    season: int = Query(2025, description="NBA season year"),
+    player_a: str = Query(..., description="Player A full name, e.g. 'Nikola Jokic'"),
+    player_b: str = Query(..., description="Player B full name, e.g. 'Shai Gilgeous-Alexander'"),
+    season: int = Query(2024, description="NBA season start year (2024 = 2024-25)"),
     archetype: Optional[str] = Query(None, description="Coaching archetype lens"),
     compare_context: Optional[str] = Query(None, description="Situational context for the comparison"),
     _key: str = Depends(verify_api_key),
@@ -401,6 +414,15 @@ async def compare_players(
             archetype=archetype,
             compare_context=compare_context,
             session_id=session_id,
+        )
+    except PlayerResolutionError as e:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": "player_resolution",
+                "message": str(e),
+                "candidates": getattr(e, "candidates", None),
+            },
         )
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e))
@@ -421,12 +443,25 @@ async def today_games_analysis(request: Request, date: Optional[str] = Query(Non
 @limiter.limit(_CLAUDE_LIMIT)
 async def player_analysis(
     request: Request,
-    player_id: int = Query(..., description="BallDontLie player ID"),
+    player_id: Optional[int] = Query(None, description="BallDontLie player ID"),
+    player_name: Optional[str] = Query(None, description="Player full name (resolved via exact match)"),
     season: int = Query(2025, description="NBA season year"),
     _key: str = Depends(verify_api_key),
 ):
+    """Accepts player_id (preferred) or player_name (resolved via resolve_player_exact)."""
     try:
+        if player_id is None and player_name:
+            from app.services.nba_service import PlayerResolutionError
+            try:
+                player = await nba_service.resolve_player_exact(player_name)
+                player_id = player.id
+            except PlayerResolutionError as e:
+                raise HTTPException(status_code=400, detail={"error": "player_resolution", "message": str(e), "candidates": getattr(e, "candidates", None)})
+        if player_id is None:
+            raise HTTPException(status_code=422, detail="Provide player_id or player_name")
         return await analysis_service.analyze_player(player_id, season)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e))
 
@@ -435,11 +470,23 @@ async def player_analysis(
 @limiter.limit(_CLAUDE_LIMIT)
 async def player_analysis_stream(
     request: Request,
-    player_id: int = Query(..., description="BallDontLie player ID"),
+    player_id: Optional[int] = Query(None, description="BallDontLie player ID"),
+    player_name: Optional[str] = Query(None, description="Player full name (resolved via exact match)"),
     season: int = Query(2025, description="NBA season year"),
     _key: str = Depends(verify_api_key),
 ):
-    """Stream player analysis as Server-Sent Events."""
+    """Stream player analysis as Server-Sent Events. Accepts player_id or player_name."""
+    # Resolve name to id before entering the streaming context where exceptions are harder to surface
+    if player_id is None and player_name:
+        from app.services.nba_service import PlayerResolutionError
+        try:
+            player = await nba_service.resolve_player_exact(player_name)
+            player_id = player.id
+        except PlayerResolutionError as e:
+            raise HTTPException(status_code=400, detail={"error": "player_resolution", "message": str(e), "candidates": getattr(e, "candidates", None)})
+    if player_id is None:
+        raise HTTPException(status_code=422, detail="Provide player_id or player_name")
+
     async def generate():
         try:
             async for event in analysis_service.analyze_player_stream(player_id, season):
@@ -798,6 +845,15 @@ async def analyze_trade(request: Request, body: dict = Body(...), _key: str = De
                 "second_apron":      body.get("cap_second_apron"),
             },
             session_id=session_id,
+        )
+    except PlayerResolutionError as e:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": "player_resolution",
+                "message": str(e),
+                "candidates": getattr(e, "candidates", None),
+            },
         )
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e))

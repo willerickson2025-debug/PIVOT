@@ -28,6 +28,7 @@ from app.core.http_client import GlobalHTTPClient
 from app.core.session import SessionEvent, build_context_block, record as session_record
 from app.models.schemas import Game, GameAnalysisResponse
 from app.services import claude_service, nba_service
+from app.services.claude_service import PIVOT_ANALYSIS_SYSTEM_PROMPT
 
 # ---------------------------------------------------------------------------
 # Shared ESPN injury cache — 90s TTL so all call sites share one response
@@ -206,8 +207,9 @@ _FAST_MODEL: str = "claude-haiku-4-5-20251001"
 _TOKENS_BLURB:   int = 140    # leaderboard blurbs (MVP Race, Young Stars)
 _TOKENS_NOTE:    int = 300    # detailed scout note (player_id + full stats)
 _TOKENS_GAME:    int = 900    # game slate / upcoming matchup analysis prose
-_TOKENS_VERDICT: int = 750    # compare / trade structured JSON verdicts
-_TOKENS_PLAYER:  int = 1000   # single player analysis prose (stream + non-stream)
+_TOKENS_VERDICT: int = 750    # compare / trade structured JSON verdicts (legacy)
+_TOKENS_COMPARE_V2: int = 1800          # compare_players V2 — richer payload needs more headroom
+_TOKENS_ANALYZE_PLAYER_V2: int = 1500  # analyze_player V2 — single player, no JSON schema overhead
 _TOKENS_COACH:   int = 1400   # coach adjustment & live tactical response
 _TOKENS_PLAY:    int = 1000   # timeout & defensive play draw (prose + diagram JSON)
 _TOKENS_ROSTER:  int = 2200   # team roster / front-office memo
@@ -226,56 +228,6 @@ def _today_context() -> str:
     now = datetime.datetime.now(ZoneInfo("America/Chicago"))
     return now.strftime("%B %-d, %Y")
 
-
-def _nba_analyst_system_prompt() -> str:
-    return f"""You are the highest-paid NBA analyst in the country. Your clients are GMs, bettors, and executives who pay premium money for your edge. They don't want summaries. They want what you actually think.
-
-CRITICAL CONTEXT: Today is {_today_context()}. The 2025-26 NBA season is actively in progress right now. Do not say the season "has not yet occurred" or treat it as a future event. It is happening. Stats provided are live 2025-26 season data.
-
-STRICT DATA GROUNDING — NON-NEGOTIABLE:
-The data payload in this prompt is the only reality. It completely overrides anything from your training about current rosters, trades, or player team assignments. If the data says a player is on a specific team, that is absolute fact — do not contradict it with pre-training knowledge. Before writing any team or player analysis, silently verify which players and teams are actually present in the provided data, then analyze only those.
-
-TEAM AFFILIATIONS — CRITICAL: The team listed in the stat block header is authoritative. Never state a different team based on training knowledge. Players get traded constantly; your training data is not current. If the stat block says a player is on Team X, accept that as fact. If no team is listed, do not invent one from memory.
-
-CRITICAL RULES FOR MISSING OR INCOMPLETE DATA:
-You will receive a stat block with season averages and recent game logs. If any section of that data is zero, empty, or missing, follow these rules without exception:
-1. Do NOT speculate on why the data is missing. Do not mention injuries, suspensions, rest, load management, two-way contracts, or any real-world explanation for absent numbers.
-2. Do NOT reference the data pipeline, API, feed, or any technical system. You are an analyst, not a developer.
-3. Do NOT invent or hallucinate statistics that were not provided.
-4. If recent game logs are missing but season averages exist, analyze only the season averages and skip any recent-form commentary entirely.
-5. If a stat reads 0.0 across the board, note briefly that their current season data is still being added to the system — then pivot immediately to what you do know about the player from their career profile and overall trajectory. Frame it as PIVOT expanding its coverage, not as a limitation.
-
-EFFICIENCY — THE ONLY METRICS THAT MATTER:
-True Shooting % (TS%) is the single most important efficiency number. It accounts for field goals, three-pointers, AND free throws — the complete picture of scoring value. eFG% is second. FT Rate (FTA/FGA) is third, because it tells you how aggressively a player gets to the line.
-
-RAW FG% IS FORBIDDEN AS A PRIMARY EFFICIENCY INDICATOR. Never open an efficiency analysis with "shoots X% from the field." Never compare two players using raw FG% as the benchmark. FG% ignores three-point value and ignores free throws — both fatal flaws. A player who shoots 44% FG with 8 FTA/game and 6 3PA/game is almost certainly more efficient than a player who shoots 50% FG with 1 FTA/game and 0 3PA. The stat block puts TS% first — use it that way.
-
-Efficiency tiers for TS%: 62%+ is historically elite (top of the league), 58–62% is very good, 54–58% is average, below 54% is a problem. eFG%: 56%+ elite, 52–56% solid, below 52% inefficient. FT Rate: above 0.40 means defenses can't stay in front of this player; below 0.20 means they're not creating contact or not being schemed against.
-
-3-POINT SHOOTING — VOLUME CONTEXT IS MANDATORY:
-Raw 3P% is nearly meaningless without knowing 3PA/game. High-volume three-point shooters (6+ 3PA/game) consistently shoot 34–38% — that is their correct operating range. Among the top-10 players in 3PA/game league-wide, virtually none shoot above 40%. A player averaging 36–38% on 8+ 3PA/game is an elite shooter by any serious metric. Never compare raw 3P% between a high-volume and low-volume shooter without explicitly noting the volume difference. A role player shooting 43% on 3 attempts is not a better shooter than a lead creator shooting 37% on 9 attempts.
-
-INTERPRETING L10 TRENDS — CONTEXT IS MANDATORY:
-A 10-game window is roughly 12% of a regular season. The stat block provides per-36 numbers for both the season and L10 — USE THEM. Per-game raw stats drop when minutes drop (blowouts, load management, lineup changes). Before characterizing any L10 vs season delta as a "decline" or "deterioration":
-1. Check per-36 first — if per-36 is flat, the raw per-game drop is a minutes story, not a production story. State this explicitly.
-2. Check the magnitude — require at least a 15–20% change from baseline in per-36 numbers before calling anything meaningful.
-3. Check FT rate — a rising FTA/game alongside lower FG attempts often means defenses are fouling more aggressively (a sign of defensive respect, not player decline).
-4. Check the opponent slate — late-season schedules cluster elite defensive teams. A shooting dip against top-5 defenses is expected.
-5. Never use "sharp deterioration," "hitting a wall," "running out of gas," or "collapse" for a 10-game window unless the drop is severe (>25% below baseline) in per-36 numbers across multiple categories simultaneously.
-
-You have watched more NBA film than anyone in this conversation. You know pace differentials, defensive rating trends, how teams perform on back-to-backs, which coaches make in-game adjustments and which ones don't, which stars disappear in fourth quarters. You use that knowledge.
-
-When analyzing a player: lead with TS% or eFG% as the efficiency anchor. Then cover role/usage context (is their FTA rate up or down, what does that signal), the L10 trend with proper framing (sample size, opponent context, usage changes), and close with one sharp sentence on where this player actually stands right now. Do not catastrophize variance. Do not minimize real problems either — if the data shows a genuine multi-month decline in efficiency and volume, call it.
-
-When analyzing a game: open with the sharpest thing you know about this matchup — the thing most people miss. Then cover the stylistic clash, the one player who will determine the outcome, and the specific reason one team wins. Close with a confident, unhedged prediction.
-
-Every word must earn its place. If a sentence doesn't add information or edge, cut it. No throat-clearing. No "it's worth noting." No "at the end of the day." Start with the insight, not the setup.
-
-BOLD TAKES — PERMITTED AND ENCOURAGED:
-When the data genuinely supports it, make the bold call. If a player is on a GOAT trajectory, say so. If a rookie is generational, use that word. If a player is the best at their position right now, declare it. Do not hedge elite talent with "could potentially" or "has shown flashes." The clients pay for conviction. Historical comparisons to all-time greats are appropriate when the statistical case is real — a player averaging elite efficiency numbers and dominant two-way production can be compared to the players they actually resemble. The only requirement is that the data supports the claim.
-
-FORMATTING — NON-NEGOTIABLE:
-Plain prose only. No markdown of any kind. That means: no asterisks (*), no double asterisks (**), no pound signs (#), no em dashes (—), no en dashes, no hyphens used as list bullets, no numbered lists, no bold, no italics, no horizontal rules, no headers of any kind. Do not use "—" anywhere. Do not use "*" anywhere. Paragraphs separated by one blank line. Write like a column in The Athletic — dense, confident, readable. If you use any of the forbidden characters, the output is rejected."""
 
 
 def _front_office_system_prompt() -> str:
@@ -405,52 +357,6 @@ def _safe_avg(values: list[Optional[float]]) -> float:
     return round(sum(clean) / len(clean), 1) if clean else 0.0
 
 
-def _trend_label(recent: float, season: float) -> str:
-    """
-    Return a signed difference string showing recent-form vs season average.
-
-    Examples: ``"+3.2"``, ``"-1.5"``, ``"+0.0"``
-
-    Parameters
-    ----------
-    recent:
-        Average over the most recent N games.
-    season:
-        Full-season average.
-
-    Returns
-    -------
-    str
-        Signed delta, e.g. ``"+2.1"`` or ``"-0.8"``.
-    """
-    diff = round(recent - season, 1)
-    sign = "+" if diff >= 0 else ""
-    return f"{sign}{diff}"
-
-
-def _pct_trend_label(recent: float, season: float) -> str:
-    """
-    Variant of ``_trend_label`` for percentage values stored as decimals.
-
-    Multiplies both values by 100 before computing the delta so the output
-    reads as a percentage-point difference, e.g. ``"+4.2%"`` rather than
-    ``"+0.042"``.
-
-    Parameters
-    ----------
-    recent:
-        Recent field-goal (or other) percentage as a decimal (0.0–1.0).
-    season:
-        Season field-goal (or other) percentage as a decimal (0.0–1.0).
-
-    Returns
-    -------
-    str
-        Signed percentage-point delta, e.g. ``"+4.2%"``.
-    """
-    diff = round((recent - season) * 100, 1)
-    sign = "+" if diff >= 0 else ""
-    return f"{sign}{diff}%"
 
 
 # ---------------------------------------------------------------------------
@@ -648,7 +554,16 @@ async def _resolve_player_by_name(player_name: str) -> Any:
     has a name string but not a player ID. All user-facing analysis endpoints
     should use ``_build_player_stat_block(player_id, season)`` directly.
 
-    Search strategy:
+    Resolution strategy:
+      1. resolve_player_exact() — exact case-insensitive match on active roster.
+         Fast path: if exactly one active player has this name, return immediately.
+      2. _resolve_best_player() fuzzy fallback — handles nicknames ("LeBron",
+         "Giannis") and partial matches.  Only reached when resolve_player_exact
+         raises PlayerNotFoundError.
+      3. AmbiguousPlayerError from step 1 is re-raised immediately — ambiguity
+         must be resolved by the caller, not silently overridden by fuzzy logic.
+
+    Old strategy (replaced):
       1. first_name= + last_name= (explicit params, most precise)
       2. last_name= only fallback
       3. Single-token search=
@@ -656,11 +571,22 @@ async def _resolve_player_by_name(player_name: str) -> Any:
     Raises
     ------
     ValueError
-        If no player matching ``player_name`` can be found.
+        If no player matching ``player_name`` can be found after all strategies.
+    nba_service.AmbiguousPlayerError
+        Re-raised immediately when two or more active players share the name.
     """
     clean_name = player_name.strip()
-    tokens = clean_name.split()
 
+    # ── Step 1: exact match on active roster ──────────────────────────────
+    try:
+        return await nba_service.resolve_player_exact(clean_name, active_only=True)
+    except nba_service.AmbiguousPlayerError:
+        raise  # ambiguity must surface to the caller, not be papered over
+    except nba_service.PlayerNotFoundError:
+        pass  # fall through to fuzzy
+
+    # ── Step 2: fuzzy fallback for nicknames / partial names ─────────────
+    tokens = clean_name.split()
     if len(tokens) >= 2:
         first_tok = tokens[0]
         last_tok = " ".join(tokens[1:])
@@ -811,81 +737,6 @@ async def _build_player_stat_block(player_id: int, season: int) -> tuple[Any, di
     return player, aggregates
 
 
-def _render_stat_block(player: Any, season: int, agg: dict[str, Any]) -> str:
-    """
-    Format a fully assembled stat block string for injection into a Claude prompt.
-
-    Parameters
-    ----------
-    player:
-        ``Player`` domain object.
-    season:
-        NBA season start year.
-    agg:
-        Aggregates dict produced by ``_build_player_stat_block``.
-
-    Returns
-    -------
-    str
-        Multi-line stat block, plain text, no markdown.
-    """
-    team_name = player.team.name if player.team else "N/A"
-    has_vol = agg.get("avg_fga", 0) > 0
-
-    block = (
-        f"Player: {player.first_name} {player.last_name}\n"
-        f"Team: {team_name} | Position: {player.position or 'N/A'} | "
-        f"Season: {season} | Games: {agg['total_games']} | MIN/G: {agg['avg_min']}\n"
-        f"\n"
-    )
-
-    # ── EFFICIENCY FIRST — the only numbers that matter for scoring quality ──
-    if has_vol:
-        ts_tier = "ELITE" if agg['ts_pct'] >= 0.62 else ("VERY GOOD" if agg['ts_pct'] >= 0.58 else ("AVG" if agg['ts_pct'] >= 0.54 else "BELOW AVG"))
-        block += (
-            f"EFFICIENCY (primary lens):\n"
-            f"  TS%: {agg['ts_pct']:.1%} [{ts_tier}] | eFG%: {agg['efg_pct']:.1%} | "
-            f"FT Rate: {agg['ft_rate']:.2f} | FT%: {agg['avg_ft']:.1%}\n"
-            f"  Shot diet: {agg['avg_fga']} FGA/G | {agg['avg_fg3a']} 3PA/G ({agg['avg_fg3']:.1%} 3P%) | "
-            f"{agg['avg_fta']} FTA/G\n"
-        )
-    else:
-        block += (
-            f"EFFICIENCY: limited volume data — 3P%: {agg['avg_fg3']:.1%} | FT%: {agg['avg_ft']:.1%}\n"
-        )
-
-    # ── PRODUCTION per game ──
-    block += (
-        f"\nPRODUCTION (per game):\n"
-        f"  PTS: {agg['avg_pts']} | REB: {agg['avg_reb']} | AST: {agg['avg_ast']} | "
-        f"STL: {agg['avg_stl']} | BLK: {agg['avg_blk']} | TOV: {agg['avg_tov']}\n"
-    )
-
-    # ── PER 36 (minutes-neutral) ──
-    if agg.get("avg_min", 0) > 0:
-        block += (
-            f"  Per 36 min: {agg['per36_pts']} PTS / {agg['per36_reb']} REB / {agg['per36_ast']} AST\n"
-        )
-
-    # ── LAST 10 with per-36 context ──
-    recent_min = agg.get("recent_min", 0)
-    min_note = f" | {recent_min} MPG this stretch" if recent_min > 0 else ""
-    block += (
-        f"\nLAST {_RECENT_FORM_WINDOW} GAMES (~12% sample{min_note}):\n"
-        f"  PTS: {agg['recent_pts']} ({_trend_label(agg['recent_pts'], agg['avg_pts'])} vs season) | "
-        f"REB: {agg['recent_reb']} ({_trend_label(agg['recent_reb'], agg['avg_reb'])}) | "
-        f"AST: {agg['recent_ast']} ({_trend_label(agg['recent_ast'], agg['avg_ast'])})\n"
-        f"  STL: {agg['recent_stl']} ({_trend_label(agg['recent_stl'], agg['avg_stl'])}) | "
-        f"BLK: {agg['recent_blk']} ({_trend_label(agg['recent_blk'], agg['avg_blk'])})\n"
-        f"  L10 3P%: {agg['recent_fg3']:.1%} ({_pct_trend_label(agg['recent_fg3'], agg['avg_fg3'])} vs season)\n"
-    )
-    if agg.get("recent_pts_36") and recent_min > 0:
-        block += (
-            f"  Per-36 (L10): {agg['recent_pts_36']} PTS / {agg['recent_reb_36']} REB / "
-            f"{agg['recent_ast_36']} AST "
-            f"[season per-36: {agg['per36_pts']} / {agg['per36_reb']} / {agg['per36_ast']}]\n"
-        )
-    return block
 
 
 # ---------------------------------------------------------------------------
@@ -931,7 +782,7 @@ async def analyze_today_games(target_date: Optional[str] = None) -> GameAnalysis
 
     result = await claude_service.analyze(
         prompt=prompt,
-        system_prompt=_nba_analyst_system_prompt(),
+        system_prompt=PIVOT_ANALYSIS_SYSTEM_PROMPT,
         override_model=_FAST_MODEL,
         override_max_tokens=_TOKENS_GAME,
     )
@@ -954,124 +805,158 @@ async def analyze_today_games(target_date: Optional[str] = None) -> GameAnalysis
 
 async def analyze_player(
     player_id: int,
-    season: int = 0,
+    season: Any = 0,
 ) -> dict[str, Any]:
     """
-    Generate a full player analysis for a given season.
+    Generate a full player analysis using real V2 advanced aggregates.
 
-    Parameters
-    ----------
-    player_id:
-        BallDontLie player ID — passed directly from the frontend after
-        the user selects from autocomplete. No name guessing.
-    season:
-        NBA season start year.
-
-    Returns
-    -------
-    dict
-        Player metadata, season and recent-form averages, analysis text, and
-        token usage. Returns ``{"error": "..."}`` on lookup failure.
-    """
-    season = season or get_current_season()
-    logger.info("Analyzing player | player_id=%d season=%d", player_id, season)
-
-    try:
-        player, agg = await _build_player_stat_block(player_id, season)
-    except Exception as exc:
-        logger.warning("Player lookup failed | player_id=%d error=%s", player_id, exc)
-        return {"error": str(exc)}
-
-    cache_key = f"player_analysis:{player.id}:{season}"
-    cached = analysis_cache.get(cache_key)
-    if cached is not None:
-        logger.info("Player cache hit | player_id=%d key=%s", player.id, cache_key)
-        return cached
-
-    if agg["total_games"] == 0:
-        return {
-            "player": player.model_dump(),
-            "season": season,
-            "averages": None,
-            "last_10": None,
-            "games_played": 0,
-            "analysis": None,
-            "error": f"We're still adding {player.first_name} {player.last_name}'s {season}-{str(season+1)[-2:]} data to the system — check back shortly as we expand our coverage.",
-        }
-
-    stat_block = _render_stat_block(player, season, agg)
-
-    prompt = (
-        f"Analyze this player's {season} NBA season:\n\n"
-        f"{stat_block}\n\n"
-        f"Cover in order:\n"
-        f"1. EFFICIENCY ANCHOR — lead with TS% or eFG%. What does it say about this player's true scoring value? For 3-point shooting, cite 3PA/G alongside 3P% — volume context is mandatory.\n"
-        f"2. ROLE & USAGE — what do FGA/G, FTA/G, FT Rate, and MIN/G reveal about how this player is being used and how defenses are scheming against them?\n"
-        f"3. LAST {_RECENT_FORM_WINDOW} GAMES — compare per-36 L10 vs per-36 season first. If per-36 is flat but raw per-game is down, say so directly: that is a minutes story. Only flag a real concern if per-36 numbers have moved significantly.\n"
-        f"4. VERDICT — one precise sentence on where this player stands right now.\n"
-        f"Write it as connected prose, not a list."
-    )
-
-    result = await claude_service.analyze(
-        prompt=prompt,
-        system_prompt=_nba_analyst_system_prompt(),
-        override_model=_FAST_MODEL,
-        override_max_tokens=_TOKENS_PLAYER,
-    )
-
-    logger.info(
-        "Player analysis complete | player=%s %s tokens=%d",
-        player.first_name,
-        player.last_name,
-        result.tokens_used,
-    )
-
-    payload = {
-        "player": player.model_dump(),
-        "season": season,
-        "averages": {
-            "points": agg["avg_pts"],
-            "rebounds": agg["avg_reb"],
-            "assists": agg["avg_ast"],
-            "steals": agg["avg_stl"],
-            "blocks": agg["avg_blk"],
-            "fg_pct": agg["avg_fg"],
-            "fg3_pct": agg["avg_fg3"],
-            "ft_pct": agg["avg_ft"],
-        },
-        "last_10": {
-            "points": agg["recent_pts"],
-            "rebounds": agg["recent_reb"],
-            "assists": agg["recent_ast"],
-            "steals": agg["recent_stl"],
-            "blocks": agg["recent_blk"],
-            "fg_pct": agg["recent_fg"],
-            "fg3_pct": agg["recent_fg3"],
-        },
-        "games_played": agg["total_games"],
-        "analysis": result.analysis,
-        "model": result.model,
-        "tokens_used": result.tokens_used,
-    }
-    analysis_cache.set(cache_key, payload, ttl=get_cache_ttl())
-    return payload
-
-
-async def analyze_player_section(
-    player_id: int,
-    season: int,
-    section: str,
-) -> dict[str, Any]:
-    """
-    Generate a focused single-section analysis (offense, defense, financials, etc.)
-    for a given player.
+    Fetches player identity, per-game basic averages, and the full V2 advanced
+    stat aggregate in parallel, then passes the structured JSON payload to Claude
+    with PIVOT_ANALYSIS_SYSTEM_PROMPT.
 
     Parameters
     ----------
     player_id:
         BallDontLie player ID.
     season:
-        NBA season start year.
+        Season start year as int (2024) or string ("2024-25"). Defaults to
+        the current season.
+
+    Returns
+    -------
+    dict
+        V2 payload, analysis text, model metadata, and token usage.
+        Returns ``{"error": "..."}`` on lookup failure.
+    """
+    import json as _json
+
+    season_int = _parse_season_int(season) if season else get_current_season()
+    season_label = f"{season_int}-{str(season_int + 1)[-2:]}"
+
+    cache_key = f"player_analysis_v2:{player_id}:{season_int}"
+    cached = analysis_cache.get(cache_key)
+    if cached is not None:
+        logger.info("analyze_player cache hit | player_id=%d season=%d", player_id, season_int)
+        return cached
+
+    logger.info("analyze_player | player_id=%d season=%d", player_id, season_int)
+
+    try:
+        player, basic, adv = await asyncio.gather(
+            nba_service.get_player_by_id(player_id),
+            nba_service.get_season_averages(player_id, season_int),
+            nba_service.aggregate_season_advanced(player_id, season_int, postseason=False),
+        )
+    except Exception as exc:
+        logger.warning("analyze_player fetch failed | player_id=%d error=%s", player_id, exc)
+        return {"error": str(exc)}
+
+    name = f"{player.first_name} {player.last_name}"
+    team = (
+        player.team.abbreviation
+        if player.team and hasattr(player.team, "abbreviation")
+        else str(player.team or "?")
+    )
+    games_played = int(adv.get("games_played") or basic.get("games_played") or 0)
+
+    sample_warnings: list[str] = []
+    if games_played < 10:
+        sample_warnings.append(f"{name} has only {games_played} games played — small sample.")
+
+    if games_played == 0:
+        return {
+            "player":       player.model_dump(),
+            "season":       season_int,
+            "season_label": season_label,
+            "games_played": 0,
+            "analysis":     None,
+            "error": (
+                f"We're still adding {name}'s {season_int}-{str(season_int + 1)[-2:]} data "
+                f"to the system — check back shortly as we expand our coverage."
+            ),
+        }
+
+    payload: dict[str, Any] = {
+        "season":       season_int,
+        "season_label": season_label,
+        "player": {
+            "id":        player.id,
+            "name":      name,
+            "team":      team,
+            "position":  player.position or "?",
+            "is_active": bool(getattr(player, "is_active", True)),
+            "basic": {
+                "pts":     basic.get("pts"),
+                "reb":     basic.get("reb"),
+                "ast":     basic.get("ast"),
+                "stl":     basic.get("stl"),
+                "blk":     basic.get("blk"),
+                "tov":     basic.get("turnover"),
+                "min":     basic.get("min"),
+                "fg_pct":  basic.get("fg_pct"),
+                "fg3_pct": basic.get("fg3_pct"),
+                "ft_pct":  basic.get("ft_pct"),
+            },
+            "advanced": adv,
+        },
+        "games_played":    games_played,
+        "sample_warnings": sample_warnings,
+    }
+
+    prompt = (
+        f"Analyze this player's {season_label} NBA season. Payload:\n\n"
+        f"{_json.dumps(payload, indent=2)}\n\n"
+        f"Structure your analysis as connected prose covering:\n"
+        f"1. EFFICIENCY ANCHOR — lead with true_shooting_percentage or "
+        f"effective_field_goal_percentage. Cite usage_percentage for load context.\n"
+        f"2. SUPPORTING NUMBERS — use contested_fg_pct, screen_assists_pg, "
+        f"deflections_pg, pct_unassisted_fgm, defended_at_rim_fg_pct where revealing.\n"
+        f"3. COUNTER-EVIDENCE — what does the data show that cuts against the lead narrative?\n"
+        f"4. BOTTOM LINE — one precise sentence on where this player stands right now.\n"
+        f"Every claim must cite a specific number from the payload. No markdown."
+    )
+
+    result = await claude_service.analyze(
+        prompt=prompt,
+        system_prompt=PIVOT_ANALYSIS_SYSTEM_PROMPT,
+        override_max_tokens=_TOKENS_ANALYZE_PLAYER_V2,
+    )
+
+    logger.info(
+        "analyze_player complete | %s season=%d tokens=%d",
+        name, season_int, result.tokens_used,
+    )
+
+    response = {
+        "player":          player.model_dump(),
+        "season":          season_int,
+        "season_label":    season_label,
+        "payload":         payload,
+        "games_played":    games_played,
+        "analysis":        result.analysis,
+        "model":           result.model,
+        "tokens_used":     result.tokens_used,
+        "sample_warnings": sample_warnings,
+    }
+    analysis_cache.set(cache_key, response, ttl=get_cache_ttl())
+    return response
+
+
+async def analyze_player_section(
+    player_id: int,
+    season: Any,
+    section: str,
+) -> dict[str, Any]:
+    """
+    Generate a focused single-section analysis (offense, defense, financials, etc.)
+    for a given player using the V2 advanced stat payload.
+
+    Parameters
+    ----------
+    player_id:
+        BallDontLie player ID.
+    season:
+        Season start year as int (2024) or string ("2024-25").
     section:
         Analysis section key. Must be one of the keys in ``SECTION_PROMPTS``.
 
@@ -1081,114 +966,187 @@ async def analyze_player_section(
         Player metadata, section identifier, analysis text, and token usage.
         Returns ``{"error": "..."}`` on lookup failure or unknown section.
     """
-    logger.info(
-        "Analyzing player section | player_id=%d season=%d section=%s",
-        player_id,
-        season,
-        section,
-    )
+    import json as _json
 
     if section not in SECTION_PROMPTS:
         valid_sections = ", ".join(sorted(SECTION_PROMPTS.keys()))
-        return {
-            "error": f"Unknown section '{section}'. Valid sections: {valid_sections}"
-        }
+        return {"error": f"Unknown section '{section}'. Valid sections: {valid_sections}"}
+
+    season_int = _parse_season_int(season) if season else get_current_season()
+    season_label = f"{season_int}-{str(season_int + 1)[-2:]}"
+
+    logger.info(
+        "analyze_player_section | player_id=%d season=%d section=%s",
+        player_id, season_int, section,
+    )
 
     try:
-        player, agg = await _build_player_stat_block(player_id, season)
+        player, basic, adv = await asyncio.gather(
+            nba_service.get_player_by_id(player_id),
+            nba_service.get_season_averages(player_id, season_int),
+            nba_service.aggregate_season_advanced(player_id, season_int, postseason=False),
+        )
     except Exception as exc:
-        logger.warning("Player lookup failed | player_id=%d error=%s", player_id, exc)
+        logger.warning("analyze_player_section fetch failed | player_id=%d error=%s", player_id, exc)
         return {"error": str(exc)}
+
+    name = f"{player.first_name} {player.last_name}"
+    team = (
+        player.team.abbreviation
+        if player.team and hasattr(player.team, "abbreviation")
+        else str(player.team or "?")
+    )
+    games_played = int(adv.get("games_played") or basic.get("games_played") or 0)
 
     section_directive = SECTION_PROMPTS[section]
 
-    if agg["total_games"] > 0:
-        stat_context = f"Player data:\n{_render_stat_block(player, season, agg)}"
+    if games_played > 0:
+        payload: dict[str, Any] = {
+            "season":       season_int,
+            "season_label": season_label,
+            "player": {
+                "id":        player.id,
+                "name":      name,
+                "team":      team,
+                "position":  player.position or "?",
+                "is_active": bool(getattr(player, "is_active", True)),
+                "basic": {
+                    "pts":     basic.get("pts"),
+                    "reb":     basic.get("reb"),
+                    "ast":     basic.get("ast"),
+                    "stl":     basic.get("stl"),
+                    "blk":     basic.get("blk"),
+                    "tov":     basic.get("turnover"),
+                    "min":     basic.get("min"),
+                    "fg_pct":  basic.get("fg_pct"),
+                    "fg3_pct": basic.get("fg3_pct"),
+                    "ft_pct":  basic.get("ft_pct"),
+                },
+                "advanced": adv,
+            },
+            "games_played": games_played,
+        }
+        stat_context = f"Player data (V2 payload):\n{_json.dumps(payload, indent=2)}"
     else:
         stat_context = (
-            f"Player: {player.first_name} {player.last_name} — "
-            f"their {season} season data is still being added to our system. "
-            f"Analyze based on career profile and what you know about this player."
+            f"Player: {name} — their {season_label} season data is still being added to our "
+            f"system. Analyze based on career profile and what you know about this player."
         )
 
     prompt = (
         f"{section_directive}\n\n"
         f"{stat_context}\n\n"
-        f"Go deep. Use your basketball knowledge beyond just the raw stats provided."
+        f"Go deep. Every statistical claim must cite a specific number from the payload above."
     )
 
     result = await claude_service.analyze(
         prompt=prompt,
-        system_prompt=_nba_analyst_system_prompt(),
-        override_model=_FAST_MODEL,
+        system_prompt=PIVOT_ANALYSIS_SYSTEM_PROMPT,
         override_max_tokens=_TOKENS_SECTION,
     )
 
     logger.info(
-        "Player section analysis complete | player=%s %s section=%s tokens=%d",
-        player.first_name,
-        player.last_name,
-        section,
-        result.tokens_used,
+        "analyze_player_section complete | %s section=%s tokens=%d",
+        name, section, result.tokens_used,
     )
 
     return {
-        "player": player.model_dump(),
-        "section": section,
-        "season": season,
-        "analysis": result.analysis,
-        "model": result.model,
+        "player":      player.model_dump(),
+        "section":     section,
+        "season":      season_int,
+        "analysis":    result.analysis,
+        "model":       result.model,
         "tokens_used": result.tokens_used,
     }
 
 
 async def analyze_player_section_stream(
     player_id: int,
-    season: int,
+    season: Any,
     section: str,
 ) -> AsyncGenerator[dict, None]:
     """
-    Streaming version of analyze_player_section.
+    Streaming version of analyze_player_section (V2).
 
     Yields dicts:
       {"type": "start", "player": ..., "section": "..."}
       {"type": "chunk", "text": "..."}
       {"type": "done"}
     """
+    import json as _json
+
     if section not in SECTION_PROMPTS:
         valid_sections = ", ".join(sorted(SECTION_PROMPTS.keys()))
         yield {"type": "error", "message": f"Unknown section '{section}'. Valid sections: {valid_sections}"}
         return
 
+    season_int = _parse_season_int(season) if season else get_current_season()
+    season_label = f"{season_int}-{str(season_int + 1)[-2:]}"
+
     try:
-        player, agg = await _build_player_stat_block(player_id, season)
+        player, basic, adv = await asyncio.gather(
+            nba_service.get_player_by_id(player_id),
+            nba_service.get_season_averages(player_id, season_int),
+            nba_service.aggregate_season_advanced(player_id, season_int, postseason=False),
+        )
     except Exception as exc:
         yield {"type": "error", "message": str(exc)}
         return
 
+    name = f"{player.first_name} {player.last_name}"
+    team = (
+        player.team.abbreviation
+        if player.team and hasattr(player.team, "abbreviation")
+        else str(player.team or "?")
+    )
+    games_played = int(adv.get("games_played") or basic.get("games_played") or 0)
+
     section_directive = SECTION_PROMPTS[section]
 
-    if agg["total_games"] > 0:
-        stat_context = f"Player data:\n{_render_stat_block(player, season, agg)}"
+    if games_played > 0:
+        payload: dict[str, Any] = {
+            "season":       season_int,
+            "season_label": season_label,
+            "player": {
+                "id":        player.id,
+                "name":      name,
+                "team":      team,
+                "position":  player.position or "?",
+                "is_active": bool(getattr(player, "is_active", True)),
+                "basic": {
+                    "pts":     basic.get("pts"),
+                    "reb":     basic.get("reb"),
+                    "ast":     basic.get("ast"),
+                    "stl":     basic.get("stl"),
+                    "blk":     basic.get("blk"),
+                    "tov":     basic.get("turnover"),
+                    "min":     basic.get("min"),
+                    "fg_pct":  basic.get("fg_pct"),
+                    "fg3_pct": basic.get("fg3_pct"),
+                    "ft_pct":  basic.get("ft_pct"),
+                },
+                "advanced": adv,
+            },
+            "games_played": games_played,
+        }
+        stat_context = f"Player data (V2 payload):\n{_json.dumps(payload, indent=2)}"
     else:
         stat_context = (
-            f"Player: {player.first_name} {player.last_name} — "
-            f"their {season} season data is still being added to our system. "
-            f"Analyze based on career profile and what you know about this player."
+            f"Player: {name} — their {season_label} season data is still being added to our "
+            f"system. Analyze based on career profile and what you know about this player."
         )
 
     prompt = (
         f"{section_directive}\n\n"
         f"{stat_context}\n\n"
-        f"Go deep. Use your basketball knowledge beyond just the raw stats provided."
+        f"Go deep. Every statistical claim must cite a specific number from the payload above."
     )
 
     yield {"type": "start", "player": player.model_dump(), "section": section}
 
     async for chunk in claude_service.analyze_stream(
         prompt,
-        system_prompt=_nba_analyst_system_prompt(),
-        override_model=_FAST_MODEL,
+        system_prompt=PIVOT_ANALYSIS_SYSTEM_PROMPT,
         override_max_tokens=_TOKENS_SECTION,
     ):
         yield {"type": "chunk", "text": chunk}
@@ -1198,32 +1156,29 @@ async def analyze_player_section_stream(
 
 async def analyze_player_stream(
     player_id: int,
-    season: int = 0,
+    season: Any = 0,
 ) -> AsyncGenerator[dict, None]:
     """
-    Streaming version of analyze_player.
+    Streaming version of analyze_player (V2).
 
     Yields dicts:
-      {"type": "meta", "player": ..., "averages": ..., "last_10": ..., "games_played": ...}
+      {"type": "payload", "payload": {...V2 payload...}}
       {"type": "chunk", "text": "..."}
       {"type": "done"}
 
     If the result is cached, streams the cached analysis text character-by-character
     so the typewriter effect still plays.
     """
-    season = season or get_current_season()
-    try:
-        player, agg = await _build_player_stat_block(player_id, season)
-    except Exception as exc:
-        yield {"type": "error", "message": str(exc)}
-        return
+    import json as _json
 
-    cache_key = f"player_analysis:{player.id}:{season}"
+    season_int = _parse_season_int(season) if season else get_current_season()
+    season_label = f"{season_int}-{str(season_int + 1)[-2:]}"
+
+    cache_key = f"player_analysis_v2:{player_id}:{season_int}"
     cached = analysis_cache.get(cache_key)
     if cached is not None:
-        logger.info("Player stream cache hit | player_id=%d key=%s", player.id, cache_key)
-        yield {"type": "meta", "player": cached["player"], "averages": cached["averages"],
-               "last_10": cached["last_10"], "games_played": cached["games_played"]}
+        logger.info("analyze_player_stream cache hit | player_id=%d season=%d", player_id, season_int)
+        yield {"type": "payload", "payload": cached.get("payload", {})}
         text = cached.get("analysis", "")
         chunk_size = 4
         for i in range(0, len(text), chunk_size):
@@ -1231,66 +1186,106 @@ async def analyze_player_stream(
         yield {"type": "done"}
         return
 
-    if agg["total_games"] == 0:
-        # For past seasons with no data, return a clean short error rather than
-        # calling Claude (which hallucinates details about non-existent seasons).
+    try:
+        player, basic, adv = await asyncio.gather(
+            nba_service.get_player_by_id(player_id),
+            nba_service.get_season_averages(player_id, season_int),
+            nba_service.aggregate_season_advanced(player_id, season_int, postseason=False),
+        )
+    except Exception as exc:
+        yield {"type": "error", "message": str(exc)}
+        return
+
+    name = f"{player.first_name} {player.last_name}"
+    team = (
+        player.team.abbreviation
+        if player.team and hasattr(player.team, "abbreviation")
+        else str(player.team or "?")
+    )
+    games_played = int(adv.get("games_played") or basic.get("games_played") or 0)
+
+    sample_warnings: list[str] = []
+    if games_played < 10:
+        sample_warnings.append(f"{name} has only {games_played} games played — small sample.")
+
+    if games_played == 0:
         current = get_current_season()
-        if season != current:
+        if season_int != current:
             yield {
                 "type": "error",
-                "message": f"No stats found for {player.first_name} {player.last_name} in the {season}–{str(season+1)[-2:]} season.",
+                "message": f"No stats found for {name} in the {season_label} season.",
             }
             return
-        yield {"type": "meta", "player": player.model_dump(), "averages": None,
-               "last_10": None, "games_played": 0}
+        yield {"type": "payload", "payload": {"player": {"id": player.id, "name": name}, "games_played": 0}}
         prompt = (
-            f"Provide a PIVOT intelligence report on {player.first_name} {player.last_name} "
-            f"for the {season} NBA season. Note if this individual is not currently an active "
-            f"NBA player and offer what is known — career context, current role, or a redirect."
+            f"Provide a PIVOT intelligence report on {name} for the {season_label} NBA season. "
+            f"Note if this individual is not currently an active NBA player and offer what is "
+            f"known — career context, current role, or a redirect."
         )
     else:
-        yield {
-            "type": "meta",
-            "player": player.model_dump(),
-            "averages": {
-                "points": agg["avg_pts"], "rebounds": agg["avg_reb"], "assists": agg["avg_ast"],
-                "steals": agg["avg_stl"], "blocks": agg["avg_blk"], "fg_pct": agg["avg_fg"],
-                "fg3_pct": agg["avg_fg3"], "ft_pct": agg["avg_ft"],
+        payload: dict[str, Any] = {
+            "season":       season_int,
+            "season_label": season_label,
+            "player": {
+                "id":        player.id,
+                "name":      name,
+                "team":      team,
+                "position":  player.position or "?",
+                "is_active": bool(getattr(player, "is_active", True)),
+                "basic": {
+                    "pts":     basic.get("pts"),
+                    "reb":     basic.get("reb"),
+                    "ast":     basic.get("ast"),
+                    "stl":     basic.get("stl"),
+                    "blk":     basic.get("blk"),
+                    "tov":     basic.get("turnover"),
+                    "min":     basic.get("min"),
+                    "fg_pct":  basic.get("fg_pct"),
+                    "fg3_pct": basic.get("fg3_pct"),
+                    "ft_pct":  basic.get("ft_pct"),
+                },
+                "advanced": adv,
             },
-            "last_10": {
-                "points": agg["recent_pts"], "rebounds": agg["recent_reb"], "assists": agg["recent_ast"],
-                "steals": agg["recent_stl"], "blocks": agg["recent_blk"], "fg_pct": agg["recent_fg"],
-                "fg3_pct": agg["recent_fg3"],
-            },
-            "games_played": agg["total_games"],
+            "games_played":    games_played,
+            "sample_warnings": sample_warnings,
         }
-        stat_block = _render_stat_block(player, season, agg)
-        prompt = f"Analyze this player's {season} NBA season:\n\n{stat_block}"
+        yield {"type": "payload", "payload": payload}
+        prompt = (
+            f"Analyze this player's {season_label} NBA season. Payload:\n\n"
+            f"{_json.dumps(payload, indent=2)}\n\n"
+            f"Structure your analysis as connected prose covering:\n"
+            f"1. EFFICIENCY ANCHOR — lead with true_shooting_percentage or "
+            f"effective_field_goal_percentage. Cite usage_percentage for load context.\n"
+            f"2. SUPPORTING NUMBERS — use contested_fg_pct, screen_assists_pg, "
+            f"deflections_pg, pct_unassisted_fgm, defended_at_rim_fg_pct where revealing.\n"
+            f"3. COUNTER-EVIDENCE — what does the data show that cuts against the lead narrative?\n"
+            f"4. BOTTOM LINE — one precise sentence on where this player stands right now.\n"
+            f"Every claim must cite a specific number from the payload. No markdown."
+        )
 
-    full_text = []
-    async for chunk in claude_service.analyze_stream(prompt, system_prompt=_nba_analyst_system_prompt(), override_model=_FAST_MODEL, override_max_tokens=_TOKENS_PLAYER):
+    full_text: list[str] = []
+    async for chunk in claude_service.analyze_stream(
+        prompt,
+        system_prompt=PIVOT_ANALYSIS_SYSTEM_PROMPT,
+        override_max_tokens=_TOKENS_ANALYZE_PLAYER_V2,
+    ):
         full_text.append(chunk)
         yield {"type": "chunk", "text": chunk}
 
-    # Cache the full result
     analysis_text = "".join(full_text)
-    if agg["total_games"] > 0:
-        payload = {
-            "player": player.model_dump(), "season": season,
-            "averages": {
-                "points": agg["avg_pts"], "rebounds": agg["avg_reb"], "assists": agg["avg_ast"],
-                "steals": agg["avg_stl"], "blocks": agg["avg_blk"], "fg_pct": agg["avg_fg"],
-                "fg3_pct": agg["avg_fg3"], "ft_pct": agg["avg_ft"],
-            },
-            "last_10": {
-                "points": agg["recent_pts"], "rebounds": agg["recent_reb"], "assists": agg["recent_ast"],
-                "steals": agg["recent_stl"], "blocks": agg["recent_blk"], "fg_pct": agg["recent_fg"],
-                "fg3_pct": agg["recent_fg3"],
-            },
-            "games_played": agg["total_games"],
-            "analysis": analysis_text, "model": "", "tokens_used": 0,
+    if games_played > 0:
+        cached_entry = {
+            "player":          player.model_dump(),
+            "season":          season_int,
+            "season_label":    season_label,
+            "payload":         payload,
+            "games_played":    games_played,
+            "analysis":        analysis_text,
+            "model":           "",
+            "tokens_used":     0,
+            "sample_warnings": sample_warnings,
         }
-        analysis_cache.set(cache_key, payload, ttl=get_cache_ttl())  # cache_key = player_analysis:{id}:{season}
+        analysis_cache.set(cache_key, cached_entry, ttl=get_cache_ttl())
 
     yield {"type": "done"}
 
@@ -3424,6 +3419,10 @@ async def enrich_player(
     ts_pct: Optional[float] = None
     efg_pct: Optional[float] = None
     ast_to: Optional[float] = None
+    # usage_proxy: fabricated from (FGA + 0.44*FTA + TOV) / MPG * 40.
+    # Remaining callers: analyze_trade V2 and scout_note (via enrich_player).
+    # analyze_player / analyze_player_section / stream now use real
+    # usage_percentage from aggregate_season_advanced V2 and do NOT reach here.
     usage_proxy: Optional[float] = None
 
     if pts is not None and fga is not None and fta is not None:
@@ -3596,109 +3595,155 @@ _COMPARE_CONTEXTS: dict[str, dict] = {
 }
 
 
+def _parse_season_int(season: Any) -> int:
+    """
+    Normalise season to an integer start year.
+
+    Accepts: 2024 (int), "2024" (str), "2024-25" (str).
+    Returns: 2024
+    """
+    s = str(season).strip()
+    if "-" in s:
+        return int(s.split("-")[0])
+    return int(float(s))
+
+
+async def _resolve_for_compare(name: str) -> tuple[Any, bool]:
+    """
+    Resolve a player name for compare, retrying inactive if active lookup fails.
+
+    Returns (Player, is_active) where is_active=False means the player was only
+    found in the historical pool.
+    """
+    try:
+        player = await nba_service.resolve_player_exact(name, active_only=True)
+        return player, True
+    except nba_service.AmbiguousPlayerError:
+        raise  # surface directly — routes.py converts to 400
+    except nba_service.PlayerNotFoundError:
+        pass
+
+    # Retry in full pool
+    player = await nba_service.resolve_player_exact(name, active_only=False)
+    return player, False
+
+
 async def compare_players(
-    player_a_id: int,
-    player_b_id: int,
-    season: int = 0,
+    player_a_name: str,
+    player_b_name: str,
+    season: Any = 0,
     archetype: Optional[str] = None,
     compare_context: Optional[str] = None,
     session_id: Optional[str] = None,
 ) -> dict[str, Any]:
-    """Compare two players using the shared enrich_player utility."""
-    season = season or get_current_season()
-    logger.info("compare_players | a=%d b=%d season=%d context=%s", player_a_id, player_b_id, season, compare_context)
+    """
+    Compare two players using real V2 advanced aggregates from BallDontLie.
 
-    cache_key = f"compare2:{min(player_a_id, player_b_id)}:{max(player_a_id, player_b_id)}:{season}:{archetype or 'default'}:{compare_context or 'none'}"
+    Player names are resolved via resolve_player_exact (active roster first,
+    historical pool as fallback). Both basic per-game stats and the full V2
+    advanced aggregate are included in the Claude payload.
+
+    Parameters
+    ----------
+    player_a_name, player_b_name:
+        Full player names, e.g. "Nikola Jokic".
+    season:
+        Season start year as int (2024) or string ("2024-25"). Defaults to
+        current season.
+    archetype, compare_context, session_id:
+        Optional coaching lens, situational context, session tracking.
+    """
+    import json as _json
+
+    season_int = _parse_season_int(season) if season else get_current_season()
+    season_label = f"{season_int}-{str(season_int + 1)[-2:]}"
+
+    logger.info(
+        "compare_players | a=%r b=%r season=%d context=%s",
+        player_a_name, player_b_name, season_int, compare_context,
+    )
+
+    # ── Cache key ──────────────────────────────────────────────────────────
+    import hashlib as _hashlib
+    raw_key = f"compare_v2:{player_a_name}:{player_b_name}:{season_int}:{archetype or ''}:{compare_context or ''}"
+    cache_key = "compare_v2:" + _hashlib.md5(raw_key.encode()).hexdigest()
     cached = analysis_cache.get(cache_key)
     if cached:
         logger.info("compare_players cache hit | %s", cache_key)
         return cached
 
-    try:
-        ep_a, ep_b = await asyncio.gather(
-            enrich_player(player_a_id, season),
-            enrich_player(player_b_id, season),
-        )
-    except Exception as exc:
-        logger.warning("compare_players enrich failed | %s", exc)
-        return {"error": str(exc)}
+    # ── Resolve names ──────────────────────────────────────────────────────
+    (player_a, a_active), (player_b, b_active) = await asyncio.gather(
+        _resolve_for_compare(player_a_name),
+        _resolve_for_compare(player_b_name),
+    )
 
-    if not ep_a.get("name") or not ep_b.get("name"):
-        return {"error": "Could not resolve one or both players."}
+    name_a = f"{player_a.first_name} {player_a.last_name}"
+    name_b = f"{player_b.first_name} {player_b.last_name}"
+    team_a = player_a.team.abbreviation if player_a.team and hasattr(player_a.team, "abbreviation") else str(player_a.team or "?")
+    team_b = player_b.team.abbreviation if player_b.team and hasattr(player_b.team, "abbreviation") else str(player_b.team or "?")
 
-    for _ep in (ep_a, ep_b):
-        if _ep.get("stats_unavailable"):
-            return {"error": _ep["unavailable_message"]}
+    # ── Fetch basic + advanced in parallel for both players ────────────────
+    (basic_a, adv_a), (basic_b, adv_b) = await asyncio.gather(
+        asyncio.gather(
+            nba_service.get_season_averages(player_a.id, season_int),
+            nba_service.aggregate_season_advanced(player_a.id, season_int),
+        ),
+        asyncio.gather(
+            nba_service.get_season_averages(player_b.id, season_int),
+            nba_service.aggregate_season_advanced(player_b.id, season_int),
+        ),
+    )
 
-    name_a, name_b = ep_a["name"], ep_b["name"]
+    games_a = adv_a.get("games_played", 0)
+    games_b = adv_b.get("games_played", 0)
 
-    # Build frontend payload (maintains API contract with existing dashboard keys)
-    def _payload(ep: dict) -> dict:
+    # ── Sample warnings ────────────────────────────────────────────────────
+    sample_warnings: list[str] = []
+    if games_a < 10:
+        sample_warnings.append(f"{name_a} has only {games_a} games played — small sample.")
+    if games_b < 10:
+        sample_warnings.append(f"{name_b} has only {games_b} games played — small sample.")
+
+    def _basic_summary(avg: dict) -> dict:
+        """Extract the standard per-game line from season_averages payload."""
         return {
-            "id":          ep["id"],
-            "name":        ep["name"],
-            "first_name":  ep["first_name"],
-            "last_name":   ep["last_name"],
-            "position":    ep["position"],
-            "team":        ep["team"],
-            "team_name":   ep["team_name"],
-            "nba_id":      ep.get("nba_id"),
-            "games_played": ep.get("gp"),
-            "avg_pts":     ep.get("pts"),  "avg_reb": ep.get("reb"), "avg_ast": ep.get("ast"),
-            "avg_stl":     ep.get("stl"),  "avg_blk": ep.get("blk"),
-            "avg_fg":      (ep.get("fg_pct") or 0) / 100,
-            "avg_fg3":     (ep.get("fg3_pct") or 0) / 100,
-            "avg_ft":      (ep.get("ft_pct") or 0) / 100,
-            "avg_fga":     ep.get("fga"),  "avg_fg3a": ep.get("fg3a"), "avg_fta": ep.get("fta"),
-            "ts_pct":      ep.get("ts_pct") / 100 if ep.get("ts_pct") is not None else None,
-            "efg_pct":     ep.get("efg_pct") / 100 if ep.get("efg_pct") is not None else None,
-            "recent_pts":  ep.get("l10_pts"), "recent_reb": ep.get("l10_reb"), "recent_ast": ep.get("l10_ast"),
-            # new fields surfaced to frontend
-            "ast_to":      ep.get("ast_to"),
-            "usage_proxy": ep.get("usage_proxy"),
-            "pts_delta":   ep.get("pts_delta"),
-            "trend_flag":  ep.get("trend_flag"),
+            "pts":     avg.get("pts"),
+            "reb":     avg.get("reb"),
+            "ast":     avg.get("ast"),
+            "stl":     avg.get("stl"),
+            "blk":     avg.get("blk"),
+            "tov":     avg.get("turnover"),
+            "min":     avg.get("min"),
+            "fg_pct":  avg.get("fg_pct"),
+            "fg3_pct": avg.get("fg3_pct"),
+            "ft_pct":  avg.get("ft_pct"),
         }
 
-    payload_a = _payload(ep_a)
-    payload_b = _payload(ep_b)
+    def _player_block(player: Any, is_active: bool, basic: dict, adv: dict, team: str) -> dict:
+        return {
+            "id":        player.id,
+            "name":      f"{player.first_name} {player.last_name}",
+            "team":      team,
+            "position":  player.position or "?",
+            "is_active": is_active,
+            "basic":     _basic_summary(basic),
+            "advanced":  adv,
+        }
 
-    # ── Prompt: use enriched stat_block from each player ──────────────────
-    lens = _ARCHETYPE_LENSES.get(archetype) if archetype else None
+    payload: dict[str, Any] = {
+        "season":          season_int,
+        "season_label":    season_label,
+        "player_a":        _player_block(player_a, a_active, basic_a, adv_a, team_a),
+        "player_b":        _player_block(player_b, b_active, basic_b, adv_b, team_b),
+        "games_a":         games_a,
+        "games_b":         games_b,
+        "sample_warnings": sample_warnings,
+    }
+
+    # ── Build Claude prompt ────────────────────────────────────────────────
     ctx_spec = _COMPARE_CONTEXTS.get(compare_context) if compare_context else None
-
-    COMPARE_SYSTEM = """You are a basketball analytics assistant for PIVOT, used by coaches who need defensible, data-driven insights.
-
-STRICT RULES:
-- Use ONLY the data provided in the input. Never invent stats or assumptions.
-- If data is missing or insufficient, say "insufficient data" — do not estimate.
-- Prioritize accuracy over fluency. Be concise and decisive.
-- Do not access the internet or rely on memory between calls.
-- You are interpreting structured data, not deciding facts.
-- INJURY STATUS: if a player's stat block includes an INJURY STATUS line, factor it explicitly into the comparison. An injured player's current contribution is compromised; their recent stats may understate healthy production or mask a real decline. The verdict must account for availability risk.
-- TRENDING DOWN / TRENDING UP: if a player's stat block starts with a ⚠ TRENDING DOWN or ↑ TRENDING UP line, that means their recent form deviates ≥30% from their season average. The stat block will already show L10 as the primary section. You MUST weight the L10 stats over the season totals in your analysis — the season figures are context only. Name the trend explicitly in your reasoning and adjust the verdict accordingly (a trending-down player's season average overstates their current value; a trending-up player may be breaking out).
-- CONTEXT FRAMING: when a comparison context is provided, your verdict must be specific to that situation — not a generic "who is better" answer. The better_for_context field must name the player AND explain why they win for THAT specific context, citing the relevant stats.
-
-INPUT: You will receive player stats, derived metrics (pre-computed by the backend), a comparison context, and key considerations for that context.
-
-TASK: Compare the players through the lens of the provided context using ONLY the provided data.
-
-Return JSON only, in this exact format:
-{
-  "key_differences": [],
-  "better_for_context": "Player Name is the better [context] because [specific stat-backed reason]",
-  "reasoning": "",
-  "limitation": ""
-}
-
-The better_for_context field must be a complete sentence naming the player and the context-specific reason. Write reasoning in 2-3 focused paragraphs (under 250 words total), with each paragraph covering a distinct analytical point. Base every claim strictly on the provided metrics."""
-
-    if lens:
-        COMPARE_SYSTEM += f"\n\nCOACHING LENS — {lens['name']}:\n{lens['system']}"
-
-    def _lens_block(ep: dict) -> str:
-        spotlight = _archetype_spotlight(ep, archetype) if archetype else ""
-        return spotlight + ep["stat_block"] if spotlight else ep["stat_block"]
+    lens = _ARCHETYPE_LENSES.get(archetype) if archetype else None
 
     context_block = ""
     if ctx_spec:
@@ -3709,35 +3754,37 @@ The better_for_context field must be a complete sentence naming the player and t
         )
 
     session_ctx = build_context_block(session_id)
-
-    prompt = (
+    compare_prompt = (
         f"{session_ctx}"
-        f"HEAD-TO-HEAD: {name_a} vs {name_b} — {season} Season\n"
-        f"{context_block}\n"
-        f"PLAYER A — {_lens_block(ep_a)}\n\n"
-        f"PLAYER B — {_lens_block(ep_b)}\n\n"
-        f"Compare these two players"
-        + (f" specifically for: {ctx_spec['question']}" if ctx_spec else " using only the stats above")
-        + f". Return JSON only with key_differences (array of short strings), "
-          f"better_for_context (full sentence naming the player and the context-specific reason), "
-          f"reasoning (2-3 focused paragraphs under 250 words — each paragraph covers a distinct point), "
-          f"and limitation (what data is missing or inconclusive)."
+        f"Compare these two players using only the data in this payload. "
+        f"Return JSON only, in this exact format:\n"
+        f'{{\n'
+        f'  "key_differences": ["short factual string using specific numbers from payload", ...],\n'
+        f'  "better_for_context": "Player Name is the better choice because [stat-backed reason citing payload values]",\n'
+        f'  "reasoning": "2-3 focused paragraphs under 300 words. Each paragraph covers one analytical dimension (efficiency, playmaking, defense). Every claim cites a specific number from the payload. Plain prose, no markdown.",\n'
+        f'  "limitation": "What is missing or inconclusive — be specific about which fields are null or which comparisons cannot be made from this data. If sample_warnings are present, mention them here."\n'
+        f'}}\n\n'
+        f"Payload:\n\n"
+        f"{_json.dumps(payload, indent=2)}"
     )
-
+    if context_block:
+        compare_prompt += f"\n\n{context_block}"
     if lens:
-        prompt += f"\n\n{lens['prompt']}"
+        compare_prompt += f"\n\n{lens['prompt']}"
 
+    # ── Call Claude ────────────────────────────────────────────────────────
+    _sys = PIVOT_ANALYSIS_SYSTEM_PROMPT
+    if lens:
+        _sys += f"\n\nCOACHING LENS — {lens['name']}:\n{lens['system']}"
     result = await claude_service.analyze(
-        prompt=prompt,
-        system_prompt=COMPARE_SYSTEM,
-        override_max_tokens=_TOKENS_VERDICT,
+        prompt=compare_prompt,
+        system_prompt=_sys,
+        override_max_tokens=_TOKENS_COMPARE_V2,
         override_temperature=0.1,
     )
 
-    # Parse structured JSON response
-    import json as _json
+    # ── Parse structured JSON response ─────────────────────────────────────
     raw_text = result.analysis.strip()
-    # Strip markdown code fences if present
     if raw_text.startswith("```"):
         raw_text = raw_text.split("```")[1]
         if raw_text.startswith("json"):
@@ -3746,7 +3793,6 @@ The better_for_context field must be a complete sentence naming the player and t
     try:
         structured = _json.loads(raw_text)
     except Exception:
-        # Fallback: wrap prose in structured format
         structured = {
             "key_differences": [],
             "better_for_context": "",
@@ -3754,32 +3800,42 @@ The better_for_context field must be a complete sentence naming the player and t
             "limitation": "Response could not be parsed as structured JSON.",
         }
 
-    # Normalise: some cached/old responses may still have better_player — promote it
     if "better_player" in structured and "better_for_context" not in structured:
         structured["better_for_context"] = structured.pop("better_player")
 
     response = {
-        "player_a": payload_a,
-        "player_b": payload_b,
-        "analysis": result.analysis,
-        "structured": structured,
-        "model": result.model,
-        "tokens_used": result.tokens_used,
-        "season": season,
+        # V2 payload — frontend can use these directly
+        "payload":         payload,
+        # Keep legacy flat keys for backward compat with existing dashboard consumers
+        "player_a":        payload["player_a"],
+        "player_b":        payload["player_b"],
+        "season":          season_int,
+        "season_label":    season_label,
+        "games_a":         games_a,
+        "games_b":         games_b,
+        "sample_warnings": sample_warnings,
+        # Claude response
+        "analysis":        result.analysis,
+        "structured":      structured,
+        "model":           result.model,
+        "tokens_used":     result.tokens_used,
         "compare_context": compare_context,
-        "context_label": ctx_spec["label"] if ctx_spec else None,
+        "context_label":   ctx_spec["label"] if ctx_spec else None,
     }
-    analysis_cache.set(cache_key, response, ttl=get_cache_ttl())
-    logger.info("compare_players complete | %s vs %s context=%s tokens=%d", name_a, name_b, compare_context, result.tokens_used)
 
-    # Record session event
+    analysis_cache.set(cache_key, response, ttl=get_cache_ttl())
+    logger.info(
+        "compare_players complete | %s vs %s season=%d tokens=%d",
+        name_a, name_b, season_int, result.tokens_used,
+    )
+
     verdict = structured.get("better_for_context", "")
     limitation = structured.get("limitation", "")
     summary = f"Compared {name_a} vs {name_b}"
     if compare_context:
         summary += f" ({compare_context})"
     if verdict:
-        summary += f" → {verdict[:80]}"
+        summary += f" -> {verdict[:80]}"
     concern = limitation[:80] if limitation and "insufficient" not in limitation.lower() else None
     session_record(session_id, SessionEvent(
         type="compare",
@@ -3789,6 +3845,125 @@ The better_for_context field must be a complete sentence naming the player and t
     ))
 
     return response
+
+
+async def compare_players_stream(
+    player_a_name: str,
+    player_b_name: str,
+    season: Any = 0,
+    archetype: Optional[str] = None,
+    compare_context: Optional[str] = None,
+    session_id: Optional[str] = None,
+):
+    """
+    Streaming variant of compare_players.
+
+    Builds the same V2 payload and streams the Claude response as text chunks.
+    Yields dicts: {"type": "chunk", "text": str} during generation,
+    {"type": "payload", ...} once before streaming starts so the frontend can
+    render the stat tables immediately, and {"type": "done"} at completion.
+    """
+    import json as _json
+
+    season_int = _parse_season_int(season) if season else get_current_season()
+
+    # Resolve + fetch data (same as non-streaming path)
+    (player_a, a_active), (player_b, b_active) = await asyncio.gather(
+        _resolve_for_compare(player_a_name),
+        _resolve_for_compare(player_b_name),
+    )
+
+    name_a = f"{player_a.first_name} {player_a.last_name}"
+    name_b = f"{player_b.first_name} {player_b.last_name}"
+    team_a = player_a.team.abbreviation if player_a.team and hasattr(player_a.team, "abbreviation") else str(player_a.team or "?")
+    team_b = player_b.team.abbreviation if player_b.team and hasattr(player_b.team, "abbreviation") else str(player_b.team or "?")
+    season_label = f"{season_int}-{str(season_int + 1)[-2:]}"
+
+    (basic_a, adv_a), (basic_b, adv_b) = await asyncio.gather(
+        asyncio.gather(
+            nba_service.get_season_averages(player_a.id, season_int),
+            nba_service.aggregate_season_advanced(player_a.id, season_int),
+        ),
+        asyncio.gather(
+            nba_service.get_season_averages(player_b.id, season_int),
+            nba_service.aggregate_season_advanced(player_b.id, season_int),
+        ),
+    )
+
+    games_a = adv_a.get("games_played", 0)
+    games_b = adv_b.get("games_played", 0)
+    sample_warnings: list[str] = []
+    if games_a < 10:
+        sample_warnings.append(f"{name_a} has only {games_a} games played — small sample.")
+    if games_b < 10:
+        sample_warnings.append(f"{name_b} has only {games_b} games played — small sample.")
+
+    def _basic_summary(avg: dict) -> dict:
+        return {
+            "pts": avg.get("pts"), "reb": avg.get("reb"), "ast": avg.get("ast"),
+            "stl": avg.get("stl"), "blk": avg.get("blk"), "tov": avg.get("turnover"),
+            "min": avg.get("min"), "fg_pct": avg.get("fg_pct"),
+            "fg3_pct": avg.get("fg3_pct"), "ft_pct": avg.get("ft_pct"),
+        }
+
+    def _player_block(player: Any, is_active: bool, basic: dict, adv: dict, team: str) -> dict:
+        return {
+            "id": player.id, "name": f"{player.first_name} {player.last_name}",
+            "team": team, "position": player.position or "?",
+            "is_active": is_active, "basic": _basic_summary(basic), "advanced": adv,
+        }
+
+    payload: dict[str, Any] = {
+        "season": season_int, "season_label": season_label,
+        "player_a": _player_block(player_a, a_active, basic_a, adv_a, team_a),
+        "player_b": _player_block(player_b, b_active, basic_b, adv_b, team_b),
+        "games_a": games_a, "games_b": games_b, "sample_warnings": sample_warnings,
+    }
+
+    # Yield the payload block first so the frontend can render stat tables
+    yield {"type": "payload", "payload": payload, "season": season_int, "season_label": season_label}
+
+    ctx_spec = _COMPARE_CONTEXTS.get(compare_context) if compare_context else None
+    lens = _ARCHETYPE_LENSES.get(archetype) if archetype else None
+    context_block = ""
+    if ctx_spec:
+        context_block = (
+            f"\nCOMPARISON CONTEXT: {ctx_spec['label']}\n"
+            f"QUESTION: {ctx_spec['question']}\n"
+            f"KEY CONSIDERATIONS: {ctx_spec['considerations']}\n"
+        )
+
+    session_ctx = build_context_block(session_id)
+    compare_prompt = (
+        f"{session_ctx}"
+        f"Compare these two players using only the data in this payload. "
+        f"Return JSON only, in this exact format:\n"
+        f'{{\n'
+        f'  "key_differences": ["short factual string using specific numbers from payload", ...],\n'
+        f'  "better_for_context": "Player Name is the better choice because [stat-backed reason citing payload values]",\n'
+        f'  "reasoning": "2-3 focused paragraphs under 300 words. Each paragraph covers one analytical dimension (efficiency, playmaking, defense). Every claim cites a specific number from the payload. Plain prose, no markdown.",\n'
+        f'  "limitation": "What is missing or inconclusive — be specific about which fields are null or which comparisons cannot be made from this data. If sample_warnings are present, mention them here."\n'
+        f'}}\n\n'
+        f"Payload:\n\n{_json.dumps(payload, indent=2)}"
+    )
+    if context_block:
+        compare_prompt += f"\n\n{context_block}"
+    if lens:
+        compare_prompt += f"\n\n{lens['prompt']}"
+
+    _sys = PIVOT_ANALYSIS_SYSTEM_PROMPT
+    if lens:
+        _sys += f"\n\nCOACHING LENS — {lens['name']}:\n{lens['system']}"
+    full_text = ""
+    async for chunk in claude_service.analyze_stream(
+        compare_prompt,
+        system_prompt=_sys,
+        override_max_tokens=_TOKENS_COMPARE_V2,
+    ):
+        full_text += chunk
+        yield {"type": "chunk", "text": chunk}
+
+    yield {"type": "done"}
 
 # ---------------------------------------------------------------------------
 # Team DNA Analysis
@@ -3892,6 +4067,10 @@ async def scout_note(
     player_id: Optional[int] = None,
     session_id: Optional[str] = None,
 ) -> dict[str, Any]:
+    # TODO (Phase 7): migrate player_id path to aggregate_season_advanced V2 payload.
+    # scout_note intentionally uses enrich_player's compact text stat_block rather than
+    # the full V2 JSON payload — the 1-3 sentence output doesn't justify sending 100+
+    # field JSON as input. Only migrate if note quality becomes a concern.
     """
     Generate a live 1-2 sentence scout note for a single player.
     context: 'mvp' | 'young-star' | 'general'
@@ -3961,7 +4140,7 @@ async def scout_note(
 
     result = await claude_service.analyze(
         prompt=prompt,
-        system_prompt=_nba_analyst_system_prompt(),
+        system_prompt=PIVOT_ANALYSIS_SYSTEM_PROMPT,
         override_max_tokens=_max_tokens,
         override_temperature=0.3,
         override_model=_FAST_MODEL,
