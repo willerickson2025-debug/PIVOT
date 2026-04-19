@@ -56,43 +56,41 @@ button,input,select,textarea{font-family:var(--font);font-weight:700;text-transf
 }
 
 /* ─── NAV ───────────────────────────────────────────────────────────────────── */
+.nav-wordmark-fixed{
+  position:fixed;top:16px;left:28px;z-index:1001;
+  font-size:18px;font-weight:900;letter-spacing:-.04em;color:var(--bone);
+  cursor:pointer;user-select:none;
+}
 .nav{
-  position:fixed;top:0;left:0;right:0;z-index:1000;height:72px;
-  display:flex;align-items:center;padding:0 32px;
-  background:rgba(0,0,0,.92);border-bottom:1px solid var(--wire);
+  position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:1000;
+  display:flex;align-items:center;padding:0 6px;gap:2px;
+  background:rgba(18,18,18,.85);
+  backdrop-filter:blur(24px) saturate(160%);-webkit-backdrop-filter:blur(24px) saturate(160%);
+  border:1px solid rgba(255,255,255,.12);border-radius:999px;
+  box-shadow:0 4px 28px rgba(0,0,0,.55);
+  white-space:nowrap;
 }
-.nav-wordmark{
-  font-size:22px;font-weight:900;letter-spacing:-.04em;color:var(--bone);
-  cursor:pointer;user-select:none;flex-shrink:0;
-}
-.nav-center{display:flex;align-items:center;gap:0;flex:1;justify-content:center;}
 .nav-item{
-  position:relative;height:72px;display:flex;align-items:center;
-  padding:0 20px;font-size:11px;font-weight:700;letter-spacing:.12em;
-  color:var(--smoke);background:none;border:none;cursor:pointer;
-  transition:color 140ms;white-space:nowrap;font-family:var(--font);
+  height:34px;display:flex;align-items:center;padding:0 16px;
+  font-size:11px;font-weight:700;letter-spacing:.1em;
+  color:var(--smoke);background:transparent;border:none;border-radius:999px;
+  cursor:pointer;transition:color 140ms,background 140ms;
+  white-space:nowrap;font-family:var(--font);text-transform:uppercase;
 }
 .nav-item:hover{color:var(--bone);}
-.nav-item.active{color:var(--bone);}
-.nav-item.active::after{
-  content:'';position:absolute;bottom:0;left:20px;right:20px;
-  height:1px;background:var(--neon);
-}
-.nav-right{margin-left:auto;display:flex;align-items:center;gap:12px;flex-shrink:0;}
-.nav-avatar{
-  width:40px;height:40px;border-radius:50%;
-  background:var(--bone);color:var(--void);
-  display:flex;align-items:center;justify-content:center;
-  font-size:14px;font-weight:900;letter-spacing:0;cursor:pointer;
-  flex-shrink:0;
-}
-/* Legacy nav classes — keep existing markup working */
-.nav-logo{display:flex;align-items:center;font-size:22px;font-weight:900;letter-spacing:-.04em;color:var(--bone);cursor:pointer;user-select:none;flex-shrink:0;}
-.nav-links{display:flex;align-items:stretch;flex:1;overflow-x:auto;}
-.nav-link{height:72px;display:flex;align-items:center;padding:0 20px;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--smoke);background:none;border:none;border-bottom:1px solid transparent;cursor:pointer;transition:color 140ms,border-color 140ms;white-space:nowrap;font-family:var(--font);}
-.nav-link:hover{color:var(--bone);}
-.nav-link.active{color:var(--bone);border-bottom-color:var(--neon);}
+.nav-item.active{background:rgba(255,255,255,.13);color:var(--bone);}
+.nav-item.active::after{display:none;}
 .pulse-dot{width:7px;height:7px;border-radius:50%;background:var(--neon);box-shadow:0 0 8px var(--neon);animation:blink 2.4s ease-in-out infinite;}
+/* Legacy aliases */
+.nav-wordmark{font-size:18px;font-weight:900;letter-spacing:-.04em;color:var(--bone);cursor:pointer;user-select:none;}
+.nav-logo{display:flex;align-items:center;font-size:18px;font-weight:900;letter-spacing:-.04em;color:var(--bone);cursor:pointer;user-select:none;}
+.nav-center{display:flex;align-items:center;gap:2px;}
+.nav-right{margin-left:auto;display:flex;align-items:center;gap:8px;}
+.nav-avatar{width:36px;height:36px;border-radius:50%;background:var(--bone);color:var(--void);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;cursor:pointer;}
+.nav-links{display:flex;align-items:center;gap:2px;}
+.nav-link{height:34px;display:flex;align-items:center;padding:0 16px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--smoke);background:transparent;border:none;border-radius:999px;cursor:pointer;transition:color 140ms,background 140ms;white-space:nowrap;font-family:var(--font);}
+.nav-link:hover{color:var(--bone);}
+.nav-link.active{background:rgba(255,255,255,.13);color:var(--bone);}
 
 /* ─── TICKER ────────────────────────────────────────────────────────────────── */
 .ticker{
@@ -110,7 +108,7 @@ button,input,select,textarea{font-family:var(--font);font-weight:700;text-transf
 .ticker-track:hover{animation-play-state:paused;}
 
 /* ─── PAGE LAYOUT ───────────────────────────────────────────────────────────── */
-.page{padding-top:80px;}
+.page{padding-top:72px;}
 .page-pad{padding:0 40px 64px;}
 .page-header{padding:64px 0 48px;border-bottom:1px solid var(--wire);margin-bottom:48px;}
 .page-eyebrow{font-size:11px;font-weight:700;letter-spacing:.18em;color:var(--neon);margin-bottom:16px;}
@@ -1545,16 +1543,11 @@ function App() {
       {!isHome&&<AppBackground/>}
       {!isHome&&(
         <>
-          <nav className="nav" style={{zIndex:1000}}>
-            <div className="nav-wordmark" onClick={()=>setTab('home')}>PIVOT</div>
-            <div className="nav-center">
-              {NAV_ITEMS.filter(i=>i.id!=='home').map(item=>(
-                <button key={item.id} className={`nav-item${tab===item.id?' active':''}`} onClick={()=>setTab(item.id)}>{item.label}</button>
-              ))}
-            </div>
-            <div className="nav-right">
-              <div className="nav-avatar">P</div>
-            </div>
+          <div className="nav-wordmark-fixed" onClick={()=>setTab('home')}>PIVOT</div>
+          <nav className="nav">
+            {NAV_ITEMS.filter(i=>i.id!=='home').map(item=>(
+              <button key={item.id} className={`nav-item${tab===item.id?' active':''}`} onClick={()=>setTab(item.id)}>{item.label}</button>
+            ))}
           </nav>
           <Ticker/>
         </>
