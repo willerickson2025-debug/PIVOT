@@ -338,7 +338,7 @@ select{
    ═══════════════════════════════════════════════════════════ */
 .lp-v2-root{position:relative;background:#000;min-height:100vh;font-family:"Helvetica Neue","Helvetica","Arial Black",Arial,sans-serif;font-weight:700;text-transform:uppercase;-webkit-font-smoothing:antialiased;text-rendering:geometricPrecision;font-synthesis:none;overflow-x:hidden;}
 .lp-v2-root *::selection{background:#39FF14;color:#000;}
-.lp-v2-aurora{position:absolute;inset:0;z-index:0;overflow:hidden;background:#000;pointer-events:none;}
+.lp-v2-aurora{position:fixed;inset:0;z-index:0;overflow:hidden;background:#000;pointer-events:none;}
 .lp-v2-aurora-blob{position:absolute;border-radius:50%;mix-blend-mode:screen;will-change:transform;}
 .lp-v2-content{position:relative;z-index:1;}
 @keyframes lp-v2-blob-a{0%,100%{transform:translate(0,0) scale(1);}33%{transform:translate(12%,-8%) scale(1.08);}66%{transform:translate(-6%,14%) scale(0.94);}}
@@ -347,7 +347,7 @@ select{
 @keyframes lp-v2-blob-d{0%,100%{transform:translate(0,0) scale(1);}30%{transform:translate(-10%,6%) scale(0.92);}70%{transform:translate(6%,12%) scale(1.1);}}
 @keyframes lp-v2-blob-e{0%,100%{transform:translate(0,0) scale(1);}45%{transform:translate(14%,8%) scale(1.07);}80%{transform:translate(-4%,-10%) scale(0.96);}}
 @keyframes lp-v2-blob-f{0%,100%{transform:translate(0,0) scale(1);}35%{transform:translate(-8%,16%) scale(1.04);}65%{transform:translate(12%,-4%) scale(0.88);}}
-.lp-v2-hero{position:relative;height:100vh;min-height:640px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 48px;overflow:hidden;}
+.lp-v2-hero{position:relative;height:100vh;min-height:640px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 48px;}
 .lp-v2-statement{font-family:"Helvetica Neue","Helvetica","Arial Black",Arial,sans-serif;font-weight:900;font-size:clamp(72px,11vw,180px);letter-spacing:-0.02em;line-height:0.86;color:#fff;text-transform:uppercase;margin:0 0 96px;max-width:95vw;}
 .lp-v2-btn-primary{font-family:"Helvetica Neue","Helvetica","Arial Black",Arial,sans-serif;font-weight:900;font-size:13px;letter-spacing:0.22em;text-transform:uppercase;background:transparent;color:#fff;border:1px solid rgba(255,255,255,0.3);padding:16px 48px;cursor:pointer;transition:border-color 160ms,color 160ms;}
 .lp-v2-btn-primary:hover{border-color:#39FF14;color:#39FF14;}
@@ -1212,33 +1212,32 @@ function Home({setTab}) {
   return (
     <div className="lp-v2-root">
 
+      {/* ── AURORA — fixed full-page backdrop ── */}
+      <div className="lp-v2-aurora" aria-hidden="true">
+        <div className="lp-v2-aurora-blob" style={{width:800,height:600,top:'-15%',left:'-20%',background:'radial-gradient(circle, rgba(57,255,20,0.85) 0%, rgba(57,255,20,0.4) 35%, transparent 70%)',filter:'blur(110px)',opacity:0.6,animation:'lp-v2-blob-a 34s ease-in-out infinite'}}/>
+        <div className="lp-v2-aurora-blob" style={{width:600,height:700,top:'5%',right:'-15%',background:'radial-gradient(circle, rgba(180,255,30,0.75) 0%, rgba(100,220,20,0.35) 40%, transparent 70%)',filter:'blur(130px)',opacity:0.55,animation:'lp-v2-blob-b 46s ease-in-out infinite'}}/>
+        <div className="lp-v2-aurora-blob" style={{width:900,height:500,bottom:'-10%',left:'15%',background:'radial-gradient(circle, rgba(57,255,20,0.65) 0%, rgba(40,180,10,0.3) 45%, transparent 70%)',filter:'blur(150px)',opacity:0.5,animation:'lp-v2-blob-c 52s ease-in-out infinite'}}/>
+        <div className="lp-v2-aurora-blob" style={{width:400,height:400,top:'8%',right:'22%',background:'radial-gradient(circle, rgba(204,255,0,0.7) 0%, rgba(100,220,0,0.3) 40%, transparent 70%)',filter:'blur(90px)',opacity:0.45,animation:'lp-v2-blob-d 28s ease-in-out infinite'}}/>
+        <div className="lp-v2-aurora-blob" style={{width:650,height:500,top:'35%',left:'-5%',background:'radial-gradient(circle, rgba(57,255,20,0.5) 0%, rgba(30,160,5,0.25) 45%, transparent 70%)',filter:'blur(120px)',opacity:0.5,animation:'lp-v2-blob-e 40s ease-in-out infinite'}}/>
+        <div className="lp-v2-aurora-blob" style={{width:1000,height:700,top:'18%',left:'12%',background:'radial-gradient(ellipse 60% 50% at 50% 50%, rgba(57,255,20,0.28) 0%, rgba(20,80,5,0.12) 50%, transparent 70%)',filter:'blur(160px)',opacity:0.65,animation:'lp-v2-blob-f 58s ease-in-out infinite'}}/>
+        {/* Radial vignette — protects hero text legibility */}
+        <div style={{position:'absolute',inset:0,background:'radial-gradient(ellipse 60% 50% at 50% 50%, rgba(0,0,0,0.52) 0%, transparent 68%)'}}/>
+      </div>
+
+      {/* ── LOGO ── */}
+      <div style={{position:'fixed',top:28,left:36,zIndex:10,pointerEvents:'none'}}>
+        <img src="/static/logo.png" style={{height:44,width:'auto'}} alt="PIVOT"/>
+      </div>
+
       <div className="lp-v2-content">
 
         {/* ── HERO ── */}
         <section className="lp-v2-hero">
-          {/* Aurora background — contained to hero viewport */}
-          <div className="lp-v2-aurora" aria-hidden="true">
-            {/* Blob A — large primary, top-left, 34s */}
-            <div className="lp-v2-aurora-blob" style={{width:800,height:600,top:'-15%',left:'-20%',background:'radial-gradient(circle, rgba(57,255,20,0.85) 0%, rgba(57,255,20,0.4) 35%, transparent 70%)',filter:'blur(110px)',opacity:0.6,animation:'lp-v2-blob-a 34s ease-in-out infinite'}}/>
-            {/* Blob B — yellower accent, right side, 46s */}
-            <div className="lp-v2-aurora-blob" style={{width:600,height:700,top:'5%',right:'-15%',background:'radial-gradient(circle, rgba(180,255,30,0.75) 0%, rgba(100,220,20,0.35) 40%, transparent 70%)',filter:'blur(130px)',opacity:0.55,animation:'lp-v2-blob-b 46s ease-in-out infinite'}}/>
-            {/* Blob C — wide sweep, bottom, 52s */}
-            <div className="lp-v2-aurora-blob" style={{width:900,height:500,bottom:'-10%',left:'15%',background:'radial-gradient(circle, rgba(57,255,20,0.65) 0%, rgba(40,180,10,0.3) 45%, transparent 70%)',filter:'blur(150px)',opacity:0.5,animation:'lp-v2-blob-c 52s ease-in-out infinite'}}/>
-            {/* Blob D — small chartreuse, upper-right, 28s */}
-            <div className="lp-v2-aurora-blob" style={{width:400,height:400,top:'8%',right:'22%',background:'radial-gradient(circle, rgba(204,255,0,0.7) 0%, rgba(100,220,0,0.3) 40%, transparent 70%)',filter:'blur(90px)',opacity:0.45,animation:'lp-v2-blob-d 28s ease-in-out infinite'}}/>
-            {/* Blob E — mid-left depth layer, 40s */}
-            <div className="lp-v2-aurora-blob" style={{width:650,height:500,top:'35%',left:'-5%',background:'radial-gradient(circle, rgba(57,255,20,0.5) 0%, rgba(30,160,5,0.25) 45%, transparent 70%)',filter:'blur(120px)',opacity:0.5,animation:'lp-v2-blob-e 40s ease-in-out infinite'}}/>
-            {/* Blob F — wide center ambient, 58s */}
-            <div className="lp-v2-aurora-blob" style={{width:1000,height:700,top:'18%',left:'12%',background:'radial-gradient(ellipse 60% 50% at 50% 50%, rgba(57,255,20,0.28) 0%, rgba(20,80,5,0.12) 50%, transparent 70%)',filter:'blur(160px)',opacity:0.65,animation:'lp-v2-blob-f 58s ease-in-out infinite'}}/>
-            {/* Radial vignette — protects hero text legibility */}
-            <div style={{position:'absolute',inset:0,background:'radial-gradient(ellipse 60% 50% at 50% 50%, rgba(0,0,0,0.52) 0%, transparent 68%)',zIndex:1}}/>
-          </div>
-          <h1 className="lp-v2-statement" style={{position:'relative',zIndex:2}}>THE NEWEST<br/>WAY TO WIN</h1>
-          <button className="lp-v2-btn-primary" style={{position:'relative',zIndex:2}} onClick={()=>setTab('games')}>ENTER</button>
+          <h1 className="lp-v2-statement">THE NEWEST<br/>WAY TO WIN</h1>
+          <button className="lp-v2-btn-primary" onClick={()=>setTab('games')}>ENTER</button>
         </section>
 
         {/* ── THESIS ── */}
-        <div className="lp-v2-section-divider"/>
         <section className="lp-v2-section">
           <p className="lp-v2-thesis-statement">
             PIVOT IS <span className="lp-v2-hi">THE DECISION ENGINE</span> FOR BASKETBALL. BUILT ON PROPRIETARY INTELLIGENCE. ENGINEERED FOR THE SECONDS THAT MATTER.
@@ -1246,7 +1245,6 @@ function Home({setTab}) {
         </section>
 
         {/* ── PILLARS ── */}
-        <div className="lp-v2-section-divider"/>
         <section className="lp-v2-section">
           <div className="lp-v2-pillars-grid">
             {[
@@ -1264,7 +1262,6 @@ function Home({setTab}) {
         </section>
 
         {/* ── STACK ── */}
-        <div className="lp-v2-section-divider"/>
         <section className="lp-v2-section" style={{padding:'80px 48px'}}>
           <div className="lp-v2-stack-row">
             {[
@@ -1282,7 +1279,6 @@ function Home({setTab}) {
         </section>
 
         {/* ── FINAL CTA ── */}
-        <div className="lp-v2-section-divider"/>
         <section className="lp-v2-final">
           <p className="lp-v2-final-statement">
             SECONDS MATTER.<br/><span className="lp-v2-hi">WE BUILT FOR SECONDS.</span>
