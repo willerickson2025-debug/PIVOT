@@ -1813,8 +1813,27 @@ const MOVERS_POOL=[
   {search:'Tyrese Haliburton',display:'HALIBURTON',      team:'IND',pos:'PG',nbaId:1630169},
 ];
 
-// 2025 NBA Draft class nbaIds — Wembanyama (1641705) is NOT included (2023 draft)
-const CURRENT_SEASON_ROOKIES_IDS=new Set([1642355,1642356,1642357,1642358,1642359,1642360,1642361,1642362,1642363,1642364,1642365]);
+// 2025 NBA Draft class (first-year players, 2025-26 season only).
+// Source of truth: data/rookies.json. Update both files together.
+// Only add confirmed nbaId values -- wrong IDs show the wrong player photo.
+// Wembanyama (1641705, 2023 draft) and Banchero (1631094, 2022 draft) are excluded.
+const CURRENT_SEASON_ROOKIES_IDS=new Set([
+  1642355, // Cooper Flagg (DAL, pick 1)
+  1642356, // Dylan Harper (BKN, pick 2)
+  1642357, // VJ Edgecombe (GSW, pick 3)
+  1642358, // Ace Bailey (SAC, pick 4)
+  1642359, // Tre Johnson (HOU, pick 5)
+]);
+
+// Returns "vs OPP · TIME" for a team if a playoff series has a next game, else null.
+function getNextGameFromSeries(team){
+  if(!team)return null;
+  const s=SEEDED_SERIES.find(sr=>sr.awayTeam===team||sr.homeTeam===team);
+  if(!s||!s.nextTime)return null;
+  const opp=s.awayTeam===team?s.homeTeam:s.awayTeam;
+  const home=s.homeTeam===team;
+  return`${home?'vs':'@'} ${opp} \u00b7 ${s.nextTime}`;
+}
 
 function selectHeroPlayer(poolArr){
   if(!poolArr||!poolArr.length)return null;
@@ -1946,7 +1965,7 @@ function StatusPill({status='ACTIVE'}){
 function DeltaBadge({val,amber=false}){
   if(val==null||Math.abs(val)<0.15)return <span style={{fontSize:10,color:'var(--trend-flat)',fontVariantNumeric:'tabular-nums'}}>--</span>;
   const up=val>0;
-  const isAmber=amber&&Math.abs(val)>5.0;
+  const isAmber=amber&&val>5.0;
   const fg=isAmber?'#F5A623':up?'var(--trend-up)':'var(--trend-down)';
   const bg=isAmber?'rgba(245,166,35,.15)':up?'rgba(31,191,122,.12)':'rgba(229,72,77,.12)';
   return(
@@ -1971,16 +1990,16 @@ function HeroCard({data,reasons,onSelect}){
 
   return(
     <div className="feat-hero" onClick={()=>bdlPlayer&&onSelect(bdlPlayer)}>
-      {/* Top strip: team/pos + reasons + status */}
+      {/* Top strip: PLAYER OF THE MOMENT label on left, reasons + status on right */}
       <div className="feat-strip">
-        <div style={{display:'flex',alignItems:'center',gap:8}}>
-          <span style={{fontSize:10,fontWeight:700,letterSpacing:'.08em',color:'var(--neon)'}}>{team} · {pos}</span>
+        <span style={{fontSize:9,fontWeight:700,letterSpacing:'.1em',color:'var(--neon)'}}>PLAYER OF THE MOMENT</span>
+        <div style={{display:'flex',alignItems:'center',gap:6}}>
           {(reasons||[]).map(r=>(
-            <span key={r} style={{fontSize:9,fontWeight:700,letterSpacing:'.08em',color:'var(--smoke)',
+            <span key={r} style={{fontSize:9,fontWeight:700,letterSpacing:'.07em',color:'var(--smoke)',
                                   border:'1px solid var(--wire)',padding:'1px 5px',borderRadius:2}}>{r}</span>
           ))}
+          <StatusPill status="ACTIVE"/>
         </div>
-        <StatusPill status="ACTIVE"/>
       </div>
       {/* Identity row */}
       <div className="feat-identity">
@@ -2018,6 +2037,13 @@ function HeroCard({data,reasons,onSelect}){
             <div style={{fontSize:9,letterSpacing:'.08em',color:'var(--smoke)',marginBottom:4}}>L10 PTS</div>
             <Sparkline values={l10pts} height={28} hero={true}/>
           </div>
+          {/* Next game footer — only rendered when data resolves */}
+          {(()=>{const ng=getNextGameFromSeries(team);return ng?(
+            <div style={{padding:'6px 12px',fontSize:10,letterSpacing:'.06em',color:'var(--smoke)',display:'flex',gap:6,alignItems:'center'}}>
+              <span style={{color:'rgba(255,255,255,.3)'}}>NEXT GAME</span>
+              <span style={{color:'var(--bone)',fontWeight:700}}>{ng}</span>
+            </div>
+          ):null;})()}
         </>
       )}
     </div>
@@ -2113,8 +2139,18 @@ function Intel(){
           apg:l10Avg.apg-seasonAvg.apg,
           min:prior10Avg?l10Avg.min-prior10Avg.min:0,
         }:null;
+        // Team margin proxy per game: positive when player's team won by more.
+        // This is team +/- (game margin), not individual on-court +/-.
+        // BDL game logs don't expose individual box +/-.
+        const margins=games.filter(g=>g.game_home_score!=null&&g.game_visitor_score!=null&&g.game_home_team_id!=null).map(g=>{
+          const myHome=g.game_home_team_id===p.team?.id;
+          const my=myHome?g.game_home_score:g.game_visitor_score;
+          const opp=myHome?g.game_visitor_score:g.game_home_score;
+          return my-opp;
+        });
+        const pmAvg=margins.length?Math.round(margins.reduce((a,b)=>a+b,0)/margins.length*10)/10:null;
         results[entry.search]={fp:entry,bdlPlayer:p,games,seasonAvg,l10Avg,delta,
-          l10pts:l10.map(g=>g.points).filter(v=>v!=null),status:'ACTIVE'};
+          l10pts:l10.map(g=>g.points).filter(v=>v!=null),status:'ACTIVE',pmAvg};
       }catch(e){}
     };
     Promise.allSettled(ALL_POOL.map(fetchOne)).then(()=>{
@@ -2181,10 +2217,18 @@ function Intel(){
   const featuredPoolArr=FEATURED_PLAYERS.map(fp=>poolData[fp.search]).filter(Boolean);
   const heroData=selectHeroPlayer(featuredPoolArr);
   const heroReasonTags=heroReasons(heroData);
-  const supportingData=featuredPoolArr.filter(d=>d!==heroData).slice(0,4);
+  const supportingData=featuredPoolArr.filter(d=>d.fp?.nbaId!==heroData?.fp?.nbaId).slice(0,4);
 
   const terminalData=[...poolArr]
-    .filter(d=>d.bdlPlayer&&d.seasonAvg&&(d.seasonAvg.gp>0)&&(d.seasonAvg.ppg>0||d.seasonAvg.rpg>0||d.seasonAvg.apg>0))
+    .filter(d=>{
+      if(!d.bdlPlayer||!d.seasonAvg)return false;
+      const a=d.seasonAvg;
+      // Row must have at least one meaningful stat to be displayed.
+      // gp>0 AND min>0 guards against incomplete/injected zero rows (e.g. Haliburton DNPs).
+      if(!a.gp||a.gp<=0)return false;
+      if(!a.min||a.min<=0)return false;
+      return(a.ppg>0||a.rpg>0||a.apg>0);
+    })
     .filter(d=>posFilter==='ALL'||(d.bdlPlayer?.position||d.fp?.pos||'').includes(posFilter))
     .sort((a,b)=>{
       const v=d=>{const a=d.seasonAvg;if(!a)return 0;
@@ -2195,9 +2239,6 @@ function Intel(){
   const visibleTerminal=termExpanded?terminalData:terminalData.slice(0,TERM_COLLAPSE);
 
   const seasons=['2025-26','2024-25','2023-24','2022-23','2021-22'];
-  // Map display season to BDL API int: 2025-26 uses the same data as 2024-25 (BDL season 2025)
-  const SEASON_API_MAP={'2025-26':2025};
-
   return(
     <div className="page" style={{paddingBottom:56}}>
 
@@ -2205,9 +2246,9 @@ function Intel(){
       <div className="intel-cmd">
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'6px 40px',borderBottom:'1px solid var(--divider)'}}>
           <div style={{fontSize:10,fontWeight:700,letterSpacing:'.1em',color:'var(--smoke)'}}>PLAYER INTELLIGENCE</div>
-          <select style={{minWidth:160,height:32,fontSize:11,background:'var(--carbon)',border:'1px solid var(--wire)',color:'var(--bone)'}}
+          <select style={{minWidth:200,height:32,fontSize:11,background:'var(--carbon)',border:'1px solid var(--wire)',color:'var(--bone)'}}
                   value={season} onChange={e=>setSeason(e.target.value)}>
-            {seasons.map(s=><option key={s} value={s}>{s}{s==='2025-26'?' (CURRENT)':''}</option>)}
+            {seasons.map(s=><option key={s} value={s}>{s}{s==='2025-26'?' CURRENT':''}</option>)}
           </select>
         </div>
         {/* Search row: NO overflow-x so dropdown is never clipped */}
@@ -2407,9 +2448,9 @@ function Intel(){
                         <td className="term-td" style={{fontSize:fs,padding:pad}}>{fp2(a?.fg)}</td>
                         <td className="term-td" style={{fontSize:fs,padding:pad}}>{fp2(a?.fg3)}</td>
                         <td className="term-td" style={{fontSize:fs,padding:pad}}>{fp2(a?.ft)}</td>
-                        <td className="term-td" style={{fontSize:fs,padding:pad,color:'var(--smoke)'}}>{a?.ts!=null?fp2(a.ts):'--'}</td>
-                        <td className="term-td" style={{fontSize:fs,padding:pad,color:'var(--smoke)'}}>--</td>
-                        <td className="term-td" style={{fontSize:fs,padding:pad,color:'var(--smoke)'}}>--</td>
+                        <td className="term-td" style={{fontSize:fs,padding:pad,color:a?.ts!=null?(a.ts>=0.58?'var(--trend-up)':a.ts>=0.50?'var(--bone)':'var(--trend-down)'):'var(--smoke)'}}>{a?.ts!=null?fp2(a.ts):<span style={{fontSize:9,color:'var(--smoke)'}}>--</span>}</td>
+                        <td className="term-td" style={{fontSize:fs,padding:pad,color:'var(--smoke)'}}><span style={{fontSize:9,color:'var(--smoke)'}}>--</span></td>
+                        <td className="term-td" style={{fontSize:fs,padding:pad}}>{d.pmAvg!=null?(<span style={{color:d.pmAvg>0?'var(--trend-up)':d.pmAvg<0?'var(--trend-down)':'var(--smoke)',fontVariantNumeric:'tabular-nums'}}>{d.pmAvg>0?'+':''}{d.pmAvg.toFixed(1)}</span>):<span style={{fontSize:9,color:'var(--smoke)'}}>--</span>}</td>
                         <td className="term-td" style={{textAlign:'center',padding:pad}}><StatusPill/></td>
                       </tr>
                     );
@@ -2491,7 +2532,7 @@ function Intel(){
           const myTeamId=s.player?.team?.id;
           const oppId=s.game_home_team_id===myTeamId?s.game_visitor_team_id:s.game_home_team_id;
           const oppAbbr=teamById[oppId];
-          const isHome=s.game_visitor_team_id===myTeamId;
+          const isHome=s.game_home_team_id===myTeamId;
           return oppAbbr?(isHome?`vs ${oppAbbr}`:`@ ${oppAbbr}`):'--';
         }
 
