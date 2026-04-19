@@ -519,6 +519,79 @@ select{
 .gr-clutch-pill{font-size:8px;font-weight:700;letter-spacing:.1em;background:rgba(224,179,65,.15);color:var(--clutch);padding:2px 5px;}
 .gr-tv-pill{font-size:7px;font-weight:700;letter-spacing:.08em;background:rgba(255,255,255,.08);color:var(--smoke);padding:1px 4px;flex-shrink:0;}
 
+/* ═══════════════════════════════════════════════════════════
+   GAMES TAB v2 — BRAND SYSTEM v1.1
+   Prefix: .gm-v2-   Reuses landing page aurora and brand tokens.
+   ═══════════════════════════════════════════════════════════ */
+.gm-v2-page{position:relative;min-height:100vh;background:#000;}
+.gm-v2-content{position:relative;z-index:2;}
+.gm-v2-page-loader-wrap{height:2px;overflow:hidden;position:relative;z-index:3;}
+.gm-v2-page-loader-bar{position:absolute;inset:0;background:var(--lp-signal);animation:gm-v2-load 1.5s ease-in-out infinite;transform-origin:left;}
+@keyframes gm-v2-load{0%,100%{transform:scaleX(0.15);opacity:0.4;}50%{transform:scaleX(1);opacity:1;}}
+.gm-v2-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;padding:32px 48px 96px;}
+@media(max-width:600px){.gm-v2-grid{padding:16px 16px 64px;gap:12px;grid-template-columns:1fr;}}
+.gm-v2-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:120px 48px;text-align:center;}
+.gm-v2-empty-headline{font-family:"Helvetica Neue","Helvetica","Arial Black",Arial,sans-serif;font-weight:900;font-size:clamp(40px,6vw,72px);letter-spacing:-0.04em;line-height:0.95;color:var(--paper);text-transform:uppercase;margin-bottom:16px;}
+.gm-v2-empty-sub{font-size:14px;font-weight:700;letter-spacing:0.04em;color:var(--mist);text-transform:uppercase;}
+.gm-v2-card{background:rgba(20,20,20,0.55);backdrop-filter:blur(20px) saturate(140%);-webkit-backdrop-filter:blur(20px) saturate(140%);border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:24px;cursor:pointer;transition:border-color 200ms ease,transform 200ms ease;position:relative;overflow:hidden;font-family:"Helvetica Neue","Helvetica","Arial Black",Arial,sans-serif;}
+.gm-v2-card:hover{border-color:rgba(57,255,20,0.3);transform:translateY(-1px);}
+.gm-v2-card.live{border-color:rgba(57,255,20,0.4);}
+.gm-v2-card.live::before{content:'';position:absolute;top:0;left:0;width:2px;height:100%;background:var(--lp-signal);}
+.gm-v2-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);backdrop-filter:blur(40px) saturate(140%);-webkit-backdrop-filter:blur(40px) saturate(140%);z-index:1000;display:flex;align-items:center;justify-content:center;padding:48px;}
+@media(max-width:600px){.gm-v2-modal-overlay{padding:0;}}
+.gm-v2-modal-inner{width:100%;max-width:1100px;max-height:90vh;background:rgba(20,20,20,0.96);border:1px solid rgba(255,255,255,0.08);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;font-family:"Helvetica Neue","Helvetica","Arial Black",Arial,sans-serif;}
+@media(max-width:600px){.gm-v2-modal-inner{max-height:100vh;border-radius:0;}}
+.gm-v2-modal-hd{padding:32px 40px 24px;border-bottom:1px solid rgba(255,255,255,0.06);flex-shrink:0;}
+.gm-v2-modal-tabs{display:flex;flex-shrink:0;}
+.gm-v2-modal-tab{flex:1;padding:16px 0;font-size:12px;font-weight:700;letter-spacing:0.28em;text-transform:uppercase;color:var(--mist);background:none;border:none;border-bottom:1px solid rgba(255,255,255,0.06);cursor:pointer;font-family:"Helvetica Neue","Helvetica","Arial Black",Arial,sans-serif;transition:color 140ms;}
+.gm-v2-modal-tab.active{color:var(--paper);border-bottom:2px solid var(--lp-signal);}
+.gm-v2-modal-tab:hover:not(.active){color:var(--paper);}
+.gm-v2-modal-body{flex:1;overflow-y:auto;padding:32px 40px;}
+@media(max-width:600px){.gm-v2-modal-body{padding:20px 16px;}}
+.gm-v2-tab-loader{height:2px;background:var(--lp-signal);margin-bottom:24px;animation:gm-v2-load 1.5s ease-in-out infinite;transform-origin:left;}
+.gm-v2-section-label{font-size:10px;letter-spacing:0.28em;color:var(--mist);text-transform:uppercase;margin-bottom:16px;font-weight:700;}
+/* LIVE UPDATES TAB */
+.gm-v2-live-clock{text-align:center;font-size:clamp(48px,6vw,80px);letter-spacing:-0.04em;color:var(--paper);font-weight:700;text-transform:uppercase;margin-bottom:8px;}
+.gm-v2-live-label{text-align:center;font-size:11px;letter-spacing:0.28em;color:var(--mist);text-transform:uppercase;margin-bottom:32px;font-weight:700;}
+.gm-v2-score-box{display:grid;grid-template-columns:1fr 1px 1fr;gap:32px;padding:32px 0;margin-bottom:32px;border-top:1px solid rgba(255,255,255,0.06);border-bottom:1px solid rgba(255,255,255,0.06);}
+.gm-v2-score-divider{background:rgba(255,255,255,0.06);}
+.gm-v2-score-side{text-align:center;}
+.gm-v2-score-team{font-size:24px;letter-spacing:-0.02em;color:var(--paper);margin-bottom:12px;text-transform:uppercase;font-weight:700;}
+.gm-v2-score-num{font-size:clamp(56px,7vw,96px);letter-spacing:-0.05em;color:var(--paper);line-height:1;margin-bottom:16px;font-variant-numeric:tabular-nums;font-weight:900;}
+.gm-v2-score-num.leading{color:var(--lp-signal);}
+.gm-v2-quarter-strip{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;font-variant-numeric:tabular-nums;}
+.gm-v2-qcell-lbl{font-size:9px;letter-spacing:0.2em;color:var(--mist);text-transform:uppercase;margin-bottom:3px;font-weight:700;}
+.gm-v2-qcell-val{font-size:13px;color:var(--paper);font-weight:700;}
+.gm-v2-qcell-val.empty{color:rgba(255,255,255,0.2);}
+.gm-v2-status-row{display:grid;grid-template-columns:1fr 1px 1fr 1px 1fr;gap:20px;padding:24px 0;margin-bottom:32px;border-bottom:1px solid rgba(255,255,255,0.06);}
+.gm-v2-status-rule{background:rgba(255,255,255,0.06);}
+.gm-v2-status-block{text-align:center;}
+.gm-v2-status-lbl{font-size:10px;letter-spacing:0.28em;color:var(--mist);text-transform:uppercase;margin-bottom:8px;font-weight:700;}
+.gm-v2-status-val{font-size:13px;color:var(--paper);text-transform:uppercase;font-variant-numeric:tabular-nums;font-weight:700;}
+.gm-v2-qtable{width:100%;border-collapse:collapse;margin-bottom:32px;font-variant-numeric:tabular-nums;}
+.gm-v2-qtable th{font-size:10px;letter-spacing:0.28em;color:var(--mist);text-transform:uppercase;text-align:left;padding:8px 10px;border-bottom:1px solid var(--graphite);font-weight:700;}
+.gm-v2-qtable td{font-size:13px;color:var(--paper);padding:10px 10px;border-bottom:1px solid rgba(255,255,255,0.03);font-weight:700;}
+.gm-v2-qtable tr:hover td{background:rgba(255,255,255,0.03);}
+/* BOX SCORES TAB */
+.gm-v2-team-box{background:rgba(20,20,20,0.4);backdrop-filter:blur(20px) saturate(140%);-webkit-backdrop-filter:blur(20px) saturate(140%);border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:24px;margin-bottom:24px;overflow-x:auto;}
+.gm-v2-team-hdr{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid rgba(255,255,255,0.06);}
+.gm-v2-btable{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;min-width:560px;}
+.gm-v2-btable th{font-size:10px;letter-spacing:0.22em;color:var(--mist);text-transform:uppercase;text-align:right;padding:8px 7px;border-bottom:1px solid rgba(255,255,255,0.06);font-weight:700;white-space:nowrap;}
+.gm-v2-btable th:first-child{text-align:left;}
+.gm-v2-btable td{font-size:13px;color:var(--paper);padding:7px 7px;border-bottom:1px solid rgba(255,255,255,0.025);font-weight:700;text-align:right;}
+.gm-v2-btable td:first-child{text-align:left;}
+.gm-v2-btable tr:hover td{background:rgba(255,255,255,0.03);}
+.gm-v2-btable tfoot td{border-top:1px solid rgba(255,255,255,0.06);border-bottom:none;padding-top:10px;}
+.gm-v2-dnp summary{font-size:11px;letter-spacing:0.24em;color:var(--mist);text-transform:uppercase;cursor:pointer;padding:10px 0;outline:none;font-weight:700;}
+/* ANALYSIS TAB */
+.gm-v2-run-btn{height:40px;padding:0 28px;border:1px solid var(--lp-signal);background:transparent;color:var(--paper);font-family:"Helvetica Neue","Helvetica","Arial Black",Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;cursor:pointer;border-radius:4px;transition:background 140ms,color 140ms;margin-bottom:24px;}
+.gm-v2-run-btn:hover{background:var(--lp-signal);color:#000;}
+.gm-v2-run-btn:disabled{opacity:0.5;cursor:not-allowed;}
+.gm-v2-analysis-body{color:var(--fog);font-size:15px;line-height:1.7;letter-spacing:0.005em;max-width:720px;white-space:pre-wrap;font-weight:400;text-transform:none;}
+.gm-v2-source-details{margin-top:24px;}
+.gm-v2-source-details summary{font-size:11px;letter-spacing:0.2em;color:var(--mist);text-transform:uppercase;cursor:pointer;padding:8px 0;outline:none;font-weight:700;}
+.gm-v2-source-pre{font-family:"JetBrains Mono","Courier New",monospace;font-size:11px;color:rgba(255,255,255,0.35);background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);padding:16px;border-radius:4px;overflow:auto;max-height:280px;margin-top:8px;white-space:pre;}
+
 /* ─── WAR ROOM ──────────────────────────────────────────────────────────────── */
 .wr-ribbon{
   position:sticky;top:62px;z-index:190;
@@ -1504,91 +1577,332 @@ function Home({setTab}) {
 
 // ─── GAME MODAL ───────────────────────────────────────────────────────────────
 
-function GameModal({game,open,onClose}) {
-  const[tab,setTab]=React.useState('box');
-  const[box,setBox]=React.useState(null);
-  const[boxLoading,setBoxLoading]=React.useState(false);
-  const analysis=useStream();
-  const{label:sl,type:st}=game?parseStatus(game.status):{label:'',type:''};
-  const live=st==='live',final=st==='final';
-  const home=game?.home_team?.full_name||game?.home_team?.abbreviation||'Home';
-  const away=game?.visitor_team?.full_name||game?.visitor_team?.abbreviation||'Away';
-
-  React.useEffect(()=>{
-    if(!open||!game)return;
-    setTab('box');setBox(null);analysis.reset();
-    if(final||live){
-      setBoxLoading(true);
-      fetch(`${API}/nba/games/${game.id}/boxscore`).then(r=>r.json()).then(d=>{setBox(d);setBoxLoading(false);}).catch(()=>setBoxLoading(false));
-    }
-  },[open,game?.id]);
-
-  if(!game)return null;
-
-  function BoxTable({players,teamName}){
-    if(!players?.length)return null;
-    const cols=['MIN','PTS','REB','AST','STL','BLK','FG%','3P%','TO'];
-    return (
-      <div style={{marginBottom:28}}>
-        <div style={{fontFamily:'var(--font)',fontSize:9,fontWeight:900,letterSpacing:'.14em',color:'var(--signal)',marginBottom:10,textTransform:'uppercase'}}>{teamName}</div>
-        <div style={{overflowX:'auto'}}>
-          <table className="box-table">
-            <thead><tr><th style={{textAlign:'left',minWidth:130}}>PLAYER</th>{cols.map(c=><th key={c}>{c}</th>)}</tr></thead>
+// ── LIVE UPDATES TAB ──────────────────────────────────────────────────────────
+function LiveUpdatesTab({game,liveState,liveError}){
+  if(!liveState&&!liveError)return<div className="gm-v2-tab-loader"/>;
+  if(liveError&&!liveState)return<div style={{fontSize:11,letterSpacing:'0.28em',color:'var(--fog)',textTransform:'uppercase',fontWeight:700}}>LIVE STATE UNAVAILABLE. RETRYING...</div>;
+  const ls=liveState;
+  const away=ls.away_team?.abbreviation||game.visitor_team?.abbreviation||'AWY';
+  const home=ls.home_team?.abbreviation||game.home_team?.abbreviation||'HOM';
+  const periods=['Q1','Q2','Q3','Q4','OT','2OT','3OT'];
+  const homeQs=ls.home_q_scores||[];
+  const awayQs=ls.away_q_scores||[];
+  const homeLeads=(ls.home_score||0)>(ls.away_score||0);
+  const awayLeads=(ls.away_score||0)>(ls.home_score||0);
+  let momentumStr='-';
+  if(ls.current_run&&ls.momentum){
+    const rTeam=ls.current_run.team||'';
+    const isHome=rTeam===ls.home_team?.name;
+    const rAbbr=isHome?home:away;
+    momentumStr=`${rAbbr} · ${ls.current_run.points}-${ls.current_run.opponent_points} RUN`;
+  }
+  return(
+    <div>
+      <div className="gm-v2-live-clock">{fmtClock(ls.period,ls.clock)}</div>
+      <div className="gm-v2-live-label">LIVE</div>
+      <div className="gm-v2-score-box">
+        <div className="gm-v2-score-side">
+          <div className="gm-v2-score-team">{away}</div>
+          <div className={`gm-v2-score-num${awayLeads?' leading':''}`}>{ls.away_score??'-'}</div>
+          <div className="gm-v2-quarter-strip">
+            {periods.map((p,i)=>{const v=awayQs[i];const has=v!=null;return<div key={p} style={{textAlign:'center'}}><div className="gm-v2-qcell-lbl">{p}</div><div className={`gm-v2-qcell-val${has?'':' empty'}`}>{has?v:'--'}</div></div>;})}
+          </div>
+        </div>
+        <div className="gm-v2-score-divider"/>
+        <div className="gm-v2-score-side">
+          <div className="gm-v2-score-team">{home}</div>
+          <div className={`gm-v2-score-num${homeLeads?' leading':''}`}>{ls.home_score??'-'}</div>
+          <div className="gm-v2-quarter-strip">
+            {periods.map((p,i)=>{const v=homeQs[i];const has=v!=null;return<div key={p} style={{textAlign:'center'}}><div className="gm-v2-qcell-lbl">{p}</div><div className={`gm-v2-qcell-val${has?'':' empty'}`}>{has?v:'--'}</div></div>;})}
+          </div>
+        </div>
+      </div>
+      <div className="gm-v2-status-row">
+        <div className="gm-v2-status-block">
+          <div className="gm-v2-status-lbl">TIMEOUTS</div>
+          <div className="gm-v2-status-val">{away} {ls.away_timeouts??'-'} · {home} {ls.home_timeouts??'-'}</div>
+        </div>
+        <div className="gm-v2-status-rule"/>
+        <div className="gm-v2-status-block">
+          <div className="gm-v2-status-lbl">BONUS</div>
+          <div className="gm-v2-status-val">{away} {ls.away_in_bonus?'IN':'-'} · {home} {ls.home_in_bonus?'IN':'-'}</div>
+        </div>
+        <div className="gm-v2-status-rule"/>
+        <div className="gm-v2-status-block">
+          <div className="gm-v2-status-lbl">MOMENTUM</div>
+          <div className="gm-v2-status-val">{momentumStr}</div>
+        </div>
+      </div>
+      {ls.quarter_summary&&ls.quarter_summary.length>0&&(
+        <div>
+          <div className="gm-v2-section-label">QUARTER BY QUARTER</div>
+          <table className="gm-v2-qtable">
+            <thead><tr><th>QTR</th><th>{home} (HOME)</th><th>{away} (AWAY)</th><th>WINNER</th><th>MARGIN</th></tr></thead>
             <tbody>
-              {players.map((p,i)=>{
-                const fg=p.fg_pct!=null?Math.round(p.fg_pct*100)+'%':p.fgm!=null&&p.fga?Math.round(p.fgm/p.fga*100)+'%':'—';
-                const tp=p.fg3_pct!=null?Math.round(p.fg3_pct*100)+'%':p.fg3m!=null&&p.fg3a?Math.round(p.fg3m/p.fg3a*100)+'%':'—';
-                const nm=(p.player?.first_name||p.first_name||'')+' '+(p.player?.last_name||p.last_name||'');
-                return <tr key={i}>
-                  <td>{nm}</td><td>{p.min||'—'}</td>
-                  <td style={{fontWeight:p.pts>=20?700:400,color:p.pts>=20?'var(--signal)':'inherit'}}>{p.pts??'—'}</td>
-                  <td>{p.reb??'—'}</td><td>{p.ast??'—'}</td><td>{p.stl??'—'}</td><td>{p.blk??'—'}</td>
-                  <td>{fg}</td><td>{tp}</td><td>{p.turnover??p.to??'—'}</td>
-                </tr>;
+              {ls.quarter_summary.map((q,i)=>{
+                const wAbbr=q.winner==='home'?home:away;
+                return<tr key={i}><td>{q.period}</td><td>{q.home}</td><td>{q.away}</td><td style={{color:q.winner==='home'?'var(--lp-signal)':'var(--paper)'}}>{wAbbr}</td><td>+{q.margin}</td></tr>;
               })}
             </tbody>
           </table>
         </div>
+      )}
+      {ls.top_performers&&Array.isArray(ls.top_performers)&&ls.top_performers.length>0&&(
+        <div>
+          <div className="gm-v2-section-label">TOP PERFORMERS</div>
+          {ls.top_performers.map((p,i)=>(
+            <div key={i} style={{display:'flex',gap:16,padding:'8px 0',borderBottom:'1px solid rgba(255,255,255,0.04)',flexWrap:'wrap'}}>
+              <span style={{color:'var(--paper)',fontSize:13,minWidth:140,textTransform:'none'}}>{p.player||p.name||'UNKNOWN'}</span>
+              <span style={{color:'var(--mist)',fontSize:11,letterSpacing:'0.1em'}}>{p.team_abbr||p.team||''}</span>
+              {p.pts!=null&&<span style={{color:'var(--paper)',fontSize:13}}>{p.pts} PTS</span>}
+              {p.reb!=null&&<span style={{color:'var(--paper)',fontSize:13}}>{p.reb} REB</span>}
+              {p.ast!=null&&<span style={{color:'var(--paper)',fontSize:13}}>{p.ast} AST</span>}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── BOX SCORES TAB ────────────────────────────────────────────────────────────
+function BoxScoresTab({game,boxscore,boxLoading,boxError,isSched,isFinal,isLive}){
+  if(isSched)return(
+    <div>
+      <div style={{fontSize:24,fontWeight:900,letterSpacing:'-0.02em',color:'var(--paper)',textTransform:'uppercase',marginBottom:24}}>BOX SCORE</div>
+      <div style={{color:'var(--fog)',fontSize:14,lineHeight:1.6,fontWeight:400,textTransform:'none'}}>Game has not started. Box score will be available after tip-off.</div>
+    </div>
+  );
+  if(boxLoading)return<div className="gm-v2-tab-loader"/>;
+  if(boxError&&!boxscore)return<div style={{fontSize:11,letterSpacing:'0.28em',color:'var(--fog)',textTransform:'uppercase',fontWeight:700}}>BOX SCORE UNAVAILABLE: {boxError}</div>;
+  if(!boxscore)return null;
+
+  const away=game.visitor_team?.abbreviation||'AWY';
+  const home=game.home_team?.abbreviation||'HOM';
+  const awayScore=game.visitor_team_score;
+  const homeScore=game.home_team_score;
+  const homeLeads=(homeScore||0)>=(awayScore||0);
+  const statusStr=isFinal?'FINAL':isLive?'LIVE':'';
+
+  function pmColor(pm){if(pm==null)return'var(--paper)';if(pm>0)return'var(--lp-signal)';if(pm<0)return'#FF4444';return'var(--paper)';}
+  function pmFmt(pm){if(pm==null)return'-';if(pm>0)return`+${pm}`;return String(pm);}
+  function sortP(arr){return[...arr].sort((a,b)=>(parseInt(b.min,10)||0)-(parseInt(a.min,10)||0));}
+  function isDNP(p){return!p.min||p.min==='DNP'||parseInt(p.min,10)===0;}
+
+  function TeamBox({players,abbr,score}){
+    const active=sortP(players).filter(p=>!isDNP(p));
+    const dnp=sortP(players).filter(p=>isDNP(p));
+    const tot=active.reduce((a,p)=>({pts:(a.pts||0)+(p.pts||0),reb:(a.reb||0)+(p.reb||0),ast:(a.ast||0)+(p.ast||0),stl:(a.stl||0)+(p.stl||0),blk:(a.blk||0)+(p.blk||0),to:(a.to||0)+(p.to||0)}),{});
+    return(
+      <div className="gm-v2-team-box">
+        <div className="gm-v2-team-hdr">
+          <div>
+            <span style={{fontSize:24,letterSpacing:'-0.02em',color:'var(--paper)',fontWeight:700,textTransform:'uppercase'}}>{abbr}</span>
+            {score!=null&&<span style={{fontSize:32,letterSpacing:'-0.03em',color:'var(--paper)',fontWeight:900,marginLeft:12,fontVariantNumeric:'tabular-nums'}}>{score}</span>}
+          </div>
+          <span style={{fontSize:11,letterSpacing:'0.28em',color:'var(--mist)',textTransform:'uppercase',fontWeight:700}}>{statusStr}</span>
+        </div>
+        <table className="gm-v2-btable">
+          <thead><tr>
+            <th style={{textAlign:'left',minWidth:130}}>PLAYER</th>
+            <th>POS</th><th>MIN</th><th>PTS</th><th>REB</th><th>AST</th><th>STL</th><th>BLK</th><th>FG</th><th>3PT</th><th>FT</th><th>TO</th><th>+/-</th>
+          </tr></thead>
+          <tbody>
+            {active.map((p,i)=>(
+              <tr key={i}>
+                <td style={{textTransform:'none'}}>{p.player||'-'}</td>
+                <td style={{color:'var(--mist)',fontSize:12}}>{p.pos||'-'}</td>
+                <td style={{color:'var(--mist)',fontSize:12}}>{p.min||'-'}</td>
+                <td>{p.pts??'-'}</td><td>{p.reb??'-'}</td><td>{p.ast??'-'}</td><td>{p.stl??'-'}</td><td>{p.blk??'-'}</td>
+                <td style={{fontSize:12}}>{p.fg||'-'}</td>
+                <td style={{fontSize:12}}>{p.fg3||'-'}</td>
+                <td style={{fontSize:12}}>{p.ft||'-'}</td>
+                <td>{p.to??'-'}</td>
+                <td style={{color:pmColor(p.plus_minus),fontVariantNumeric:'tabular-nums'}}>{pmFmt(p.plus_minus)}</td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot><tr>
+            <td colSpan={3} style={{fontSize:10,letterSpacing:'0.2em',color:'var(--mist)',textTransform:'uppercase',textAlign:'left'}}>TOTALS</td>
+            <td>{tot.pts}</td><td>{tot.reb}</td><td>{tot.ast}</td><td>{tot.stl}</td><td>{tot.blk}</td>
+            <td/><td/><td/><td>{tot.to}</td><td/>
+          </tr></tfoot>
+        </table>
+        {dnp.length>0&&(
+          <details className="gm-v2-dnp">
+            <summary>DID NOT PLAY ({dnp.length})</summary>
+            {dnp.map((p,i)=><div key={i} style={{fontSize:12,color:'var(--mist)',padding:'3px 0',textTransform:'none'}}>{p.player||'-'} <span style={{fontSize:10,color:'rgba(255,255,255,0.3)'}}>{p.pos}</span></div>)}
+          </details>
+        )}
       </div>
     );
   }
 
-  const tabs=[{id:'box',label:'BOX SCORE'},(live||final)?{id:'ai',label:'AI ANALYSIS'}:null].filter(Boolean);
+  const gameDate=game.date?new Date(game.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}).toUpperCase():'';
+  const hp=boxscore.home_players||[];
+  const ap=boxscore.away_players||[];
+  const teams=homeLeads?
+    [{players:hp,abbr:home,score:homeScore},{players:ap,abbr:away,score:awayScore}]:
+    [{players:ap,abbr:away,score:awayScore},{players:hp,abbr:home,score:homeScore}];
 
-  return (
-    <Modal open={open} onClose={onClose} title={`${away}  ·  ${home}`} maxW={900}>
-      <div style={{display:'flex',alignItems:'center',gap:14,marginBottom:22,flexWrap:'wrap'}}>
-        <span className={`badge badge-${st}`}>{sl}</span>
-        {game.home_team_score!=null&&(
-          <div style={{fontFamily:'var(--font)',display:'flex',alignItems:'center',gap:10}}>
-            <span style={{fontSize:11,letterSpacing:'.08em',color:'#fff'}}>{game.visitor_team?.abbreviation}</span>
-            <span style={{fontSize:28,fontWeight:900,color:live?'var(--pulse)':'var(--fg)',letterSpacing:'-.04em'}}>{game.visitor_team_score}</span>
-            <span style={{color:'rgba(255,255,255,.15)'}}>—</span>
-            <span style={{fontSize:28,fontWeight:900,color:live?'var(--pulse)':'var(--fg)',letterSpacing:'-.04em'}}>{game.home_team_score}</span>
-            <span style={{fontSize:11,letterSpacing:'.08em',color:'#fff'}}>{game.home_team?.abbreviation}</span>
-          </div>
-        )}
+  return(
+    <div>
+      <div style={{fontSize:11,letterSpacing:'0.28em',color:'var(--mist)',textTransform:'uppercase',textAlign:'center',marginBottom:32,fontWeight:700}}>
+        {[gameDate,`${away} ${awayScore??'-'}`,`${home} ${homeScore??'-'}`,statusStr,game.postseason?'PLAYOFFS':null].filter(Boolean).join(' · ')}
       </div>
-      <div className="tab-row">
-        {tabs.map(t=><button key={t.id} className={`tab-btn${tab===t.id?' active':''}`}
-          onClick={()=>{setTab(t.id);if(t.id==='ai'&&!analysis.lines.length&&!analysis.loading)analysis.run(`${API}/chat/message`,{messages:[{role:'user',content:`Analyze this NBA game (ID: ${game.id}): ${away} vs ${home}. Cover key matchups, tactical battles, standout performances, and outcome factors.`}]});}}>{t.label}</button>)}
-      </div>
-      {tab==='box'&&(
-        boxLoading?<Loader/>:
-        box?(()=>{
-          const all=box.data||box||[];
-          const hp=all.filter(p=>(p.team?.abbreviation||p.team_abbreviation)===game.home_team?.abbreviation);
-          const ap=all.filter(p=>(p.team?.abbreviation||p.team_abbreviation)===game.visitor_team?.abbreviation);
-          return <><BoxTable players={hp} teamName={home}/><BoxTable players={ap} teamName={away}/></>;
-        })():
-        (final||live)?<div style={{color:'#fff',fontSize:13,fontFamily:'var(--font)',letterSpacing:'.04em'}}>NO BOX SCORE DATA.</div>:
-        <div style={{color:'#fff',fontSize:13,fontFamily:'var(--font)',letterSpacing:'.04em'}}>BOX SCORE AVAILABLE AFTER TIP-OFF.</div>
+      {teams.map((t,i)=><TeamBox key={i} players={t.players} abbr={t.abbr} score={t.score}/>)}
+    </div>
+  );
+}
+
+// ── ANALYSIS TAB ──────────────────────────────────────────────────────────────
+function AnalysisTab({game,boxscore,liveState,analysisResult,analysisLoading,analysisError,onRun}){
+  const text=analysisResult?.analysis||analysisResult?.text||(typeof analysisResult==='string'?analysisResult:null);
+  return(
+    <div>
+      {!analysisResult&&!analysisLoading&&<button className="gm-v2-run-btn" onClick={onRun} disabled={analysisLoading}>RUN ANALYSIS</button>}
+      {analysisLoading&&<div className="gm-v2-tab-loader"/>}
+      {analysisError&&!analysisResult&&<div style={{color:'var(--fog)',fontSize:11,letterSpacing:'0.28em',textTransform:'uppercase',marginBottom:16,fontWeight:700}}>ANALYSIS UNAVAILABLE: {analysisError}</div>}
+      {text&&(
+        <div>
+          <p className="gm-v2-analysis-body">{text}</p>
+          <details className="gm-v2-source-details">
+            <summary>DATA SOURCE</summary>
+            <pre className="gm-v2-source-pre">{JSON.stringify(boxscore||{game_id:game?.id,note:'No boxscore loaded'},null,2)}</pre>
+          </details>
+        </div>
       )}
-      {tab==='ai'&&<div>
-        {!analysis.lines.length&&!analysis.loading&&<button className="btn btn-signal btn-sm" onClick={()=>analysis.run(`${API}/chat/message`,{messages:[{role:'user',content:`Analyze this NBA game (ID: ${game.id}): ${away} vs ${home}. Cover key matchups, tactical battles, standout performances, and outcome factors.`}]})} style={{marginBottom:16}}>GENERATE ANALYSIS</button>}
-        <StreamBox lines={analysis.lines} loading={analysis.loading}/>
-      </div>}
-    </Modal>
+      {analysisResult&&!text&&<div style={{color:'var(--fog)',fontSize:13,lineHeight:1.6,fontWeight:400,textTransform:'none'}}><pre style={{whiteSpace:'pre-wrap'}}>{JSON.stringify(analysisResult,null,2)}</pre></div>}
+    </div>
+  );
+}
+
+// ── GAME MODAL ────────────────────────────────────────────────────────────────
+function GameModal({game,open,onClose}){
+  const gt=React.useMemo(()=>{
+    if(!game)return'sched';
+    const{type}=parseStatus(game.status);
+    if(type==='final')return'final';
+    if(type==='live'||game.period>0)return'live';
+    return'sched';
+  },[game?.status,game?.period]);
+  const isLive=gt==='live',isFinal=gt==='final',isSched=gt==='sched';
+  const defTab=isLive?'live':isFinal?'box':'analysis';
+  const[tab,setTab]=React.useState(defTab);
+  const[boxscore,setBoxscore]=React.useState(null);
+  const[boxLoading,setBoxLoading]=React.useState(false);
+  const[boxError,setBoxError]=React.useState(null);
+  const[liveState,setLiveState]=React.useState(null);
+  const[liveError,setLiveError]=React.useState(null);
+  const[analysisResult,setAnalysisResult]=React.useState(null);
+  const[analysisLoading,setAnalysisLoading]=React.useState(false);
+  const[analysisError,setAnalysisError]=React.useState(null);
+
+  // Reset on modal open/game change
+  React.useEffect(()=>{
+    if(!open||!game)return;
+    const t=isLive?'live':isFinal?'box':'analysis';
+    setTab(t);
+    setBoxscore(null);setBoxError(null);
+    setLiveState(null);setLiveError(null);
+    setAnalysisResult(null);setAnalysisError(null);
+  },[open,game?.id]);
+
+  // Fetch boxscore once (live or final games only)
+  React.useEffect(()=>{
+    if(!open||!game?.id||isSched)return;
+    let c=false;setBoxLoading(true);setBoxError(null);
+    fetch(`${API}/nba/games/${game.id}/boxscore`)
+      .then(r=>r.ok?r.json():Promise.reject(r.status))
+      .then(d=>{if(!c){setBoxscore(d);setBoxLoading(false);}})
+      .catch(err=>{if(!c){setBoxError(String(err));setBoxLoading(false);}});
+    return()=>{c=true;};
+  },[open,game?.id,isSched]);
+
+  // Fetch live state + poll every 15s (live games only)
+  React.useEffect(()=>{
+    if(!open||!game?.id||!isLive)return;
+    let c=false;
+    const fetchLive=()=>{
+      fetch(`${API}/nba/games/${game.id}/live-state`)
+        .then(r=>r.ok?r.json():Promise.reject(r.status))
+        .then(d=>{if(!c){setLiveState(d);setLiveError(null);}})
+        .catch(err=>{if(!c)setLiveError(String(err));});
+    };
+    fetchLive();
+    const iv=setInterval(fetchLive,15000);
+    return()=>{c=true;clearInterval(iv);};
+  },[open,game?.id,isLive]);
+
+  // Escape key + body scroll lock
+  React.useEffect(()=>{
+    if(!open)return;
+    document.body.style.overflow='hidden';
+    const k=e=>{if(e.key==='Escape')onClose();};
+    document.addEventListener('keydown',k);
+    return()=>{document.body.style.overflow='';document.removeEventListener('keydown',k);};
+  },[open]);
+
+  function runAnalysis(){
+    // TODO: Backend /analysis/game should accept boxscore + live_state + constraint
+    //       to ground AI responses and prevent stat hallucination.
+    //       Currently passing them; backend may ignore.
+    setAnalysisLoading(true);setAnalysisError(null);
+    fetch(`${API}/analysis/game`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({game_id:game.id,boxscore:boxscore||null,live_state:liveState||null,constraint:'Use only the data provided. Do not invent player names or statistics. If something is not in the data, say so.'})
+    })
+      .then(r=>r.ok?r.json():Promise.reject(r.status))
+      .then(d=>{setAnalysisResult(d);setAnalysisLoading(false);})
+      .catch(err=>{setAnalysisError(String(err));setAnalysisLoading(false);});
+  }
+
+  if(!open||!game)return null;
+
+  const away=game.visitor_team?.abbreviation||'AWY';
+  const home=game.home_team?.abbreviation||'HOM';
+  const awayScore=game.visitor_team_score;
+  const homeScore=game.home_team_score;
+  const hasScore=(isLive||isFinal)&&awayScore!=null&&homeScore!=null;
+  const awayWon=isFinal&&(awayScore||0)>(homeScore||0);
+  const homeWon=isFinal&&(homeScore||0)>(awayScore||0);
+  const clk=isLive?fmtClock(game.period,game.time):null;
+  const tabs=[...(isLive?[{id:'live',label:'LIVE UPDATES'}]:[]),{id:'box',label:'BOX SCORES'},{id:'analysis',label:'ANALYSIS'}];
+
+  return(
+    <div className="gm-v2-modal-overlay" onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
+      <div className="gm-v2-modal-inner">
+        <div className="gm-v2-modal-hd">
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'start'}}>
+            <div>
+              <div style={{marginBottom:12}}>
+                <div style={{opacity:isFinal&&homeWon?0.4:1,marginBottom:4}}>
+                  <span style={{fontSize:32,fontWeight:700,letterSpacing:'-0.02em',color:'var(--paper)',textTransform:'uppercase'}}>{away}</span>
+                  {hasScore&&<span style={{fontSize:56,fontWeight:900,letterSpacing:'-0.04em',color:'var(--paper)',fontVariantNumeric:'tabular-nums',marginLeft:16}}>{awayScore}</span>}
+                </div>
+                <div style={{opacity:isFinal&&awayWon?0.4:1}}>
+                  <span style={{fontSize:32,fontWeight:700,letterSpacing:'-0.02em',color:'var(--paper)',textTransform:'uppercase'}}>{home}</span>
+                  {hasScore&&<span style={{fontSize:56,fontWeight:900,letterSpacing:'-0.04em',color:'var(--paper)',fontVariantNumeric:'tabular-nums',marginLeft:16}}>{homeScore}</span>}
+                </div>
+              </div>
+              <div style={{fontSize:11,letterSpacing:'0.28em',color:'var(--mist)',textTransform:'uppercase',fontWeight:700}}>
+                {isLive?`${clk} · LIVE`:isFinal?'FINAL':'UPCOMING'}{game.postseason?' · PLAYOFFS':''}
+              </div>
+            </div>
+            <button onClick={onClose} style={{background:'none',border:'none',color:'var(--paper)',cursor:'pointer',fontSize:20,lineHeight:1,padding:'4px 8px',transition:'color 140ms',fontWeight:300,fontFamily:'sans-serif'}} onMouseEnter={e=>e.target.style.color='var(--lp-signal)'} onMouseLeave={e=>e.target.style.color='var(--paper)'}>✕</button>
+          </div>
+        </div>
+        <div className="gm-v2-modal-tabs">
+          {tabs.map(t=><button key={t.id} className={`gm-v2-modal-tab${tab===t.id?' active':''}`} onClick={()=>setTab(t.id)}>{t.label}</button>)}
+        </div>
+        <div className="gm-v2-modal-body">
+          {tab==='live'&&<LiveUpdatesTab game={game} liveState={liveState} liveError={liveError}/>}
+          {tab==='box'&&<BoxScoresTab game={game} boxscore={boxscore} boxLoading={boxLoading} boxError={boxError} isSched={isSched} isFinal={isFinal} isLive={isLive}/>}
+          {tab==='analysis'&&<AnalysisTab game={game} boxscore={boxscore} liveState={liveState} analysisResult={analysisResult} analysisLoading={analysisLoading} analysisError={analysisError} onRun={runAnalysis}/>}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -1964,7 +2278,55 @@ function PlayoffSeriesBoard(){
   );
 }
 
-// Main Games component — 2-column layout, no duplication between hero and live grid
+// ── GAME CARD ─────────────────────────────────────────────────────────────────
+function GmV2Card({g,onClick}){
+  const{type}=parseStatus(g.status);
+  const isLive=type==='live';
+  const isFinal=type==='final';
+  const isSched=type==='sched';
+  const away=g.visitor_team?.abbreviation||'AWY';
+  const home=g.home_team?.abbreviation||'HOM';
+  const awayScore=g.visitor_team_score;
+  const homeScore=g.home_team_score;
+  const hasScore=(isLive||isFinal)&&awayScore!=null&&homeScore!=null;
+  const awayWon=isFinal&&(awayScore||0)>(homeScore||0);
+  const homeWon=isFinal&&(homeScore||0)>(awayScore||0);
+  const awayLeads=isLive&&(awayScore||0)>(homeScore||0);
+  const homeLeads=isLive&&(homeScore||0)>(awayScore||0);
+  const clk=isLive?fmtClock(g.period,g.time):null;
+  const timeLabel=isSched?parseStatus(g.status).label:null;
+  const playoff=g.postseason;
+  return(
+    <div className={`gm-v2-card${isLive?' live':''}`} onClick={onClick} style={{fontFamily:'"Helvetica Neue","Helvetica","Arial Black",Arial,sans-serif'}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+        <span style={{fontSize:11,letterSpacing:'0.28em',color:'var(--paper)',textTransform:'uppercase',fontWeight:700}}>
+          {isLive?clk:isFinal?'FINAL':timeLabel||'TBD'}
+        </span>
+        {isLive&&<div style={{display:'flex',alignItems:'center',gap:5}}>
+          <span style={{width:6,height:6,borderRadius:'50%',background:'var(--lp-signal)',boxShadow:'0 0 6px var(--lp-signal)',display:'inline-block',animation:'blink 2s ease-in-out infinite'}}/>
+          <span style={{fontSize:10,letterSpacing:'0.32em',color:'var(--lp-signal)',fontWeight:700}}>LIVE</span>
+        </div>}
+      </div>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:8,opacity:isFinal&&homeWon?0.45:1}}>
+        <span style={{fontSize:18,fontWeight:700,color:'var(--paper)',letterSpacing:'-0.01em',textTransform:'uppercase'}}>{away}</span>
+        {hasScore&&<span style={{fontSize:28,fontWeight:900,letterSpacing:'-0.03em',fontVariantNumeric:'tabular-nums',color:awayLeads?'var(--lp-signal)':'var(--paper)'}}>{awayScore}</span>}
+        {!hasScore&&<span style={{fontSize:16,color:'var(--mist)',fontWeight:700}}>-</span>}
+      </div>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:20,opacity:isFinal&&awayWon?0.45:1}}>
+        <span style={{fontSize:18,fontWeight:700,color:'var(--paper)',letterSpacing:'-0.01em',textTransform:'uppercase'}}>{home}</span>
+        {hasScore&&<span style={{fontSize:28,fontWeight:900,letterSpacing:'-0.03em',fontVariantNumeric:'tabular-nums',color:homeLeads?'var(--lp-signal)':'var(--paper)'}}>{homeScore}</span>}
+        {!hasScore&&<span style={{fontSize:16,color:'var(--mist)',fontWeight:700}}>-</span>}
+      </div>
+      <div style={{borderTop:'1px solid rgba(255,255,255,0.06)',paddingTop:12}}>
+        <span style={{fontSize:10,letterSpacing:'0.28em',color:'var(--mist)',textTransform:'uppercase',fontWeight:700}}>
+          {isLive?'LIVE':isFinal?'FINAL':'UPCOMING'}{playoff?' · PLAYOFFS':''}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// Main Games component — glass card grid
 function Games(){
   const today=localDate();
   const[date,setDate]=React.useState(today);
@@ -1976,8 +2338,7 @@ function Games(){
 
   React.useEffect(()=>{
     let c=false;
-    setLoading(true);
-    setGames([]);
+    setLoading(true);setGames([]);
     fetch(`${API}/nba/games?date=${date}`)
       .then(r=>r.json())
       .then(d=>{if(!c){setGames(d.data||d.games||[]);setLoading(false);}})
@@ -1985,66 +2346,26 @@ function Games(){
     return()=>{c=true;};
   },[date,tick]);
 
-  const liveGames=games.filter(g=>parseStatus(g.status).type==='live');
-  const finalGames=games.filter(g=>parseStatus(g.status).type==='final');
-  const schedGames=games.filter(g=>parseStatus(g.status).type==='sched');
-  const isPlayoff=games.some(g=>g.postseason)||SEEDED_SERIES.length>0;
-
-  // Hero pool: live > final > scheduled
-  const heroPool=liveGames.length>0?liveGames:finalGames.length>0?finalGames:schedGames;
-  const heroGame=selectGOTN(heroPool);
-  const heroId=heroGame?.id;
-  const heroLabel=liveGames.length>0?'GAME OF THE NIGHT':schedGames.length>0&&liveGames.length===0&&finalGames.length===0?'NEXT UP':'GAME OF THE NIGHT';
-
-  // Non-hero live games only go to the secondary grid
-  const otherLive=liveGames.filter(g=>g.id!==heroId);
-
   const openGame=g=>{setSelected(g);setModalOpen(true);};
 
-  return (
-    <div className="page" style={{padding:'0 0 80px'}}>
-      <DateRibbon date={date} setDate={setDate}/>
-      {loading&&<div className="load-line-wrap" style={{margin:'20px 24px 0'}}><div className="load-line"/></div>}
-      {!loading&&!games.length&&(
-        <div className="empty-state" style={{marginTop:40}}>
-          <div className="empty-headline">NO GAMES.</div>
-          <div className="empty-sub">NOTHING SCHEDULED FOR {fmtDateLabel(date)}.</div>
-        </div>
-      )}
-      {!loading&&games.length>0&&(
-        <div className="gr-body-grid">
-          <div className="gr-main-col">
-            <LeaguePulse games={games}/>
-            {heroPool.length>0&&<GameOfTheNight games={heroPool} heroLabel={heroLabel} onSelect={openGame}/>}
-            {otherLive.length>0&&(
-              <div style={{marginBottom:14}}>
-                <div className="gr-section-label"><span className="gr-pulse-dot"/>LIVE NOW · {otherLive.length} MORE GAME{otherLive.length!==1?'S':''}</div>
-                <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))',gap:6}}>
-                  {otherLive.map(g=><LiveGameCard key={g.id} g={g} onSelect={openGame}/>)}
-                </div>
-              </div>
-            )}
-            {finalGames.length>0&&(
-              <div className="gr-finals-section">
-                <div className="gr-section-label">FINAL{isPlayoff?' · PLAYOFFS':''} · {finalGames.length} GAME{finalGames.length!==1?'S':''}</div>
-                {finalGames.map(g=><FinalRow key={g.id} g={g} onSelect={openGame}/>)}
-              </div>
-            )}
-            {schedGames.length>0&&(
-              <div style={{marginBottom:14}}>
-                <div className="gr-section-label">UPCOMING{isPlayoff?' · PLAYOFFS':''} · {schedGames.length} GAME{schedGames.length!==1?'S':''}</div>
-                {schedGames.map(g=><UpcomingRow key={g.id} g={g}/>)}
-              </div>
-            )}
-            {SEEDED_SERIES.length>0&&<PlayoffSeriesBoard/>}
+  return(
+    <div className="gm-v2-page">
+      <div className="gm-v2-content">
+        <DateRibbon date={date} setDate={setDate}/>
+        {loading&&<div className="gm-v2-page-loader-wrap"><div className="gm-v2-page-loader-bar"/></div>}
+        {!loading&&!games.length&&(
+          <div className="gm-v2-empty">
+            <div className="gm-v2-empty-headline">NO GAMES SCHEDULED.</div>
+            <div className="gm-v2-empty-sub">NOTHING ON THE BOARD FOR {fmtDateLabel(date)}.</div>
           </div>
-          <div className="gr-sidebar">
-            <LiveFeed games={games}/>
-            <MilestonesWatch/>
+        )}
+        {!loading&&games.length>0&&(
+          <div className="gm-v2-grid">
+            {games.map(g=><GmV2Card key={g.id} g={g} onClick={()=>openGame(g)}/>)}
           </div>
-        </div>
-      )}
-      <GameModal game={selected} open={modalOpen} onClose={()=>setModalOpen(false)}/>
+        )}
+        <GameModal game={selected} open={modalOpen} onClose={()=>setModalOpen(false)}/>
+      </div>
     </div>
   );
 }
