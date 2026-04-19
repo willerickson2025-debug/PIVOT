@@ -831,7 +831,7 @@ function gotnReasons(g){
   const ser=SEEDED_SERIES.find(s=>s.awayTeam===g.visitor_team?.abbreviation&&s.homeTeam===g.home_team?.abbreviation);
   if(ser){const tied=ser.awayW===ser.homeW;parts.push(tied?`SERIES TIED ${ser.awayW}-${ser.homeW}`:`SERIES ${ser.awayW}-${ser.homeW}`);}
   if(!parts.length)parts.push('TOP MATCHUP');
-  return parts.join(' · ');
+  return parts; // array, not joined string
 }
 
 const COACHING_ARCHETYPES=[
@@ -1652,7 +1652,7 @@ function Games() {
 
   const liveGames=games.filter(g=>parseStatus(g.status).type==='live');
   const finalGames=games.filter(g=>parseStatus(g.status).type==='final');
-  const scheduledGames=games.filter(g=>parseStatus(g.status).type==='scheduled');
+  const scheduledGames=games.filter(g=>parseStatus(g.status).type==='sched');
   const hasPlayoffs=SEEDED_SERIES.length>0;
 
   return (
