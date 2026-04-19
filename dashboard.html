@@ -911,6 +911,89 @@ function Games() {
 
 // ─── INTEL ────────────────────────────────────────────────────────────────────
 
+const FEATURED_PLAYERS = [
+  {display:'LEBRON JAMES',  search:'LeBron James',             team:'LAL', pos:'SF',  nbaId:2544},
+  {display:'COOPER FLAGG',  search:'Cooper Flagg',             team:'DAL', pos:'SF',  nbaId:1642355},
+  {display:'SHAI G-A',      search:'Shai Gilgeous-Alexander',  team:'OKC', pos:'PG',  nbaId:1628983},
+  {display:'ANT EDWARDS',   search:'Anthony Edwards',          team:'MIN', pos:'SG',  nbaId:1630162},
+  {display:'LUKA DONCIC',   search:'Luka Doncic',              team:'LAL', pos:'PG',  nbaId:1629029},
+];
+
+function PlayerPhoto({nbaId, name, size=120}) {
+  const[err,setErr]=React.useState(false);
+  const init=(name||'?').split(' ').filter(Boolean).map(w=>w[0]).join('').substring(0,2).toUpperCase();
+  if(err) return (
+    <div style={{width:size,height:size,background:'var(--graphite)',border:'1px solid var(--wire)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:size*.28,fontWeight:900,color:'var(--smoke)',flexShrink:0}}>{init}</div>
+  );
+  return (
+    <img src={`https://cdn.nba.com/headshots/nba/latest/260x190/${nbaId}.png`}
+         alt={name} onError={()=>setErr(true)}
+         style={{width:size,height:Math.round(size*.73),objectFit:'cover',objectPosition:'top center',display:'block',flexShrink:0,background:'var(--graphite)'}}/>
+  );
+}
+
+function FeaturedCard({fp, onSelect, season}) {
+  const[bdlPlayer,setBdlPlayer]=React.useState(null);
+  const[avgs,setAvgs]=React.useState(null);
+
+  React.useEffect(()=>{
+    let c=false;
+    fetch(`${API}/nba/players?name=${encodeURIComponent(fp.search)}`)
+      .then(r=>r.json()).then(d=>{
+        const p=(d.players||d.data||[]).find(x=>
+          x.last_name.toLowerCase()===fp.search.split(' ').pop().toLowerCase()
+        )||((d.players||d.data||[])[0]);
+        if(!c&&p){
+          setBdlPlayer(p);
+          const seasonInt=season.includes('-')?parseInt(season.split('-')[0])+1:parseInt(season)||2025;
+          fetch(`${API}/nba/players/${p.id}/stats?season=${seasonInt}`)
+            .then(r=>r.json()).then(d2=>{
+              const games=(d2.stats||d2.data||[]).slice(0,15);
+              if(!c&&games.length){
+                const avg=k=>{const v=games.map(g=>g[k]).filter(x=>x!=null);return v.length?(v.reduce((a,b)=>a+b,0)/v.length).toFixed(1):'—';};
+                setAvgs({ppg:avg('points'),rpg:avg('rebounds'),apg:avg('assists')});
+              }
+            }).catch(()=>{});
+        }
+      }).catch(()=>{});
+    return()=>{c=true;};
+  },[fp.search,season]);
+
+  return (
+    <div onClick={()=>bdlPlayer&&onSelect(bdlPlayer)}
+         style={{background:'var(--carbon)',border:'1px solid var(--wire)',borderRadius:4,overflow:'hidden',cursor:bdlPlayer?'pointer':'default',transition:'border-color 200ms',display:'flex',flexDirection:'column'}}
+         onMouseEnter={e=>{if(bdlPlayer)e.currentTarget.style.borderColor='rgba(0,255,102,.40)';}}
+         onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--wire)';}}>
+      <div style={{background:'var(--graphite)',display:'flex',justifyContent:'center',overflow:'hidden',height:140}}>
+        <PlayerPhoto nbaId={fp.nbaId} name={fp.display} size={140}/>
+      </div>
+      <div style={{padding:'16px 16px 20px',flex:1,display:'flex',flexDirection:'column',gap:12}}>
+        <div>
+          <div style={{fontSize:9,fontWeight:700,letterSpacing:'.14em',color:'var(--neon)',marginBottom:4}}>{fp.team} · {fp.pos}</div>
+          <div style={{fontSize:15,fontWeight:900,letterSpacing:'-.02em',lineHeight:1.1}}>{fp.display}</div>
+        </div>
+        {avgs?(
+          <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8}}>
+            {[['PPG',avgs.ppg],['RPG',avgs.rpg],['APG',avgs.apg]].map(([l,v])=>(
+              <div key={l} style={{textAlign:'center',background:'var(--graphite)',padding:'8px 4px',borderRadius:2}}>
+                <div style={{fontSize:9,fontWeight:700,letterSpacing:'.12em',color:'var(--smoke)',marginBottom:4}}>{l}</div>
+                <div style={{fontSize:18,fontWeight:900,letterSpacing:'-.03em',color:'var(--bone)'}}>{v}</div>
+              </div>
+            ))}
+          </div>
+        ):(
+          <div style={{height:56,display:'flex',alignItems:'center',justifyContent:'center'}}>
+            <div style={{fontSize:9,color:'var(--smoke)',letterSpacing:'.1em'}}>LOADING STATS…</div>
+          </div>
+        )}
+        <div style={{fontSize:9,fontWeight:700,letterSpacing:'.1em',color:'var(--smoke)',marginTop:'auto',textAlign:'right'}}>
+          {bdlPlayer?'TAP FOR FULL INTEL':'…'}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Intel() {
   const[player,setPlayer]=React.useState(null);
   const[stats,setStats]=React.useState(null);
@@ -943,52 +1026,73 @@ function Intel() {
 
   return (
     <div className="page page-pad">
-      <div className="page-hd">
-        <div>
-          <span className="page-module">PIVOT / MODULE 02</span>
-          <h1 className="page-title">PLAYER INTEL</h1>
-        </div>
-        <div style={{marginLeft:'auto',display:'flex',gap:10,alignItems:'center'}}>
-          <span style={{fontFamily:'var(--font)',fontSize:10,color:'#fff',letterSpacing:'.1em'}}>SEASON</span>
-          <select style={{width:130,fontFamily:'var(--font)',fontSize:12}} value={season} onChange={e=>{setSeason(e.target.value);if(player)load(player,e.target.value);}}>
+      <div className="page-header">
+        <div className="page-eyebrow">02 / PLAYER INTELLIGENCE</div>
+        <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between',flexWrap:'wrap',gap:20}}>
+          <h1 className="page-headline">KNOW THE PLAYER.</h1>
+          <select style={{width:140,height:40,fontSize:12}} value={season}
+                  onChange={e=>{setSeason(e.target.value);if(player)load(player,e.target.value);}}>
             {seasons.map(s=><option key={s} value={s}>{s}</option>)}
           </select>
         </div>
       </div>
-      <div style={{marginBottom:18}}>
-        <PlayerSearchBox onSelect={select}/>
-      </div>
-      {!player&&<div style={{fontFamily:'var(--font)',fontSize:11,letterSpacing:'.1em',color:'#fff',textTransform:'uppercase',textAlign:'center',padding:'72px 0'}}>SEARCH FOR A PLAYER TO BEGIN.</div>}
 
+      {/* Featured players */}
+      {!player&&(
+        <>
+          <div style={{fontSize:9,fontWeight:700,letterSpacing:'.18em',color:'var(--smoke)',marginBottom:16}}>FEATURED</div>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(160px,1fr))',gap:12,marginBottom:40}}>
+            {FEATURED_PLAYERS.map(fp=>(
+              <FeaturedCard key={fp.nbaId} fp={fp} onSelect={select} season={season}/>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* Search */}
+      <div style={{marginBottom:player?32:0}}>
+        <PlayerSearchBox onSelect={select} placeholder="Search any player…"/>
+      </div>
+
+      {/* Player detail */}
       {player&&(
-        <div style={{display:'grid',gap:1}}>
+        <div style={{display:'grid',gap:12,marginTop:8}}>
           {/* Player card */}
-          <div className="card card-signal" style={{padding:'28px',display:'flex',gap:24,alignItems:'center',flexWrap:'wrap',position:'relative',
-            background:'rgba(0,255,102,.05)',borderColor:'rgba(0,255,102,.28)',
-            boxShadow:'0 0 40px rgba(0,255,102,.08)'}}>
-            <ConfTag text={`${Math.round(82+Math.random()*17)}.${Math.floor(Math.random()*9)}% / ID MATCH`}/>
-            <div style={{flex:1}}>
-              <div style={{fontFamily:'var(--font)',fontSize:9,fontWeight:900,letterSpacing:'.16em',color:'var(--pulse)',textTransform:'uppercase',marginBottom:8}}>{player.team?.abbreviation||'FA'} / {player.position||'—'} / #{player.jersey_number||player.jersey||'?'}</div>
-              <h2 style={{fontWeight:900,fontSize:'clamp(26px,3.5vw,42px)',letterSpacing:'-.05em',marginBottom:6,fontFamily:'var(--font)',lineHeight:.95}}>{player.first_name} {player.last_name}</h2>
-              {player.height&&<div style={{fontFamily:'var(--font)',fontSize:10,color:'#fff',letterSpacing:'.08em'}}>{player.height} · {player.weight||'?'} LBS</div>}
+          <div style={{background:'var(--carbon)',border:'1px solid rgba(0,255,102,.28)',borderRadius:4,overflow:'hidden',display:'flex',gap:0}}>
+            <div style={{background:'var(--graphite)',width:120,flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden'}}>
+              {(() => {
+                const fp=FEATURED_PLAYERS.find(f=>f.search.toLowerCase().includes((player.last_name||'').toLowerCase()));
+                return fp
+                  ? <PlayerPhoto nbaId={fp.nbaId} name={`${player.first_name} ${player.last_name}`} size={120}/>
+                  : <div style={{width:120,height:88,background:'var(--graphite)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:28,fontWeight:900,color:'var(--smoke)'}}>{(player.first_name||'?')[0]}{(player.last_name||'?')[0]}</div>;
+              })()}
+            </div>
+            <div style={{padding:'24px 28px',flex:1,position:'relative'}}>
+              <ConfTag text={`${Math.round(82+Math.random()*17)}.${Math.floor(Math.random()*9)}% / ID MATCH`}/>
+              <div style={{fontSize:9,fontWeight:700,letterSpacing:'.16em',color:'var(--neon)',marginBottom:8}}>{player.team?.abbreviation||'FA'} / {player.position||'—'}</div>
+              <h2 style={{fontWeight:900,fontSize:'clamp(26px,3.5vw,42px)',letterSpacing:'-.05em',lineHeight:.92,marginBottom:8}}>{player.first_name} {player.last_name}</h2>
+              {player.height&&<div style={{fontSize:10,color:'var(--smoke)',letterSpacing:'.08em'}}>{player.height} · {player.weight||'?'} LBS</div>}
+              <button className="btn btn-ghost btn-sm" onClick={()=>{setPlayer(null);setStats(null);setAdv(null);analysis.reset();}}
+                      style={{position:'absolute',bottom:16,right:20,fontSize:9,letterSpacing:'.1em',color:'var(--smoke)'}}>CLEAR</button>
             </div>
           </div>
 
           {/* Stats */}
-          {statsLoading?<Loader/>:stats&&stats.length>0&&(
-            <div className="card" style={{padding:'22px 24px',background:'var(--graphite)'}}>
-              <div className="label" style={{marginBottom:16}}>Game Log</div>
+          {statsLoading&&<div className="load-line-wrap"><div className="load-line"/></div>}
+          {!statsLoading&&stats&&stats.length>0&&(
+            <div className="card">
+              <div style={{fontSize:9,fontWeight:700,letterSpacing:'.14em',color:'var(--smoke)',marginBottom:16}}>GAME LOG</div>
               <div style={{overflowX:'auto'}}>
                 <table className="box-table">
-                  <thead><tr>{['GAME','MIN','PTS','REB','AST','STL','BLK','FG%','3P%'].map(c=><th key={c} style={{textAlign:c==='GAME'?'left':'right'}}>{c}</th>)}</tr></thead>
+                  <thead><tr>{['#','MIN','PTS','REB','AST','STL','BLK','FG%','3P%'].map(c=><th key={c} style={{textAlign:c==='#'?'left':'right'}}>{c}</th>)}</tr></thead>
                   <tbody>
                     {stats.slice(0,10).map((s,i)=>{
                       const fg=s.fg_pct!=null?Math.round(s.fg_pct*100)+'%':'—';
                       const tp=s.fg3_pct!=null?Math.round(s.fg3_pct*100)+'%':'—';
                       return <tr key={i}>
-                        <td style={{textAlign:'left',fontSize:10}}>#{i+1}</td>
-                        <td style={{textAlign:'right'}}>{s.minutes||'—'}</td>
-                        <td style={{fontWeight:s.points>=20?900:900,color:s.points>=20?'var(--signal)':'#fff'}}>{s.points??'—'}</td>
+                        <td style={{textAlign:'left',fontSize:10,color:'var(--smoke)'}}>{i+1}</td>
+                        <td>{s.minutes||'—'}</td>
+                        <td style={{color:s.points>=25?'var(--neon)':s.points>=20?'var(--acid)':'var(--bone)'}}>{s.points??'—'}</td>
                         <td>{s.rebounds??'—'}</td><td>{s.assists??'—'}</td><td>{s.steals??'—'}</td><td>{s.blocks??'—'}</td>
                         <td>{fg}</td><td>{tp}</td>
                       </tr>;
@@ -1001,13 +1105,13 @@ function Intel() {
 
           {/* Advanced */}
           {adv&&(
-            <div className="card" style={{padding:'22px 24px',background:'var(--graphite)'}}>
-              <div className="label" style={{marginBottom:16}}>Advanced</div>
-              <div style={{display:'flex',gap:24,flexWrap:'wrap'}}>
-                {[['NET RTG','net_rating'],['OFF RTG','offensive_rating'],['DEF RTG','defensive_rating'],['TS%','true_shooting_percentage'],['EFG%','effective_field_goal_percentage'],['USG%','usage_percentage'],['AST%','assist_percentage'],['REB%','rebound_percentage'],['PIE','pie'],['PACE','pace']].filter(([,k])=>adv[k]!=null).map(([label,k])=>(
-                  <div key={k} style={{display:'flex',flexDirection:'column',gap:4,minWidth:72}}>
-                    <div style={{fontSize:8.5,letterSpacing:'.12em',textTransform:'uppercase',color:'var(--pulse)',fontWeight:900}}>{label}</div>
-                    <div style={{fontSize:24,fontWeight:900,color:'#fff',letterSpacing:'-.03em'}}>{typeof adv[k]==='number'?(adv[k]<2?Math.round(adv[k]*100)+'%':adv[k].toFixed(1)):adv[k]??'—'}</div>
+            <div className="card">
+              <div style={{fontSize:9,fontWeight:700,letterSpacing:'.14em',color:'var(--smoke)',marginBottom:20}}>ADVANCED</div>
+              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(88px,1fr))',gap:16}}>
+                {[['NET RTG','net_rating'],['OFF RTG','offensive_rating'],['DEF RTG','defensive_rating'],['TS%','true_shooting_percentage'],['EFG%','effective_field_goal_percentage'],['USG%','usage_percentage'],['AST%','assist_percentage'],['REB%','rebound_percentage'],['PIE','pie'],['PACE','pace']].filter(([,k])=>adv[k]!=null).map(([lbl,k])=>(
+                  <div key={k} style={{display:'flex',flexDirection:'column',gap:6}}>
+                    <div style={{fontSize:8,letterSpacing:'.14em',color:'var(--neon)',fontWeight:700}}>{lbl}</div>
+                    <div style={{fontSize:22,fontWeight:900,letterSpacing:'-.03em'}}>{typeof adv[k]==='number'?(adv[k]<2?Math.round(adv[k]*100)+'%':adv[k].toFixed(1)):adv[k]??'—'}</div>
                   </div>
                 ))}
               </div>
@@ -1015,16 +1119,16 @@ function Intel() {
           )}
 
           {/* AI */}
-          <div className="card" style={{padding:'22px 24px',background:'var(--graphite)'}}>
-            <div style={{display:'flex',gap:12,alignItems:'center',flexWrap:'wrap',marginBottom:16}}>
-              <div className="label">AI Analysis</div>
+          <div className="card">
+            <div style={{display:'flex',gap:12,alignItems:'center',flexWrap:'wrap',marginBottom:20}}>
+              <div style={{fontSize:9,fontWeight:700,letterSpacing:'.14em',color:'var(--smoke)'}}>AI ANALYSIS</div>
               <div className="seg" style={{marginLeft:'auto'}}>
                 {[{id:'season',label:'SEASON'},{id:'live',label:'LIVE FORM'}].map(m=>(
                   <button key={m.id} className={`seg-btn${analysisMode===m.id?' active':''}`}
                           onClick={()=>{setAnalysisMode(m.id);analysis.reset();}}>{m.label}</button>
                 ))}
               </div>
-              <button className="btn btn-signal btn-sm" onClick={runAI} disabled={analysis.loading}>
+              <button className="btn btn-neon btn-sm" onClick={runAI} disabled={analysis.loading}>
                 {analysis.loading?'PROCESSING…':'RUN ANALYSIS'}
               </button>
             </div>
