@@ -7,3 +7,5 @@ anthropic==0.34.2
 python-dotenv==1.0.1
 aiofiles
 slowapi==0.1.9
+nba_api==1.5.2
+diskcache==5.6.3

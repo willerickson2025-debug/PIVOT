@@ -325,11 +325,13 @@ select{
 .intel-chip{height:26px;padding:0 10px;font-size:10px;font-weight:700;letter-spacing:.08em;border:1px solid rgba(255,255,255,.08);background:transparent;color:var(--smoke);cursor:pointer;font-family:var(--font);text-transform:uppercase;transition:background 120ms,color 120ms;}
 .intel-chip.active{background:var(--neon);color:var(--void);border-color:var(--neon);}
 .intel-chip:hover:not(.active){color:var(--bone);}
-.intel-section-label{font-size:10px;font-weight:700;letter-spacing:.1em;color:var(--smoke);margin-bottom:16px;}
+.intel-section-label{font-size:11px;font-weight:700;letter-spacing:.12em;color:var(--smoke);margin-bottom:12px;padding-top:28px;border-top:1px solid rgba(255,255,255,.08);}
 .intel-col-header{font-size:9px;font-weight:700;letter-spacing:.12em;padding-bottom:8px;border-bottom:1px solid var(--divider);margin-bottom:0;}
 .intel-row{display:flex;align-items:center;height:44px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.05);transition:background 100ms;}
 .intel-row:hover{background:var(--row-hover);}
 .intel-row-sm{height:40px;}
+.feat-hero{flex:2 1 0;min-width:0;background:var(--carbon);border-radius:4px;border:1px solid rgba(0,255,136,.2);overflow:hidden;cursor:pointer;background-image:linear-gradient(135deg,rgba(0,255,136,.025) 0%,transparent 60%);transition:border-color 180ms;}
+.feat-hero:hover{border-color:rgba(0,255,136,.45);}
 .stat-num{font-variant-numeric:tabular-nums;font-weight:900;}
 .feat-card{flex:1 1 0;min-width:0;background:var(--carbon);border-radius:4px;border:1px solid var(--divider);overflow:hidden;cursor:pointer;transition:border-color 180ms;}
 .feat-card:hover{border-color:rgba(0,255,136,.4);border-left-width:2px;border-left-color:var(--neon);}
@@ -337,6 +339,10 @@ select{
 .feat-identity{padding:10px 12px;display:flex;gap:10px;align-items:center;border-bottom:1px solid var(--divider);}
 .feat-stat-grid{display:grid;border-bottom:1px solid var(--divider);}
 .feat-stat-cell{padding:8px 6px;text-align:center;}
+.feat-hero-row{display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr;gap:12px;align-items:start;}
+@media(max-width:900px){.feat-hero-row{grid-template-columns:1fr 1fr;}}
+.feat-support{min-width:0;background:var(--carbon);border-radius:4px;border:1px solid var(--divider);overflow:hidden;cursor:pointer;transition:border-color 180ms;}
+.feat-support:hover{border-color:rgba(0,255,136,.35);}
 .term-th{font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--smoke);padding:10px 12px;text-align:right;border-bottom:1px solid rgba(255,255,255,.08);background:var(--void);cursor:default;user-select:none;white-space:nowrap;}
 .term-th.sortable{cursor:pointer;}
 .term-th.sorted{color:var(--neon);}
@@ -1807,6 +1813,43 @@ const MOVERS_POOL=[
   {search:'Tyrese Haliburton',display:'HALIBURTON',      team:'IND',pos:'PG',nbaId:1630169},
 ];
 
+// 2025 NBA Draft class nbaIds — Wembanyama (1641705) is NOT included (2023 draft)
+const CURRENT_SEASON_ROOKIES_IDS=new Set([1642355,1642356,1642357,1642358,1642359,1642360,1642361,1642362,1642363,1642364,1642365]);
+
+function selectHeroPlayer(poolArr){
+  if(!poolArr||!poolArr.length)return null;
+  const isPlayoffTeam=t=>SEEDED_SERIES.some(s=>s.awayTeam===t||s.homeTeam===t);
+  const scored=poolArr.filter(d=>d.seasonAvg&&d.l10Avg).map(d=>{
+    let score=0;
+    const team=d.bdlPlayer?.team?.abbreviation||d.fp?.team||'';
+    if(isPlayoffTeam(team))score+=30;
+    const lastGame=d.games?.[0];
+    if(lastGame&&(lastGame.points||0)>=30)score+=20;
+    const ppgDelta=d.delta?.ppg||0;
+    score+=Math.min(30,Math.abs(ppgDelta)*2)*(ppgDelta>=0?1:-0.5);
+    const ppg=d.seasonAvg.ppg||0;
+    score+=Math.max(0,Math.min(20,(ppg-15)/15*20));
+    return{...d,_heroScore:score};
+  });
+  scored.sort((a,b)=>b._heroScore-a._heroScore);
+  return scored[0]||null;
+}
+
+function heroReasons(d){
+  const parts=[];
+  if(!d)return parts;
+  const team=d.bdlPlayer?.team?.abbreviation||d.fp?.team||'';
+  const isPlayoff=SEEDED_SERIES.some(s=>s.awayTeam===team||s.homeTeam===team);
+  if(isPlayoff)parts.push('PLAYOFF');
+  const lastGame=d.games?.[0];
+  if(lastGame&&(lastGame.points||0)>=30)parts.push('HOT GAME');
+  const delta=d.delta?.ppg||0;
+  if(delta>=3)parts.push('ON FIRE');
+  else if(delta<=-3)parts.push('COLD STREAK');
+  if(d.seasonAvg?.ppg>=25)parts.push('ELITE SCORER');
+  return parts;
+}
+
 function parseMin(m){
   if(!m)return 0;const p=m.split(':');
   return parseFloat(p[0]||0)+(parseFloat(p[1]||0)/60);
@@ -1819,12 +1862,19 @@ function computeAvg(games){
   const fgs=games.filter(g=>g.fg_pct!=null);
   const tps=games.filter(g=>g.fg3_pct!=null);
   const fts=games.filter(g=>g.ft_pct!=null);
+  // TS% = PTS / (2 * (FGA + 0.44*FTA))
+  const tsFGA=games.reduce((a,g)=>a+(g.fga!=null?g.fga:0),0);
+  const tsFTA=games.reduce((a,g)=>a+(g.fta!=null?g.fta:0),0);
+  const tsPTS=games.reduce((a,g)=>a+(g.points!=null?g.points:0),0);
+  const tsDenom=2*(tsFGA+0.44*tsFTA);
+  const ts=tsDenom>0?tsPTS/tsDenom:null;
   return{
     ppg:s('points'),rpg:s('rebounds'),apg:s('assists'),
     spg:s('steals'),bpg:s('blocks'),
     fg:fgs.length?fgs.reduce((a,g)=>a+g.fg_pct,0)/fgs.length:null,
     fg3:tps.length?tps.reduce((a,g)=>a+g.fg3_pct,0)/tps.length:null,
     ft:fts.length?fts.reduce((a,g)=>a+g.ft_pct,0)/fts.length:null,
+    ts,
     min:games.reduce((a,g)=>a+parseMin(g.minutes),0)/n,
     gp:n,
   };
@@ -1851,7 +1901,7 @@ function PlayerPhoto({nbaId,name,size=40,circle=false}){
   );
 }
 
-function Sparkline({values,height=24}){
+function Sparkline({values,height=24,hero=false}){
   if(!values||values.length<2)return <div style={{height}}/>;
   const nums=[...values].reverse();
   const mn=Math.min(...nums),mx=Math.max(...nums),range=mx-mn||1;
@@ -1864,11 +1914,21 @@ function Sparkline({values,height=24}){
   const first3=nums.slice(0,3).reduce((a,b)=>a+b,0)/3;
   const last3=nums.slice(-3).reduce((a,b)=>a+b,0)/3;
   const trend=last3>first3*1.05?'up':last3<first3*0.95?'down':'flat';
-  const color=trend==='up'?'var(--trend-up)':trend==='down'?'var(--trend-down)':'var(--trend-flat)';
+  const color=hero?'var(--neon)':trend==='up'?'var(--trend-up)':trend==='down'?'var(--trend-down)':'var(--trend-flat)';
+  const filterId=hero?'spark-glow':null;
   return(
     <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{width:'100%',height,display:'block'}}>
-      <polyline points={pts} fill="none" stroke={color} strokeWidth="1.5"
-                strokeLinejoin="round" strokeLinecap="round"/>
+      {hero&&(
+        <defs>
+          <filter id="spark-glow" x="-20%" y="-60%" width="140%" height="220%">
+            <feGaussianBlur stdDeviation="1.5" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+      )}
+      <polyline points={pts} fill="none" stroke={color} strokeWidth={hero?1.5:1.5}
+                strokeLinejoin="round" strokeLinecap="round"
+                filter={filterId?`url(#${filterId})`:undefined}/>
     </svg>
   );
 }
@@ -1883,19 +1943,23 @@ function StatusPill({status='ACTIVE'}){
   );
 }
 
-function DeltaBadge({val}){
+function DeltaBadge({val,amber=false}){
   if(val==null||Math.abs(val)<0.15)return <span style={{fontSize:10,color:'var(--trend-flat)',fontVariantNumeric:'tabular-nums'}}>--</span>;
   const up=val>0;
+  const isAmber=amber&&Math.abs(val)>5.0;
+  const fg=isAmber?'#F5A623':up?'var(--trend-up)':'var(--trend-down)';
+  const bg=isAmber?'rgba(245,166,35,.15)':up?'rgba(31,191,122,.12)':'rgba(229,72,77,.12)';
   return(
-    <span style={{fontSize:10,fontWeight:700,color:up?'var(--trend-up)':'var(--trend-down)',fontVariantNumeric:'tabular-nums'}}>
+    <span style={{fontSize:10,fontWeight:700,color:fg,background:bg,padding:'1px 5px',borderRadius:3,
+                  fontVariantNumeric:'tabular-nums',display:'inline-block'}}>
       {up?'+':''}{val.toFixed(1)}
     </span>
   );
 }
 
-// ─── INTEL FEATURED CARD ──────────────────────────────────────────────────────
+// ─── INTEL FEATURED CARDS ─────────────────────────────────────────────────────
 
-function FeaturedCard({data,onSelect}){
+function HeroCard({data,reasons,onSelect}){
   const{fp,bdlPlayer,seasonAvg,l10Avg,delta,l10pts}=data||{};
   const name=bdlPlayer?`${bdlPlayer.first_name} ${bdlPlayer.last_name}`:(fp?.display||'...');
   const team=bdlPlayer?.team?.abbreviation||fp?.team||'--';
@@ -1903,50 +1967,95 @@ function FeaturedCard({data,onSelect}){
   const f1=v=>v!=null?v.toFixed(1):'--';
   const fp2=v=>v!=null?Math.round(v*100)+'%':'--';
   const ready=!!bdlPlayer&&!!seasonAvg;
+  const ppgDelta=delta?.ppg;
 
   return(
-    <div className="feat-card" onClick={()=>bdlPlayer&&onSelect(bdlPlayer)}>
+    <div className="feat-hero" onClick={()=>bdlPlayer&&onSelect(bdlPlayer)}>
+      {/* Top strip: team/pos + reasons + status */}
       <div className="feat-strip">
-        <span style={{fontSize:10,fontWeight:700,letterSpacing:'.08em',color:'var(--neon)'}}>{team} · {pos}</span>
+        <div style={{display:'flex',alignItems:'center',gap:8}}>
+          <span style={{fontSize:10,fontWeight:700,letterSpacing:'.08em',color:'var(--neon)'}}>{team} · {pos}</span>
+          {(reasons||[]).map(r=>(
+            <span key={r} style={{fontSize:9,fontWeight:700,letterSpacing:'.08em',color:'var(--smoke)',
+                                  border:'1px solid var(--wire)',padding:'1px 5px',borderRadius:2}}>{r}</span>
+          ))}
+        </div>
         <StatusPill status="ACTIVE"/>
       </div>
+      {/* Identity row */}
       <div className="feat-identity">
-        {fp&&<PlayerPhoto nbaId={fp.nbaId} name={name} size={40} circle={true}/>}
-        <div style={{overflow:'hidden',minWidth:0}}>
-          <div style={{fontSize:13,fontWeight:700,lineHeight:1.2,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{name}</div>
-          <div style={{fontSize:9,color:'var(--smoke)',marginTop:2}}>
-            {bdlPlayer?.height?`${bdlPlayer.height} · ${bdlPlayer.weight||'?'} LBS`:team}
-          </div>
+        {fp&&<PlayerPhoto nbaId={fp.nbaId} name={name} size={48} circle={true}/>}
+        <div style={{overflow:'hidden',minWidth:0,flex:1}}>
+          <div style={{fontSize:22,fontWeight:900,lineHeight:1.1,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'-.02em'}}>{name}</div>
+          <div style={{fontSize:10,color:'var(--smoke)',marginTop:2,letterSpacing:'.06em'}}>{team}</div>
         </div>
       </div>
       {!ready?(
-        <div style={{padding:'24px 12px',textAlign:'center',fontSize:9,color:'var(--smoke)',letterSpacing:'.1em'}}>LOADING...</div>
+        <div style={{padding:'28px 16px',textAlign:'center',fontSize:9,color:'var(--smoke)',letterSpacing:'.1em'}}>LOADING...</div>
       ):(
         <>
+          {/* Primary stats: PPG/RPG/APG at 28px */}
           <div className="feat-stat-grid" style={{gridTemplateColumns:'repeat(3,1fr)'}}>
-            {[['PPG',seasonAvg.ppg,delta?.ppg],['RPG',seasonAvg.rpg,delta?.rpg],['APG',seasonAvg.apg,delta?.apg]].map(([l,v,d],i)=>(
+            {[['PPG',seasonAvg.ppg,ppgDelta],['RPG',seasonAvg.rpg,delta?.rpg],['APG',seasonAvg.apg,delta?.apg]].map(([l,v,d],i)=>(
               <div key={l} className="feat-stat-cell" style={{borderRight:i<2?'1px solid var(--divider)':'none'}}>
-                <div className="stat-num" style={{fontSize:20,fontWeight:900,letterSpacing:'-.03em',lineHeight:1}}>{f1(v)}</div>
-                <div style={{fontSize:9,letterSpacing:'.08em',color:'var(--smoke)',margin:'3px 0 2px'}}>{l}</div>
-                <DeltaBadge val={d}/>
+                <div className="stat-num" style={{fontSize:28,fontWeight:900,letterSpacing:'-.03em',lineHeight:1}}>{f1(v)}</div>
+                <div style={{fontSize:9,letterSpacing:'.08em',color:'var(--smoke)',margin:'3px 0 4px'}}>{l}</div>
+                <DeltaBadge val={d} amber={true}/>
               </div>
             ))}
           </div>
+          {/* Secondary stats: TS%/USG%/+/- */}
           <div className="feat-stat-grid" style={{gridTemplateColumns:'repeat(3,1fr)',borderBottom:'1px solid var(--divider)'}}>
-            {[['FG%',seasonAvg.fg],['3P%',seasonAvg.fg3],['FT%',seasonAvg.ft]].map(([l,v],i)=>(
+            {[['TS%',seasonAvg.ts!=null?fp2(seasonAvg.ts):null],['USG%',null],['+/-',null]].map(([l,v],i)=>(
               <div key={l} className="feat-stat-cell" style={{borderRight:i<2?'1px solid var(--divider)':'none'}}>
-                <div className="stat-num" style={{fontSize:15,fontWeight:700}}>{fp2(v)}</div>
+                <div className="stat-num" style={{fontSize:15,fontWeight:700,color:v?'var(--bone)':'var(--smoke)'}}>{v||'--'}</div>
                 <div style={{fontSize:9,letterSpacing:'.08em',color:'var(--smoke)',marginTop:2}}>{l}</div>
               </div>
             ))}
           </div>
-          <div style={{padding:'6px 12px 4px',borderBottom:'1px solid var(--divider)'}}>
-            <div style={{fontSize:9,letterSpacing:'.08em',color:'var(--smoke)',marginBottom:3}}>L10 PTS</div>
-            <Sparkline values={l10pts} height={24}/>
+          {/* Sparkline — hero mode: 1.5px green glow */}
+          <div style={{padding:'8px 12px 4px',borderBottom:'1px solid var(--divider)'}}>
+            <div style={{fontSize:9,letterSpacing:'.08em',color:'var(--smoke)',marginBottom:4}}>L10 PTS</div>
+            <Sparkline values={l10pts} height={28} hero={true}/>
           </div>
-          <div style={{padding:'6px 12px',display:'flex',justifyContent:'space-between'}}>
-            <span style={{fontSize:9,letterSpacing:'.08em',color:'var(--smoke)',fontWeight:700}}>NEXT GAME</span>
-            <span style={{fontSize:9,color:'var(--bone)',fontWeight:700}}>--</span>
+        </>
+      )}
+    </div>
+  );
+}
+
+function SupportingCard({data,onSelect}){
+  const{fp,bdlPlayer,seasonAvg,delta,l10pts}=data||{};
+  const name=bdlPlayer?`${bdlPlayer.first_name} ${bdlPlayer.last_name}`:(fp?.display||'...');
+  const team=bdlPlayer?.team?.abbreviation||fp?.team||'--';
+  const pos=bdlPlayer?.position||fp?.pos||'--';
+  const f1=v=>v!=null?v.toFixed(1):'--';
+  const ready=!!bdlPlayer&&!!seasonAvg;
+  const ppgDelta=delta?.ppg;
+
+  return(
+    <div className="feat-support" onClick={()=>bdlPlayer&&onSelect(bdlPlayer)}>
+      <div className="feat-strip" style={{padding:'6px 10px'}}>
+        <span style={{fontSize:9,fontWeight:700,letterSpacing:'.08em',color:'var(--neon)'}}>{team} · {pos}</span>
+        <StatusPill status="ACTIVE"/>
+      </div>
+      <div style={{padding:'8px 10px',borderBottom:'1px solid var(--divider)',display:'flex',gap:8,alignItems:'center'}}>
+        {fp&&<PlayerPhoto nbaId={fp.nbaId} name={name} size={28} circle={true}/>}
+        <div style={{overflow:'hidden',minWidth:0}}>
+          <div style={{fontSize:13,fontWeight:700,lineHeight:1.2,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{name}</div>
+        </div>
+      </div>
+      {!ready?(
+        <div style={{padding:'16px 10px',textAlign:'center',fontSize:9,color:'var(--smoke)',letterSpacing:'.1em'}}>LOADING...</div>
+      ):(
+        <>
+          <div style={{padding:'8px 10px',borderBottom:'1px solid var(--divider)',display:'flex',justifyContent:'space-between',alignItems:'baseline'}}>
+            <div style={{fontSize:20,fontWeight:900,letterSpacing:'-.03em',lineHeight:1}}>{f1(seasonAvg.ppg)}</div>
+            <div style={{fontSize:9,color:'var(--smoke)',letterSpacing:'.06em'}}>PPG</div>
+            <DeltaBadge val={ppgDelta} amber={true}/>
+          </div>
+          <div style={{padding:'6px 10px'}}>
+            <Sparkline values={l10pts} height={24}/>
           </div>
         </>
       )}
@@ -1967,12 +2076,15 @@ function Intel(){
   const[poolLoading,setPoolLoading]=React.useState(true);
   const[posFilter,setPosFilter]=React.useState('ALL');
   const[termSort,setTermSort]=React.useState({key:'ppg',dir:'desc'});
+  const[termExpanded,setTermExpanded]=React.useState(false);
   const[density,setDensity]=React.useState('comfortable');
   const[selected,setSelected]=React.useState(null);
   const[detailStats,setDetailStats]=React.useState(null);
   const[detailAdv,setDetailAdv]=React.useState(null);
   const[detailLoading,setDetailLoading]=React.useState(false);
   const[analysisMode,setAnalysisMode]=React.useState('season');
+  const[nbaAdv,setNbaAdv]=React.useState(null);
+  const[nbaAdvLoading,setNbaAdvLoading]=React.useState(false);
   const analysis=useStream();
 
   const ALL_POOL=React.useMemo(()=>[...FEATURED_PLAYERS,...MOVERS_POOL],[]);
@@ -2019,7 +2131,27 @@ function Intel(){
     fetch(`${API}/nba/stats/advanced?player_ids=${p.id}&seasons=${seasonInt}`,{headers:{'X-Pivot-Session':_pivotSessionId}})
       .then(r=>r.json()).then(d=>setDetailAdv(d.stats?.[0]||null)).catch(()=>{});
   }
-  function closeDetail(){setSelected(null);setDetailStats(null);setDetailAdv(null);analysis.reset();}
+  function closeDetail(){setSelected(null);setDetailStats(null);setDetailAdv(null);setNbaAdv(null);setNbaAdvLoading(false);analysis.reset();}
+  function loadNbaAdv(){
+    if(!selected||nbaAdvLoading||nbaAdv)return;
+    setNbaAdvLoading(true);
+    const pid=selected.id;
+    const season=seasonInt;
+    Promise.allSettled([
+      fetch(`${API}/advanced/${pid}/shot-chart?season=${season}`).then(r=>r.ok?r.json():null).catch(()=>null),
+      fetch(`${API}/advanced/${pid}/hustle?season=${season}`).then(r=>r.ok?r.json():null).catch(()=>null),
+      fetch(`${API}/advanced/${pid}/shot-types?season=${season}`).then(r=>r.ok?r.json():null).catch(()=>null),
+      fetch(`${API}/advanced/${pid}/tracking?season=${season}`).then(r=>r.ok?r.json():null).catch(()=>null),
+    ]).then(([sc,hu,st,tr])=>{
+      setNbaAdv({
+        shots:sc?.value?.shots||null,
+        hustle:hu?.value?.hustle||null,
+        shotTypes:st?.value?.shot_types||null,
+        tracking:tr?.value?.tracking||null,
+      });
+      setNbaAdvLoading(false);
+    });
+  }
   function runAI(){
     if(!selected||analysis.loading)return;
     const name=`${selected.first_name||''} ${selected.last_name||''}`.trim();
@@ -2041,17 +2173,26 @@ function Intel(){
   const roleShifts=poolArr.filter(d=>d.delta&&Math.abs(d.delta.min)>1.5)
     .sort((a,b)=>Math.abs(b.delta.min)-Math.abs(a.delta.min)).slice(0,4);
 
-  const allPool=[...FEATURED_PLAYERS,...MOVERS_POOL];
-  const rookies=poolArr.filter(d=>d.fp?.nbaId===1642355||d.fp?.nbaId===1641705)
+  const rookies=poolArr
+    .filter(d=>CURRENT_SEASON_ROOKIES_IDS.has(d.fp?.nbaId))
     .filter(d=>d.l10pts&&d.l10pts.length>0).slice(0,4);
 
+  // Featured: hero auto-selected from the full FEATURED pool
+  const featuredPoolArr=FEATURED_PLAYERS.map(fp=>poolData[fp.search]).filter(Boolean);
+  const heroData=selectHeroPlayer(featuredPoolArr);
+  const heroReasonTags=heroReasons(heroData);
+  const supportingData=featuredPoolArr.filter(d=>d!==heroData).slice(0,4);
+
   const terminalData=[...poolArr]
+    .filter(d=>d.bdlPlayer&&d.seasonAvg&&(d.seasonAvg.gp>0)&&(d.seasonAvg.ppg>0||d.seasonAvg.rpg>0||d.seasonAvg.apg>0))
     .filter(d=>posFilter==='ALL'||(d.bdlPlayer?.position||d.fp?.pos||'').includes(posFilter))
     .sort((a,b)=>{
       const v=d=>{const a=d.seasonAvg;if(!a)return 0;
-        return{ppg:a.ppg,rpg:a.rpg,apg:a.apg,min:a.min,gp:a.gp,fg:a.fg||0,fg3:a.fg3||0}[termSort.key]||0;};
+        return{ppg:a.ppg,rpg:a.rpg,apg:a.apg,min:a.min,gp:a.gp,fg:a.fg||0,fg3:a.fg3||0,ts:a.ts||0}[termSort.key]||0;};
       return termSort.dir==='desc'?v(b)-v(a):v(a)-v(b);
     });
+  const TERM_COLLAPSE=25;
+  const visibleTerminal=termExpanded?terminalData:terminalData.slice(0,TERM_COLLAPSE);
 
   const seasons=['2025-26','2024-25','2023-24','2022-23','2021-22'];
   // Map display season to BDL API int: 2025-26 uses the same data as 2024-25 (BDL season 2025)
@@ -2064,7 +2205,7 @@ function Intel(){
       <div className="intel-cmd">
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'6px 40px',borderBottom:'1px solid var(--divider)'}}>
           <div style={{fontSize:10,fontWeight:700,letterSpacing:'.1em',color:'var(--smoke)'}}>PLAYER INTELLIGENCE</div>
-          <select style={{width:120,height:32,fontSize:11,background:'var(--carbon)',border:'1px solid var(--wire)',color:'var(--bone)'}}
+          <select style={{minWidth:160,height:32,fontSize:11,background:'var(--carbon)',border:'1px solid var(--wire)',color:'var(--bone)'}}
                   value={season} onChange={e=>setSeason(e.target.value)}>
             {seasons.map(s=><option key={s} value={s}>{s}{s==='2025-26'?' (CURRENT)':''}</option>)}
           </select>
@@ -2083,7 +2224,7 @@ function Intel(){
             <span style={{fontSize:10,letterSpacing:'.08em',color:'var(--smoke)',fontWeight:700}}>SORT</span>
             <select value={termSort.key} onChange={e=>setTermSort({key:e.target.value,dir:'desc'})}
                     style={{height:28,width:76,fontSize:10,background:'var(--carbon)',border:'1px solid var(--wire)',color:'var(--bone)'}}>
-              {[['ppg','PPG'],['rpg','RPG'],['apg','APG'],['min','MIN'],['fg','FG%'],['fg3','3P%']].map(([v,l])=>(
+              {[['ppg','PPG'],['rpg','RPG'],['apg','APG'],['min','MIN'],['fg','FG%'],['fg3','3P%'],['ts','TS%']].map(([v,l])=>(
                 <option key={v} value={v}>{l}</option>
               ))}
             </select>
@@ -2103,9 +2244,13 @@ function Intel(){
         <div style={{marginTop:32,marginBottom:40}}>
           <div className="intel-section-label">FEATURED</div>
           {poolLoading?<div className="load-line-wrap"><div className="load-line"/></div>:(
-            <div style={{display:'flex',gap:12,overflowX:'auto',paddingBottom:4}}>
-              {FEATURED_PLAYERS.map(fp=>(
-                <FeaturedCard key={fp.nbaId} data={poolData[fp.search]||{fp}} onSelect={openDetail}/>
+            <div className="feat-hero-row">
+              {heroData
+                ?<HeroCard data={heroData} reasons={heroReasonTags} onSelect={openDetail}/>
+                :<div className="feat-hero" style={{display:'flex',alignItems:'center',justifyContent:'center',padding:32,fontSize:9,color:'var(--smoke)',letterSpacing:'.1em'}}>LOADING...</div>
+              }
+              {supportingData.map(d=>(
+                <SupportingCard key={d.fp.nbaId} data={d} onSelect={openDetail}/>
               ))}
             </div>
           )}
@@ -2147,17 +2292,14 @@ function Intel(){
           </div>
         </div>
 
-        {/* MODULE 4: WATCH */}
+        {/* MODULE 4: WATCH — hidden if all columns empty */}
+        {(!poolLoading&&(roleShifts.length>0||rookies.length>0))&&(
         <div style={{marginBottom:40}}>
           <div className="intel-section-label">WATCH</div>
-          <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:24}}>
+          <div style={{display:'grid',gridTemplateColumns:[roleShifts.length>0&&'1fr',rookies.length>0&&'1fr'].filter(Boolean).join(' '),gap:24}}>
+            {roleShifts.length>0&&(
             <div>
-              <div className="intel-col-header">RETURNING</div>
-              <div style={{fontSize:11,color:'var(--smoke)',padding:'12px 0',letterSpacing:'.06em'}}>NO CURRENT REPORTS</div>
-            </div>
-            <div>
-              <div className="intel-col-header">ROLE SHIFT</div>
-              {roleShifts.length===0&&!poolLoading&&<div style={{fontSize:11,color:'var(--smoke)',padding:'12px 0',letterSpacing:'.06em'}}>NO SIGNIFICANT SHIFTS</div>}
+              <div className="intel-col-header">MIN SHIFT</div>
               {roleShifts.map((d,i)=>{
                 const name=`${d.bdlPlayer.first_name} ${d.bdlPlayer.last_name}`;
                 const team=d.bdlPlayer.team?.abbreviation||d.fp.team;
@@ -2177,9 +2319,10 @@ function Intel(){
                 );
               })}
             </div>
+            )}
+            {rookies.length>0&&(
             <div>
               <div className="intel-col-header">ROOKIE BREAKOUT</div>
-              {rookies.length===0&&!poolLoading&&<div style={{fontSize:11,color:'var(--smoke)',padding:'12px 0',letterSpacing:'.06em'}}>MONITORING</div>}
               {rookies.map(d=>{
                 const name=`${d.bdlPlayer.first_name} ${d.bdlPlayer.last_name}`;
                 const team=d.bdlPlayer.team?.abbreviation||d.fp.team;
@@ -2199,8 +2342,10 @@ function Intel(){
                 );
               })}
             </div>
+            )}
           </div>
         </div>
+        )}
 
         {/* MODULE 5: TERMINAL */}
         <div style={{marginBottom:48}}>
@@ -2222,6 +2367,9 @@ function Intel(){
                       {key:'fg',l:'FG%',w:64,sort:true},
                       {key:'fg3',l:'3P%',w:64,sort:true},
                       {key:'ft',l:'FT%',w:64,sort:true},
+                      {key:'ts',l:'TS%',w:64,sort:true},
+                      {key:'usg',l:'USG%',w:64,sort:false},
+                      {key:'pm',l:'+/-',w:64,sort:false},
                       {key:'status',l:'STATUS',w:80,align:'center',sort:false},
                     ].map(col=>(
                       <th key={col.key} onClick={()=>col.sort&&toggleSort(col.key)}
@@ -2236,7 +2384,7 @@ function Intel(){
                   </tr>
                 </thead>
                 <tbody>
-                  {terminalData.map((d,i)=>{
+                  {visibleTerminal.map((d,i)=>{
                     const p=d.bdlPlayer;
                     const a=d.seasonAvg;
                     const name=`${p.first_name} ${p.last_name}`;
@@ -2244,12 +2392,13 @@ function Intel(){
                     const rowH=density==='compact'?32:40;
                     const fs=density==='compact'?11:13;
                     const pad=density==='compact'?'5px 8px':'8px 12px';
+                    const zbg=i%2?'rgba(255,255,255,.012)':'transparent';
                     return(
                       <tr key={d.fp.search} className="term-tr" onClick={()=>openDetail(p)}
-                          style={{height:rowH,background:i%2?'rgba(255,255,255,.01)':'transparent'}}>
+                          style={{height:rowH,background:zbg}}>
                         <td className="term-td" style={{textAlign:'center',color:'var(--smoke)',fontSize:10,padding:pad}}>{p.position||d.fp.pos||'--'}</td>
                         <td className="term-td" style={{textAlign:'center',color:'var(--smoke)',fontSize:10,padding:pad}}>{team}</td>
-                        <td className="term-td" style={{textAlign:'left',fontWeight:700,fontSize:fs,padding:pad}}>{name}</td>
+                        <td className="term-td" style={{textAlign:'left',fontWeight:700,fontSize:fs,padding:pad,whiteSpace:'nowrap'}}>{name}</td>
                         <td className="term-td" style={{fontSize:fs,padding:pad}}>{a?.gp||'--'}</td>
                         <td className="term-td" style={{fontSize:fs,padding:pad}}>{a?.min!=null?a.min.toFixed(1):'--'}</td>
                         <td className="term-td" style={{fontSize:fs,padding:pad,color:a?.ppg>=25?'var(--neon)':a?.ppg>=20?'var(--acid)':'var(--bone)'}}>{f1(a?.ppg)}</td>
@@ -2258,12 +2407,23 @@ function Intel(){
                         <td className="term-td" style={{fontSize:fs,padding:pad}}>{fp2(a?.fg)}</td>
                         <td className="term-td" style={{fontSize:fs,padding:pad}}>{fp2(a?.fg3)}</td>
                         <td className="term-td" style={{fontSize:fs,padding:pad}}>{fp2(a?.ft)}</td>
+                        <td className="term-td" style={{fontSize:fs,padding:pad,color:'var(--smoke)'}}>{a?.ts!=null?fp2(a.ts):'--'}</td>
+                        <td className="term-td" style={{fontSize:fs,padding:pad,color:'var(--smoke)'}}>--</td>
+                        <td className="term-td" style={{fontSize:fs,padding:pad,color:'var(--smoke)'}}>--</td>
                         <td className="term-td" style={{textAlign:'center',padding:pad}}><StatusPill/></td>
                       </tr>
                     );
                   })}
                 </tbody>
               </table>
+              {terminalData.length>TERM_COLLAPSE&&(
+                <div style={{textAlign:'center',padding:'12px 0'}}>
+                  <button className="intel-chip" onClick={()=>setTermExpanded(e=>!e)}
+                          style={{padding:'6px 20px',fontSize:10,letterSpacing:'.08em'}}>
+                    {termExpanded?'COLLAPSE':(`SHOW ALL ${terminalData.length}`)}
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -2473,6 +2633,160 @@ function Intel(){
                   </div>
                 </div>
               )}
+
+              {/* NBA.COM ADVANCED */}
+              <div style={{marginBottom:24}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+                  <div style={{fontSize:9,fontWeight:700,letterSpacing:'.12em',color:'var(--smoke)'}}>NBA.COM ADVANCED</div>
+                  {!nbaAdvLoading&&!nbaAdv&&(
+                    <button className="btn btn-secondary btn-sm" onClick={loadNbaAdv}>LOAD</button>
+                  )}
+                  {nbaAdvLoading&&<div style={{display:'flex',alignItems:'center',gap:6}}><span className="pulse-dot" style={{width:6,height:6}}/><span style={{fontSize:9,letterSpacing:'.08em',color:'var(--smoke)'}}>FETCHING</span></div>}
+                </div>
+                {nbaAdv&&(()=>{
+                  const{shots,hustle,shotTypes,tracking}=nbaAdv;
+
+                  // ── Shot chart ──────────────────────────────────────────────
+                  function ShotChartSVG({shots}){
+                    if(!shots||!shots.length)return<div style={{fontSize:10,color:'var(--smoke)'}}>No shot data.</div>;
+                    const W=280,H=265;
+                    const scX=x=>(x+250)/500*W;
+                    const scY=y=>(1-(y+47.5)/470)*H;
+                    const made=shots.filter(s=>s.made);
+                    const missed=shots.filter(s=>!s.made);
+                    const fgPct=shots.length>0?(made.length/shots.length*100).toFixed(1):'--';
+                    return(
+                      <div style={{position:'relative',display:'inline-block'}}>
+                        <svg width={W} height={H} style={{display:'block',background:'var(--graphite)',borderRadius:4}}>
+                          {/* Court outline */}
+                          <rect x={scX(-250)} y={scY(422.5)} width={W} height={H} fill="none"/>
+                          {/* Paint */}
+                          <rect x={scX(-80)} y={scY(142.5)} width={scX(80)-scX(-80)} height={scY(-47.5)-scY(142.5)} fill="none" stroke="rgba(255,255,255,.1)" strokeWidth="1"/>
+                          {/* Basket */}
+                          <circle cx={scX(0)} cy={scY(0)} r={4} fill="none" stroke="rgba(255,255,255,.4)" strokeWidth="1.5"/>
+                          {/* 3PT arc (simplified) */}
+                          <path d={`M ${scX(-220)} ${scY(-47.5)} L ${scX(-220)} ${scY(89.47)} A 237.5 237.5 0 0 0 ${scX(220)} ${scY(89.47)} L ${scX(220)} ${scY(-47.5)}`} fill="none" stroke="rgba(255,255,255,.12)" strokeWidth="1"/>
+                          {/* Missed shots */}
+                          {missed.map((s,i)=><circle key={'m'+i} cx={scX(s.x)} cy={scY(s.y)} r={2.5} fill="none" stroke="rgba(229,72,77,.55)" strokeWidth="1"/>)}
+                          {/* Made shots */}
+                          {made.map((s,i)=><circle key={'h'+i} cx={scX(s.x)} cy={scY(s.y)} r={2.5} fill="rgba(0,255,136,.7)" stroke="none"/>)}
+                        </svg>
+                        <div style={{display:'flex',gap:16,marginTop:6,fontSize:9,color:'var(--smoke)'}}>
+                          <span><span style={{color:'var(--neon)'}}>●</span> MADE ({made.length})</span>
+                          <span><span style={{color:'var(--trend-down)'}}>○</span> MISSED ({missed.length})</span>
+                          <span style={{marginLeft:'auto',color:'var(--bone)',fontWeight:700}}>FG% {fgPct}%</span>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  // ── Hustle grid ─────────────────────────────────────────────
+                  function HustleGrid({hustle}){
+                    if(!hustle)return<div style={{fontSize:10,color:'var(--smoke)'}}>No hustle data.</div>;
+                    const items=[
+                      {lbl:'CONT. 2PT',val:hustle.contested_2pt},
+                      {lbl:'CONT. 3PT',val:hustle.contested_3pt},
+                      {lbl:'DEFLECTIONS',val:hustle.deflections},
+                      {lbl:'CHARGES',val:hustle.charges_drawn},
+                      {lbl:'SCR AST',val:hustle.screen_assists},
+                      {lbl:'BOX OUTS',val:hustle.box_outs},
+                      {lbl:'LOOSE BALLS',val:hustle.loose_balls_recovered},
+                    ].filter(x=>x.val!=null);
+                    const gp=hustle.games_played||1;
+                    return(
+                      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(76px,1fr))',gap:8}}>
+                        {items.map(({lbl,val})=>(
+                          <div key={lbl} style={{background:'var(--void)',borderRadius:4,padding:'6px 8px'}}>
+                            <div style={{fontSize:8,letterSpacing:'.1em',color:'var(--smoke)',marginBottom:2}}>{lbl}</div>
+                            <div className="stat-num" style={{fontSize:18,fontWeight:900,color:'var(--bone)'}}>{(val/gp).toFixed(1)}</div>
+                            <div style={{fontSize:8,color:'rgba(255,255,255,.25)'}}>PER GAME</div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  }
+
+                  // ── Shot type bars ──────────────────────────────────────────
+                  function ShotTypeBars({shotTypes}){
+                    if(!shotTypes||!shotTypes.length)return<div style={{fontSize:10,color:'var(--smoke)'}}>No shot type data.</div>;
+                    const maxFreq=Math.max(...shotTypes.map(s=>s.freq||0),0.01);
+                    return(
+                      <div style={{display:'flex',flexDirection:'column',gap:5}}>
+                        {shotTypes.slice(0,6).map(s=>{
+                          const pct=Math.round((s.fg_pct||0)*100);
+                          const barW=Math.round((s.freq||0)/maxFreq*100);
+                          const clr=pct>=55?'var(--neon)':pct>=45?'var(--trend-up)':pct>=38?'var(--bone)':'var(--trend-down)';
+                          return(
+                            <div key={s.shot_type}>
+                              <div style={{display:'flex',justifyContent:'space-between',fontSize:9,color:'var(--smoke)',marginBottom:2}}>
+                                <span style={{letterSpacing:'.06em'}}>{s.shot_type.toUpperCase()}</span>
+                                <span style={{color:clr,fontWeight:700}}>{pct}%</span>
+                              </div>
+                              <div style={{height:4,background:'rgba(255,255,255,.06)',borderRadius:2,overflow:'hidden'}}>
+                                <div style={{height:'100%',width:barW+'%',background:clr,borderRadius:2,transition:'width .3s'}}/>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  }
+
+                  // ── Tracking grid ───────────────────────────────────────────
+                  function TrackingGrid({tracking}){
+                    if(!tracking||!Object.keys(tracking).length)return<div style={{fontSize:10,color:'var(--smoke)'}}>No tracking data.</div>;
+                    const items=[
+                      {lbl:'AVG SPEED',val:tracking.avg_speed,fmt:v=>v!=null?v.toFixed(1)+' MPH':'--'},
+                      {lbl:'DIST/GM',val:tracking.dist_feet,fmt:v=>v!=null?(v/5280).toFixed(2)+' MI':'--'},
+                      {lbl:'TOUCHES',val:tracking.touches,fmt:v=>v!=null?v.toFixed(1):'--'},
+                      {lbl:'POSS TIME',val:tracking.time_of_poss,fmt:v=>v!=null?v.toFixed(1)+'s':'--'},
+                      {lbl:'DRIB/TOUCH',val:tracking.avg_drib_per_touch,fmt:v=>v!=null?v.toFixed(1):'--'},
+                      {lbl:'SEC/TOUCH',val:tracking.avg_sec_per_touch,fmt:v=>v!=null?v.toFixed(1)+'s':'--'},
+                    ].filter(x=>x.val!=null);
+                    if(!items.length)return<div style={{fontSize:10,color:'var(--smoke)'}}>No tracking data.</div>;
+                    return(
+                      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(88px,1fr))',gap:8}}>
+                        {items.map(({lbl,val,fmt})=>(
+                          <div key={lbl} style={{background:'var(--void)',borderRadius:4,padding:'6px 8px'}}>
+                            <div style={{fontSize:8,letterSpacing:'.1em',color:'var(--smoke)',marginBottom:2}}>{lbl}</div>
+                            <div className="stat-num" style={{fontSize:16,fontWeight:900,color:'var(--bone)'}}>{fmt(val)}</div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  }
+
+                  const hasAny=shots||hustle||shotTypes||tracking;
+                  if(!hasAny)return<div style={{fontSize:10,color:'var(--smoke)',padding:'8px 0'}}>stats.nba.com returned no data for this player. The server may be blocked on Railway.</div>;
+
+                  return(
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20}}>
+                      {/* Left column: shot chart + shot types */}
+                      <div>
+                        {shots&&<>
+                          <div style={{fontSize:8,letterSpacing:'.12em',color:'var(--smoke)',fontWeight:700,marginBottom:6}}>SHOT CHART</div>
+                          <ShotChartSVG shots={shots}/>
+                        </>}
+                        {shotTypes&&<>
+                          <div style={{fontSize:8,letterSpacing:'.12em',color:'var(--smoke)',fontWeight:700,margin:'14px 0 6px'}}>SHOT TYPES</div>
+                          <ShotTypeBars shotTypes={shotTypes}/>
+                        </>}
+                      </div>
+                      {/* Right column: hustle + tracking */}
+                      <div>
+                        {hustle&&<>
+                          <div style={{fontSize:8,letterSpacing:'.12em',color:'var(--smoke)',fontWeight:700,marginBottom:6}}>HUSTLE</div>
+                          <HustleGrid hustle={hustle}/>
+                        </>}
+                        {tracking&&<>
+                          <div style={{fontSize:8,letterSpacing:'.12em',color:'var(--smoke)',fontWeight:700,margin:'14px 0 6px'}}>MOVEMENT</div>
+                          <TrackingGrid tracking={tracking}/>
+                        </>}
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
 
               {/* PIVOT INTEL */}
               <div>
