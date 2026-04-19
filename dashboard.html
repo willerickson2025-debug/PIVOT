@@ -345,10 +345,7 @@ select{
 .term-tr:hover{background:var(--row-hover) !important;}
 
 /* ─── GAMES v2 ───────────────────────────────────────────────────────────────── */
-/* Additional tokens */
 :root{--live:#1FBF7A;--clutch:#E0B341;--alert:#E5484D;--blowout:#6B7280;--hero-border:rgba(0,255,136,.4);}
-
-.gr-page{padding-top:62px;padding-bottom:48px;}
 
 /* Date ribbon */
 .gr-ribbon{position:sticky;top:62px;z-index:150;height:52px;background:var(--void);border-bottom:1px solid var(--divider);display:flex;align-items:center;padding:0 24px;gap:8px;overflow-x:auto;scrollbar-width:none;}
@@ -358,89 +355,71 @@ select{
 .gr-day-pill{flex-shrink:0;width:52px;height:40px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;border-radius:999px;transition:background 120ms,color 120ms;border:1px solid transparent;}
 .gr-day-pill.active{background:var(--neon);color:var(--void);}
 .gr-day-pill:hover:not(.active){background:rgba(255,255,255,.06);}
-.gr-day-dw{font-size:9px;font-weight:700;letter-spacing:.08em;line-height:1;}
-.gr-day-dt{font-size:13px;font-weight:900;letter-spacing:'-.01em';font-variant-numeric:tabular-nums;line-height:1.3;}
-.gr-day-ct{font-size:8px;font-weight:700;color:var(--smoke);line-height:1;margin-top:2px;}
 .gr-today-btn{flex-shrink:0;margin-left:8px;height:28px;padding:0 14px;font-size:10px;font-weight:700;letter-spacing:.08em;border:1px solid var(--neon);background:transparent;color:var(--neon);cursor:pointer;font-family:var(--font);text-transform:uppercase;transition:background 120ms;}
 .gr-today-btn:hover{background:rgba(0,255,102,.1);}
-.gr-mode-row{display:flex;gap:4px;margin-left:auto;flex-shrink:0;}
-.gr-mode-btn{height:24px;padding:0 12px;font-size:9px;font-weight:700;letter-spacing:.1em;border:1px solid rgba(255,255,255,.08);background:transparent;color:var(--smoke);cursor:pointer;font-family:var(--font);text-transform:uppercase;transition:all 100ms;}
-.gr-mode-btn.active{background:var(--bone);color:var(--void);border-color:var(--bone);}
 
 /* League pulse */
-.gr-pulse{position:sticky;top:114px;z-index:149;height:40px;background:var(--void);border-bottom:1px solid var(--divider);display:flex;align-items:center;padding:0 24px;gap:0;overflow-x:auto;scrollbar-width:none;}
+.gr-pulse{position:sticky;top:114px;z-index:149;height:40px;background:var(--void);border-bottom:1px solid var(--divider);display:flex;align-items:center;padding:0;gap:0;overflow-x:auto;scrollbar-width:none;}
 .gr-pulse::-webkit-scrollbar{display:none;}
-.gr-pulse-cell{padding:0 16px;border-right:1px solid var(--divider);height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;flex-shrink:0;}
-.gr-pulse-label{font-size:9px;font-weight:700;letter-spacing:.1em;color:var(--smoke);}
-.gr-pulse-val{font-size:13px;font-weight:900;font-variant-numeric:tabular-nums;}
+.gr-pulse-cell{padding:0 14px;border-right:1px solid var(--divider);height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;flex-shrink:0;}
 .gr-pulse-dot{width:6px;height:6px;border-radius:50%;background:var(--live);box-shadow:0 0 6px var(--live);animation:blink 2s ease-in-out infinite;flex-shrink:0;}
-.gr-pulse-rolling{padding:0 16px;font-size:10px;font-weight:700;color:var(--smoke);flex-shrink:0;min-width:160px;}
 
-/* Hero card */
-.gr-hero{margin:16px 0 20px;border:1px solid rgba(0,255,136,.2);background:var(--carbon);border-radius:4px;overflow:hidden;transition:border-color 200ms;padding:16px 20px;cursor:pointer;}
+/* Body grid: 2-column on wide, single on narrow */
+.gr-body-grid{display:grid;grid-template-columns:1fr 280px;gap:24px;padding:0 24px;align-items:start;margin-top:4px;}
+@media(max-width:1279px){.gr-body-grid{grid-template-columns:1fr;}}
+.gr-main-col{min-width:0;}
+.gr-sidebar{position:sticky;top:158px;display:flex;flex-direction:column;gap:20px;align-self:start;}
+@media(max-width:1279px){.gr-sidebar{position:static;}}
+
+/* Hero card: 5-zone dense layout */
+.gr-hero{margin:12px 0 14px;border:1px solid rgba(0,255,136,.18);background:var(--carbon);border-radius:4px;overflow:hidden;padding:12px 16px;cursor:pointer;transition:border-color 200ms;}
 .gr-hero:hover{border-color:var(--hero-border);}
-.gr-hero-body{display:grid;grid-template-columns:1fr auto 1fr;gap:0;padding:16px 0;}
-.gr-hero-center{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 24px;gap:4px;}
-.gr-wp-bar{height:8px;width:100%;display:flex;overflow:hidden;border-radius:4px;position:relative;}
+.gr-wp-bar{height:6px;width:100%;display:flex;overflow:hidden;border-radius:3px;}
 .gr-wp-seg{height:100%;transition:width 400ms ease;}
 
 /* Live game cards */
-.gr-live-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;padding:0 24px 24px;}
-.gr-live-card{background:var(--carbon);border:1px solid var(--divider);border-left:2px solid transparent;border-radius:4px;padding:0;overflow:hidden;cursor:pointer;transition:border-color 180ms;}
+.gr-live-card{background:var(--carbon);border:1px solid var(--divider);border-left:2px solid transparent;border-radius:4px;overflow:hidden;cursor:pointer;transition:border-color 180ms;margin-bottom:6px;}
 .gr-live-card:hover{border-color:rgba(0,255,136,.4);border-left-color:var(--neon);}
-.gr-live-card.clutch{border-left-color:var(--clutch);}
-.gr-card-status{display:flex;align-items:center;justify-content:space-between;padding:6px 12px;border-bottom:1px solid rgba(255,255,255,.04);height:28px;}
-.gr-card-clock{display:flex;align-items:center;gap:5px;font-size:10px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:.04em;}
-.gr-card-tag{font-size:8px;font-weight:700;letter-spacing:.1em;color:var(--smoke);}
-.gr-card-teams{padding:8px 12px;}
-.gr-card-team-row{display:flex;align-items:center;height:32px;}
-.gr-card-score{font-size:26px;font-weight:900;letter-spacing:'-.04em';font-variant-numeric:tabular-nums;margin-left:auto;}
-.gr-card-abbr{font-size:13px;font-weight:900;letter-spacing:'-.01em';margin-left:8px;}
-.gr-card-record{font-size:9px;color:var(--smoke);margin-left:6px;}
-.gr-card-wp{padding:0 12px 4px;}
-.gr-card-leaders{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:6px 12px;border-top:1px solid rgba(255,255,255,.04);}
-.gr-card-ldr-label{font-size:8px;font-weight:700;letter-spacing:.1em;color:var(--smoke);margin-bottom:2px;}
-.gr-card-ldr-val{font-size:10px;font-weight:700;font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.gr-card-splits{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:6px 12px;border-top:1px solid rgba(255,255,255,.04);}
-.gr-card-split-cell{text-align:center;}
-.gr-card-split-lbl{font-size:8px;letter-spacing:.06em;color:var(--smoke);}
-.gr-card-split-val{font-size:11px;font-weight:900;font-variant-numeric:tabular-nums;}
+.gr-card-status{display:flex;align-items:center;gap:6px;padding:5px 10px;border-bottom:1px solid rgba(255,255,255,.04);}
+.gr-card-team-row{display:flex;align-items:center;padding:6px 10px;}
+.gr-card-score{font-size:22px;font-weight:900;font-variant-numeric:tabular-nums;margin-left:auto;}
+.gr-card-wp{height:5px;display:flex;margin:0 10px 6px;}
+
+/* Section labels: tight */
+.gr-section-label{font-size:8px;font-weight:700;letter-spacing:.14em;color:var(--smoke);padding:8px 0 5px;display:flex;align-items:center;gap:5px;}
 
 /* Finals rows */
-.gr-finals-section{padding-bottom:8px;}
-.gr-section-label{font-size:9px;font-weight:700;letter-spacing:.14em;color:var(--smoke);padding:12px 0 8px;}
-.gr-final-row{display:flex;align-items:center;height:44px;border-bottom:1px solid rgba(255,255,255,.04);border-left:2px solid transparent;padding:0 8px;cursor:pointer;transition:background 80ms,border-left-color 80ms;}
-.gr-final-row:hover{background:var(--row-hover);border-left-color:var(--neon);}
-.gr-upcoming-row{display:flex;align-items:center;height:40px;border-bottom:1px solid rgba(255,255,255,.04);border-left:2px solid transparent;padding:0 8px;cursor:pointer;transition:background 80ms,border-left-color 80ms;}
-.gr-upcoming-row:hover{background:var(--row-hover);border-left-color:var(--neon);}
+.gr-finals-section{margin-bottom:10px;}
+.gr-final-row{display:flex;align-items:center;height:40px;border-bottom:1px solid rgba(255,255,255,.04);border-left:2px solid transparent;padding:0 4px;cursor:pointer;transition:background 80ms,border-left-color 80ms;gap:4px;overflow:hidden;}
+.gr-final-row:hover{background:rgba(0,255,136,.03);border-left-color:var(--neon);}
 
-/* Feed and milestones */
-.gr-side-panel{display:flex;flex-direction:column;gap:1px;background:var(--divider);}
-.gr-feed-wrap{background:var(--void);}
-.gr-mile-wrap{background:var(--void);}
-.gr-panel-hd{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--divider);font-size:10px;font-weight:700;letter-spacing:.1em;}
-.gr-auto-pill{display:flex;align-items:center;gap:5px;font-size:9px;font-weight:700;letter-spacing:.08em;color:var(--smoke);}
-.gr-feed-item{display:flex;flex-direction:column;justify-content:center;padding:7px 16px;gap:2px;border-bottom:1px solid rgba(255,255,255,.03);}
-.gr-feed-time{font-size:9px;color:var(--smoke);font-variant-numeric:tabular-nums;min-width:44px;flex-shrink:0;}
-.gr-feed-game{font-size:9px;color:var(--smoke);min-width:60px;flex-shrink:0;}
-.gr-feed-type{font-size:8px;font-weight:700;letter-spacing:.08em;padding:1px 5px;border:1px solid var(--wire);}
-.gr-feed-desc{font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--bone);}
-.gr-mile-row{display:flex;flex-direction:column;justify-content:center;padding:8px 16px;border-bottom:1px solid rgba(255,255,255,.03);}
-.gr-mile-prog{flex:1;height:3px;background:rgba(255,255,255,.08);position:relative;overflow:hidden;border-radius:2px;}
+/* Upcoming rows */
+.gr-upcoming-row{display:flex;align-items:center;height:38px;border-bottom:1px solid rgba(255,255,255,.04);border-left:2px solid transparent;padding:0 4px;transition:background 80ms,border-left-color 80ms;gap:4px;overflow:hidden;}
+.gr-upcoming-row:hover{background:rgba(0,255,136,.03);border-left-color:var(--neon);}
+
+/* Sidebar modules */
+.gr-feed-wrap{background:var(--carbon);border:1px solid var(--divider);border-radius:4px;overflow:hidden;}
+.gr-mile-wrap{background:var(--carbon);border:1px solid var(--divider);border-radius:4px;overflow:hidden;}
+.gr-panel-hd{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid var(--divider);font-size:9px;font-weight:700;letter-spacing:.12em;}
+.gr-auto-pill{display:flex;align-items:center;gap:4px;font-size:8px;font-weight:700;letter-spacing:.08em;color:var(--smoke);}
+/* Feed: compact 32px rows with inline type pill */
+.gr-feed-item{display:flex;align-items:center;height:32px;padding:0 12px;gap:6px;border-bottom:1px solid rgba(255,255,255,.03);overflow:hidden;}
+.gr-feed-type{font-size:8px;font-weight:700;letter-spacing:.08em;padding:1px 4px;border:1px solid var(--wire);flex-shrink:0;white-space:nowrap;}
+.gr-feed-desc{font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--bone);flex:1;}
+/* Milestones: 36px rows */
+.gr-mile-row{display:flex;flex-direction:column;justify-content:center;padding:5px 12px;border-bottom:1px solid rgba(255,255,255,.03);min-height:36px;}
+.gr-mile-prog{height:3px;background:rgba(255,255,255,.08);position:relative;overflow:hidden;border-radius:2px;width:100%;margin-top:3px;}
 .gr-mile-fill{position:absolute;left:0;top:0;bottom:0;background:var(--neon);border-radius:2px;transition:width 300ms ease;}
 
 /* Series board */
-.gr-series-board{border:1px solid var(--divider);border-radius:4px;overflow:hidden;margin-top:16px;}
-.gr-series-row{padding:10px 16px;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer;transition:background 80ms;}
+.gr-series-board{border:1px solid var(--divider);border-radius:4px;overflow:hidden;margin-top:14px;}
+.gr-series-row{padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer;transition:background 80ms;}
 .gr-series-row:hover{background:var(--row-hover);}
-.gr-series-dots{display:flex;gap:5px;align-items:center;}
-.gr-series-dot{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);}
-.gr-series-dot.filled{background:currentColor;border:none;}
 
-/* B2B / clutch pills */
-.gr-b2b{font-size:7px;font-weight:700;letter-spacing:.08em;background:rgba(224,179,65,.12);color:var(--clutch);padding:1px 5px;margin-left:4px;}
-.gr-clutch-pill{font-size:8px;font-weight:700;letter-spacing:.1em;background:rgba(224,179,65,.15);color:var(--clutch);padding:2px 6px;}
-.gr-tv-pill{font-size:8px;font-weight:700;letter-spacing:.08em;background:rgba(255,255,255,.08);color:var(--bone);padding:2px 6px;}
+/* Pills */
+.gr-b2b{font-size:7px;font-weight:700;letter-spacing:.08em;background:rgba(224,179,65,.12);color:var(--clutch);padding:1px 4px;flex-shrink:0;}
+.gr-clutch-pill{font-size:8px;font-weight:700;letter-spacing:.1em;background:rgba(224,179,65,.15);color:var(--clutch);padding:2px 5px;}
+.gr-tv-pill{font-size:7px;font-weight:700;letter-spacing:.08em;background:rgba(255,255,255,.08);color:var(--smoke);padding:1px 4px;flex-shrink:0;}
 
 /* ─── WAR ROOM ──────────────────────────────────────────────────────────────── */
 .wr-ribbon{
@@ -708,26 +687,36 @@ const RIVALRIES={
 };
 function isRivals(a,b){return!!(RIVALRIES[a+'-'+b]||RIVALRIES[b+'-'+a]);}
 
-const WIN_PROB_HOME_ADJ=2.8; // home court advantage in pts
+const WIN_PROB_HOME_ADJ=2.5;
 
 function computeWinProb(homePts,awayPts,period,timeStr){
-  // Returns 0-1 probability of home team winning
   if(!period||period===0)return 0.55;
-  const parseT=t=>{if(!t)return 0;const[m,s]=(t+'').split(':').map(Number);return(m||0)*60+(s||0);};
-  const secInPeriod=parseT(timeStr);
+  const p=parseInt(period,10)||4;
+  // Strip embedded quarter prefix before parsing time
+  const cleanT=(timeStr+'').replace(/^\s*[A-Za-z]+\d*\s+/,'').trim();
+  const parseT=t=>{if(!t)return 0;const pts=(t+'').split(':').map(Number);return(pts[0]||0)*60+(pts[1]||0);};
+  const secLeft=parseT(cleanT);
   const periodSec=12*60;
   const totalSec=48*60;
-  const ot=Math.max(0,period-4);
+  const ot=Math.max(0,p-4);
   const otSec=ot*5*60;
-  const elapsed=Math.min(4,period-1)*periodSec+(periodSec-secInPeriod)+otSec;
-  const remaining=Math.max(0,totalSec+otSec-elapsed);
-  const timeFrac=elapsed/(totalSec+otSec);
+  const elapsed=Math.min(4,p-1)*periodSec+(periodSec-secLeft)+otSec;
+  const timeFrac=elapsed/(totalSec+otSec||1);
   const diff=homePts-awayPts;
-  // As game progresses, score diff matters more
-  const weight=0.08+timeFrac*0.32;
-  const homeAdj=WIN_PROB_HOME_ADJ*(1-timeFrac*0.6);
+  // Low weight early, scales up as game closes
+  const weight=0.03+timeFrac*0.15;
+  const homeAdj=WIN_PROB_HOME_ADJ*(1-timeFrac*0.5);
   const logit=diff*weight+homeAdj;
-  return 1/(1+Math.exp(-logit));
+  const raw=1/(1+Math.exp(-logit));
+  // Time-dependent ceiling: caps leading-team probability by quarter
+  let ceil;
+  if(p===1)ceil=0.75;
+  else if(p===2)ceil=0.85;
+  else if(p===3)ceil=0.92;
+  else if(p===4&&secLeft>300)ceil=0.96;
+  else ceil=0.99;
+  // Clamp both sides symmetrically
+  return Math.max(1-ceil,Math.min(ceil,raw));
 }
 
 const TEAM_TV={'LAL-GSW':'TNT','BOS-MIA':'ESPN','DEN-OKC':'TNT','NYK-IND':'ABC','PHI-BOS':'ESPN'};
@@ -760,6 +749,38 @@ const SEEDED_MILESTONES=[
   {player:'Jalen Brunson',team:'NYK',current:8,target:9,targetLabel:'PLAYOFF REB HIGH',total:10,clock:'Q3 5:11'},
 ];
 
+// Per-game seeded leader + stat extras for hero density and row fields
+const SEEDED_EXTRAS={
+  'DEN-LAL':{awayLeader:'N. JOKIC 28 PTS / 11 REB / 9 AST',homeLeader:'LEBRON 26 PTS / 9 REB / 7 AST',awayFG:52,homeFG:51,awayTP:38,homeTP:42,awayReb:24,homeReb:26,awayBL:9,homeBL:14,narrative:'LAL on 14-4 run to close Q1, LeBron 8 in the quarter'},
+  'OKC-MEM':{awayLeader:'SGA 38 PTS / 5 REB / 6 AST',homeLeader:'J. WELLS 22 PTS / 4 REB / 3 AST',awayFG:54,homeFG:43,awayTP:47,homeTP:32,awayReb:22,homeReb:28,awayBL:22,homeBL:8,narrative:'OKC 22-4 run in Q3 sealed it, SGA approaching season high'},
+  'NYK-PHI':{awayLeader:'J. BRUNSON 32 PTS / 9 REB / 7 AST',homeLeader:'J. EMBIID 31 PTS / 12 REB / 4 AST',awayFG:48,homeFG:44,awayTP:42,homeTP:36,awayReb:34,homeReb:38,awayBL:17,homeBL:12,narrative:'NYK leads 3-1 in series, Brunson 28 PPG in playoffs'},
+  'MIL-IND':{awayLeader:'G. ANTETOKOUNMPO 34 PTS / 14 REB / 6 AST',homeLeader:'T. HALIBURTON 22 PTS / 6 REB / 11 AST',awayFG:51,homeFG:46,awayTP:35,homeTP:39,awayReb:42,homeReb:36,awayBL:8,homeBL:14,narrative:'Series tied 2-2, both teams above 50% FG in series'},
+  'LAL-GSW':{awayLeader:'LEBRON 33 PTS / 10 REB / 9 AST',homeLeader:'S. CURRY 28 PTS / 5 REB / 8 AST',awayFG:49,homeFG:47,awayTP:38,homeTP:44,awayReb:38,homeReb:36,awayBL:12,homeBL:16,narrative:'LAL 7-2 run to open Q3, LeBron 4 straight 30-point games'},
+};
+function getExtras(away,home){return SEEDED_EXTRAS[away+'-'+home]||SEEDED_EXTRAS[home+'-'+away]||null;}
+
+// Upcoming game metadata: TV, rest, B2B, angle
+const SEEDED_UPCOMING={
+  'MIL-IND':{tv:'ESPN',b2b:false,angle:'MIL 7-2 vs IND at home in playoffs'},
+  'BOS-MIA':{tv:'ESPN',b2b:false,angle:'BOS 8-2 vs MIA past 4 years'},
+  'DEN-LAL':{tv:'TNT',b2b:false,angle:'LeBron 29 PPG vs DEN career'},
+  'OKC-MEM':{tv:'TNT',b2b:false,angle:'OKC 18-2 vs MEM last 20 games'},
+  'NYK-PHI':{tv:'ABC',b2b:false,angle:'Brunson 28 PPG vs PHI in career'},
+  'LAL-GSW':{tv:'TNT',b2b:false,angle:'LeBron 33 PPG vs GSW in playoffs'},
+  'DAL-LAL':{tv:'ESPN',b2b:true,angle:'Luka 38 PTS in elimination games'},
+};
+function getUpcoming(away,home){return SEEDED_UPCOMING[away+'-'+home]||SEEDED_UPCOMING[home+'-'+away]||{};}
+
+// Series tag: "G4 NYK LEADS 3-1" or "G5 TIED 2-2"
+function seriesTag(away,home){
+  const s=SEEDED_SERIES.find(x=>(x.awayTeam===away&&x.homeTeam===home)||(x.awayTeam===home&&x.homeTeam===away));
+  if(!s)return null;
+  const g=s.awayW+s.homeW+1;
+  if(s.awayW===s.homeW)return `G${g} TIED ${s.awayW}-${s.homeW}`;
+  const leader=s.awayW>s.homeW?s.awayTeam:s.homeTeam;
+  return `G${g} ${leader} LEADS ${Math.max(s.awayW,s.homeW)}-${Math.min(s.awayW,s.homeW)}`;
+}
+
 const TEAM_PRIMARY_GAMES={
   GSW:'#1D428A',BOS:'#007A33',PHX:'#1D1160',MIL:'#00471B',LAL:'#552583',
   NYK:'#006BB6',DET:'#C8102E',MIN:'#0C2340',PHI:'#006BB6',MIA:'#98002E',
@@ -786,11 +807,14 @@ function useLiveClock(){
   return tick;
 }
 
-// Formats a clock string like "4:22" or period from game object
+// Formats period + clock into a single token like "Q2 6:22"
 function fmtClock(period,time){
   if(!period)return'';
-  const q=period>4?'OT'+(period>5?period-4:''):`Q${period}`;
-  return time?`${q} ${time}`:q;
+  const p=parseInt(period,10)||period;
+  const q=p>4?'OT'+(p>5?p-4:''):`Q${p}`;
+  // Strip any quarter/period prefix the API may embed in the time string (e.g. "Q2 6:22" -> "6:22")
+  const t=time?(time+'').replace(/^\s*[A-Za-z]+\d*\s+/,'').trim():'';
+  return t?`${q} ${t}`:q;
 }
 
 // WP color for a team
@@ -1330,112 +1354,140 @@ function DateRibbon({date,setDate}){
   );
 }
 
-// Module 2: League Pulse
+// Module 2: League Pulse — counts + clutch/close/blowout metrics, no inline scores
 function LeaguePulse({games}){
   const live=games.filter(g=>parseStatus(g.status).type==='live');
   const final=games.filter(g=>parseStatus(g.status).type==='final');
-  const sched=games.filter(g=>parseStatus(g.status).type==='scheduled');
+  const sched=games.filter(g=>parseStatus(g.status).type==='sched');
+  const clutch=live.filter(g=>g.period>=4&&Math.abs((g.home_team_score||0)-(g.visitor_team_score||0))<=5).length;
+  const close=live.filter(g=>Math.abs((g.home_team_score||0)-(g.visitor_team_score||0))<=5).length;
+  const blowout=live.filter(g=>Math.abs((g.home_team_score||0)-(g.visitor_team_score||0))>=20).length;
   const cells=[
-    {label:'LIVE',val:live.length,active:live.length>0,color:'var(--live)'},
-    {label:'FINAL',val:final.length,active:false,color:'var(--bone)'},
-    {label:'UPCOMING',val:sched.length,active:false,color:'var(--smoke)'},
-    {label:'TOTAL',val:games.length,active:false,color:'var(--neon)'},
+    {label:'LIVE',val:live.length,dot:live.length>0,color:'var(--live)'},
+    {label:'FINAL',val:final.length,color:'var(--bone)'},
+    {label:'UPCOMING',val:sched.length,color:'var(--smoke)'},
+    {label:'TOTAL',val:games.length,color:'var(--neon)'},
   ];
+  if(live.length>0){
+    if(clutch>0)cells.push({label:'CLUTCH',val:clutch,color:'var(--clutch)'});
+    if(close>0&&close!==clutch)cells.push({label:'CLOSE',val:close,color:'var(--bone)'});
+    if(blowout>0)cells.push({label:'BLOWOUT',val:blowout,color:'var(--blowout)'});
+  }
   return (
     <div className="gr-pulse">
       {cells.map(c=>(
         <div key={c.label} className="gr-pulse-cell">
-          {c.active&&<span className="gr-pulse-dot"/>}
-          <span style={{color:c.color,fontWeight:900,fontSize:18,letterSpacing:'-.02em',fontVariantNumeric:'tabular-nums'}}>{c.val}</span>
-          <span style={{fontSize:8,fontWeight:700,letterSpacing:'.14em',color:'var(--smoke)',marginTop:2}}>{c.label}</span>
+          {c.dot&&<span className="gr-pulse-dot" style={{marginBottom:1}}/>}
+          <span style={{color:c.color||'var(--bone)',fontWeight:900,fontSize:16,letterSpacing:'-.02em',fontVariantNumeric:'tabular-nums'}}>{c.val}</span>
+          <span style={{fontSize:8,fontWeight:700,letterSpacing:'.12em',color:'var(--smoke)',marginTop:1}}>{c.label}</span>
         </div>
       ))}
-      {live.length>0&&(
-        <div style={{flex:1,display:'flex',alignItems:'center',gap:8,padding:'0 16px',overflow:'hidden',whiteSpace:'nowrap'}}>
-          <span className="gr-pulse-dot"/>
-          <span style={{fontSize:9,fontWeight:700,letterSpacing:'.1em',color:'var(--live)'}}>GAMES IN PROGRESS:</span>
-          {live.map((g,i)=>{
-            const away=g.visitor_team?.abbreviation||'';
-            const home=g.home_team?.abbreviation||'';
-            const clk=fmtClock(g.period,g.time);
-            return (
-              <span key={g.id} style={{fontSize:10,fontWeight:900,color:'var(--bone)',letterSpacing:'.02em'}}>
-                {away} {g.visitor_team_score}–{g.home_team_score} {home}
-                <span style={{fontSize:8,color:'var(--smoke)',marginLeft:4}}>{clk}</span>
-                {i<live.length-1&&<span style={{color:'var(--wire)',marginLeft:8}}>·</span>}
-              </span>
-            );
-          })}
-        </div>
-      )}
     </div>
   );
 }
 
-// Module 3: Game of the Night hero card
-function GameOfTheNight({games,onSelect}){
+// Module 3: Hero card — 5-zone dense layout, team colors only in WP bar
+function GameOfTheNight({games,heroLabel,onSelect}){
   const gotn=selectGOTN(games);
   if(!gotn)return null;
   const{label,type}=parseStatus(gotn.status);
-  const live=type==='live';
-  const final=type==='final';
+  const isLive=type==='live';
+  const isFinal=type==='final';
   const away=gotn.visitor_team?.abbreviation||'AWY';
   const home=gotn.home_team?.abbreviation||'HOM';
   const awayScore=gotn.visitor_team_score??null;
   const homeScore=gotn.home_team_score??null;
   const hasScore=awayScore!=null&&homeScore!=null;
-  const wp=hasScore?computeWinProb(homeScore,awayScore,gotn.period,gotn.time):0.5;
+  const wp=hasScore?computeWinProb(homeScore,awayScore,gotn.period,gotn.time):null;
   const awayC=wpColor(away);
   const homeC=wpColor(home);
-  const reasons=gotnReasons(gotn);
   const clk=fmtClock(gotn.period,gotn.time);
+  const reasons=gotnReasons(gotn);
   const ser=SEEDED_SERIES.find(s=>(s.awayTeam===away&&s.homeTeam===home)||(s.awayTeam===home&&s.homeTeam===away));
+  const extras=getExtras(away,home);
+  const awayExt=TEAM_EXT[away]||{};
+  const homeExt=TEAM_EXT[home]||{};
+  const awayWon=isFinal&&awayScore>homeScore;
+  const homeWon=isFinal&&homeScore>awayScore;
+  const header=heroLabel||(isLive?'GAME OF THE NIGHT':'NEXT UP');
   return (
     <div className="gr-hero" onClick={()=>onSelect&&onSelect(gotn)}>
-      <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12}}>
-        <span style={{fontSize:8,fontWeight:900,letterSpacing:'.18em',color:'var(--neon)'}}>GAME OF THE NIGHT</span>
-        {live&&<><span className="gr-pulse-dot"/><span style={{fontSize:8,color:'var(--live)',fontWeight:700,letterSpacing:'.1em'}}>LIVE {clk}</span></>}
-        {ser&&<span style={{fontSize:8,fontWeight:700,letterSpacing:'.1em',color:'var(--smoke)',marginLeft:'auto'}}>
-          {ser.awayTeam} {ser.awayW}–{ser.homeW} {ser.homeTeam}
-        </span>}
-      </div>
-      <div className="gr-hero-body">
-        <div style={{textAlign:'center',flex:1}}>
-          <div style={{fontSize:9,fontWeight:700,letterSpacing:'.14em',color:'var(--smoke)',marginBottom:4}}>AWAY</div>
-          <div style={{fontSize:40,fontWeight:900,letterSpacing:'-.04em',color:awayC}}>{away}</div>
-          {hasScore&&<div style={{fontSize:52,fontWeight:900,letterSpacing:'-.06em',color:live?awayC:'var(--bone)',lineHeight:1}}>{awayScore}</div>}
-        </div>
-        <div className="gr-hero-center">
-          {!hasScore&&<div style={{fontSize:11,fontWeight:700,letterSpacing:'.08em',color:'var(--smoke)'}}>VS</div>}
-          {hasScore&&live&&<div style={{fontSize:10,fontWeight:900,letterSpacing:'.1em',color:'var(--live)'}}>{clk}</div>}
-          {final&&<div style={{fontSize:9,fontWeight:900,letterSpacing:'.14em',color:'var(--smoke)'}}>FINAL</div>}
-          {!live&&!final&&gotn.time&&<div style={{fontSize:9,color:'var(--smoke)',fontWeight:700}}>{gotn.time}</div>}
-        </div>
-        <div style={{textAlign:'center',flex:1}}>
-          <div style={{fontSize:9,fontWeight:700,letterSpacing:'.14em',color:'var(--smoke)',marginBottom:4}}>HOME</div>
-          <div style={{fontSize:40,fontWeight:900,letterSpacing:'-.04em',color:homeC}}>{home}</div>
-          {hasScore&&<div style={{fontSize:52,fontWeight:900,letterSpacing:'-.06em',color:live?homeC:'var(--bone)',lineHeight:1}}>{homeScore}</div>}
+      {/* Zone 1: Top strip */}
+      <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:8,overflow:'hidden'}}>
+        <span style={{fontSize:8,fontWeight:900,letterSpacing:'.16em',color:'var(--neon)',flexShrink:0}}>{header}</span>
+        <span style={{fontSize:8,color:'var(--smoke)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1}}>{reasons.join(' · ')}</span>
+        <div style={{display:'flex',alignItems:'center',gap:4,flexShrink:0,marginLeft:'auto'}}>
+          {isLive&&<span className="gr-pulse-dot"/>}
+          <span style={{fontSize:9,fontWeight:700,letterSpacing:'.08em',color:isLive?'var(--live)':isFinal?'var(--smoke)':'var(--bone)'}}>{isLive?clk:isFinal?'FINAL':label}</span>
         </div>
       </div>
-      {hasScore&&(
-        <div className="gr-wp-bar" style={{marginTop:12}}>
-          <div className="gr-wp-seg" style={{width:`${(1-wp)*100}%`,background:awayC,opacity:.85}}/>
-          <div className="gr-wp-seg" style={{width:`${wp*100}%`,background:homeC,opacity:.85}}/>
-          <div style={{position:'absolute',left:`${(1-wp)*100}%`,top:0,bottom:0,width:1,background:'rgba(0,0,0,.6)'}}/>
-          <div style={{position:'absolute',left:6,top:'50%',transform:'translateY(-50%)',fontSize:8,fontWeight:900,color:'#fff',mixBlendMode:'difference',letterSpacing:'.06em'}}>{Math.round((1-wp)*100)}%</div>
-          <div style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',fontSize:8,fontWeight:900,color:'#fff',mixBlendMode:'difference',letterSpacing:'.06em'}}>{Math.round(wp*100)}%</div>
+      {/* Zone 2: Teams row — neutral white, team colors only in WP bar */}
+      <div style={{display:'grid',gridTemplateColumns:'1fr 72px 1fr',paddingBottom:8}}>
+        <div style={{display:'flex',flexDirection:'column',gap:2}}>
+          <span style={{fontSize:8,fontWeight:700,letterSpacing:'.1em',color:'var(--smoke)'}}>AWAY</span>
+          <span style={{fontSize:13,fontWeight:900,letterSpacing:'.02em',color:'#F5F5F5'}}>{away}</span>
+          {awayExt.record&&<span style={{fontSize:9,color:'var(--smoke)'}}>{awayExt.record}{awayExt.seed?` #${awayExt.seed}`:''}</span>}
+          {hasScore&&<span style={{fontSize:30,fontWeight:900,fontVariantNumeric:'tabular-nums',lineHeight:1,marginTop:3,color:awayWon?'#F5F5F5':'var(--smoke)'}}>{awayScore}</span>}
+        </div>
+        <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:3}}>
+          {isLive&&<span style={{fontSize:9,fontWeight:900,color:'var(--live)',letterSpacing:'.04em'}}>{clk}</span>}
+          {!hasScore&&<span style={{fontSize:9,color:'var(--wire)',letterSpacing:'.08em'}}>AT</span>}
+          {isFinal&&<span style={{fontSize:8,fontWeight:700,color:'var(--smoke)',letterSpacing:'.1em'}}>FINAL</span>}
+          {ser&&<span style={{fontSize:7,color:'var(--smoke)',letterSpacing:'.04em',textAlign:'center'}}>{ser.awayW}-{ser.homeW}</span>}
+        </div>
+        <div style={{display:'flex',flexDirection:'column',gap:2,alignItems:'flex-end'}}>
+          <span style={{fontSize:8,fontWeight:700,letterSpacing:'.1em',color:'var(--smoke)'}}>HOME</span>
+          <span style={{fontSize:13,fontWeight:900,letterSpacing:'.02em',color:'#F5F5F5'}}>{home}</span>
+          {homeExt.record&&<span style={{fontSize:9,color:'var(--smoke)'}}>{homeExt.record}{homeExt.seed?` #${homeExt.seed}`:''}</span>}
+          {hasScore&&<span style={{fontSize:30,fontWeight:900,fontVariantNumeric:'tabular-nums',lineHeight:1,marginTop:3,color:homeWon?'#F5F5F5':'var(--smoke)'}}>{homeScore}</span>}
+        </div>
+      </div>
+      {/* Zone 3: Win probability bar with flanking labels */}
+      {wp!=null&&(
+        <div style={{marginBottom:8}}>
+          <div style={{display:'flex',justifyContent:'space-between',marginBottom:3}}>
+            <span style={{fontSize:10,fontWeight:900,fontVariantNumeric:'tabular-nums',color:'#F5F5F5'}}>{Math.round((1-wp)*100)}%</span>
+            <span style={{fontSize:8,color:'var(--smoke)',letterSpacing:'.08em',alignSelf:'center'}}>WIN PROB</span>
+            <span style={{fontSize:10,fontWeight:900,fontVariantNumeric:'tabular-nums',color:'#F5F5F5'}}>{Math.round(wp*100)}%</span>
+          </div>
+          <div className="gr-wp-bar">
+            <div className="gr-wp-seg" style={{width:`${(1-wp)*100}%`,background:awayC,opacity:.8}}/>
+            <div className="gr-wp-seg" style={{width:`${wp*100}%`,background:homeC,opacity:.8}}/>
+          </div>
         </div>
       )}
-      {reasons.length>0&&(
-        <div style={{display:'flex',gap:6,marginTop:10,flexWrap:'wrap'}}>
-          {reasons.map((r,i)=><span key={i} style={{fontSize:8,fontWeight:700,letterSpacing:'.12em',padding:'3px 7px',border:'1px solid rgba(0,255,102,.25)',color:'var(--neon)',borderRadius:2}}>{r}</span>)}
+      {/* Zone 4: Leaders row */}
+      {extras&&(
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,paddingBottom:7,borderBottom:'1px solid rgba(255,255,255,.05)',marginBottom:7}}>
+          <div>
+            <div style={{fontSize:8,fontWeight:700,letterSpacing:'.1em',color:'var(--smoke)',marginBottom:2}}>AWAY LEADER</div>
+            <div style={{fontSize:10,fontWeight:700,fontVariantNumeric:'tabular-nums',color:'#F5F5F5',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{extras.awayLeader}</div>
+          </div>
+          <div style={{textAlign:'right'}}>
+            <div style={{fontSize:8,fontWeight:700,letterSpacing:'.1em',color:'var(--smoke)',marginBottom:2}}>HOME LEADER</div>
+            <div style={{fontSize:10,fontWeight:700,fontVariantNumeric:'tabular-nums',color:'#F5F5F5',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{extras.homeLeader}</div>
+          </div>
+        </div>
+      )}
+      {/* Zone 5: Stat flash + auto narrative */}
+      {extras&&(
+        <div>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:4,marginBottom:extras.narrative?5:0}}>
+            {[['FG%',`${extras.awayFG}%`,`${extras.homeFG}%`],['3P%',`${extras.awayTP}%`,`${extras.homeTP}%`],['REB',extras.awayReb,extras.homeReb],['BIG LEAD',extras.awayBL,extras.homeBL]].map(([lbl,av,hv])=>(
+              <div key={lbl} style={{textAlign:'center'}}>
+                <div style={{fontSize:8,color:'var(--smoke)',letterSpacing:'.06em',marginBottom:2}}>{lbl}</div>
+                <div style={{fontSize:9,fontWeight:700,fontVariantNumeric:'tabular-nums',color:'#F5F5F5'}}>{av} <span style={{color:'var(--wire)'}}>|</span> {hv}</div>
+              </div>
+            ))}
+          </div>
+          {extras.narrative&&<div style={{fontSize:10,color:'var(--smoke)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{extras.narrative}</div>}
         </div>
       )}
     </div>
   );
 }
 
-// Module 4: Live game card
+// Module 4: Live card (used only for non-hero live games)
 function LiveGameCard({g,onSelect}){
   const away=g.visitor_team?.abbreviation||'AWY';
   const home=g.home_team?.abbreviation||'HOM';
@@ -1452,126 +1504,123 @@ function LiveGameCard({g,onSelect}){
     <div className="gr-live-card" onClick={()=>onSelect&&onSelect(g)}>
       <div className="gr-card-status">
         <span className="gr-pulse-dot"/>
-        <span style={{fontSize:8,fontWeight:900,letterSpacing:'.12em',color:'var(--live)'}}>{clk}</span>
+        <span style={{fontSize:8,fontWeight:900,letterSpacing:'.1em',color:'var(--live)'}}>{clk}</span>
         {clutch&&<span className="gr-clutch-pill">CLUTCH</span>}
-        {diff>=20&&<span style={{fontSize:7,fontWeight:700,letterSpacing:'.1em',color:'var(--blowout)',padding:'2px 5px',border:'1px solid rgba(229,72,77,.3)',marginLeft:4}}>BLOWOUT</span>}
-        {ser&&<span style={{fontSize:7,fontWeight:700,letterSpacing:'.1em',color:'var(--smoke)',marginLeft:'auto'}}>GM {ser.awayW+ser.homeW+1}</span>}
+        {diff>=20&&<span style={{fontSize:7,fontWeight:700,color:'var(--blowout)',padding:'1px 4px',border:'1px solid rgba(107,114,128,.3)'}}>BLOWOUT</span>}
+        {ser&&<span style={{fontSize:7,color:'var(--smoke)',marginLeft:'auto',letterSpacing:'.06em'}}>GM {ser.awayW+ser.homeW+1}</span>}
       </div>
       <div className="gr-card-team-row">
-        <span style={{fontSize:13,fontWeight:900,letterSpacing:'-.01em',color:awayScore<homeScore?'var(--smoke)':'var(--bone)'}}>{away}</span>
-        <div className="gr-card-score" style={{color:'var(--live)',fontVariantNumeric:'tabular-nums'}}>{awayScore}–{homeScore}</div>
-        <span style={{fontSize:13,fontWeight:900,letterSpacing:'-.01em',color:homeScore<awayScore?'var(--smoke)':'var(--bone)'}}>{home}</span>
+        <span style={{fontSize:12,fontWeight:900,color:awayScore<homeScore?'var(--smoke)':'#F5F5F5'}}>{away}</span>
+        <div className="gr-card-score" style={{color:'var(--live)',fontVariantNumeric:'tabular-nums'}}>{awayScore}-{homeScore}</div>
+        <span style={{fontSize:12,fontWeight:900,color:homeScore<awayScore?'var(--smoke)':'#F5F5F5',marginLeft:8}}>{home}</span>
       </div>
       <div className="gr-card-wp">
-        <div style={{height:'100%',width:`${(1-wp)*100}%`,background:awayC,opacity:.7,borderRadius:'2px 0 0 2px'}}/>
-        <div style={{height:'100%',width:`${wp*100}%`,background:homeC,opacity:.7,borderRadius:'0 2px 2px 0'}}/>
-      </div>
-      <div className="gr-card-leaders">
-        <span style={{fontSize:8,color:'var(--smoke)'}}>BOX SCORE →</span>
+        <div style={{flex:1-wp,background:awayC,opacity:.7,borderRadius:'2px 0 0 2px'}}/>
+        <div style={{flex:wp,background:homeC,opacity:.7,borderRadius:'0 2px 2px 0'}}/>
       </div>
     </div>
   );
 }
 
-// Module 5+6: Finals and Upcoming rows
+// Module 5: Finals row — 8 fields
 function FinalRow({g,onSelect}){
   const away=g.visitor_team?.abbreviation||'AWY';
   const home=g.home_team?.abbreviation||'HOM';
   const awayScore=g.visitor_team_score??0;
   const homeScore=g.home_team_score??0;
   const awayWon=awayScore>homeScore;
-  const ps=getPostseasonLabel(g);
+  const extras=getExtras(away,home);
+  const sTag=seriesTag(away,home);
+  const tv=getTVTag(away,home);
+  const perf=extras?(awayWon?extras.awayLeader:extras.homeLeader).split('/')[0].trim():'';
+  const statFlash=extras?`${awayWon?away:home} ${awayWon?extras.awayFG:extras.homeFG}% FG`:'';
   return (
     <div className="gr-final-row" onClick={()=>onSelect&&onSelect(g)}>
-      <span style={{fontSize:8,fontWeight:700,letterSpacing:'.12em',color:'var(--smoke)',width:36,flexShrink:0}}>FINAL</span>
-      <span style={{fontSize:12,fontWeight:900,letterSpacing:'-.01em',color:awayWon?'var(--bone)':'var(--smoke)',width:36,textAlign:'right'}}>{away}</span>
-      <span style={{fontSize:14,fontWeight:900,fontVariantNumeric:'tabular-nums',color:awayWon?'var(--neon)':'var(--bone)',width:28,textAlign:'right'}}>{awayScore}</span>
-      <span style={{fontSize:9,color:'var(--wire)',margin:'0 4px'}}>–</span>
-      <span style={{fontSize:14,fontWeight:900,fontVariantNumeric:'tabular-nums',color:!awayWon?'var(--neon)':'var(--bone)',width:28}}>{homeScore}</span>
-      <span style={{fontSize:12,fontWeight:900,letterSpacing:'-.01em',color:!awayWon?'var(--bone)':'var(--smoke)',width:36}}>{home}</span>
-      {ps&&<span style={{fontSize:7,fontWeight:700,letterSpacing:'.1em',color:'var(--acid)',marginLeft:'auto',padding:'2px 5px',border:'1px solid rgba(204,255,0,.3)'}}>{ps}</span>}
-      <span style={{fontSize:8,color:'var(--smoke)',marginLeft:'auto',letterSpacing:'.06em'}}>BOX SCORE →</span>
+      <span style={{fontSize:8,fontWeight:700,letterSpacing:'.1em',color:'var(--smoke)',width:36,flexShrink:0}}>FINAL</span>
+      <div style={{display:'flex',alignItems:'center',gap:3,width:200,flexShrink:0}}>
+        <span style={{fontSize:11,fontWeight:900,color:awayWon?'#F5F5F5':'var(--smoke)',letterSpacing:'.01em'}}>{away}</span>
+        <span style={{fontSize:13,fontWeight:900,fontVariantNumeric:'tabular-nums',color:awayWon?'var(--neon)':'#F5F5F5',minWidth:18,textAlign:'right'}}>{awayScore}</span>
+        <span style={{fontSize:9,color:'var(--wire)',margin:'0 1px'}}>-</span>
+        <span style={{fontSize:13,fontWeight:900,fontVariantNumeric:'tabular-nums',color:!awayWon?'var(--neon)':'#F5F5F5',minWidth:18}}>{homeScore}</span>
+        <span style={{fontSize:11,fontWeight:900,color:!awayWon?'#F5F5F5':'var(--smoke)',letterSpacing:'.01em'}}>{home}</span>
+      </div>
+      {sTag&&<span style={{fontSize:7,fontWeight:700,letterSpacing:'.06em',color:'var(--smoke)',width:110,flexShrink:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{sTag}</span>}
+      <span style={{fontSize:9,fontWeight:700,fontVariantNumeric:'tabular-nums',color:'#F5F5F5',flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',minWidth:0}}>{perf}</span>
+      <span style={{fontSize:8,color:'var(--smoke)',width:110,flexShrink:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{statFlash}</span>
+      <span style={{fontSize:9,color:'var(--smoke)',flexShrink:0,marginLeft:4}}>›</span>
     </div>
   );
 }
 
+// Module 6: Upcoming row — 8 fields
 function UpcomingRow({g}){
   const away=g.visitor_team?.abbreviation||'AWY';
   const home=g.home_team?.abbreviation||'HOM';
-  const timeStr=g.time||g.status||'--';
-  const ps=getPostseasonLabel(g);
-  const ser=SEEDED_SERIES.find(s=>(s.awayTeam===away&&s.homeTeam===home)||(s.awayTeam===home&&s.homeTeam===away));
+  const timeStr=parseStatus(g.status).label||'--';
+  const tv=getTVTag(away,home);
+  const awayExt=TEAM_EXT[away]||{};
+  const homeExt=TEAM_EXT[home]||{};
+  const sTag=seriesTag(away,home);
+  const uData=getUpcoming(away,home);
   return (
     <div className="gr-upcoming-row">
-      <span style={{fontSize:10,fontWeight:900,color:'var(--smoke)',width:80,flexShrink:0,letterSpacing:'.04em'}}>{timeStr}</span>
-      <span style={{fontSize:13,fontWeight:900,letterSpacing:'-.01em'}}>{away}</span>
-      <span style={{fontSize:9,color:'var(--wire)',margin:'0 6px'}}>@</span>
-      <span style={{fontSize:13,fontWeight:900,letterSpacing:'-.01em'}}>{home}</span>
-      {ser&&<span style={{fontSize:7,fontWeight:700,letterSpacing:'.1em',color:'var(--acid)',marginLeft:8,padding:'2px 5px',border:'1px solid rgba(204,255,0,.25)'}}>GM {ser.awayW+ser.homeW+1}</span>}
-      {ps&&<span style={{fontSize:7,fontWeight:700,letterSpacing:'.1em',color:'var(--smoke)',marginLeft:4,padding:'2px 5px',border:'1px solid var(--wire)'}}>{ps}</span>}
+      <span style={{fontSize:9,fontWeight:700,color:'var(--smoke)',width:60,flexShrink:0,letterSpacing:'.02em'}}>{timeStr}</span>
+      {tv&&<span className="gr-tv-pill">{tv}</span>}
+      <span style={{fontSize:11,fontWeight:900,color:'#F5F5F5',letterSpacing:'.01em'}}>{away}</span>
+      <span style={{fontSize:9,color:'var(--wire)',margin:'0 3px'}}>@</span>
+      <span style={{fontSize:11,fontWeight:900,color:'#F5F5F5',letterSpacing:'.01em'}}>{home}</span>
+      {awayExt.record&&homeExt.record&&<span style={{fontSize:8,color:'var(--smoke)',margin:'0 6px',flexShrink:0}}>{awayExt.record} vs {homeExt.record}</span>}
+      {sTag&&<span style={{fontSize:7,fontWeight:700,letterSpacing:'.06em',color:'var(--acid)',flexShrink:0,padding:'1px 4px',border:'1px solid rgba(204,255,0,.2)'}}>{sTag}</span>}
+      {uData.b2b&&<span className="gr-b2b">B2B</span>}
+      {uData.angle&&<span style={{fontSize:8,color:'var(--smoke)',marginLeft:'auto',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',minWidth:0,flex:1,textAlign:'right'}}>{uData.angle}</span>}
     </div>
   );
 }
 
-// Module 7: Live Feed
+// Module 7: Live Feed — compact 32px rows
 function LiveFeed({games}){
-  const liveGames=games.filter(g=>parseStatus(g.status).type==='live');
-  const items=SEEDED_FEED;
+  const hasLive=games.some(g=>parseStatus(g.status).type==='live');
   return (
     <div className="gr-feed-wrap">
       <div className="gr-panel-hd">
         <span>LIVE FEED</span>
-        {liveGames.length>0&&<span className="gr-auto-pill"><span className="gr-pulse-dot"/>AUTO</span>}
+        {hasLive&&<span className="gr-auto-pill"><span className="gr-pulse-dot"/>AUTO</span>}
       </div>
-      <div style={{display:'flex',flexDirection:'column',gap:1}}>
-        {items.map((item,i)=>(
+      <div style={{maxHeight:480,overflowY:'auto'}}>
+        {SEEDED_FEED.map((item,i)=>(
           <div key={i} className="gr-feed-item">
-            <div style={{display:'flex',gap:6,alignItems:'center',marginBottom:3}}>
-              <span className="gr-feed-time">{item.time}</span>
-              <span className="gr-feed-game">{item.game}</span>
-              <span className="gr-feed-type" style={{color:item.color||'var(--smoke)',borderColor:item.color?item.color+'40':'var(--wire)'}}>{item.type}</span>
-            </div>
-            <div className="gr-feed-desc">{item.desc}</div>
+            <span style={{fontSize:9,color:'var(--smoke)',flexShrink:0,whiteSpace:'nowrap'}}>{item.time} · {item.game}</span>
+            <span className="gr-feed-type" style={{color:item.color||'var(--smoke)',borderColor:item.color?item.color+'44':'var(--wire)'}}>{item.type}</span>
+            <span className="gr-feed-desc">{item.desc}</span>
           </div>
         ))}
-        {!items.length&&<div style={{padding:'20px 16px',fontSize:10,color:'var(--smoke)',letterSpacing:'.08em'}}>NO LIVE GAMES</div>}
+        {!SEEDED_FEED.length&&<div style={{padding:'14px 12px',fontSize:10,color:'var(--smoke)'}}>NO LIVE GAMES</div>}
       </div>
     </div>
   );
 }
 
-// Module 8: Milestones Watch
+// Module 8: Milestones Watch — compact 36px rows
 function MilestonesWatch(){
-  const items=SEEDED_MILESTONES;
   return (
     <div className="gr-mile-wrap">
-      <div className="gr-panel-hd">
-        <span>MILESTONES</span>
-        <span className="gr-auto-pill">WATCH</span>
-      </div>
-      <div style={{display:'flex',flexDirection:'column',gap:1}}>
-        {items.map((m,i)=>{
+      <div className="gr-panel-hd"><span>MILESTONES</span></div>
+      <div style={{maxHeight:400,overflowY:'auto'}}>
+        {SEEDED_MILESTONES.map((m,i)=>{
           const pct=Math.min(100,Math.round((m.current/m.total)*100));
           return (
             <div key={i} className="gr-mile-row">
-              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:5}}>
-                <div>
-                  <span style={{fontSize:10,fontWeight:900,letterSpacing:'-.01em'}}>{m.player}</span>
-                  <span style={{fontSize:8,color:'var(--smoke)',marginLeft:6,letterSpacing:'.08em'}}>{m.team}</span>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:2}}>
+                <div style={{overflow:'hidden',flex:1}}>
+                  <span style={{fontSize:10,fontWeight:900}}>{m.player}</span>
+                  <span style={{fontSize:8,color:'var(--smoke)',marginLeft:5}}>{m.team}</span>
                 </div>
-                <div style={{textAlign:'right'}}>
-                  <span style={{fontSize:8,fontWeight:700,letterSpacing:'.1em',color:'var(--alert)',padding:'2px 5px',border:'1px solid rgba(224,179,65,.3)'}}>{m.targetLabel}</span>
-                  {m.clock&&<span style={{fontSize:8,color:'var(--smoke)',marginLeft:6}}>{m.clock}</span>}
-                </div>
+                {m.clock&&<span style={{fontSize:8,color:'var(--smoke)',flexShrink:0,marginLeft:6}}>{m.clock}</span>}
               </div>
-              <div style={{display:'flex',alignItems:'center',gap:8}}>
-                <div className="gr-mile-prog">
-                  <div className="gr-mile-fill" style={{width:`${pct}%`}}/>
-                </div>
-                <span style={{fontSize:10,fontWeight:900,fontVariantNumeric:'tabular-nums',color:'var(--neon)',minWidth:28,textAlign:'right'}}>{m.current}</span>
-                <span style={{fontSize:8,color:'var(--smoke)'}}>/</span>
-                <span style={{fontSize:10,fontWeight:700,fontVariantNumeric:'tabular-nums',color:'var(--smoke)',minWidth:20}}>{m.target}</span>
+              <div style={{fontSize:9,fontVariantNumeric:'tabular-nums',color:'#F5F5F5',marginBottom:3}}>
+                {m.current} <span style={{color:'var(--smoke)'}}>/ {m.target} {m.targetLabel}</span>
               </div>
+              <div className="gr-mile-prog"><div className="gr-mile-fill" style={{width:`${pct}%`}}/></div>
             </div>
           );
         })}
@@ -1580,46 +1629,57 @@ function MilestonesWatch(){
   );
 }
 
-// Module 9: Playoff Series Board
+// Module 9: Playoff Series Board — 7-dot grid, takeaway min-width 240px
 function PlayoffSeriesBoard(){
-  const series=SEEDED_SERIES;
-  if(!series.length)return null;
+  if(!SEEDED_SERIES.length)return null;
   return (
     <div className="gr-series-board">
-      <div style={{fontSize:8,fontWeight:900,letterSpacing:'.18em',color:'var(--neon)',marginBottom:10,padding:'0 2px'}}>PLAYOFF SERIES</div>
-      {series.map((s,i)=>{
+      <div style={{padding:'8px 14px 6px',borderBottom:'1px solid var(--divider)',fontSize:8,fontWeight:900,letterSpacing:'.16em',color:'var(--neon)'}}>PLAYOFF SERIES</div>
+      {SEEDED_SERIES.map(s=>{
         const awayAhead=s.awayW>s.homeW;
         const homeAhead=s.homeW>s.awayW;
         const tied=s.awayW===s.homeW;
+        const awayExt=TEAM_EXT[s.awayTeam]||{};
+        const homeExt=TEAM_EXT[s.homeTeam]||{};
         return (
           <div key={s.id} className="gr-series-row">
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
-              <span style={{fontSize:7,fontWeight:700,letterSpacing:'.12em',color:'var(--smoke)'}}>{s.round}</span>
-              {s.note&&<span style={{fontSize:7,color:'var(--smoke)',fontStyle:'italic',opacity:.8,maxWidth:200,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{s.note}</span>}
-            </div>
-            <div style={{display:'flex',alignItems:'center',gap:10}}>
-              <span style={{fontSize:13,fontWeight:900,letterSpacing:'-.01em',color:awayAhead?'var(--bone)':tied?'var(--bone)':'var(--smoke)',minWidth:32}}>{s.awayTeam}</span>
-              <div className="gr-series-dots">
-                {[...Array(4)].map((_,wi)=>(
-                  <div key={wi} className={`gr-series-dot${wi<s.awayW?' filled':''}${wi<s.awayW&&s.awayW===4?' champ':''}`}
-                       style={wi<s.awayW?{background:wpColor(s.awayTeam)}:{}}/>
-                ))}
+            <div style={{display:'grid',gridTemplateColumns:'72px 1fr 72px',gap:6,alignItems:'center'}}>
+              <div>
+                <div style={{fontSize:12,fontWeight:900,color:awayAhead||tied?'#F5F5F5':'var(--smoke)'}}>{s.awayTeam}</div>
+                {awayExt.record&&<div style={{fontSize:8,color:'var(--smoke)'}}>{awayExt.seed?`#${awayExt.seed} `:''}{awayExt.record}</div>}
               </div>
-              <span style={{fontSize:9,fontWeight:900,color:tied?'var(--neon)':'var(--smoke)',minWidth:32,textAlign:'center',letterSpacing:'.06em'}}>
-                {s.awayW}–{s.homeW}
-              </span>
-              <div className="gr-series-dots" style={{justifyContent:'flex-end'}}>
-                {[...Array(4)].map((_,wi)=>(
-                  <div key={wi} className={`gr-series-dot${wi<s.homeW?' filled':''}${wi<s.homeW&&s.homeW===4?' champ':''}`}
-                       style={wi<s.homeW?{background:wpColor(s.homeTeam)}:{}}/>
-                ))}
+              <div style={{textAlign:'center'}}>
+                <div style={{fontSize:20,fontWeight:900,fontVariantNumeric:'tabular-nums',letterSpacing:'.02em'}}>
+                  <span style={{color:awayAhead?'var(--neon)':'#F5F5F5'}}>{s.awayW}</span>
+                  <span style={{color:'var(--smoke)',margin:'0 5px'}}>-</span>
+                  <span style={{color:homeAhead?'var(--neon)':'#F5F5F5'}}>{s.homeW}</span>
+                </div>
+                <div style={{display:'flex',justifyContent:'center',gap:3,marginTop:4}}>
+                  {[...Array(7)].map((_,wi)=>{
+                    const played=s.gameScores[wi]&&s.gameScores[wi]!=='--';
+                    const awayWon=played&&s.gameScores[wi].startsWith(s.awayTeam);
+                    const isNext=wi===s.awayW+s.homeW;
+                    return (
+                      <div key={wi} style={{
+                        width:11,height:11,borderRadius:'50%',
+                        background:played?(awayWon?wpColor(s.awayTeam):wpColor(s.homeTeam)):'transparent',
+                        border:played?'none':`1px solid ${isNext?'rgba(255,255,255,.5)':'rgba(255,255,255,.15)'}`,
+                        animation:isNext?'blink 2s ease-in-out infinite':'none',
+                        flexShrink:0,
+                      }}/>
+                    );
+                  })}
+                </div>
               </div>
-              <span style={{fontSize:13,fontWeight:900,letterSpacing:'-.01em',color:homeAhead?'var(--bone)':tied?'var(--bone)':'var(--smoke)',minWidth:32,textAlign:'right'}}>{s.homeTeam}</span>
+              <div style={{textAlign:'right'}}>
+                <div style={{fontSize:12,fontWeight:900,color:homeAhead||tied?'#F5F5F5':'var(--smoke)'}}>{s.homeTeam}</div>
+                {homeExt.record&&<div style={{fontSize:8,color:'var(--smoke)'}}>{homeExt.seed?`#${homeExt.seed} `:''}{homeExt.record}</div>}
+              </div>
             </div>
-            {s.nextTime&&(
-              <div style={{marginTop:4,fontSize:8,color:'var(--smoke)',letterSpacing:'.06em'}}>
-                <span style={{color:'var(--acid)',fontWeight:700}}>NEXT:</span> {s.nextTime}
-                {s.venue&&<span style={{color:'var(--wire)',marginLeft:6}}>@ {s.venue}</span>}
+            {(s.nextTime||s.note)&&(
+              <div style={{display:'flex',justifyContent:'space-between',gap:12,marginTop:6}}>
+                {s.nextTime&&<span style={{fontSize:8,color:'var(--smoke)',flexShrink:0}}><span style={{color:'var(--acid)',fontWeight:700}}>NEXT:</span> {s.nextTime}{s.venue?` · ${s.venue}`:''}</span>}
+                {s.note&&<span style={{fontSize:8,color:'var(--smoke)',textAlign:'right',minWidth:240,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{s.note}</span>}
               </div>
             )}
           </div>
@@ -1629,8 +1689,8 @@ function PlayoffSeriesBoard(){
   );
 }
 
-// Main Games component
-function Games() {
+// Main Games component — 2-column layout, no duplication between hero and live grid
+function Games(){
   const today=localDate();
   const[date,setDate]=React.useState(today);
   const[games,setGames]=React.useState([]);
@@ -1652,85 +1712,63 @@ function Games() {
 
   const liveGames=games.filter(g=>parseStatus(g.status).type==='live');
   const finalGames=games.filter(g=>parseStatus(g.status).type==='final');
-  const scheduledGames=games.filter(g=>parseStatus(g.status).type==='sched');
-  const hasPlayoffs=SEEDED_SERIES.length>0;
+  const schedGames=games.filter(g=>parseStatus(g.status).type==='sched');
+  const isPlayoff=games.some(g=>g.postseason)||SEEDED_SERIES.length>0;
+
+  // Hero pool: live > final > scheduled
+  const heroPool=liveGames.length>0?liveGames:finalGames.length>0?finalGames:schedGames;
+  const heroGame=selectGOTN(heroPool);
+  const heroId=heroGame?.id;
+  const heroLabel=liveGames.length>0?'GAME OF THE NIGHT':schedGames.length>0&&liveGames.length===0&&finalGames.length===0?'NEXT UP':'GAME OF THE NIGHT';
+
+  // Non-hero live games only go to the secondary grid
+  const otherLive=liveGames.filter(g=>g.id!==heroId);
+
+  const openGame=g=>{setSelected(g);setModalOpen(true);};
 
   return (
     <div className="page" style={{padding:'0 0 80px'}}>
-      {/* Module 1: Date Ribbon */}
       <DateRibbon date={date} setDate={setDate}/>
-
-      {/* Module 2: League Pulse */}
       {!loading&&games.length>0&&<LeaguePulse games={games}/>}
-
-      {loading&&<div className="load-line-wrap" style={{margin:'24px 24px 0'}}><div className="load-line"/></div>}
-
+      {loading&&<div className="load-line-wrap" style={{margin:'20px 24px 0'}}><div className="load-line"/></div>}
       {!loading&&!games.length&&(
         <div className="empty-state" style={{marginTop:40}}>
           <div className="empty-headline">NO GAMES.</div>
           <div className="empty-sub">NOTHING SCHEDULED FOR {fmtDateLabel(date)}.</div>
         </div>
       )}
-
       {!loading&&games.length>0&&(
-        <div style={{padding:'0 24px'}}>
-
-          {/* Module 3: Game of the Night */}
-          {(liveGames.length>0||finalGames.length>0)&&(
-            <GameOfTheNight games={[...liveGames,...finalGames]} onSelect={g=>{setSelected(g);setModalOpen(true);}}/>
-          )}
-          {scheduledGames.length>0&&liveGames.length===0&&finalGames.length===0&&(
-            <GameOfTheNight games={scheduledGames} onSelect={g=>{setSelected(g);setModalOpen(true);}}/>
-          )}
-
-          {/* Module 4: Live Games Grid */}
-          {liveGames.length>0&&(
-            <div style={{marginBottom:20}}>
-              <div className="gr-section-label">
-                <span className="gr-pulse-dot"/>
-                LIVE NOW · {liveGames.length} GAME{liveGames.length!==1?'S':''}
-              </div>
-              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))',gap:8}}>
-                {liveGames.map(g=><LiveGameCard key={g.id} g={g} onSelect={g=>{setSelected(g);setModalOpen(true);}}/>)}
-              </div>
-            </div>
-          )}
-
-          {/* Two-column layout: Finals + Upcoming | Side panel */}
-          <div style={{display:'grid',gridTemplateColumns:'1fr 300px',gap:16,alignItems:'start'}}>
-            <div>
-              {/* Module 5: Finals */}
-              {finalGames.length>0&&(
-                <div className="gr-finals-section" style={{marginBottom:12}}>
-                  <div className="gr-section-label">FINAL · {finalGames.length} GAME{finalGames.length!==1?'S':''}</div>
-                  {finalGames.map(g=><FinalRow key={g.id} g={g} onSelect={g=>{setSelected(g);setModalOpen(true);}}/>)}
+        <div className="gr-body-grid">
+          <div className="gr-main-col">
+            {heroPool.length>0&&<GameOfTheNight games={heroPool} heroLabel={heroLabel} onSelect={openGame}/>}
+            {otherLive.length>0&&(
+              <div style={{marginBottom:14}}>
+                <div className="gr-section-label"><span className="gr-pulse-dot"/>LIVE NOW · {otherLive.length} MORE GAME{otherLive.length!==1?'S':''}</div>
+                <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))',gap:6}}>
+                  {otherLive.map(g=><LiveGameCard key={g.id} g={g} onSelect={openGame}/>)}
                 </div>
-              )}
-
-              {/* Module 6: Upcoming */}
-              {scheduledGames.length>0&&(
-                <div>
-                  <div className="gr-section-label">UPCOMING · {scheduledGames.length} GAME{scheduledGames.length!==1?'S':''}</div>
-                  {scheduledGames.map(g=><UpcomingRow key={g.id} g={g}/>)}
-                </div>
-              )}
-
-              {/* Module 9: Playoff Series Board */}
-              {hasPlayoffs&&<PlayoffSeriesBoard/>}
-            </div>
-
-            {/* Side panel: Feed + Milestones */}
-            <div className="gr-side-panel">
-              {/* Module 7: Live Feed */}
-              <LiveFeed games={games}/>
-              {/* Module 8: Milestones */}
-              <MilestonesWatch/>
-            </div>
+              </div>
+            )}
+            {finalGames.length>0&&(
+              <div className="gr-finals-section">
+                <div className="gr-section-label">FINAL{isPlayoff?' · PLAYOFFS':''} · {finalGames.length} GAME{finalGames.length!==1?'S':''}</div>
+                {finalGames.map(g=><FinalRow key={g.id} g={g} onSelect={openGame}/>)}
+              </div>
+            )}
+            {schedGames.length>0&&(
+              <div style={{marginBottom:14}}>
+                <div className="gr-section-label">UPCOMING{isPlayoff?' · PLAYOFFS':''} · {schedGames.length} GAME{schedGames.length!==1?'S':''}</div>
+                {schedGames.map(g=><UpcomingRow key={g.id} g={g}/>)}
+              </div>
+            )}
+            {SEEDED_SERIES.length>0&&<PlayoffSeriesBoard/>}
           </div>
-
+          <div className="gr-sidebar">
+            <LiveFeed games={games}/>
+            <MilestonesWatch/>
+          </div>
         </div>
       )}
-
       <GameModal game={selected} open={modalOpen} onClose={()=>setModalOpen(false)}/>
     </div>
   );
