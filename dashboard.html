@@ -344,6 +344,104 @@ select{
 .term-tr{cursor:pointer;transition:background 80ms;}
 .term-tr:hover{background:var(--row-hover) !important;}
 
+/* ─── GAMES v2 ───────────────────────────────────────────────────────────────── */
+/* Additional tokens */
+:root{--live:#1FBF7A;--clutch:#E0B341;--alert:#E5484D;--blowout:#6B7280;--hero-border:rgba(0,255,136,.4);}
+
+.gr-page{padding-top:62px;padding-bottom:48px;}
+
+/* Date ribbon */
+.gr-ribbon{position:sticky;top:62px;z-index:150;height:52px;background:var(--void);border-bottom:1px solid var(--divider);display:flex;align-items:center;padding:0 24px;gap:8px;overflow-x:auto;scrollbar-width:none;}
+.gr-ribbon::-webkit-scrollbar{display:none;}
+.gr-day-arrow{background:none;border:1px solid rgba(255,255,255,.1);color:var(--smoke);width:28px;height:28px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;transition:color 120ms,border-color 120ms;}
+.gr-day-arrow:hover{color:var(--bone);border-color:rgba(255,255,255,.3);}
+.gr-day-pill{flex-shrink:0;width:52px;height:40px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;border-radius:999px;transition:background 120ms,color 120ms;border:1px solid transparent;}
+.gr-day-pill.active{background:var(--neon);color:var(--void);}
+.gr-day-pill:hover:not(.active){background:rgba(255,255,255,.06);}
+.gr-day-dw{font-size:9px;font-weight:700;letter-spacing:.08em;line-height:1;}
+.gr-day-dt{font-size:13px;font-weight:900;letter-spacing:'-.01em';font-variant-numeric:tabular-nums;line-height:1.3;}
+.gr-day-ct{font-size:8px;font-weight:700;color:var(--smoke);line-height:1;margin-top:2px;}
+.gr-today-btn{flex-shrink:0;margin-left:8px;height:28px;padding:0 14px;font-size:10px;font-weight:700;letter-spacing:.08em;border:1px solid var(--neon);background:transparent;color:var(--neon);cursor:pointer;font-family:var(--font);text-transform:uppercase;transition:background 120ms;}
+.gr-today-btn:hover{background:rgba(0,255,102,.1);}
+.gr-mode-row{display:flex;gap:4px;margin-left:auto;flex-shrink:0;}
+.gr-mode-btn{height:24px;padding:0 12px;font-size:9px;font-weight:700;letter-spacing:.1em;border:1px solid rgba(255,255,255,.08);background:transparent;color:var(--smoke);cursor:pointer;font-family:var(--font);text-transform:uppercase;transition:all 100ms;}
+.gr-mode-btn.active{background:var(--bone);color:var(--void);border-color:var(--bone);}
+
+/* League pulse */
+.gr-pulse{position:sticky;top:114px;z-index:149;height:40px;background:var(--void);border-bottom:1px solid var(--divider);display:flex;align-items:center;padding:0 24px;gap:0;overflow-x:auto;scrollbar-width:none;}
+.gr-pulse::-webkit-scrollbar{display:none;}
+.gr-pulse-cell{padding:0 16px;border-right:1px solid var(--divider);height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;flex-shrink:0;}
+.gr-pulse-label{font-size:9px;font-weight:700;letter-spacing:.1em;color:var(--smoke);}
+.gr-pulse-val{font-size:13px;font-weight:900;font-variant-numeric:tabular-nums;}
+.gr-pulse-dot{width:6px;height:6px;border-radius:50%;background:var(--live);box-shadow:0 0 6px var(--live);animation:blink 2s ease-in-out infinite;flex-shrink:0;}
+.gr-pulse-rolling{padding:0 16px;font-size:10px;font-weight:700;color:var(--smoke);flex-shrink:0;min-width:160px;}
+
+/* Hero card */
+.gr-hero{margin:16px 0 20px;border:1px solid rgba(0,255,136,.2);background:var(--carbon);border-radius:4px;overflow:hidden;transition:border-color 200ms;padding:16px 20px;cursor:pointer;}
+.gr-hero:hover{border-color:var(--hero-border);}
+.gr-hero-body{display:grid;grid-template-columns:1fr auto 1fr;gap:0;padding:16px 0;}
+.gr-hero-center{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 24px;gap:4px;}
+.gr-wp-bar{height:8px;width:100%;display:flex;overflow:hidden;border-radius:4px;position:relative;}
+.gr-wp-seg{height:100%;transition:width 400ms ease;}
+
+/* Live game cards */
+.gr-live-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;padding:0 24px 24px;}
+.gr-live-card{background:var(--carbon);border:1px solid var(--divider);border-left:2px solid transparent;border-radius:4px;padding:0;overflow:hidden;cursor:pointer;transition:border-color 180ms;}
+.gr-live-card:hover{border-color:rgba(0,255,136,.4);border-left-color:var(--neon);}
+.gr-live-card.clutch{border-left-color:var(--clutch);}
+.gr-card-status{display:flex;align-items:center;justify-content:space-between;padding:6px 12px;border-bottom:1px solid rgba(255,255,255,.04);height:28px;}
+.gr-card-clock{display:flex;align-items:center;gap:5px;font-size:10px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:.04em;}
+.gr-card-tag{font-size:8px;font-weight:700;letter-spacing:.1em;color:var(--smoke);}
+.gr-card-teams{padding:8px 12px;}
+.gr-card-team-row{display:flex;align-items:center;height:32px;}
+.gr-card-score{font-size:26px;font-weight:900;letter-spacing:'-.04em';font-variant-numeric:tabular-nums;margin-left:auto;}
+.gr-card-abbr{font-size:13px;font-weight:900;letter-spacing:'-.01em';margin-left:8px;}
+.gr-card-record{font-size:9px;color:var(--smoke);margin-left:6px;}
+.gr-card-wp{padding:0 12px 4px;}
+.gr-card-leaders{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:6px 12px;border-top:1px solid rgba(255,255,255,.04);}
+.gr-card-ldr-label{font-size:8px;font-weight:700;letter-spacing:.1em;color:var(--smoke);margin-bottom:2px;}
+.gr-card-ldr-val{font-size:10px;font-weight:700;font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.gr-card-splits{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:6px 12px;border-top:1px solid rgba(255,255,255,.04);}
+.gr-card-split-cell{text-align:center;}
+.gr-card-split-lbl{font-size:8px;letter-spacing:.06em;color:var(--smoke);}
+.gr-card-split-val{font-size:11px;font-weight:900;font-variant-numeric:tabular-nums;}
+
+/* Finals rows */
+.gr-finals-section{padding-bottom:8px;}
+.gr-section-label{font-size:9px;font-weight:700;letter-spacing:.14em;color:var(--smoke);padding:12px 0 8px;}
+.gr-final-row{display:flex;align-items:center;height:44px;border-bottom:1px solid rgba(255,255,255,.04);border-left:2px solid transparent;padding:0 8px;cursor:pointer;transition:background 80ms,border-left-color 80ms;}
+.gr-final-row:hover{background:var(--row-hover);border-left-color:var(--neon);}
+.gr-upcoming-row{display:flex;align-items:center;height:40px;border-bottom:1px solid rgba(255,255,255,.04);border-left:2px solid transparent;padding:0 8px;cursor:pointer;transition:background 80ms,border-left-color 80ms;}
+.gr-upcoming-row:hover{background:var(--row-hover);border-left-color:var(--neon);}
+
+/* Feed and milestones */
+.gr-side-panel{display:flex;flex-direction:column;gap:1px;background:var(--divider);}
+.gr-feed-wrap{background:var(--void);}
+.gr-mile-wrap{background:var(--void);}
+.gr-panel-hd{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--divider);font-size:10px;font-weight:700;letter-spacing:.1em;}
+.gr-auto-pill{display:flex;align-items:center;gap:5px;font-size:9px;font-weight:700;letter-spacing:.08em;color:var(--smoke);}
+.gr-feed-item{display:flex;flex-direction:column;justify-content:center;padding:7px 16px;gap:2px;border-bottom:1px solid rgba(255,255,255,.03);}
+.gr-feed-time{font-size:9px;color:var(--smoke);font-variant-numeric:tabular-nums;min-width:44px;flex-shrink:0;}
+.gr-feed-game{font-size:9px;color:var(--smoke);min-width:60px;flex-shrink:0;}
+.gr-feed-type{font-size:8px;font-weight:700;letter-spacing:.08em;padding:1px 5px;border:1px solid var(--wire);}
+.gr-feed-desc{font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--bone);}
+.gr-mile-row{display:flex;flex-direction:column;justify-content:center;padding:8px 16px;border-bottom:1px solid rgba(255,255,255,.03);}
+.gr-mile-prog{flex:1;height:3px;background:rgba(255,255,255,.08);position:relative;overflow:hidden;border-radius:2px;}
+.gr-mile-fill{position:absolute;left:0;top:0;bottom:0;background:var(--neon);border-radius:2px;transition:width 300ms ease;}
+
+/* Series board */
+.gr-series-board{border:1px solid var(--divider);border-radius:4px;overflow:hidden;margin-top:16px;}
+.gr-series-row{padding:10px 16px;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer;transition:background 80ms;}
+.gr-series-row:hover{background:var(--row-hover);}
+.gr-series-dots{display:flex;gap:5px;align-items:center;}
+.gr-series-dot{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);}
+.gr-series-dot.filled{background:currentColor;border:none;}
+
+/* B2B / clutch pills */
+.gr-b2b{font-size:7px;font-weight:700;letter-spacing:.08em;background:rgba(224,179,65,.12);color:var(--clutch);padding:1px 5px;margin-left:4px;}
+.gr-clutch-pill{font-size:8px;font-weight:700;letter-spacing:.1em;background:rgba(224,179,65,.15);color:var(--clutch);padding:2px 6px;}
+.gr-tv-pill{font-size:8px;font-weight:700;letter-spacing:.08em;background:rgba(255,255,255,.08);color:var(--bone);padding:2px 6px;}
+
 /* ─── WAR ROOM ──────────────────────────────────────────────────────────────── */
 .wr-ribbon{
   position:sticky;top:62px;z-index:190;
@@ -601,6 +699,140 @@ const LINEUPS={
   {players:['SGA','Dort','Williams','Holmgren','Wallace'],min:214,netRtg:18.1,offRtg:124.8,defRtg:106.7,pace:101.2,astRatio:20.4,eFGPct:61.7,toPct:11.4},
   ],
 };
+
+// ─── GAMES v2 DATA ───────────────────────────────────────────────────────────
+const RIVALRIES={
+  'BOS-LAL':true,'BOS-MIA':true,'BOS-PHI':true,'LAL-GSW':true,'LAL-DEN':true,
+  'CHI-DET':true,'NYK-MIA':true,'OKC-DEN':true,'PHX-LAL':true,'MIL-BOS':true,
+  'DEN-LAL':true,'DEN-MEM':true,'MEM-OKC':true,'NYK-BKN':true,'IND-NYK':true,
+};
+function isRivals(a,b){return!!(RIVALRIES[a+'-'+b]||RIVALRIES[b+'-'+a]);}
+
+const WIN_PROB_HOME_ADJ=2.8; // home court advantage in pts
+
+function computeWinProb(homePts,awayPts,period,timeStr){
+  // Returns 0-1 probability of home team winning
+  if(!period||period===0)return 0.55;
+  const parseT=t=>{if(!t)return 0;const[m,s]=(t+'').split(':').map(Number);return(m||0)*60+(s||0);};
+  const secInPeriod=parseT(timeStr);
+  const periodSec=12*60;
+  const totalSec=48*60;
+  const ot=Math.max(0,period-4);
+  const otSec=ot*5*60;
+  const elapsed=Math.min(4,period-1)*periodSec+(periodSec-secInPeriod)+otSec;
+  const remaining=Math.max(0,totalSec+otSec-elapsed);
+  const timeFrac=elapsed/(totalSec+otSec);
+  const diff=homePts-awayPts;
+  // As game progresses, score diff matters more
+  const weight=0.08+timeFrac*0.32;
+  const homeAdj=WIN_PROB_HOME_ADJ*(1-timeFrac*0.6);
+  const logit=diff*weight+homeAdj;
+  return 1/(1+Math.exp(-logit));
+}
+
+const TEAM_TV={'LAL-GSW':'TNT','BOS-MIA':'ESPN','DEN-OKC':'TNT','NYK-IND':'ABC','PHI-BOS':'ESPN'};
+function getTVTag(away,home){return TEAM_TV[away+'-'+home]||TEAM_TV[home+'-'+away]||null;}
+
+// Seeded playoff series for demo
+const SEEDED_SERIES=[
+  {id:'e1',round:'FIRST ROUND',awayTeam:'NYK',homeTeam:'PHI',awayW:3,homeW:1,awayS:3,homeS:6,nextGame:6,nextTime:'Tonight 7:30 PM ET',venue:'MSG',note:'NYK one win from advancing, Embiid questionable',gameScores:['NYK 108-104','PHI 114-109','NYK 103-98','NYK 112-107','--','--','--'],awayRec:'51-31',homeRec:'47-35'},
+  {id:'e2',round:'FIRST ROUND',awayTeam:'MIL',homeTeam:'IND',awayW:2,homeW:2,awayS:3,homeS:6,nextGame:5,nextTime:'Sat 8:00 PM ET',venue:'Gainbridge Fieldhouse',note:'Series tied 2-2, Giannis averaging 34 in playoffs',gameScores:['MIL 122-118','IND 109-104','MIL 118-112','IND 126-119','--','--','--'],awayRec:'49-33',homeRec:'51-31'},
+  {id:'w1',round:'FIRST ROUND',awayTeam:'DEN',homeTeam:'LAL',awayW:1,homeW:2,awayS:4,homeS:5,nextGame:4,nextTime:'Tonight 10:00 PM ET',venue:'Crypto.com Arena',note:'LAL ties series 2-1, LeBron 39 PTS in G2',gameScores:['LAL 121-118','LAL 132-127','DEN 119-108','--','--','--','--'],awayRec:'57-25',homeRec:'50-32'},
+  {id:'w2',round:'FIRST ROUND',awayTeam:'OKC',homeTeam:'MEM',awayW:3,homeW:0,awayS:1,homeS:8,nextGame:4,nextTime:'Sun 3:30 PM ET',venue:'FedExForum',note:'OKC leads 3-0, MEM facing elimination',gameScores:['OKC 118-102','OKC 124-109','OKC 121-115','--','--','--','--'],awayRec:'68-14',homeRec:'49-33'},
+];
+
+// Seeded live feed items for when no live games
+const SEEDED_FEED=[
+  {time:'Q4 1:24',game:'DEN @ LAL',type:'CLUTCH',color:'var(--clutch)',desc:'LAL within 3, game enters clutch time'},
+  {time:'Q3 8:11',game:'NYK @ PHI',type:'RUN',color:'var(--live)',desc:'NYK 12-0 run over 2:38, lead 68-54'},
+  {time:'Q4 6:02',game:'OKC @ MEM',type:'MILESTONE',color:'var(--neon)',desc:'SGA 38 PTS, approaching season high 43'},
+  {time:'Q3 4:44',game:'DEN @ LAL',type:'LEAD CHANGE',color:'var(--bone)',desc:'DEN retakes lead 88-86 after 5th lead change'},
+  {time:'Q2 3:12',game:'BOS @ MIA',type:'3PT BARRAGE',color:'var(--neon)',desc:'BOS hits 5 threes in 2:50, leads 61-44'},
+  {time:'Q1 9:38',game:'NYK @ PHI',type:'MILESTONE',color:'var(--neon)',desc:'Embiid at 28 PTS, on pace for 45+'},
+];
+
+// Seeded milestones for demo
+const SEEDED_MILESTONES=[
+  {player:'Shai Gilgeous-Alexander',team:'OKC',current:38,target:43,targetLabel:'SEASON HIGH',total:50,clock:'Q4 1:18'},
+  {player:'Joel Embiid',team:'PHI',current:31,target:40,targetLabel:'CAREER PLAYOFF HIGH',total:50,clock:'Q3 8:44'},
+  {player:'Nikola Jokic',team:'DEN',current:9,targetLabel:'TRIPLE DOUBLE WATCH',target:10,total:10,secondStat:'11 REB / 8 AST',clock:'Q4 2:02'},
+  {player:'LeBron James',team:'LAL',current:27,target:30,targetLabel:'50TH PLAYOFF 30+',total:30,clock:'Q4 1:18'},
+  {player:'Jalen Brunson',team:'NYK',current:8,target:9,targetLabel:'PLAYOFF REB HIGH',total:10,clock:'Q3 5:11'},
+];
+
+const TEAM_PRIMARY_GAMES={
+  GSW:'#1D428A',BOS:'#007A33',PHX:'#1D1160',MIL:'#00471B',LAL:'#552583',
+  NYK:'#006BB6',DET:'#C8102E',MIN:'#0C2340',PHI:'#006BB6',MIA:'#98002E',
+  DEN:'#0E2240',DAL:'#00538C',BKN:'#FFFFFF',MEM:'#5D76A9',CLE:'#860038',
+  ATL:'#C1D32F',LAC:'#C8102E',POR:'#E03A3E',CHI:'#CE1141',TOR:'#CE1141',
+  IND:'#002D62',NOP:'#0C2340',SAC:'#5A2D81',ORL:'#0077C0',HOU:'#CE1141',
+  OKC:'#007AC1',UTA:'#002B5C',SAS:'#C4CED4',CHA:'#1D1160',WAS:'#002B5C',
+};
+
+// useLiveClock: centralized refresh driver
+function useLiveClock(){
+  const[tick,setTick]=React.useState(0);
+  React.useEffect(()=>{
+    let t;
+    function schedule(){
+      const hidden=document.hidden;
+      t=setTimeout(()=>{setTick(n=>n+1);schedule();},hidden?60000:15000);
+    }
+    schedule();
+    const onVis=()=>{clearTimeout(t);schedule();};
+    document.addEventListener('visibilitychange',onVis);
+    return()=>{clearTimeout(t);document.removeEventListener('visibilitychange',onVis);};
+  },[]);
+  return tick;
+}
+
+// Formats a clock string like "4:22" or period from game object
+function fmtClock(period,time){
+  if(!period)return'';
+  const q=period>4?'OT'+(period>5?period-4:''):`Q${period}`;
+  return time?`${q} ${time}`:q;
+}
+
+// WP color for a team
+function wpColor(abbr){return TEAM_PRIMARY_GAMES[abbr]||'#555';}
+
+// Select "Game of the Night" from array of games
+function selectGOTN(games){
+  if(!games.length)return null;
+  const scored=games.map(g=>{
+    let score=0;
+    if(g.postseason)score+=50;
+    const{type}=parseStatus(g.status);
+    if(type==='live'||type==='final'){
+      const diff=Math.abs((g.home_team_score||0)-(g.visitor_team_score||0));
+      if(diff<=5)score+=20;
+      else if(diff<=10)score+=10;
+    }
+    if(isRivals(g.away_team?.abbreviation||g.visitor_team?.abbreviation||'',g.home_team?.abbreviation||''))score+=10;
+    // Record quality (use payroll as proxy)
+    const extH=TEAM_EXT[g.home_team?.abbreviation]||{};
+    const extA=TEAM_EXT[g.visitor_team?.abbreviation||g.away_team?.abbreviation]||{};
+    score+=Math.min(30,(extH.payroll||130)/10+(extA.payroll||130)/10-26);
+    return{game:g,score};
+  });
+  scored.sort((a,b)=>b.score-a.score);
+  return scored[0]?.game||null;
+}
+
+function gotnReasons(g){
+  const parts=[];
+  if(g.postseason)parts.push('PLAYOFFS');
+  const{type}=parseStatus(g.status);
+  if(type==='live'||type==='final'){
+    const diff=Math.abs((g.home_team_score||0)-(g.visitor_team_score||0));
+    if(diff<=5)parts.push('GAME WITHIN 5');
+  }
+  if(isRivals(g.visitor_team?.abbreviation||'',g.home_team?.abbreviation||''))parts.push('RIVALRY');
+  const ser=SEEDED_SERIES.find(s=>s.awayTeam===g.visitor_team?.abbreviation&&s.homeTeam===g.home_team?.abbreviation);
+  if(ser){const tied=ser.awayW===ser.homeW;parts.push(tied?`SERIES TIED ${ser.awayW}-${ser.homeW}`:`SERIES ${ser.awayW}-${ser.homeW}`);}
+  if(!parts.length)parts.push('TOP MATCHUP');
+  return parts.join(' · ');
+}
 
 const COACHING_ARCHETYPES=[
   {value:'',label:'Default'},{value:'architect',label:'The Architect (Analytics-First)'},
@@ -1063,77 +1295,442 @@ function GameModal({game,open,onClose}) {
 
 // ─── GAMES ────────────────────────────────────────────────────────────────────
 
+// Module 1: Date Ribbon
+function DateRibbon({date,setDate}){
+  const today=localDate();
+  const days=[];
+  for(let i=-3;i<=3;i++){
+    const d=shiftDate(today,i);
+    days.push(d);
+  }
+  const[expanded,setExpanded]=React.useState(false);
+  return (
+    <div className="gr-ribbon">
+      <button className="gr-day-arrow" onClick={()=>setDate(d=>shiftDate(d,-1))}>‹</button>
+      <div style={{display:'flex',gap:4,alignItems:'center',flex:1,justifyContent:'center',flexWrap:'nowrap',overflow:'hidden'}}>
+        {days.map(d=>{
+          const isToday=d===today;
+          const isSel=d===date;
+          const dt=new Date(d+'T12:00:00');
+          const dow=['SUN','MON','TUE','WED','THU','FRI','SAT'][dt.getDay()];
+          const mon=dt.toLocaleString('en-US',{month:'short'}).toUpperCase();
+          const dy=dt.getDate();
+          return (
+            <button key={d} className={`gr-day-pill${isSel?' active':''}${isToday?' today':''}`} onClick={()=>setDate(d)}>
+              <span style={{fontSize:8,letterSpacing:'.12em',opacity:.7}}>{isToday?'TODAY':dow}</span>
+              <span style={{fontSize:13,fontWeight:900,letterSpacing:'-.02em'}}>{dy}</span>
+              <span style={{fontSize:8,letterSpacing:'.08em',opacity:.6}}>{mon}</span>
+            </button>
+          );
+        })}
+      </div>
+      <button className="gr-day-arrow" onClick={()=>setDate(d=>shiftDate(d,1))}>›</button>
+      <button className="gr-today-btn" onClick={()=>setDate(today)}>TODAY</button>
+    </div>
+  );
+}
+
+// Module 2: League Pulse
+function LeaguePulse({games}){
+  const live=games.filter(g=>parseStatus(g.status).type==='live');
+  const final=games.filter(g=>parseStatus(g.status).type==='final');
+  const sched=games.filter(g=>parseStatus(g.status).type==='scheduled');
+  const cells=[
+    {label:'LIVE',val:live.length,active:live.length>0,color:'var(--live)'},
+    {label:'FINAL',val:final.length,active:false,color:'var(--bone)'},
+    {label:'UPCOMING',val:sched.length,active:false,color:'var(--smoke)'},
+    {label:'TOTAL',val:games.length,active:false,color:'var(--neon)'},
+  ];
+  return (
+    <div className="gr-pulse">
+      {cells.map(c=>(
+        <div key={c.label} className="gr-pulse-cell">
+          {c.active&&<span className="gr-pulse-dot"/>}
+          <span style={{color:c.color,fontWeight:900,fontSize:18,letterSpacing:'-.02em',fontVariantNumeric:'tabular-nums'}}>{c.val}</span>
+          <span style={{fontSize:8,fontWeight:700,letterSpacing:'.14em',color:'var(--smoke)',marginTop:2}}>{c.label}</span>
+        </div>
+      ))}
+      {live.length>0&&(
+        <div style={{flex:1,display:'flex',alignItems:'center',gap:8,padding:'0 16px',overflow:'hidden',whiteSpace:'nowrap'}}>
+          <span className="gr-pulse-dot"/>
+          <span style={{fontSize:9,fontWeight:700,letterSpacing:'.1em',color:'var(--live)'}}>GAMES IN PROGRESS:</span>
+          {live.map((g,i)=>{
+            const away=g.visitor_team?.abbreviation||'';
+            const home=g.home_team?.abbreviation||'';
+            const clk=fmtClock(g.period,g.time);
+            return (
+              <span key={g.id} style={{fontSize:10,fontWeight:900,color:'var(--bone)',letterSpacing:'.02em'}}>
+                {away} {g.visitor_team_score}–{g.home_team_score} {home}
+                <span style={{fontSize:8,color:'var(--smoke)',marginLeft:4}}>{clk}</span>
+                {i<live.length-1&&<span style={{color:'var(--wire)',marginLeft:8}}>·</span>}
+              </span>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Module 3: Game of the Night hero card
+function GameOfTheNight({games,onSelect}){
+  const gotn=selectGOTN(games);
+  if(!gotn)return null;
+  const{label,type}=parseStatus(gotn.status);
+  const live=type==='live';
+  const final=type==='final';
+  const away=gotn.visitor_team?.abbreviation||'AWY';
+  const home=gotn.home_team?.abbreviation||'HOM';
+  const awayScore=gotn.visitor_team_score??null;
+  const homeScore=gotn.home_team_score??null;
+  const hasScore=awayScore!=null&&homeScore!=null;
+  const wp=hasScore?computeWinProb(homeScore,awayScore,gotn.period,gotn.time):0.5;
+  const awayC=wpColor(away);
+  const homeC=wpColor(home);
+  const reasons=gotnReasons(gotn);
+  const clk=fmtClock(gotn.period,gotn.time);
+  const ser=SEEDED_SERIES.find(s=>(s.awayTeam===away&&s.homeTeam===home)||(s.awayTeam===home&&s.homeTeam===away));
+  return (
+    <div className="gr-hero" onClick={()=>onSelect&&onSelect(gotn)}>
+      <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12}}>
+        <span style={{fontSize:8,fontWeight:900,letterSpacing:'.18em',color:'var(--neon)'}}>GAME OF THE NIGHT</span>
+        {live&&<><span className="gr-pulse-dot"/><span style={{fontSize:8,color:'var(--live)',fontWeight:700,letterSpacing:'.1em'}}>LIVE {clk}</span></>}
+        {ser&&<span style={{fontSize:8,fontWeight:700,letterSpacing:'.1em',color:'var(--smoke)',marginLeft:'auto'}}>
+          {ser.awayTeam} {ser.awayW}–{ser.homeW} {ser.homeTeam}
+        </span>}
+      </div>
+      <div className="gr-hero-body">
+        <div style={{textAlign:'center',flex:1}}>
+          <div style={{fontSize:9,fontWeight:700,letterSpacing:'.14em',color:'var(--smoke)',marginBottom:4}}>AWAY</div>
+          <div style={{fontSize:40,fontWeight:900,letterSpacing:'-.04em',color:awayC}}>{away}</div>
+          {hasScore&&<div style={{fontSize:52,fontWeight:900,letterSpacing:'-.06em',color:live?awayC:'var(--bone)',lineHeight:1}}>{awayScore}</div>}
+        </div>
+        <div className="gr-hero-center">
+          {!hasScore&&<div style={{fontSize:11,fontWeight:700,letterSpacing:'.08em',color:'var(--smoke)'}}>VS</div>}
+          {hasScore&&live&&<div style={{fontSize:10,fontWeight:900,letterSpacing:'.1em',color:'var(--live)'}}>{clk}</div>}
+          {final&&<div style={{fontSize:9,fontWeight:900,letterSpacing:'.14em',color:'var(--smoke)'}}>FINAL</div>}
+          {!live&&!final&&gotn.time&&<div style={{fontSize:9,color:'var(--smoke)',fontWeight:700}}>{gotn.time}</div>}
+        </div>
+        <div style={{textAlign:'center',flex:1}}>
+          <div style={{fontSize:9,fontWeight:700,letterSpacing:'.14em',color:'var(--smoke)',marginBottom:4}}>HOME</div>
+          <div style={{fontSize:40,fontWeight:900,letterSpacing:'-.04em',color:homeC}}>{home}</div>
+          {hasScore&&<div style={{fontSize:52,fontWeight:900,letterSpacing:'-.06em',color:live?homeC:'var(--bone)',lineHeight:1}}>{homeScore}</div>}
+        </div>
+      </div>
+      {hasScore&&(
+        <div className="gr-wp-bar" style={{marginTop:12}}>
+          <div className="gr-wp-seg" style={{width:`${(1-wp)*100}%`,background:awayC,opacity:.85}}/>
+          <div className="gr-wp-seg" style={{width:`${wp*100}%`,background:homeC,opacity:.85}}/>
+          <div style={{position:'absolute',left:`${(1-wp)*100}%`,top:0,bottom:0,width:1,background:'rgba(0,0,0,.6)'}}/>
+          <div style={{position:'absolute',left:6,top:'50%',transform:'translateY(-50%)',fontSize:8,fontWeight:900,color:'#fff',mixBlendMode:'difference',letterSpacing:'.06em'}}>{Math.round((1-wp)*100)}%</div>
+          <div style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',fontSize:8,fontWeight:900,color:'#fff',mixBlendMode:'difference',letterSpacing:'.06em'}}>{Math.round(wp*100)}%</div>
+        </div>
+      )}
+      {reasons.length>0&&(
+        <div style={{display:'flex',gap:6,marginTop:10,flexWrap:'wrap'}}>
+          {reasons.map((r,i)=><span key={i} style={{fontSize:8,fontWeight:700,letterSpacing:'.12em',padding:'3px 7px',border:'1px solid rgba(0,255,102,.25)',color:'var(--neon)',borderRadius:2}}>{r}</span>)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Module 4: Live game card
+function LiveGameCard({g,onSelect}){
+  const away=g.visitor_team?.abbreviation||'AWY';
+  const home=g.home_team?.abbreviation||'HOM';
+  const awayScore=g.visitor_team_score??0;
+  const homeScore=g.home_team_score??0;
+  const wp=computeWinProb(homeScore,awayScore,g.period,g.time);
+  const awayC=wpColor(away);
+  const homeC=wpColor(home);
+  const clk=fmtClock(g.period,g.time);
+  const clutch=g.period>=4&&Math.abs(homeScore-awayScore)<=5;
+  const diff=Math.abs(homeScore-awayScore);
+  const ser=SEEDED_SERIES.find(s=>(s.awayTeam===away&&s.homeTeam===home)||(s.awayTeam===home&&s.homeTeam===away));
+  return (
+    <div className="gr-live-card" onClick={()=>onSelect&&onSelect(g)}>
+      <div className="gr-card-status">
+        <span className="gr-pulse-dot"/>
+        <span style={{fontSize:8,fontWeight:900,letterSpacing:'.12em',color:'var(--live)'}}>{clk}</span>
+        {clutch&&<span className="gr-clutch-pill">CLUTCH</span>}
+        {diff>=20&&<span style={{fontSize:7,fontWeight:700,letterSpacing:'.1em',color:'var(--blowout)',padding:'2px 5px',border:'1px solid rgba(229,72,77,.3)',marginLeft:4}}>BLOWOUT</span>}
+        {ser&&<span style={{fontSize:7,fontWeight:700,letterSpacing:'.1em',color:'var(--smoke)',marginLeft:'auto'}}>GM {ser.awayW+ser.homeW+1}</span>}
+      </div>
+      <div className="gr-card-team-row">
+        <span style={{fontSize:13,fontWeight:900,letterSpacing:'-.01em',color:awayScore<homeScore?'var(--smoke)':'var(--bone)'}}>{away}</span>
+        <div className="gr-card-score" style={{color:'var(--live)',fontVariantNumeric:'tabular-nums'}}>{awayScore}–{homeScore}</div>
+        <span style={{fontSize:13,fontWeight:900,letterSpacing:'-.01em',color:homeScore<awayScore?'var(--smoke)':'var(--bone)'}}>{home}</span>
+      </div>
+      <div className="gr-card-wp">
+        <div style={{height:'100%',width:`${(1-wp)*100}%`,background:awayC,opacity:.7,borderRadius:'2px 0 0 2px'}}/>
+        <div style={{height:'100%',width:`${wp*100}%`,background:homeC,opacity:.7,borderRadius:'0 2px 2px 0'}}/>
+      </div>
+      <div className="gr-card-leaders">
+        <span style={{fontSize:8,color:'var(--smoke)'}}>BOX SCORE →</span>
+      </div>
+    </div>
+  );
+}
+
+// Module 5+6: Finals and Upcoming rows
+function FinalRow({g,onSelect}){
+  const away=g.visitor_team?.abbreviation||'AWY';
+  const home=g.home_team?.abbreviation||'HOM';
+  const awayScore=g.visitor_team_score??0;
+  const homeScore=g.home_team_score??0;
+  const awayWon=awayScore>homeScore;
+  const ps=getPostseasonLabel(g);
+  return (
+    <div className="gr-final-row" onClick={()=>onSelect&&onSelect(g)}>
+      <span style={{fontSize:8,fontWeight:700,letterSpacing:'.12em',color:'var(--smoke)',width:36,flexShrink:0}}>FINAL</span>
+      <span style={{fontSize:12,fontWeight:900,letterSpacing:'-.01em',color:awayWon?'var(--bone)':'var(--smoke)',width:36,textAlign:'right'}}>{away}</span>
+      <span style={{fontSize:14,fontWeight:900,fontVariantNumeric:'tabular-nums',color:awayWon?'var(--neon)':'var(--bone)',width:28,textAlign:'right'}}>{awayScore}</span>
+      <span style={{fontSize:9,color:'var(--wire)',margin:'0 4px'}}>–</span>
+      <span style={{fontSize:14,fontWeight:900,fontVariantNumeric:'tabular-nums',color:!awayWon?'var(--neon)':'var(--bone)',width:28}}>{homeScore}</span>
+      <span style={{fontSize:12,fontWeight:900,letterSpacing:'-.01em',color:!awayWon?'var(--bone)':'var(--smoke)',width:36}}>{home}</span>
+      {ps&&<span style={{fontSize:7,fontWeight:700,letterSpacing:'.1em',color:'var(--acid)',marginLeft:'auto',padding:'2px 5px',border:'1px solid rgba(204,255,0,.3)'}}>{ps}</span>}
+      <span style={{fontSize:8,color:'var(--smoke)',marginLeft:'auto',letterSpacing:'.06em'}}>BOX SCORE →</span>
+    </div>
+  );
+}
+
+function UpcomingRow({g}){
+  const away=g.visitor_team?.abbreviation||'AWY';
+  const home=g.home_team?.abbreviation||'HOM';
+  const timeStr=g.time||g.status||'--';
+  const ps=getPostseasonLabel(g);
+  const ser=SEEDED_SERIES.find(s=>(s.awayTeam===away&&s.homeTeam===home)||(s.awayTeam===home&&s.homeTeam===away));
+  return (
+    <div className="gr-upcoming-row">
+      <span style={{fontSize:10,fontWeight:900,color:'var(--smoke)',width:80,flexShrink:0,letterSpacing:'.04em'}}>{timeStr}</span>
+      <span style={{fontSize:13,fontWeight:900,letterSpacing:'-.01em'}}>{away}</span>
+      <span style={{fontSize:9,color:'var(--wire)',margin:'0 6px'}}>@</span>
+      <span style={{fontSize:13,fontWeight:900,letterSpacing:'-.01em'}}>{home}</span>
+      {ser&&<span style={{fontSize:7,fontWeight:700,letterSpacing:'.1em',color:'var(--acid)',marginLeft:8,padding:'2px 5px',border:'1px solid rgba(204,255,0,.25)'}}>GM {ser.awayW+ser.homeW+1}</span>}
+      {ps&&<span style={{fontSize:7,fontWeight:700,letterSpacing:'.1em',color:'var(--smoke)',marginLeft:4,padding:'2px 5px',border:'1px solid var(--wire)'}}>{ps}</span>}
+    </div>
+  );
+}
+
+// Module 7: Live Feed
+function LiveFeed({games}){
+  const liveGames=games.filter(g=>parseStatus(g.status).type==='live');
+  const items=SEEDED_FEED;
+  return (
+    <div className="gr-feed-wrap">
+      <div className="gr-panel-hd">
+        <span>LIVE FEED</span>
+        {liveGames.length>0&&<span className="gr-auto-pill"><span className="gr-pulse-dot"/>AUTO</span>}
+      </div>
+      <div style={{display:'flex',flexDirection:'column',gap:1}}>
+        {items.map((item,i)=>(
+          <div key={i} className="gr-feed-item">
+            <div style={{display:'flex',gap:6,alignItems:'center',marginBottom:3}}>
+              <span className="gr-feed-time">{item.time}</span>
+              <span className="gr-feed-game">{item.game}</span>
+              <span className="gr-feed-type" style={{color:item.color||'var(--smoke)',borderColor:item.color?item.color+'40':'var(--wire)'}}>{item.type}</span>
+            </div>
+            <div className="gr-feed-desc">{item.desc}</div>
+          </div>
+        ))}
+        {!items.length&&<div style={{padding:'20px 16px',fontSize:10,color:'var(--smoke)',letterSpacing:'.08em'}}>NO LIVE GAMES</div>}
+      </div>
+    </div>
+  );
+}
+
+// Module 8: Milestones Watch
+function MilestonesWatch(){
+  const items=SEEDED_MILESTONES;
+  return (
+    <div className="gr-mile-wrap">
+      <div className="gr-panel-hd">
+        <span>MILESTONES</span>
+        <span className="gr-auto-pill">WATCH</span>
+      </div>
+      <div style={{display:'flex',flexDirection:'column',gap:1}}>
+        {items.map((m,i)=>{
+          const pct=Math.min(100,Math.round((m.current/m.total)*100));
+          return (
+            <div key={i} className="gr-mile-row">
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:5}}>
+                <div>
+                  <span style={{fontSize:10,fontWeight:900,letterSpacing:'-.01em'}}>{m.player}</span>
+                  <span style={{fontSize:8,color:'var(--smoke)',marginLeft:6,letterSpacing:'.08em'}}>{m.team}</span>
+                </div>
+                <div style={{textAlign:'right'}}>
+                  <span style={{fontSize:8,fontWeight:700,letterSpacing:'.1em',color:'var(--alert)',padding:'2px 5px',border:'1px solid rgba(224,179,65,.3)'}}>{m.targetLabel}</span>
+                  {m.clock&&<span style={{fontSize:8,color:'var(--smoke)',marginLeft:6}}>{m.clock}</span>}
+                </div>
+              </div>
+              <div style={{display:'flex',alignItems:'center',gap:8}}>
+                <div className="gr-mile-prog">
+                  <div className="gr-mile-fill" style={{width:`${pct}%`}}/>
+                </div>
+                <span style={{fontSize:10,fontWeight:900,fontVariantNumeric:'tabular-nums',color:'var(--neon)',minWidth:28,textAlign:'right'}}>{m.current}</span>
+                <span style={{fontSize:8,color:'var(--smoke)'}}>/</span>
+                <span style={{fontSize:10,fontWeight:700,fontVariantNumeric:'tabular-nums',color:'var(--smoke)',minWidth:20}}>{m.target}</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// Module 9: Playoff Series Board
+function PlayoffSeriesBoard(){
+  const series=SEEDED_SERIES;
+  if(!series.length)return null;
+  return (
+    <div className="gr-series-board">
+      <div style={{fontSize:8,fontWeight:900,letterSpacing:'.18em',color:'var(--neon)',marginBottom:10,padding:'0 2px'}}>PLAYOFF SERIES</div>
+      {series.map((s,i)=>{
+        const awayAhead=s.awayW>s.homeW;
+        const homeAhead=s.homeW>s.awayW;
+        const tied=s.awayW===s.homeW;
+        return (
+          <div key={s.id} className="gr-series-row">
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
+              <span style={{fontSize:7,fontWeight:700,letterSpacing:'.12em',color:'var(--smoke)'}}>{s.round}</span>
+              {s.note&&<span style={{fontSize:7,color:'var(--smoke)',fontStyle:'italic',opacity:.8,maxWidth:200,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{s.note}</span>}
+            </div>
+            <div style={{display:'flex',alignItems:'center',gap:10}}>
+              <span style={{fontSize:13,fontWeight:900,letterSpacing:'-.01em',color:awayAhead?'var(--bone)':tied?'var(--bone)':'var(--smoke)',minWidth:32}}>{s.awayTeam}</span>
+              <div className="gr-series-dots">
+                {[...Array(4)].map((_,wi)=>(
+                  <div key={wi} className={`gr-series-dot${wi<s.awayW?' filled':''}${wi<s.awayW&&s.awayW===4?' champ':''}`}
+                       style={wi<s.awayW?{background:wpColor(s.awayTeam)}:{}}/>
+                ))}
+              </div>
+              <span style={{fontSize:9,fontWeight:900,color:tied?'var(--neon)':'var(--smoke)',minWidth:32,textAlign:'center',letterSpacing:'.06em'}}>
+                {s.awayW}–{s.homeW}
+              </span>
+              <div className="gr-series-dots" style={{justifyContent:'flex-end'}}>
+                {[...Array(4)].map((_,wi)=>(
+                  <div key={wi} className={`gr-series-dot${wi<s.homeW?' filled':''}${wi<s.homeW&&s.homeW===4?' champ':''}`}
+                       style={wi<s.homeW?{background:wpColor(s.homeTeam)}:{}}/>
+                ))}
+              </div>
+              <span style={{fontSize:13,fontWeight:900,letterSpacing:'-.01em',color:homeAhead?'var(--bone)':tied?'var(--bone)':'var(--smoke)',minWidth:32,textAlign:'right'}}>{s.homeTeam}</span>
+            </div>
+            {s.nextTime&&(
+              <div style={{marginTop:4,fontSize:8,color:'var(--smoke)',letterSpacing:'.06em'}}>
+                <span style={{color:'var(--acid)',fontWeight:700}}>NEXT:</span> {s.nextTime}
+                {s.venue&&<span style={{color:'var(--wire)',marginLeft:6}}>@ {s.venue}</span>}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// Main Games component
 function Games() {
-  const[date,setDate]=React.useState(localDate());
+  const today=localDate();
+  const[date,setDate]=React.useState(today);
   const[games,setGames]=React.useState([]);
   const[loading,setLoading]=React.useState(true);
   const[selected,setSelected]=React.useState(null);
   const[modalOpen,setModalOpen]=React.useState(false);
+  const tick=useLiveClock();
+
   React.useEffect(()=>{
-    let c=false;setLoading(true);setGames([]);
-    fetch(`${API}/nba/games?date=${date}`).then(r=>r.json()).then(d=>{if(!c){setGames(d.data||d.games||[]);setLoading(false);}}).catch(()=>{if(!c)setLoading(false);});
+    let c=false;
+    setLoading(true);
+    setGames([]);
+    fetch(`${API}/nba/games?date=${date}`)
+      .then(r=>r.json())
+      .then(d=>{if(!c){setGames(d.data||d.games||[]);setLoading(false);}})
+      .catch(()=>{if(!c)setLoading(false);});
     return()=>{c=true;};
-  },[date]);
+  },[date,tick]);
+
+  const liveGames=games.filter(g=>parseStatus(g.status).type==='live');
+  const finalGames=games.filter(g=>parseStatus(g.status).type==='final');
+  const scheduledGames=games.filter(g=>parseStatus(g.status).type==='scheduled');
+  const hasPlayoffs=SEEDED_SERIES.length>0;
 
   return (
-    <div className="page page-pad">
-      <div style={{display:'flex',gap:8,alignItems:'center',paddingTop:24,paddingBottom:24}}>
-        <button className="btn btn-secondary btn-sm" onClick={()=>setDate(d=>shiftDate(d,-1))}>PREV</button>
-        <div style={{fontSize:12,fontWeight:900,letterSpacing:'.1em',color:'var(--neon)',border:'1px solid var(--wire)',padding:'9px 22px',minWidth:132,textAlign:'center'}}>{fmtDateLabel(date)}</div>
-        <button className="btn btn-secondary btn-sm" onClick={()=>setDate(d=>shiftDate(d,1))}>NEXT</button>
-        <button className="btn btn-neon btn-sm" onClick={()=>setDate(localDate())}>TODAY</button>
-      </div>
+    <div className="page" style={{padding:'0 0 80px'}}>
+      {/* Module 1: Date Ribbon */}
+      <DateRibbon date={date} setDate={setDate}/>
 
-      {loading&&<div className="load-line-wrap"><div className="load-line"/></div>}
+      {/* Module 2: League Pulse */}
+      {!loading&&games.length>0&&<LeaguePulse games={games}/>}
+
+      {loading&&<div className="load-line-wrap" style={{margin:'24px 24px 0'}}><div className="load-line"/></div>}
 
       {!loading&&!games.length&&(
-        <div className="empty-state">
+        <div className="empty-state" style={{marginTop:40}}>
           <div className="empty-headline">NO GAMES.</div>
           <div className="empty-sub">NOTHING SCHEDULED FOR {fmtDateLabel(date)}.</div>
         </div>
       )}
 
       {!loading&&games.length>0&&(
-        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))',gap:12}}>
-          {games.map(g=>{
-            const{label,type}=parseStatus(g.status);
-            const live=type==='live',final=type==='final';
-            const ps=getPostseasonLabel(g);
-            const away=g.visitor_team?.abbreviation||'AWY';
-            const home=g.home_team?.abbreviation||'HOM';
-            return (
-              <div key={g.id} className="game-widget" onClick={()=>{setSelected(g);setModalOpen(true);}}
-                   style={{borderColor:live?'rgba(0,255,102,.40)':'var(--wire)'}}>
-                <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
-                  <span className={`badge badge-${type}`}>
-                    {live&&<span className="pulse-dot" style={{width:5,height:5,marginRight:4}}/>}
-                    {label}
-                  </span>
-                  {ps&&<span className="badge badge-signal" style={{fontSize:8}}>{ps}</span>}
-                </div>
-                <div style={{display:'flex',flexDirection:'column',gap:8}}>
-                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                    <span style={{fontSize:16,fontWeight:900,letterSpacing:'-.02em'}}>{away}</span>
-                    {g.visitor_team_score!=null&&(
-                      <span style={{fontSize:28,fontWeight:900,letterSpacing:'-.04em',color:live?'var(--neon)':'var(--bone)'}}>{g.visitor_team_score}</span>
-                    )}
-                  </div>
-                  <div style={{height:1,background:'var(--wire)'}}/>
-                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                    <span style={{fontSize:16,fontWeight:900,letterSpacing:'-.02em'}}>{home}</span>
-                    {g.home_team_score!=null&&(
-                      <span style={{fontSize:28,fontWeight:900,letterSpacing:'-.04em',color:live?'var(--neon)':'var(--bone)'}}>{g.home_team_score}</span>
-                    )}
-                  </div>
-                </div>
-                <div style={{display:'flex',justifyContent:'flex-end'}}>
-                  {(final||live)&&<span style={{fontSize:9,color:'var(--smoke)',letterSpacing:'.1em',fontWeight:700}}>BOX SCORE</span>}
-                </div>
+        <div style={{padding:'0 24px'}}>
+
+          {/* Module 3: Game of the Night */}
+          {(liveGames.length>0||finalGames.length>0)&&(
+            <GameOfTheNight games={[...liveGames,...finalGames]} onSelect={g=>{setSelected(g);setModalOpen(true);}}/>
+          )}
+          {scheduledGames.length>0&&liveGames.length===0&&finalGames.length===0&&(
+            <GameOfTheNight games={scheduledGames} onSelect={g=>{setSelected(g);setModalOpen(true);}}/>
+          )}
+
+          {/* Module 4: Live Games Grid */}
+          {liveGames.length>0&&(
+            <div style={{marginBottom:20}}>
+              <div className="gr-section-label">
+                <span className="gr-pulse-dot"/>
+                LIVE NOW · {liveGames.length} GAME{liveGames.length!==1?'S':''}
               </div>
-            );
-          })}
+              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))',gap:8}}>
+                {liveGames.map(g=><LiveGameCard key={g.id} g={g} onSelect={g=>{setSelected(g);setModalOpen(true);}}/>)}
+              </div>
+            </div>
+          )}
+
+          {/* Two-column layout: Finals + Upcoming | Side panel */}
+          <div style={{display:'grid',gridTemplateColumns:'1fr 300px',gap:16,alignItems:'start'}}>
+            <div>
+              {/* Module 5: Finals */}
+              {finalGames.length>0&&(
+                <div className="gr-finals-section" style={{marginBottom:12}}>
+                  <div className="gr-section-label">FINAL · {finalGames.length} GAME{finalGames.length!==1?'S':''}</div>
+                  {finalGames.map(g=><FinalRow key={g.id} g={g} onSelect={g=>{setSelected(g);setModalOpen(true);}}/>)}
+                </div>
+              )}
+
+              {/* Module 6: Upcoming */}
+              {scheduledGames.length>0&&(
+                <div>
+                  <div className="gr-section-label">UPCOMING · {scheduledGames.length} GAME{scheduledGames.length!==1?'S':''}</div>
+                  {scheduledGames.map(g=><UpcomingRow key={g.id} g={g}/>)}
+                </div>
+              )}
+
+              {/* Module 9: Playoff Series Board */}
+              {hasPlayoffs&&<PlayoffSeriesBoard/>}
+            </div>
+
+            {/* Side panel: Feed + Milestones */}
+            <div className="gr-side-panel">
+              {/* Module 7: Live Feed */}
+              <LiveFeed games={games}/>
+              {/* Module 8: Milestones */}
+              <MilestonesWatch/>
+            </div>
+          </div>
+
         </div>
       )}
+
       <GameModal game={selected} open={modalOpen} onClose={()=>setModalOpen(false)}/>
     </div>
   );
