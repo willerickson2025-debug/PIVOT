@@ -390,7 +390,7 @@ select{
 /* ── INTRO OVERLAY ── */
 .lp-intro-overlay{position:fixed;inset:0;z-index:200;background:#000;display:flex;align-items:center;justify-content:center;overflow:hidden;pointer-events:all;transition:opacity 1800ms ease;}
 .lp-intro-overlay.lp-intro-out{opacity:0;pointer-events:none;}
-@keyframes lp-spot-sweep{0%{transform:translateX(0);}100%{transform:translateX(100vw);}}
+@keyframes lp-spot-loop{0%{transform:translateX(-50%);}50%{transform:translateX(0%);}100%{transform:translateX(-50%);}}
 /* ── SCROLL REVEALS ── */
 .lp-reveal{opacity:0;transform:translateY(28px);transition:opacity 400ms ease,transform 400ms ease;}
 .lp-reveal.lp-in{opacity:1;transform:translateY(0);}
@@ -1217,39 +1217,19 @@ const HOME_MODULES=[
 ];
 
 function IntroOverlay({out}) {
-  const [phase,setPhase] = React.useState('grid');
-
-  React.useEffect(()=>{
-    const t = setTimeout(()=>setPhase('scale'),2400);
-    return()=>clearTimeout(t);
-  },[]);
-
-  const gridSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="96" height="28"><text x="6" y="20" font-family="Helvetica Neue,Arial,sans-serif" font-weight="700" font-size="12" fill="white" fill-opacity="0.28" letter-spacing="3">PIVOT</text></svg>';
+  const gridSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="104" height="30"><text x="6" y="21" font-family="Helvetica Neue,Arial,sans-serif" font-weight="700" font-size="12" fill="%2339FF14" fill-opacity="0.55" letter-spacing="4">PIVOT</text></svg>';
   const gridUrl = 'url("data:image/svg+xml,' + encodeURIComponent(gridSvg) + '")';
 
   return (
     <div className={`lp-intro-overlay${out?' lp-intro-out':''}`}>
-
-      {/* Grid layer */}
-      <div style={{position:'absolute',inset:0,backgroundImage:gridUrl,backgroundSize:'96px 28px',backgroundRepeat:'repeat',
-        opacity:phase==='grid'?1:0,transition:'opacity 700ms ease'}}>
-        {/* Dark veil with spotlight hole sweeping left to right */}
-        <div style={{position:'absolute',top:0,bottom:0,left:'-60vw',width:'160vw',pointerEvents:'none',
-          background:'radial-gradient(ellipse 26vw 120% at 50% 50%, transparent 0%, transparent 20vw, rgba(0,0,0,0.96) 28vw)',
-          animation:'lp-spot-sweep 2.2s cubic-bezier(0.4,0,0.3,1) 0.2s forwards'}}/>
+      {/* Tiled grid — doubled width so we can pan without gap */}
+      <div style={{position:'absolute',inset:0,overflow:'hidden'}}>
+        <div style={{position:'absolute',top:0,bottom:0,left:0,width:'200%',
+          backgroundImage:gridUrl,backgroundSize:'104px 30px',backgroundRepeat:'repeat',
+          animation:'lp-spot-loop 6s ease-in-out infinite'}}/>
       </div>
-
-      {/* Center PIVOT — fades in then scales up */}
-      <div style={{position:'absolute',top:'50%',left:'50%',
-        fontFamily:'"Helvetica Neue","Helvetica","Arial Black",Arial,sans-serif',
-        fontWeight:900,fontSize:'clamp(80px,14vw,210px)',letterSpacing:'-0.04em',
-        color:'#fff',textTransform:'uppercase',whiteSpace:'nowrap',pointerEvents:'none',
-        opacity:phase==='scale'?1:0,
-        transform:phase==='scale'?'translate(-50%,-50%) scale(1)':'translate(-50%,-50%) scale(0.06)',
-        transition:phase==='scale'?'opacity 300ms ease, transform 1200ms cubic-bezier(0.16,1,0.3,1)':'none'}}>
-        PIVOT
-      </div>
-
+      {/* Dark radial vignette — edges stay dim, center readable */}
+      <div style={{position:'absolute',inset:0,background:'radial-gradient(ellipse 70% 70% at 50% 50%, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.88) 100%)',pointerEvents:'none'}}/>
     </div>
   );
 }
@@ -1263,11 +1243,11 @@ function Home({setTab}) {
   // Intro timing: 200ms delay + 1200ms draw + 500ms hold = 1900ms, then 700ms fade out
   React.useEffect(()=>{
     if(intro!=='show')return;
-    const t1=setTimeout(()=>setIntro('out'),4000);
+    const t1=setTimeout(()=>setIntro('out'),3000);
     const t2=setTimeout(()=>{
       setIntro('done');
       try{sessionStorage.setItem('piv_seen','1');}catch(e){}
-    },5800);
+    },4800);
     return()=>{clearTimeout(t1);clearTimeout(t2);};
   },[intro]);
 
