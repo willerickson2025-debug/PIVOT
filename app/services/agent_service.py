@@ -27,11 +27,10 @@ from zoneinfo import ZoneInfo
 from app.core.cache import analysis_cache
 from app.services import claude_service, nba_service
 from app.services.analysis_service import (
-    _nba_analyst_system_prompt,
-    _build_player_stat_block,
     _format_games_for_prompt,
-    _render_stat_block,
+    enrich_player,
 )
+from app.services.claude_service import PIVOT_ANALYSIS_SYSTEM_PROMPT
 
 logger = logging.getLogger(__name__)
 
@@ -107,7 +106,7 @@ async def run_pregame_agent(target_date: str | None = None) -> dict[str, Any]:
     try:
         result = await claude_service.analyze(
             prompt=enriched_prompt,
-            system_prompt=_nba_analyst_system_prompt(),
+            system_prompt=PIVOT_ANALYSIS_SYSTEM_PROMPT,
             override_max_tokens=2048,
         )
 
@@ -210,7 +209,7 @@ async def run_quality_pass(target_date: str | None = None) -> dict[str, Any]:
     try:
         result = await claude_service.analyze(
             prompt=quality_prompt,
-            system_prompt=_nba_analyst_system_prompt(),
+            system_prompt=PIVOT_ANALYSIS_SYSTEM_PROMPT,
             override_max_tokens=2048,
         )
 
@@ -284,32 +283,36 @@ async def _warm_player(player_name: str) -> None:
         return  # already warm
 
     try:
-        player, agg = await _build_player_stat_block(player_name, _DEFAULT_SEASON)
-        if agg["total_games"] == 0:
+        try:
+            player_obj = await nba_service.resolve_player_exact(player_name)
+        except Exception:
             return
 
-        stat_block = _render_stat_block(player, _DEFAULT_SEASON, agg)
+        enriched = await enrich_player(player_obj.id, _DEFAULT_SEASON)
+        if not enriched.get("stat_block"):
+            return
+
         result = await claude_service.analyze(
-            prompt=f"Analyze this player's {_DEFAULT_SEASON} NBA season:\n\n{stat_block}",
-            system_prompt=_nba_analyst_system_prompt(),
+            prompt=f"Analyze this player's {_DEFAULT_SEASON} NBA season:\n\n{enriched['stat_block']}",
+            system_prompt=PIVOT_ANALYSIS_SYSTEM_PROMPT,
             override_max_tokens=1500,
         )
         payload = {
-            "player": player.model_dump(),
+            "player": player_obj.model_dump(),
             "season": _DEFAULT_SEASON,
             "averages": {
-                "points": agg["avg_pts"], "rebounds": agg["avg_reb"],
-                "assists": agg["avg_ast"], "steals": agg["avg_stl"],
-                "blocks": agg["avg_blk"], "fg_pct": agg["avg_fg"],
-                "fg3_pct": agg["avg_fg3"], "ft_pct": agg["avg_ft"],
+                "points": enriched.get("avg_pts"), "rebounds": enriched.get("avg_reb"),
+                "assists": enriched.get("avg_ast"), "steals": enriched.get("avg_stl"),
+                "blocks": enriched.get("avg_blk"), "fg_pct": enriched.get("avg_fg"),
+                "fg3_pct": enriched.get("avg_fg3"), "ft_pct": enriched.get("avg_ft"),
             },
             "last_10": {
-                "points": agg["recent_pts"], "rebounds": agg["recent_reb"],
-                "assists": agg["recent_ast"], "steals": agg["recent_stl"],
-                "blocks": agg["recent_blk"], "fg_pct": agg["recent_fg"],
-                "fg3_pct": agg["recent_fg3"],
+                "points": enriched.get("recent_pts"), "rebounds": enriched.get("recent_reb"),
+                "assists": enriched.get("recent_ast"), "steals": enriched.get("recent_stl"),
+                "blocks": enriched.get("recent_blk"), "fg_pct": enriched.get("recent_fg"),
+                "fg3_pct": enriched.get("recent_fg3"),
             },
-            "games_played": agg["total_games"],
+            "games_played": enriched.get("gp", 0),
             "analysis": result.analysis,
             "model": result.model,
             "tokens_used": result.tokens_used,
