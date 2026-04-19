@@ -393,7 +393,7 @@ select{
 .lp-intro-row{display:flex;white-space:nowrap;line-height:1;overflow:hidden;}
 .lp-intro-row span{font-family:"Helvetica Neue","Helvetica","Arial Black",Arial,sans-serif;font-weight:900;font-size:clamp(48px,8vw,120px);letter-spacing:-0.03em;text-transform:uppercase;padding:0 0.18em;will-change:transform;}
 .lp-intro-row:nth-child(odd) span{color:#fff;}
-.lp-intro-row:nth-child(even) span{color:rgba(255,255,255,0.15);}
+.lp-intro-row:nth-child(even) span{color:#39FF14;}
 @keyframes lp-slide-l1{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 @keyframes lp-slide-l2{from{transform:translateX(-50%)}to{transform:translateX(0)}}
 @keyframes lp-slide-r1{from{transform:translateX(-50%)}to{transform:translateX(0)}}
@@ -1265,13 +1265,13 @@ function Home({setTab}) {
         const word='PIVOT\u00A0';
         const tile=word.repeat(12);
         const rows=[
-          {dur:'3s',dir:'l'},
-          {dur:'5s',dir:'r'},
-          {dur:'2.4s',dir:'l'},
-          {dur:'4s',dir:'r'},
-          {dur:'3.6s',dir:'l'},
-          {dur:'2.8s',dir:'r'},
-          {dur:'4.5s',dir:'l'},
+          {dur:'18s',dir:'l'},
+          {dur:'28s',dir:'r'},
+          {dur:'14s',dir:'l'},
+          {dur:'22s',dir:'r'},
+          {dur:'20s',dir:'l'},
+          {dur:'16s',dir:'r'},
+          {dur:'25s',dir:'l'},
         ];
         return(
           <div className={`lp-intro-overlay${intro==='out'?' lp-intro-out':''}`}>
