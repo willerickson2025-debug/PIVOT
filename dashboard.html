@@ -1274,32 +1274,32 @@ function Home({setTab}) {
       {/* ── INTRO OVERLAY — session-gated, thick marker draw-on ── */}
       {intro!=='done'&&(
         <div className={`lp-intro-overlay${intro==='out'?' lp-intro-out':''}`}>
-          <svg viewBox="0 0 560 170" style={{width:'min(92vw,580px)',overflow:'visible',display:'block'}} aria-hidden="true">
+          <svg viewBox="0 0 780 180" style={{width:'min(96vw,780px)',overflow:'visible',display:'block'}} aria-hidden="true">
             {[
-              /* P — vertical downstroke */
-              {d:"M 40,158 C 39,122 37,74 40,18"},
-              /* P — bowl: off stem top, round forward, back to stem mid */
-              {d:"M 40,18 C 78,6 106,26 103,62 C 100,96 76,114 40,104"},
-              /* I — downstroke, slight lean */
-              {d:"M 132,18 C 130,60 128,108 127,158"},
-              /* V — left leg down */
-              {d:"M 162,18 C 168,58 178,104 194,158"},
-              /* V — right leg up */
-              {d:"M 194,158 C 208,104 222,58 238,18"},
-              /* O — single continuous loop */
-              {d:"M 306,24 C 340,4 386,18 390,62 C 394,106 368,158 328,160 C 288,162 260,130 266,88 C 272,50 278,38 306,24"},
-              /* T — crossbar left to right */
-              {d:"M 368,24 C 396,18 428,16 462,22"},
-              /* T — downstroke from crossbar */
-              {d:"M 414,22 C 411,66 408,112 406,158"},
+              /* P — straight vertical */
+              {d:"M 28,165 L 28,15"},
+              /* P — bowl: flat top, hard curve, back flat */
+              {d:"M 28,15 L 80,15 C 112,15 118,40 118,70 C 118,100 108,118 78,118 L 28,118"},
+              /* I — straight down */
+              {d:"M 158,15 L 158,165"},
+              /* V — left leg, dead straight diagonal */
+              {d:"M 198,15 L 244,165"},
+              /* V — right leg, dead straight diagonal */
+              {d:"M 244,165 L 294,15"},
+              /* O — rectangular rounded loop */
+              {d:"M 370,15 C 370,15 440,15 450,15 C 476,15 488,32 488,88 C 488,144 476,162 450,165 C 440,165 370,165 370,165 C 344,165 330,148 330,88 C 330,32 344,15 370,15"},
+              /* T — crossbar */
+              {d:"M 520,15 L 640,15"},
+              /* T — vertical */
+              {d:"M 580,15 L 580,165"},
             ].map(({d},i)=>{
-              const delays=[0.08, 0.42, 0.90, 1.22, 1.54, 1.86, 2.46, 2.74];
-              const durs=  [0.30, 0.44, 0.26, 0.28, 0.28, 0.56, 0.24, 0.28];
+              const delays=[0.05, 0.30, 0.72, 1.00, 1.28, 1.56, 2.10, 2.34];
+              const durs=  [0.24, 0.38, 0.22, 0.26, 0.26, 0.50, 0.22, 0.24];
               return(
-                <path key={i} d={d} stroke="#39FF14" strokeWidth="16" fill="none"
-                  strokeLinecap="round" strokeLinejoin="round"
-                  style={{strokeDasharray:4000,strokeDashoffset:4000,
-                    animation:`lp-draw ${durs[i]}s cubic-bezier(0.25,0,0.1,1) ${delays[i]}s forwards`}}/>
+                <path key={i} d={d} stroke="#39FF14" strokeWidth="20" fill="none"
+                  strokeLinecap="square" strokeLinejoin="miter"
+                  style={{strokeDasharray:5000,strokeDashoffset:5000,
+                    animation:`lp-draw ${durs[i]}s cubic-bezier(0.2,0,0.1,1) ${delays[i]}s forwards`}}/>
               );
             })}
           </svg>
