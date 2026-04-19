@@ -522,11 +522,11 @@ select{
 /* ─── WAR ROOM ──────────────────────────────────────────────────────────────── */
 .wr-ribbon{
   position:sticky;top:62px;z-index:190;
-  height:56px;background:var(--void);
+  min-height:56px;background:var(--void);
   border-top:1px solid var(--divider);border-bottom:1px solid var(--divider);
-  display:flex;align-items:center;overflow-x:auto;padding:0 40px;gap:0;
-  scrollbar-width:none;
+  display:flex;align-items:center;flex-wrap:wrap;padding:8px 40px;gap:0;
 }
+.wr-ribbon::-webkit-scrollbar{display:none;}
 .wr-ribbon::-webkit-scrollbar{display:none;}
 .wr-pill{
   flex-shrink:0;padding:0 20px;display:flex;flex-direction:column;justify-content:center;
@@ -537,7 +537,7 @@ select{
 .wr-pill-divider{width:1px;background:rgba(255,255,255,.12);height:28px;flex-shrink:0;margin:0 4px;}
 .wr-ribbon-ts{margin-left:auto;padding-left:20px;font-size:9px;font-weight:700;letter-spacing:.08em;color:var(--smoke);white-space:nowrap;flex-shrink:0;}
 
-.wr-sub{display:flex;border-bottom:1px solid var(--divider);background:var(--void);position:sticky;top:118px;z-index:180;}
+.wr-sub{display:flex;border-bottom:1px solid var(--divider);background:var(--void);position:sticky;top:118px;z-index:180;flex-wrap:wrap;}
 .wr-sub-btn{background:none;border:none;border-bottom:2px solid transparent;padding:12px 24px;font-size:10px;font-weight:700;letter-spacing:.1em;color:var(--smoke);cursor:pointer;transition:color 140ms,border-color 140ms;font-family:var(--font);text-transform:uppercase;white-space:nowrap;}
 .wr-sub-btn.active{color:var(--bone);border-bottom-color:var(--neon);}
 .wr-sub-btn:hover:not(.active){color:var(--bone);}
@@ -3990,8 +3990,8 @@ function WarRoom() {
 // ─── COMPARE ─────────────────────────────────────────────────────────────────
 
 function Compare() {
-  const[pA,setPA]=React.useState(null);
-  const[pB,setPB]=React.useState(null);
+  const[pA,setPA]=React.useState({id:1642355,first_name:'Cooper',last_name:'Flagg',team:{abbreviation:'DAL'},position:'SF'});
+  const[pB,setPB]=React.useState({id:1641705,first_name:'Victor',last_name:'Wembanyama',team:{abbreviation:'SAS'},position:'C'});
   const[ctx,setCtx]=React.useState('');
   const[sA,setSA]=React.useState(null);
   const[sB,setSB]=React.useState(null);
