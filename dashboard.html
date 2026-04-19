@@ -338,14 +338,17 @@ select{
    ═══════════════════════════════════════════════════════════ */
 .lp-v2-root{position:relative;background:#000;min-height:100vh;font-family:"Helvetica Neue","Helvetica","Arial Black",Arial,sans-serif;font-weight:700;text-transform:uppercase;-webkit-font-smoothing:antialiased;text-rendering:geometricPrecision;font-synthesis:none;overflow-x:hidden;}
 .lp-v2-root *::selection{background:#39FF14;color:#000;}
-.lp-v2-bg{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;}
-.lp-v2-bg::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.02) 1px,transparent 1px);background-size:72px 72px;}
+.lp-v2-aurora{position:absolute;inset:0;z-index:0;overflow:hidden;background:#000;pointer-events:none;}
+.lp-v2-aurora-blob{position:absolute;border-radius:50%;mix-blend-mode:screen;will-change:transform;}
 .lp-v2-content{position:relative;z-index:1;}
-.lp-v2-live{position:fixed;top:24px;right:32px;z-index:20;display:flex;align-items:center;gap:8px;pointer-events:none;}
-.lp-v2-live-dot{width:7px;height:7px;border-radius:50%;background:#39FF14;box-shadow:0 0 8px #39FF14;animation:lp-v2-pulse 2.4s ease-in-out infinite;flex-shrink:0;}
-.lp-v2-live-label{font-size:10px;font-weight:700;letter-spacing:0.28em;color:#888;font-family:"Helvetica Neue","Helvetica","Arial Black",Arial,sans-serif;}
-.lp-v2-hero{position:relative;height:100vh;min-height:640px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 48px;}
-.lp-v2-statement{font-family:"Helvetica Neue","Helvetica","Arial Black",Arial,sans-serif;font-weight:900;font-size:clamp(72px,11vw,180px);letter-spacing:-0.06em;line-height:0.86;color:#fff;text-transform:uppercase;margin:0 0 96px;max-width:95vw;}
+@keyframes lp-v2-blob-a{0%,100%{transform:translate(0,0) scale(1);}33%{transform:translate(12%,-8%) scale(1.08);}66%{transform:translate(-6%,14%) scale(0.94);}}
+@keyframes lp-v2-blob-b{0%,100%{transform:translate(0,0) scale(1);}40%{transform:translate(-14%,10%) scale(1.12);}70%{transform:translate(8%,-6%) scale(0.9);}}
+@keyframes lp-v2-blob-c{0%,100%{transform:translate(0,0) scale(1);}50%{transform:translate(10%,-12%) scale(1.06);}}
+@keyframes lp-v2-blob-d{0%,100%{transform:translate(0,0) scale(1);}30%{transform:translate(-10%,6%) scale(0.92);}70%{transform:translate(6%,12%) scale(1.1);}}
+@keyframes lp-v2-blob-e{0%,100%{transform:translate(0,0) scale(1);}45%{transform:translate(14%,8%) scale(1.07);}80%{transform:translate(-4%,-10%) scale(0.96);}}
+@keyframes lp-v2-blob-f{0%,100%{transform:translate(0,0) scale(1);}35%{transform:translate(-8%,16%) scale(1.04);}65%{transform:translate(12%,-4%) scale(0.88);}}
+.lp-v2-hero{position:relative;height:100vh;min-height:640px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 48px;overflow:hidden;}
+.lp-v2-statement{font-family:"Helvetica Neue","Helvetica","Arial Black",Arial,sans-serif;font-weight:900;font-size:clamp(72px,11vw,180px);letter-spacing:-0.02em;line-height:0.86;color:#fff;text-transform:uppercase;margin:0 0 96px;max-width:95vw;}
 .lp-v2-btn-primary{font-family:"Helvetica Neue","Helvetica","Arial Black",Arial,sans-serif;font-weight:900;font-size:13px;letter-spacing:0.22em;text-transform:uppercase;background:transparent;color:#fff;border:1px solid rgba(255,255,255,0.3);padding:16px 48px;cursor:pointer;transition:border-color 160ms,color 160ms;}
 .lp-v2-btn-primary:hover{border-color:#39FF14;color:#39FF14;}
 .lp-v2-btn-ghost{font-family:"Helvetica Neue","Helvetica","Arial Black",Arial,sans-serif;font-weight:700;font-size:12px;letter-spacing:0.18em;text-transform:uppercase;background:transparent;color:#888;border:none;cursor:pointer;transition:color 140ms;}
@@ -377,7 +380,6 @@ select{
 .lp-v2-stack-value{font-size:14px;font-weight:900;letter-spacing:0.02em;color:#fff;}
 .lp-v2-final{padding:140px 48px 160px;text-align:center;max-width:100%;}
 .lp-v2-final-statement{font-family:"Helvetica Neue","Helvetica","Arial Black",Arial,sans-serif;font-weight:900;font-size:clamp(32px,5vw,72px);letter-spacing:-0.045em;line-height:0.95;color:#fff;text-transform:uppercase;margin-bottom:64px;}
-@keyframes lp-v2-pulse{0%,100%{opacity:1;box-shadow:0 0 8px #39FF14;}50%{opacity:0.25;box-shadow:0 0 2px #39FF14;}}
 @media(max-width:900px){
   .lp-v2-pillars-grid{grid-template-columns:1fr;}
   .lp-v2-pillar{border-right:none;border-bottom:1px solid #222;}
@@ -385,9 +387,6 @@ select{
   .lp-v2-proof-inner{grid-template-columns:1fr;}
   .lp-v2-proof-stats{border-right:none;border-bottom:1px solid #222;}
   .lp-v2-section{padding:80px 24px;}
-  .lp-v2-live{top:16px;right:20px;gap:6px;}
-  .lp-v2-live-dot{width:6px;height:6px;}
-  .lp-v2-live-label{font-size:9px;}
 }
 
 /* ─── INTEL MODULES ─────────────────────────────────────────────────────────── */
@@ -1213,74 +1212,29 @@ function Home({setTab}) {
   return (
     <div className="lp-v2-root">
 
-      {/* ── BACKGROUND: Orbital rings + grid overlay ── */}
-      <div className="lp-v2-bg">
-        <svg
-          width="100%" height="100%"
-          viewBox="-720 -450 1440 900"
-          preserveAspectRatio="xMidYMid slice"
-          style={{position:'absolute',inset:0,display:'block'}}
-          aria-hidden="true"
-        >
-          {/* Static concentric rings */}
-          <circle cx="0" cy="0" r="160" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="0.6"/>
-          <circle cx="0" cy="0" r="290" fill="none" stroke="rgba(255,255,255,0.032)" strokeWidth="0.6"/>
-          <circle cx="0" cy="0" r="430" fill="none" stroke="rgba(255,255,255,0.024)" strokeWidth="0.6"/>
-          <circle cx="0" cy="0" r="580" fill="none" stroke="rgba(255,255,255,0.016)" strokeWidth="0.6"/>
-          <circle cx="0" cy="0" r="730" fill="none" stroke="rgba(255,255,255,0.01)" strokeWidth="0.6"/>
-          {/* Crosshairs */}
-          <line x1="-720" y1="0" x2="720" y2="0" stroke="rgba(255,255,255,0.016)" strokeWidth="0.4"/>
-          <line x1="0" y1="-450" x2="0" y2="450" stroke="rgba(255,255,255,0.016)" strokeWidth="0.4"/>
-          {/* Ring 1 — innermost, clockwise 80s */}
-          <g>
-            <animateTransform attributeName="transform" type="rotate" from="0 0 0" to="360 0 0" dur="80s" repeatCount="indefinite"/>
-            <circle cx="160" cy="0" r="2.5" fill="rgba(255,255,255,0.18)"/>
-            <circle cx="-113" cy="-113" r="1.6" fill="rgba(255,255,255,0.1)"/>
-          </g>
-          {/* Ring 2 — counterclockwise 110s, carries the signal dot */}
-          <g>
-            <animateTransform attributeName="transform" type="rotate" from="72 0 0" to="-288 0 0" dur="110s" repeatCount="indefinite"/>
-            <circle cx="290" cy="0" r="3" fill="#39FF14">
-              <animate attributeName="opacity" values="0.2;0.75;0.2" dur="4.2s" repeatCount="indefinite"/>
-              <animate attributeName="r" values="2.4;3.6;2.4" dur="4.2s" repeatCount="indefinite"/>
-            </circle>
-            <circle cx="-205" cy="-205" r="1.8" fill="rgba(255,255,255,0.1)"/>
-            <circle cx="145" cy="-248" r="1.5" fill="rgba(255,255,255,0.07)"/>
-          </g>
-          {/* Ring 3 — clockwise 140s */}
-          <g>
-            <animateTransform attributeName="transform" type="rotate" from="144 0 0" to="504 0 0" dur="140s" repeatCount="indefinite"/>
-            <circle cx="430" cy="0" r="2" fill="rgba(255,255,255,0.08)"/>
-            <circle cx="-430" cy="0" r="1.5" fill="rgba(255,255,255,0.05)"/>
-            <circle cx="0" cy="-430" r="1.5" fill="rgba(255,255,255,0.05)"/>
-          </g>
-          {/* Ring 4 — counterclockwise 200s */}
-          <g>
-            <animateTransform attributeName="transform" type="rotate" from="216 0 0" to="-144 0 0" dur="200s" repeatCount="indefinite"/>
-            <circle cx="580" cy="0" r="1.8" fill="rgba(255,255,255,0.07)"/>
-            <circle cx="-410" cy="-410" r="1.4" fill="rgba(255,255,255,0.04)"/>
-          </g>
-          {/* Ring 5 — outermost, clockwise 260s */}
-          <g>
-            <animateTransform attributeName="transform" type="rotate" from="288 0 0" to="648 0 0" dur="260s" repeatCount="indefinite"/>
-            <circle cx="730" cy="0" r="1.5" fill="rgba(255,255,255,0.06)"/>
-            <circle cx="0" cy="-730" r="1.4" fill="rgba(255,255,255,0.04)"/>
-          </g>
-        </svg>
-      </div>
-
-      {/* ── LIVE DOT ── */}
-      <div className="lp-v2-live">
-        <span className="lp-v2-live-dot"/>
-        <span className="lp-v2-live-label">LIVE</span>
-      </div>
-
       <div className="lp-v2-content">
 
         {/* ── HERO ── */}
         <section className="lp-v2-hero">
-          <h1 className="lp-v2-statement">THE NEWEST<br/>WAY TO WIN</h1>
-          <button className="lp-v2-btn-primary" onClick={()=>setTab('games')}>ENTER</button>
+          {/* Aurora background — contained to hero viewport */}
+          <div className="lp-v2-aurora" aria-hidden="true">
+            {/* Blob A — large primary, top-left, 34s */}
+            <div className="lp-v2-aurora-blob" style={{width:800,height:600,top:'-15%',left:'-20%',background:'radial-gradient(circle, rgba(57,255,20,0.85) 0%, rgba(57,255,20,0.4) 35%, transparent 70%)',filter:'blur(110px)',opacity:0.6,animation:'lp-v2-blob-a 34s ease-in-out infinite'}}/>
+            {/* Blob B — yellower accent, right side, 46s */}
+            <div className="lp-v2-aurora-blob" style={{width:600,height:700,top:'5%',right:'-15%',background:'radial-gradient(circle, rgba(180,255,30,0.75) 0%, rgba(100,220,20,0.35) 40%, transparent 70%)',filter:'blur(130px)',opacity:0.55,animation:'lp-v2-blob-b 46s ease-in-out infinite'}}/>
+            {/* Blob C — wide sweep, bottom, 52s */}
+            <div className="lp-v2-aurora-blob" style={{width:900,height:500,bottom:'-10%',left:'15%',background:'radial-gradient(circle, rgba(57,255,20,0.65) 0%, rgba(40,180,10,0.3) 45%, transparent 70%)',filter:'blur(150px)',opacity:0.5,animation:'lp-v2-blob-c 52s ease-in-out infinite'}}/>
+            {/* Blob D — small chartreuse, upper-right, 28s */}
+            <div className="lp-v2-aurora-blob" style={{width:400,height:400,top:'8%',right:'22%',background:'radial-gradient(circle, rgba(204,255,0,0.7) 0%, rgba(100,220,0,0.3) 40%, transparent 70%)',filter:'blur(90px)',opacity:0.45,animation:'lp-v2-blob-d 28s ease-in-out infinite'}}/>
+            {/* Blob E — mid-left depth layer, 40s */}
+            <div className="lp-v2-aurora-blob" style={{width:650,height:500,top:'35%',left:'-5%',background:'radial-gradient(circle, rgba(57,255,20,0.5) 0%, rgba(30,160,5,0.25) 45%, transparent 70%)',filter:'blur(120px)',opacity:0.5,animation:'lp-v2-blob-e 40s ease-in-out infinite'}}/>
+            {/* Blob F — wide center ambient, 58s */}
+            <div className="lp-v2-aurora-blob" style={{width:1000,height:700,top:'18%',left:'12%',background:'radial-gradient(ellipse 60% 50% at 50% 50%, rgba(57,255,20,0.28) 0%, rgba(20,80,5,0.12) 50%, transparent 70%)',filter:'blur(160px)',opacity:0.65,animation:'lp-v2-blob-f 58s ease-in-out infinite'}}/>
+            {/* Radial vignette — protects hero text legibility */}
+            <div style={{position:'absolute',inset:0,background:'radial-gradient(ellipse 60% 50% at 50% 50%, rgba(0,0,0,0.52) 0%, transparent 68%)',zIndex:1}}/>
+          </div>
+          <h1 className="lp-v2-statement" style={{position:'relative',zIndex:2}}>THE NEWEST<br/>WAY TO WIN</h1>
+          <button className="lp-v2-btn-primary" style={{position:'relative',zIndex:2}} onClick={()=>setTab('games')}>ENTER</button>
         </section>
 
         {/* ── THESIS ── */}
@@ -1309,40 +1263,13 @@ function Home({setTab}) {
           </div>
         </section>
 
-        {/* ── PROOF ── */}
-        <div className="lp-v2-section-divider"/>
-        <section className="lp-v2-section">
-          <div style={{fontSize:10,fontWeight:700,letterSpacing:'.22em',color:'#888',marginBottom:0}}>THE ENGINE, LIVE</div>
-          <div className="lp-v2-proof-inner">
-            <div className="lp-v2-proof-stats">
-              <div className="lp-v2-proof-player">NIKOLA JOKIC / DEN / C / 2024-25</div>
-              {[['PTS','27.7'],['REB','12.9'],['AST','10.7'],['TS%','68.6%'],['USAGE','28.3%'],['ORTG','126.5'],['DRTG','115.1'],['PIE','20.8%']].map(([label,val])=>(
-                <div key={label} className="lp-v2-stat-row">
-                  <span className="lp-v2-stat-label">{label}</span>
-                  <span className="lp-v2-stat-val">{val}</span>
-                </div>
-              ))}
-            </div>
-            <div className="lp-v2-proof-narrative">
-              <div className="lp-v2-narrative-label">PIVOT INTEL</div>
-              <p className="lp-v2-narrative-text">
-                JOKIC IS OPERATING AT A LEVEL OF EFFICIENCY THAT BORDERS ON ABSURD. TRUE SHOOTING 68.6% ON 28.3% USAGE. OFFENSIVE RATING 126.5. THE TRIPLE DOUBLE IS THE FLOOR, NOT THE CEILING. NO CENTER IN THE MODERN ERA HAS SUSTAINED THIS. THE ENGINE HAS READ THE NUMBERS.
-              </p>
-              <div className="lp-v2-model-tag">
-                <span style={{width:6,height:6,borderRadius:'50%',background:'#39FF14',display:'inline-block',flexShrink:0}}/>
-                CLAUDE OPUS 4.6 ON LIVE BALLDONTLIE DATA
-              </div>
-            </div>
-          </div>
-        </section>
-
         {/* ── STACK ── */}
         <div className="lp-v2-section-divider"/>
         <section className="lp-v2-section" style={{padding:'80px 48px'}}>
           <div className="lp-v2-stack-row">
             {[
-              {label:'MODEL',value:'CLAUDE OPUS 4.6'},
-              {label:'DATA',value:'BALLDONTLIE STATS'},
+              {label:'INTELLIGENCE',value:'PIVOT ENGINE'},
+              {label:'DATA',value:'LIVE NBA FEED'},
               {label:'LATENCY',value:'LIVE'},
               {label:'COVERAGE',value:'ALL 30 TEAMS'},
             ].map(({label,value})=>(
