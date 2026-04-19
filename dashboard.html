@@ -3557,7 +3557,12 @@ function TeamsView({openDetail}){
 }
 
 function TradeMachine(){
-  const[teams,setTeams]=React.useState([{abbr:'',outgoing:[]},{abbr:'',outgoing:[]}]);
+  const lebron=CONTRACTS.find(c=>c.player==='LeBron James');
+  const butler=CONTRACTS.find(c=>c.player==='Jimmy Butler');
+  const[teams,setTeams]=React.useState([
+    {abbr:'LAL',outgoing:lebron?[lebron]:[]},
+    {abbr:'MIA',outgoing:butler?[butler]:[]}
+  ]);
   const[result,setResult]=React.useState(null);
 
   function addTeam(){if(teams.length<4)setTeams(t=>[...t,{abbr:'',outgoing:[]}]);}
