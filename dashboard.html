@@ -1217,19 +1217,36 @@ const HOME_MODULES=[
 ];
 
 function IntroOverlay({out}) {
-  const gridSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="104" height="30"><text x="6" y="21" font-family="Helvetica Neue,Arial,sans-serif" font-weight="700" font-size="12" fill="%2339FF14" fill-opacity="0.55" letter-spacing="4">PIVOT</text></svg>';
-  const gridUrl = 'url("data:image/svg+xml,' + encodeURIComponent(gridSvg) + '")';
-
+  const cols = Math.ceil(window.innerWidth / 108) + 2;
+  const rows = Math.ceil(window.innerHeight / 32) + 2;
+  const cell = {
+    fontFamily:'"Helvetica Neue","Helvetica","Arial Black",Arial,sans-serif',
+    fontWeight:700,fontSize:12,letterSpacing:'0.28em',
+    color:'#39FF14',opacity:0.45,textTransform:'uppercase',userSelect:'none',
+    whiteSpace:'nowrap',display:'inline-block',width:108,lineHeight:'32px'
+  };
+  // Build one panel's worth of rows
+  const panel = Array.from({length:rows},(_,r)=>(
+    <div key={r} style={{display:'flex',height:32}}>
+      {Array.from({length:cols},(_,c)=>(
+        <span key={c} style={cell}>PIVOT</span>
+      ))}
+    </div>
+  ));
   return (
     <div className={`lp-intro-overlay${out?' lp-intro-out':''}`}>
-      {/* Tiled grid — doubled width so we can pan without gap */}
       <div style={{position:'absolute',inset:0,overflow:'hidden'}}>
-        <div style={{position:'absolute',top:0,bottom:0,left:0,width:'200%',
-          backgroundImage:gridUrl,backgroundSize:'104px 30px',backgroundRepeat:'repeat',
-          animation:'lp-spot-loop 6s ease-in-out infinite'}}/>
+        {/* 200%-wide sliding strip — two identical panels, pans back and forth */}
+        <div style={{position:'absolute',top:0,left:0,width:'200%',height:'100%',
+          display:'flex',animation:'lp-spot-loop 7s ease-in-out infinite'}}>
+          <div style={{width:'50%',overflow:'hidden'}}>{panel}</div>
+          <div style={{width:'50%',overflow:'hidden'}}>{panel}</div>
+        </div>
       </div>
-      {/* Dark radial vignette — edges stay dim, center readable */}
-      <div style={{position:'absolute',inset:0,background:'radial-gradient(ellipse 70% 70% at 50% 50%, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.88) 100%)',pointerEvents:'none'}}/>
+      {/* Radial vignette */}
+      <div style={{position:'absolute',inset:0,
+        background:'radial-gradient(ellipse 65% 65% at 50% 50%, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.92) 100%)',
+        pointerEvents:'none'}}/>
     </div>
   );
 }
