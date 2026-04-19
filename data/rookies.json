@@ -1,0 +1,12 @@
+{
+  "season": "2025-26",
+  "draft_year": 2025,
+  "note": "First-year players only. IDs are stats.nba.com (nbaId) values. Add confirmed entries only.",
+  "players": [
+    {"nbaId": 1642355, "name": "Cooper Flagg",    "team": "DAL", "pick": 1},
+    {"nbaId": 1642356, "name": "Dylan Harper",    "team": "BKN", "pick": 2},
+    {"nbaId": 1642357, "name": "VJ Edgecombe",    "team": "GSW", "pick": 3},
+    {"nbaId": 1642358, "name": "Ace Bailey",      "team": "SAC", "pick": 4},
+    {"nbaId": 1642359, "name": "Tre Johnson",     "team": "HOU", "pick": 5}
+  ]
+}
