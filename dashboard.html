@@ -418,29 +418,39 @@ select{
 .lp-reveal-d2{transition-delay:200ms;}
 
 /* ─── INTEL MODULES ─────────────────────────────────────────────────────────── */
-.intel-cmd{position:sticky;top:62px;z-index:200;background:var(--void);border-bottom:1px solid var(--divider);}
-.intel-cmd-row{display:flex;align-items:center;padding:0 40px;height:44px;gap:16px;overflow-x:auto;}
-.intel-chip{height:26px;padding:0 10px;font-size:10px;font-weight:700;letter-spacing:.08em;border:1px solid rgba(255,255,255,.08);background:transparent;color:var(--smoke);cursor:pointer;font-family:var(--font);text-transform:uppercase;transition:background 120ms,color 120ms;}
-.intel-chip.active{background:var(--neon);color:var(--void);border-color:var(--neon);}
-.intel-chip:hover:not(.active){color:var(--bone);}
-.intel-section-label{font-size:11px;font-weight:700;letter-spacing:.12em;color:var(--smoke);margin-bottom:12px;padding-top:28px;border-top:1px solid rgba(255,255,255,.08);}
-.intel-col-header{font-size:9px;font-weight:700;letter-spacing:.12em;padding-bottom:8px;border-bottom:1px solid var(--divider);margin-bottom:0;}
-.intel-row{display:flex;align-items:center;height:44px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.05);transition:background 100ms;}
-.intel-row:hover{background:var(--row-hover);}
-.intel-row-sm{height:40px;}
-.feat-hero{flex:2 1 0;min-width:0;background:var(--carbon);border-radius:4px;border:1px solid rgba(0,255,136,.2);overflow:hidden;cursor:pointer;background-image:linear-gradient(135deg,rgba(0,255,136,.025) 0%,transparent 60%);transition:border-color 180ms;}
-.feat-hero:hover{border-color:rgba(0,255,136,.45);}
+/* ── Intel v2 ───────────────────────────────────────────────────────── */
+.in-cmd{position:sticky;top:62px;z-index:200;background:rgba(0,0,0,0.88);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.07);}
+.in-cmd-inner{display:flex;align-items:center;gap:8px;padding:10px 40px;flex-wrap:wrap;}
+.in-pill{height:30px;padding:0 14px;font-size:10px;font-weight:700;letter-spacing:.1em;border:1px solid rgba(255,255,255,.1);background:transparent;color:var(--smoke);cursor:pointer;font-family:var(--font);text-transform:uppercase;border-radius:100px;transition:all 140ms;}
+.in-pill.active{background:var(--neon);color:#000;border-color:var(--neon);}
+.in-pill:hover:not(.active){color:var(--bone);border-color:rgba(255,255,255,.25);}
+.in-section{margin-bottom:56px;}
+.in-eye{font-size:10px;font-weight:700;letter-spacing:.16em;color:var(--neon);text-transform:uppercase;margin-bottom:6px;}
+.in-head{font-size:24px;font-weight:900;letter-spacing:-.03em;color:var(--bone);line-height:1;margin-bottom:24px;font-family:"Helvetica Neue","Helvetica",Arial,sans-serif;}
+.in-card{background:rgba(15,25,18,0.35);backdrop-filter:blur(28px) saturate(160%);border:1px solid rgba(255,255,255,0.07);border-radius:16px;overflow:hidden;cursor:pointer;transition:border-color 180ms,transform 180ms;}
+.in-card:hover{border-color:rgba(57,255,20,0.3);transform:translateY(-2px);}
+.in-card.hero{border-color:rgba(57,255,20,0.22);box-shadow:0 0 48px rgba(57,255,20,0.06),0 8px 32px rgba(0,0,0,0.5);}
+.in-hero-grid{display:grid;grid-template-columns:2fr repeat(4,1fr);gap:10px;align-items:start;}
+@media(max-width:900px){.in-hero-grid{grid-template-columns:1fr 1fr;}}
+.in-stat-trio{display:grid;grid-template-columns:repeat(3,1fr);}
+.in-stat-block{padding:18px 0;text-align:center;position:relative;}
+.in-stat-block+.in-stat-block::before{content:'';position:absolute;left:0;top:20%;height:60%;width:1px;background:rgba(255,255,255,0.07);}
+.in-stat-big{font-family:"Helvetica Neue","Helvetica",Arial,sans-serif;font-weight:900;font-size:48px;line-height:1;letter-spacing:-.04em;color:var(--bone);font-variant-numeric:tabular-nums;}
+.in-stat-big.sm{font-size:34px;}
+.in-stat-lbl{font-size:9px;font-weight:700;letter-spacing:.14em;color:var(--smoke);margin-top:4px;text-transform:uppercase;}
+.in-badge{font-size:9px;font-weight:700;letter-spacing:.1em;padding:2px 8px;border:1px solid rgba(57,255,20,0.4);color:var(--neon);border-radius:100px;background:rgba(57,255,20,0.06);display:inline-block;}
+.in-mover-col{background:rgba(15,25,18,0.25);border:1px solid rgba(255,255,255,0.06);border-radius:14px;overflow:hidden;}
+.in-mover-row{display:flex;align-items:center;padding:14px 20px;border-bottom:1px solid rgba(255,255,255,0.04);cursor:pointer;transition:background 100ms;gap:14px;}
+.in-mover-row:hover{background:rgba(255,255,255,0.03);}
+.in-mover-row:last-child{border-bottom:none;}
+.in-mover-delta{font-family:"Helvetica Neue","Helvetica",Arial,sans-serif;font-weight:900;font-size:38px;line-height:1;letter-spacing:-.03em;font-variant-numeric:tabular-nums;min-width:80px;}
+.in-mover-name{font-size:13px;font-weight:700;color:var(--bone);}
+.in-mover-meta{font-size:10px;color:var(--smoke);letter-spacing:.04em;margin-top:2px;}
+.in-watch-col{background:rgba(15,25,18,0.25);border:1px solid rgba(255,255,255,0.06);border-radius:14px;overflow:hidden;}
+.in-watch-row{display:flex;align-items:center;padding:13px 16px;border-bottom:1px solid rgba(255,255,255,0.04);cursor:pointer;transition:background 100ms;gap:12px;}
+.in-watch-row:hover{background:rgba(255,255,255,0.03);}
+.in-watch-row:last-child{border-bottom:none;}
 .stat-num{font-variant-numeric:tabular-nums;font-weight:900;}
-.feat-card{flex:1 1 0;min-width:0;background:var(--carbon);border-radius:4px;border:1px solid var(--divider);overflow:hidden;cursor:pointer;transition:border-color 180ms;}
-.feat-card:hover{border-color:rgba(0,255,136,.4);border-left-width:2px;border-left-color:var(--neon);}
-.feat-strip{padding:8px 12px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--divider);}
-.feat-identity{padding:10px 12px;display:flex;gap:10px;align-items:center;border-bottom:1px solid var(--divider);}
-.feat-stat-grid{display:grid;border-bottom:1px solid var(--divider);}
-.feat-stat-cell{padding:8px 6px;text-align:center;}
-.feat-hero-row{display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr;gap:12px;align-items:start;}
-@media(max-width:900px){.feat-hero-row{grid-template-columns:1fr 1fr;}}
-.feat-support{min-width:0;background:var(--carbon);border-radius:4px;border:1px solid var(--divider);overflow:hidden;cursor:pointer;transition:border-color 180ms;}
-.feat-support:hover{border-color:rgba(0,255,136,.35);}
 .term-th{font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--smoke);padding:10px 12px;text-align:right;border-bottom:1px solid rgba(255,255,255,.08);background:var(--void);cursor:default;user-select:none;white-space:nowrap;}
 .term-th.sortable{cursor:pointer;}
 .term-th.sorted{color:var(--neon);}
@@ -2447,18 +2457,17 @@ function selectHeroPlayer(poolArr){
 }
 
 function heroReasons(d){
-  const parts=[];
-  if(!d)return parts;
+  if(!d)return[];
   const team=d.bdlPlayer?.team?.abbreviation||d.fp?.team||'';
   const isPlayoff=SEEDED_SERIES.some(s=>s.awayTeam===team||s.homeTeam===team);
-  if(isPlayoff)parts.push('PLAYOFF');
+  if(isPlayoff)return['PLAYOFF'];
   const lastGame=d.games?.[0];
-  if(lastGame&&(lastGame.points||0)>=30)parts.push('HOT GAME');
+  if(lastGame&&(lastGame.points||0)>=30)return['HOT GAME'];
   const delta=d.delta?.ppg||0;
-  if(delta>=3)parts.push('ON FIRE');
-  else if(delta<=-3)parts.push('COLD STREAK');
-  if(d.seasonAvg?.ppg>=25)parts.push('ELITE SCORER');
-  return parts;
+  if(delta>=3)return['ON FIRE'];
+  if(delta<=-3)return['COLD STREAK'];
+  if(d.seasonAvg?.ppg>=25)return['ELITE SCORER'];
+  return[];
 }
 
 function parseMin(m){
@@ -2565,71 +2574,49 @@ function DeltaBadge({val,amber=false}){
 // ─── INTEL FEATURED CARDS ─────────────────────────────────────────────────────
 
 function HeroCard({data,reasons,onSelect}){
-  const{fp,bdlPlayer,seasonAvg,l10Avg,delta,l10pts}=data||{};
+  const{fp,bdlPlayer,seasonAvg,delta,l10pts}=data||{};
   const name=bdlPlayer?`${bdlPlayer.first_name} ${bdlPlayer.last_name}`:(fp?.display||'...');
   const team=bdlPlayer?.team?.abbreviation||fp?.team||'--';
   const pos=bdlPlayer?.position||fp?.pos||'--';
   const f1=v=>v!=null?v.toFixed(1):'--';
-  const fp2=v=>v!=null?Math.round(v*100)+'%':'--';
   const ready=!!bdlPlayer&&!!seasonAvg;
+  const badge=reasons&&reasons[0];
   const ppgDelta=delta?.ppg;
-
   return(
-    <div className="feat-hero" onClick={()=>bdlPlayer&&onSelect(bdlPlayer)}>
-      {/* Top strip: PLAYER OF THE MOMENT label on left, reasons + status on right */}
-      <div className="feat-strip">
-        <span style={{fontSize:9,fontWeight:700,letterSpacing:'.1em',color:'var(--neon)'}}>PLAYER OF THE MOMENT</span>
-        <div style={{display:'flex',alignItems:'center',gap:6}}>
-          {(reasons||[]).map(r=>(
-            <span key={r} style={{fontSize:9,fontWeight:700,letterSpacing:'.07em',color:'var(--smoke)',
-                                  border:'1px solid var(--wire)',padding:'1px 5px',borderRadius:2}}>{r}</span>
-          ))}
-          <StatusPill status="ACTIVE"/>
-        </div>
+    <div className="in-card hero" onClick={()=>bdlPlayer&&onSelect(bdlPlayer)}>
+      <div style={{padding:'16px 20px 0',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+        <span style={{fontSize:10,fontWeight:700,letterSpacing:'.12em',color:'var(--neon)'}}>{team} · {pos}</span>
+        {badge&&<span className="in-badge">{badge}</span>}
       </div>
-      {/* Identity row */}
-      <div className="feat-identity">
-        {fp&&<PlayerPhoto nbaId={fp.nbaId} name={name} size={48} circle={true}/>}
-        <div style={{overflow:'hidden',minWidth:0,flex:1}}>
-          <div style={{fontSize:22,fontWeight:900,lineHeight:1.1,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'-.02em'}}>{name}</div>
-          <div style={{fontSize:10,color:'var(--smoke)',marginTop:2,letterSpacing:'.06em'}}>{team}</div>
-        </div>
+      <div style={{padding:'8px 20px 0'}}>
+        <div style={{fontSize:20,fontWeight:900,letterSpacing:'-.03em',color:'var(--bone)',lineHeight:1.1}}>{name}</div>
+        <div style={{fontSize:9,fontWeight:700,letterSpacing:'.12em',color:'var(--smoke)',marginTop:4}}>PLAYER OF THE MOMENT</div>
       </div>
       {!ready?(
-        <div style={{padding:'28px 16px',textAlign:'center',fontSize:9,color:'var(--smoke)',letterSpacing:'.1em'}}>LOADING...</div>
+        <div style={{padding:'40px 20px',textAlign:'center',fontSize:9,color:'var(--smoke)',letterSpacing:'.1em'}}>LOADING...</div>
       ):(
         <>
-          {/* Primary stats: PPG/RPG/APG at 28px */}
-          <div className="feat-stat-grid" style={{gridTemplateColumns:'repeat(3,1fr)'}}>
-            {[['PPG',seasonAvg.ppg,ppgDelta],['RPG',seasonAvg.rpg,delta?.rpg],['APG',seasonAvg.apg,delta?.apg]].map(([l,v,d],i)=>(
-              <div key={l} className="feat-stat-cell" style={{borderRight:i<2?'1px solid var(--divider)':'none'}}>
-                <div className="stat-num" style={{fontSize:28,fontWeight:900,letterSpacing:'-.03em',lineHeight:1}}>{f1(v)}</div>
-                <div style={{fontSize:9,letterSpacing:'.08em',color:'var(--smoke)',margin:'3px 0 4px'}}>{l}</div>
-                <DeltaBadge val={d} amber={true}/>
+          <div className="in-stat-trio" style={{marginTop:20,borderTop:'1px solid rgba(255,255,255,0.07)',borderBottom:'1px solid rgba(255,255,255,0.07)'}}>
+            {[['PPG',seasonAvg.ppg,ppgDelta],['RPG',seasonAvg.rpg,delta?.rpg],['APG',seasonAvg.apg,delta?.apg]].map(([l,v,d])=>(
+              <div key={l} className="in-stat-block">
+                <div className="in-stat-big">{f1(v)}</div>
+                <div className="in-stat-lbl">{l}</div>
+                {d!=null&&Math.abs(d)>=0.2&&(
+                  <div style={{marginTop:6,fontSize:10,fontWeight:700,fontVariantNumeric:'tabular-nums',color:d>0?'var(--neon)':'#FF4444'}}>{d>0?'+':''}{d.toFixed(1)}</div>
+                )}
               </div>
             ))}
           </div>
-          {/* Secondary stats: TS%/USG%/+/- */}
-          <div className="feat-stat-grid" style={{gridTemplateColumns:'repeat(3,1fr)',borderBottom:'1px solid var(--divider)'}}>
-            {[['TS%',seasonAvg.ts!=null?fp2(seasonAvg.ts):null],['USG%',null],['+/-',null]].map(([l,v],i)=>(
-              <div key={l} className="feat-stat-cell" style={{borderRight:i<2?'1px solid var(--divider)':'none'}}>
-                <div className="stat-num" style={{fontSize:15,fontWeight:700,color:v?'var(--bone)':'var(--smoke)'}}>{v||'--'}</div>
-                <div style={{fontSize:9,letterSpacing:'.08em',color:'var(--smoke)',marginTop:2}}>{l}</div>
-              </div>
-            ))}
-          </div>
-          {/* Sparkline — hero mode: 1.5px green glow */}
-          <div style={{padding:'8px 12px 4px',borderBottom:'1px solid var(--divider)'}}>
-            <div style={{fontSize:9,letterSpacing:'.08em',color:'var(--smoke)',marginBottom:4}}>L10 PTS</div>
+          <div style={{padding:'12px 20px 8px'}}>
+            <div style={{fontSize:9,fontWeight:700,letterSpacing:'.1em',color:'var(--smoke)',marginBottom:6}}>LAST 10 PTS</div>
             <Sparkline values={l10pts} height={28} hero={true}/>
           </div>
-          {/* Next game footer — only rendered when data resolves */}
           {(()=>{const ng=getNextGameFromSeries(team);return ng?(
-            <div style={{padding:'6px 12px',fontSize:10,letterSpacing:'.06em',color:'var(--smoke)',display:'flex',gap:6,alignItems:'center'}}>
-              <span style={{color:'rgba(255,255,255,.3)'}}>NEXT GAME</span>
+            <div style={{padding:'8px 20px 14px',fontSize:10,letterSpacing:'.06em',color:'var(--smoke)',display:'flex',gap:8,alignItems:'center'}}>
+              <span style={{color:'rgba(255,255,255,.25)'}}>NEXT GAME</span>
               <span style={{color:'var(--bone)',fontWeight:700}}>{ng}</span>
             </div>
-          ):null;})()}
+          ):<div style={{height:14}}/>})()}
         </>
       )}
     </div>
@@ -2644,30 +2631,27 @@ function SupportingCard({data,onSelect}){
   const f1=v=>v!=null?v.toFixed(1):'--';
   const ready=!!bdlPlayer&&!!seasonAvg;
   const ppgDelta=delta?.ppg;
-
   return(
-    <div className="feat-support" onClick={()=>bdlPlayer&&onSelect(bdlPlayer)}>
-      <div className="feat-strip" style={{padding:'6px 10px'}}>
-        <span style={{fontSize:9,fontWeight:700,letterSpacing:'.08em',color:'var(--neon)'}}>{team} · {pos}</span>
-        <StatusPill status="ACTIVE"/>
+    <div className="in-card" onClick={()=>bdlPlayer&&onSelect(bdlPlayer)}>
+      <div style={{padding:'14px 16px 0',display:'flex',justifyContent:'space-between',alignItems:'start'}}>
+        <span style={{fontSize:9,fontWeight:700,letterSpacing:'.1em',color:'var(--neon)'}}>{team} · {pos}</span>
       </div>
-      <div style={{padding:'8px 10px',borderBottom:'1px solid var(--divider)',display:'flex',gap:8,alignItems:'center'}}>
-        {fp&&<PlayerPhoto nbaId={fp.nbaId} name={name} size={28} circle={true}/>}
-        <div style={{overflow:'hidden',minWidth:0}}>
-          <div style={{fontSize:13,fontWeight:700,lineHeight:1.2,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{name}</div>
-        </div>
+      <div style={{padding:'6px 16px 0'}}>
+        <div style={{fontSize:13,fontWeight:700,color:'var(--bone)',lineHeight:1.2}}>{name}</div>
       </div>
       {!ready?(
-        <div style={{padding:'16px 10px',textAlign:'center',fontSize:9,color:'var(--smoke)',letterSpacing:'.1em'}}>LOADING...</div>
+        <div style={{padding:'20px 16px',textAlign:'center',fontSize:9,color:'var(--smoke)',letterSpacing:'.1em'}}>LOADING...</div>
       ):(
         <>
-          <div style={{padding:'8px 10px',borderBottom:'1px solid var(--divider)',display:'flex',justifyContent:'space-between',alignItems:'baseline'}}>
-            <div style={{fontSize:20,fontWeight:900,letterSpacing:'-.03em',lineHeight:1}}>{f1(seasonAvg.ppg)}</div>
-            <div style={{fontSize:9,color:'var(--smoke)',letterSpacing:'.06em'}}>PPG</div>
-            <DeltaBadge val={ppgDelta} amber={true}/>
+          <div style={{padding:'14px 16px 4px'}}>
+            <div className="in-stat-big sm">{f1(seasonAvg.ppg)}</div>
+            <div className="in-stat-lbl">PPG</div>
+            {ppgDelta!=null&&Math.abs(ppgDelta)>=0.2&&(
+              <div style={{marginTop:4,fontSize:10,fontWeight:700,fontVariantNumeric:'tabular-nums',color:ppgDelta>0?'var(--neon)':'#FF4444'}}>{ppgDelta>0?'+':''}{ppgDelta.toFixed(1)}</div>
+            )}
           </div>
-          <div style={{padding:'6px 10px'}}>
-            <Sparkline values={l10pts} height={24}/>
+          <div style={{padding:'8px 16px 12px',borderTop:'1px solid rgba(255,255,255,0.06)'}}>
+            <Sparkline values={l10pts} height={22}/>
           </div>
         </>
       )}
@@ -2678,18 +2662,12 @@ function SupportingCard({data,onSelect}){
 // ─── INTEL ────────────────────────────────────────────────────────────────────
 
 function Intel(){
-  const[season,setSeason]=React.useState('2025-26');
-  const seasonInt=React.useMemo(()=>{
-    const map={'2025-26':2025};
-    if(map[season])return map[season];
-    return season.includes('-')?parseInt(season.split('-')[0])+1:parseInt(season)||2025;
-  },[season]);
+  const seasonInt=2025;
   const[poolData,setPoolData]=React.useState({});
   const[poolLoading,setPoolLoading]=React.useState(true);
   const[posFilter,setPosFilter]=React.useState('ALL');
   const[termSort,setTermSort]=React.useState({key:'ppg',dir:'desc'});
   const[termExpanded,setTermExpanded]=React.useState(false);
-  const[density,setDensity]=React.useState('comfortable');
   const[selected,setSelected]=React.useState(null);
   const[detailStats,setDetailStats]=React.useState(null);
   const[detailAdv,setDetailAdv]=React.useState(null);
@@ -2824,57 +2802,38 @@ function Intel(){
   const TERM_COLLAPSE=25;
   const visibleTerminal=termExpanded?terminalData:terminalData.slice(0,TERM_COLLAPSE);
 
-  const seasons=['2025-26','2024-25','2023-24','2022-23','2021-22'];
   return(
-    <div className="page" style={{paddingBottom:56}}>
+    <div className="page" style={{paddingBottom:80}}>
 
       {/* COMMAND BAR */}
-      <div className="intel-cmd">
-        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'6px 40px',borderBottom:'1px solid var(--divider)'}}>
-          <div style={{fontSize:10,fontWeight:700,letterSpacing:'.1em',color:'var(--smoke)'}}>PLAYER INTELLIGENCE</div>
-          <select style={{minWidth:200,height:32,fontSize:11,background:'var(--carbon)',border:'1px solid var(--wire)',color:'var(--bone)'}}
-                  value={season} onChange={e=>setSeason(e.target.value)}>
-            {seasons.map(s=><option key={s} value={s}>{s}{s==='2025-26'?' CURRENT':''}</option>)}
-          </select>
+      <div className="in-cmd">
+        <div className="in-cmd-inner">
+          <div style={{fontSize:10,fontWeight:700,letterSpacing:'.14em',color:'var(--smoke)',flexShrink:0}}>INTEL</div>
+          <div style={{width:1,height:20,background:'rgba(255,255,255,.1)',flexShrink:0,margin:'0 4px'}}/>
+          {['ALL','PG','SG','SF','PF','C'].map(p=>(
+            <button key={p} className={`in-pill${posFilter===p?' active':''}`} onClick={()=>setPosFilter(p)}>{p}</button>
+          ))}
+          <div style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:6,flexShrink:0}}>
+            <span style={{fontSize:10,fontWeight:700,letterSpacing:'.1em',color:'var(--neon)'}}>2025–26</span>
+            <span style={{fontSize:10,color:'var(--smoke)',letterSpacing:'.06em'}}>SEASON</span>
+          </div>
         </div>
-        {/* Search row: NO overflow-x so dropdown is never clipped */}
-        <div style={{padding:'6px 40px',borderBottom:'1px solid var(--divider)',position:'relative',zIndex:201}}>
+        <div style={{padding:'8px 40px 10px',borderTop:'1px solid rgba(255,255,255,.05)',position:'relative',zIndex:201}}>
           <PlayerSearchBox onSelect={openDetail} placeholder="SEARCH PLAYER NAME..."/>
-        </div>
-        <div className="intel-cmd-row">
-          <div style={{display:'flex',gap:4,flexShrink:0}}>
-            {['ALL','PG','SG','SF','PF','C'].map(p=>(
-              <button key={p} className={`intel-chip${posFilter===p?' active':''}`} onClick={()=>setPosFilter(p)}>{p}</button>
-            ))}
-          </div>
-          <div style={{display:'flex',alignItems:'center',gap:6,flexShrink:0}}>
-            <span style={{fontSize:10,letterSpacing:'.08em',color:'var(--smoke)',fontWeight:700}}>SORT</span>
-            <select value={termSort.key} onChange={e=>setTermSort({key:e.target.value,dir:'desc'})}
-                    style={{height:28,width:76,fontSize:10,background:'var(--carbon)',border:'1px solid var(--wire)',color:'var(--bone)'}}>
-              {[['ppg','PPG'],['rpg','RPG'],['apg','APG'],['min','MIN'],['fg','FG%'],['fg3','3P%'],['ts','TS%']].map(([v,l])=>(
-                <option key={v} value={v}>{l}</option>
-              ))}
-            </select>
-          </div>
-          <div style={{display:'flex',border:'1px solid rgba(255,255,255,.08)',flexShrink:0}}>
-            {['COMFORTABLE','COMPACT'].map(d=>(
-              <button key={d} className={`intel-chip${density===d.toLowerCase()?' active':''}`} style={{borderRadius:0,border:'none'}}
-                      onClick={()=>setDensity(d.toLowerCase())}>{d}</button>
-            ))}
-          </div>
         </div>
       </div>
 
       <div style={{padding:'0 40px'}}>
 
-        {/* MODULE 2: FEATURED */}
-        <div style={{marginTop:32,marginBottom:40}}>
-          <div className="intel-section-label">FEATURED</div>
+        {/* FEATURED */}
+        <div className="in-section" style={{marginTop:40}}>
+          <div className="in-eye">FEATURED</div>
+          <div className="in-head">PLAYERS OF THE MOMENT.</div>
           {poolLoading?<div className="load-line-wrap"><div className="load-line"/></div>:(
-            <div className="feat-hero-row">
+            <div className="in-hero-grid">
               {heroData
                 ?<HeroCard data={heroData} reasons={heroReasonTags} onSelect={openDetail}/>
-                :<div className="feat-hero" style={{display:'flex',alignItems:'center',justifyContent:'center',padding:32,fontSize:9,color:'var(--smoke)',letterSpacing:'.1em'}}>LOADING...</div>
+                :<div className="in-card hero" style={{display:'flex',alignItems:'center',justifyContent:'center',padding:40,fontSize:9,color:'var(--smoke)',letterSpacing:'.1em'}}>LOADING...</div>
               }
               {supportingData.map(d=>(
                 <SupportingCard key={d.fp.nbaId} data={d} onSelect={openDetail}/>
@@ -2883,100 +2842,119 @@ function Intel(){
           )}
         </div>
 
-        {/* MODULE 3: MOVERS */}
-        <div style={{marginBottom:40}}>
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:16}}>
-            <span className="intel-section-label" style={{marginBottom:0}}>MOVERS</span>
-            <span style={{fontSize:10,letterSpacing:'.08em',color:'var(--smoke)'}}>LAST 10 GAMES</span>
-          </div>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:24}}>
-            {[{label:'RISING',color:'var(--trend-up)',data:rising,sign:true},{label:'FADING',color:'var(--trend-down)',data:fading,sign:false}].map(({label,color,data,sign})=>(
+        {/* MOVERS */}
+        <div className="in-section">
+          <div className="in-eye">MOVERS</div>
+          <div className="in-head">LAST 10 GAMES.</div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+            {[{label:'RISING',color:'var(--neon)',data:rising,sign:true},{label:'FADING',color:'#FF4444',data:fading,sign:false}].map(({label,color,data,sign})=>(
               <div key={label}>
-                <div className="intel-col-header" style={{color}}>{label}</div>
-                {data.length===0&&!poolLoading&&<div style={{fontSize:11,color:'var(--smoke)',padding:'12px 0',letterSpacing:'.06em'}}>INSUFFICIENT DATA</div>}
-                {data.map((d,i)=>{
-                  const name=`${d.bdlPlayer.first_name} ${d.bdlPlayer.last_name}`;
-                  const team=d.bdlPlayer.team?.abbreviation||d.fp.team;
-                  const tc=TEAM_PRIMARY[team]||'#555';
-                  return(
-                    <div key={d.fp.search} className="intel-row"
-                         style={{background:i%2?'rgba(255,255,255,.015)':'transparent'}}
-                         onClick={()=>openDetail(d.bdlPlayer)}>
-                      <div style={{width:3,height:'100%',background:tc,flexShrink:0}}/>
-                      <div style={{flex:1,padding:'0 12px'}}>
-                        <div style={{fontSize:13,fontWeight:700}}>{name}</div>
-                        <div style={{fontSize:10,color:'var(--smoke)'}}>{team}</div>
+                <div style={{fontSize:10,fontWeight:700,letterSpacing:'.14em',color,marginBottom:10,paddingBottom:8,borderBottom:'1px solid rgba(255,255,255,.06)'}}>{label}</div>
+                <div className="in-mover-col">
+                  {data.length===0&&!poolLoading&&(
+                    <div style={{padding:20,fontSize:11,color:'var(--smoke)',letterSpacing:'.06em'}}>INSUFFICIENT DATA</div>
+                  )}
+                  {data.map(d=>{
+                    const name=`${d.bdlPlayer.first_name} ${d.bdlPlayer.last_name}`;
+                    const team=d.bdlPlayer.team?.abbreviation||d.fp.team;
+                    const l10ppg=d.l10Avg?.ppg;
+                    const sppg=d.seasonAvg?.ppg;
+                    return(
+                      <div key={d.fp.search} className="in-mover-row" onClick={()=>openDetail(d.bdlPlayer)}>
+                        <div className="in-mover-delta" style={{color}}>
+                          {sign&&d.ppgDelta>0?'+':''}{d.ppgDelta.toFixed(1)}
+                        </div>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div className="in-mover-name">{name}</div>
+                          <div className="in-mover-meta">{team} · L10 {l10ppg!=null?l10ppg.toFixed(1):'--'} vs {sppg!=null?sppg.toFixed(1):'--'} AVG</div>
+                        </div>
+                        <div style={{width:56,flexShrink:0}}>
+                          <Sparkline values={d.l10pts||[]} height={24}/>
+                        </div>
                       </div>
-                      <div style={{textAlign:'right',padding:'0 12px'}}>
-                        <div className="stat-num" style={{fontSize:13,color}}>{sign&&d.ppgDelta>0?'+':''}{d.ppgDelta.toFixed(1)} PPG</div>
-                        <div style={{fontSize:9,color:'var(--smoke)'}}>VS SEASON AVG</div>
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* MODULE 4: WATCH — hidden if all columns empty */}
+        {/* WATCH */}
         {(!poolLoading&&(roleShifts.length>0||rookies.length>0))&&(
-        <div style={{marginBottom:40}}>
-          <div className="intel-section-label">WATCH</div>
-          <div style={{display:'grid',gridTemplateColumns:[roleShifts.length>0&&'1fr',rookies.length>0&&'1fr'].filter(Boolean).join(' '),gap:24}}>
+        <div className="in-section">
+          <div className="in-eye">WATCH</div>
+          <div className="in-head">THINGS TO TRACK.</div>
+          <div style={{display:'grid',gridTemplateColumns:[roleShifts.length>0&&'1fr',rookies.length>0&&'1fr'].filter(Boolean).join(' '),gap:16}}>
             {roleShifts.length>0&&(
             <div>
-              <div className="intel-col-header">MIN SHIFT</div>
-              {roleShifts.map((d,i)=>{
-                const name=`${d.bdlPlayer.first_name} ${d.bdlPlayer.last_name}`;
-                const team=d.bdlPlayer.team?.abbreviation||d.fp.team;
-                const up=d.delta.min>0;
-                return(
-                  <div key={d.fp.search} className="intel-row intel-row-sm"
-                       onClick={()=>openDetail(d.bdlPlayer)}>
-                    <div style={{flex:1}}>
-                      <div style={{fontSize:12,fontWeight:700}}>{name}</div>
-                      <div style={{fontSize:10,color:'var(--smoke)'}}>{team}</div>
+              <div style={{fontSize:10,fontWeight:700,letterSpacing:'.14em',color:'var(--smoke)',marginBottom:10,paddingBottom:8,borderBottom:'1px solid rgba(255,255,255,.06)'}}>MIN SHIFT</div>
+              <div className="in-watch-col">
+                {roleShifts.map(d=>{
+                  const name=`${d.bdlPlayer.first_name} ${d.bdlPlayer.last_name}`;
+                  const team=d.bdlPlayer.team?.abbreviation||d.fp.team;
+                  const up=d.delta.min>0;
+                  return(
+                    <div key={d.fp.search} className="in-watch-row" onClick={()=>openDetail(d.bdlPlayer)}>
+                      <div style={{flex:1}}>
+                        <div style={{fontSize:12,fontWeight:700,color:'var(--bone)'}}>{name}</div>
+                        <div style={{fontSize:10,color:'var(--smoke)',letterSpacing:'.04em',marginTop:1}}>{team}</div>
+                      </div>
+                      <div style={{textAlign:'right'}}>
+                        <div style={{fontSize:20,fontWeight:900,fontVariantNumeric:'tabular-nums',color:up?'var(--neon)':'#FF4444',fontFamily:'"Helvetica Neue","Helvetica",Arial,sans-serif',letterSpacing:'-.02em'}}>{up?'+':''}{d.delta.min.toFixed(1)}</div>
+                        <div style={{fontSize:9,color:'var(--smoke)',letterSpacing:'.06em'}}>MIN L10 VS PRIOR</div>
+                      </div>
                     </div>
-                    <div style={{textAlign:'right'}}>
-                      <div className="stat-num" style={{fontSize:12,color:up?'var(--trend-up)':'var(--trend-down)'}}>{up?'+':''}{d.delta.min.toFixed(1)} MIN</div>
-                      <div style={{fontSize:9,color:'var(--smoke)'}}>L10 VS PRIOR</div>
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
             )}
             {rookies.length>0&&(
             <div>
-              <div className="intel-col-header">ROOKIE BREAKOUT</div>
-              {rookies.map(d=>{
-                const name=`${d.bdlPlayer.first_name} ${d.bdlPlayer.last_name}`;
-                const team=d.bdlPlayer.team?.abbreviation||d.fp.team;
-                const peak=Math.max(...(d.l10pts||[0]).slice(0,5));
-                return(
-                  <div key={d.fp.search} className="intel-row intel-row-sm"
-                       onClick={()=>openDetail(d.bdlPlayer)}>
-                    <div style={{flex:1}}>
-                      <div style={{fontSize:12,fontWeight:700}}>{name}</div>
-                      <div style={{fontSize:10,color:'var(--smoke)'}}>{team}</div>
+              <div style={{fontSize:10,fontWeight:700,letterSpacing:'.14em',color:'var(--smoke)',marginBottom:10,paddingBottom:8,borderBottom:'1px solid rgba(255,255,255,.06)'}}>ROOKIE BREAKOUT</div>
+              <div className="in-watch-col">
+                {rookies.map(d=>{
+                  const name=`${d.bdlPlayer.first_name} ${d.bdlPlayer.last_name}`;
+                  const team=d.bdlPlayer.team?.abbreviation||d.fp.team;
+                  const peak=Math.max(...(d.l10pts||[0]).slice(0,5));
+                  return(
+                    <div key={d.fp.search} className="in-watch-row" onClick={()=>openDetail(d.bdlPlayer)}>
+                      <div style={{flex:1}}>
+                        <div style={{fontSize:12,fontWeight:700,color:'var(--bone)'}}>{name}</div>
+                        <div style={{fontSize:10,color:'var(--smoke)',letterSpacing:'.04em',marginTop:1}}>{team}</div>
+                      </div>
+                      <div style={{textAlign:'right'}}>
+                        <div style={{fontSize:20,fontWeight:900,fontVariantNumeric:'tabular-nums',color:'var(--neon)',fontFamily:'"Helvetica Neue","Helvetica",Arial,sans-serif',letterSpacing:'-.02em'}}>{peak}</div>
+                        <div style={{fontSize:9,color:'var(--smoke)',letterSpacing:'.06em'}}>L5 PEAK PTS</div>
+                      </div>
                     </div>
-                    <div style={{textAlign:'right'}}>
-                      <div className="stat-num" style={{fontSize:12,color:'var(--neon)'}}>{peak} PTS</div>
-                      <div style={{fontSize:9,color:'var(--smoke)'}}>L5 PEAK</div>
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
             )}
           </div>
         </div>
         )}
 
-        {/* MODULE 5: TERMINAL */}
-        <div style={{marginBottom:48}}>
-          <div className="intel-section-label">TERMINAL</div>
+        {/* TERMINAL */}
+        <div className="in-section" style={{marginBottom:48}}>
+          <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between',marginBottom:4}}>
+            <div>
+              <div className="in-eye">TERMINAL</div>
+              <div className="in-head" style={{marginBottom:0}}>FULL ROSTER DATA.</div>
+            </div>
+            <div style={{display:'flex',alignItems:'center',gap:8,flexShrink:0,paddingBottom:4}}>
+              <span style={{fontSize:10,letterSpacing:'.08em',color:'var(--smoke)',fontWeight:700}}>SORT</span>
+              <select value={termSort.key} onChange={e=>setTermSort({key:e.target.value,dir:'desc'})}
+                      style={{height:32,padding:'0 8px',fontSize:10,background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.1)',borderRadius:6,color:'var(--bone)'}}>
+                {[['ppg','PPG'],['rpg','RPG'],['apg','APG'],['min','MIN'],['fg','FG%'],['fg3','3P%'],['ts','TS%']].map(([v,l])=>(
+                  <option key={v} value={v}>{l}</option>
+                ))}
+              </select>
+            </div>
+          </div>
           {poolLoading?<div className="load-line-wrap"><div className="load-line"/></div>:(
             <div style={{overflowX:'auto'}}>
               <table style={{width:'100%',borderCollapse:'collapse'}}>
@@ -3016,38 +2994,33 @@ function Intel(){
                     const a=d.seasonAvg;
                     const name=`${p.first_name} ${p.last_name}`;
                     const team=p.team?.abbreviation||d.fp.team;
-                    const rowH=density==='compact'?32:40;
-                    const fs=density==='compact'?11:13;
-                    const pad=density==='compact'?'5px 8px':'8px 12px';
-                    const zbg=i%2?'rgba(255,255,255,.012)':'transparent';
                     return(
                       <tr key={d.fp.search} className="term-tr" onClick={()=>openDetail(p)}
-                          style={{height:rowH,background:zbg}}>
-                        <td className="term-td" style={{textAlign:'center',color:'var(--smoke)',fontSize:10,padding:pad}}>{p.position||d.fp.pos||'--'}</td>
-                        <td className="term-td" style={{textAlign:'center',color:'var(--smoke)',fontSize:10,padding:pad}}>{team}</td>
-                        <td className="term-td" style={{textAlign:'left',fontWeight:700,fontSize:fs,padding:pad,whiteSpace:'nowrap'}}>{name}</td>
-                        <td className="term-td" style={{fontSize:fs,padding:pad}}>{a?.gp||'--'}</td>
-                        <td className="term-td" style={{fontSize:fs,padding:pad}}>{a?.min!=null?a.min.toFixed(1):'--'}</td>
-                        <td className="term-td" style={{fontSize:fs,padding:pad,color:a?.ppg>=25?'var(--neon)':a?.ppg>=20?'var(--acid)':'var(--bone)'}}>{f1(a?.ppg)}</td>
-                        <td className="term-td" style={{fontSize:fs,padding:pad}}>{f1(a?.rpg)}</td>
-                        <td className="term-td" style={{fontSize:fs,padding:pad}}>{f1(a?.apg)}</td>
-                        <td className="term-td" style={{fontSize:fs,padding:pad}}>{fp2(a?.fg)}</td>
-                        <td className="term-td" style={{fontSize:fs,padding:pad}}>{fp2(a?.fg3)}</td>
-                        <td className="term-td" style={{fontSize:fs,padding:pad}}>{fp2(a?.ft)}</td>
-                        <td className="term-td" style={{fontSize:fs,padding:pad,color:a?.ts!=null?(a.ts>=0.58?'var(--trend-up)':a.ts>=0.50?'var(--bone)':'var(--trend-down)'):'var(--smoke)'}}>{a?.ts!=null?fp2(a.ts):<span style={{fontSize:9,color:'var(--smoke)'}}>--</span>}</td>
-                        <td className="term-td" style={{fontSize:fs,padding:pad,color:'var(--smoke)'}}><span style={{fontSize:9,color:'var(--smoke)'}}>--</span></td>
-                        <td className="term-td" style={{fontSize:fs,padding:pad}}>{d.pmAvg!=null?(<span style={{color:d.pmAvg>0?'var(--trend-up)':d.pmAvg<0?'var(--trend-down)':'var(--smoke)',fontVariantNumeric:'tabular-nums'}}>{d.pmAvg>0?'+':''}{d.pmAvg.toFixed(1)}</span>):<span style={{fontSize:9,color:'var(--smoke)'}}>--</span>}</td>
-                        <td className="term-td" style={{textAlign:'center',padding:pad}}><StatusPill/></td>
+                          style={{background:i%2?'rgba(255,255,255,.012)':'transparent'}}>
+                        <td className="term-td" style={{textAlign:'center',color:'var(--smoke)',fontSize:10,padding:'8px 12px'}}>{p.position||d.fp.pos||'--'}</td>
+                        <td className="term-td" style={{textAlign:'center',color:'var(--smoke)',fontSize:10,padding:'8px 12px'}}>{team}</td>
+                        <td className="term-td" style={{textAlign:'left',fontWeight:700,fontSize:13,padding:'8px 12px',whiteSpace:'nowrap'}}>{name}</td>
+                        <td className="term-td" style={{fontSize:13,padding:'8px 12px'}}>{a?.gp||'--'}</td>
+                        <td className="term-td" style={{fontSize:13,padding:'8px 12px'}}>{a?.min!=null?a.min.toFixed(1):'--'}</td>
+                        <td className="term-td" style={{fontSize:13,padding:'8px 12px',color:a?.ppg>=25?'var(--neon)':a?.ppg>=20?'var(--acid)':'var(--bone)'}}>{f1(a?.ppg)}</td>
+                        <td className="term-td" style={{fontSize:13,padding:'8px 12px'}}>{f1(a?.rpg)}</td>
+                        <td className="term-td" style={{fontSize:13,padding:'8px 12px'}}>{f1(a?.apg)}</td>
+                        <td className="term-td" style={{fontSize:13,padding:'8px 12px'}}>{fp2(a?.fg)}</td>
+                        <td className="term-td" style={{fontSize:13,padding:'8px 12px'}}>{fp2(a?.fg3)}</td>
+                        <td className="term-td" style={{fontSize:13,padding:'8px 12px'}}>{fp2(a?.ft)}</td>
+                        <td className="term-td" style={{fontSize:13,padding:'8px 12px',color:a?.ts!=null?(a.ts>=0.58?'var(--trend-up)':a.ts>=0.50?'var(--bone)':'var(--trend-down)'):'var(--smoke)'}}>{a?.ts!=null?fp2(a.ts):<span style={{fontSize:9,color:'var(--smoke)'}}>--</span>}</td>
+                        <td className="term-td" style={{fontSize:13,padding:'8px 12px'}}><span style={{fontSize:9,color:'var(--smoke)'}}>--</span></td>
+                        <td className="term-td" style={{fontSize:13,padding:'8px 12px'}}>{d.pmAvg!=null?(<span style={{color:d.pmAvg>0?'var(--trend-up)':d.pmAvg<0?'var(--trend-down)':'var(--smoke)',fontVariantNumeric:'tabular-nums'}}>{d.pmAvg>0?'+':''}{d.pmAvg.toFixed(1)}</span>):<span style={{fontSize:9,color:'var(--smoke)'}}>--</span>}</td>
+                        <td className="term-td" style={{textAlign:'center',padding:'8px 12px'}}><StatusPill/></td>
                       </tr>
                     );
                   })}
                 </tbody>
               </table>
               {terminalData.length>TERM_COLLAPSE&&(
-                <div style={{textAlign:'center',padding:'12px 0'}}>
-                  <button className="intel-chip" onClick={()=>setTermExpanded(e=>!e)}
-                          style={{padding:'6px 20px',fontSize:10,letterSpacing:'.08em'}}>
-                    {termExpanded?'COLLAPSE':(`SHOW ALL ${terminalData.length}`)}
+                <div style={{textAlign:'center',padding:'16px 0'}}>
+                  <button className="in-pill" style={{height:'auto',padding:'8px 24px'}} onClick={()=>setTermExpanded(e=>!e)}>
+                    {termExpanded?'COLLAPSE':`SHOW ALL ${terminalData.length}`}
                   </button>
                 </div>
               )}
