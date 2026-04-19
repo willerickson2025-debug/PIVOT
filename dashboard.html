@@ -22,6 +22,12 @@
   --neon:#00FF66; --acid:#CCFF00; --emerald:#00A651; --forest:#003D1F; --rust:#FF4422;
   /* Status */
   --status-active:#1FBF7A; --status-gtd:#E0B341; --status-out:#E5484D; --status-dtd:#6B7280;
+  /* Cap / CBA */
+  --cap-under:#1FBF7A; --cap-over:#6B7280; --cap-tax:#E0B341; --cap-apron1:#E8953D; --cap-apron2:#E5484D; --cap-hard:#E5484D;
+  /* FA status */
+  --status-ufa:#1FBF7A; --status-rfa:#E0B341; --status-po:#6B7280; --status-to:#6B7280; --status-eto:#E8953D;
+  /* Drill */
+  --drill-bg:rgba(255,255,255,0.015);
   /* Trend */
   --trend-up:#1FBF7A; --trend-down:#E5484D; --trend-flat:#6B7280;
   /* Intel surface */
@@ -337,6 +343,94 @@ select{
 .term-td{padding:8px 12px;text-align:right;border-bottom:1px solid rgba(255,255,255,.05);font-variant-numeric:tabular-nums;font-weight:700;font-size:13px;}
 .term-tr{cursor:pointer;transition:background 80ms;}
 .term-tr:hover{background:var(--row-hover) !important;}
+
+/* ─── WAR ROOM ──────────────────────────────────────────────────────────────── */
+.wr-ribbon{
+  position:sticky;top:62px;z-index:190;
+  height:56px;background:var(--void);
+  border-top:1px solid var(--divider);border-bottom:1px solid var(--divider);
+  display:flex;align-items:center;overflow-x:auto;padding:0 40px;gap:0;
+  scrollbar-width:none;
+}
+.wr-ribbon::-webkit-scrollbar{display:none;}
+.wr-pill{
+  flex-shrink:0;padding:0 20px;display:flex;flex-direction:column;justify-content:center;
+  border-right:1px solid var(--divider);height:100%;min-width:80px;
+}
+.wr-pill-label{font-size:9px;font-weight:700;letter-spacing:.1em;color:var(--smoke);margin-bottom:3px;text-transform:uppercase;white-space:nowrap;}
+.wr-pill-value{font-size:13px;font-weight:900;letter-spacing:'-.01em';color:var(--bone);font-variant-numeric:tabular-nums;white-space:nowrap;}
+.wr-pill-divider{width:1px;background:rgba(255,255,255,.12);height:28px;flex-shrink:0;margin:0 4px;}
+.wr-ribbon-ts{margin-left:auto;padding-left:20px;font-size:9px;font-weight:700;letter-spacing:.08em;color:var(--smoke);white-space:nowrap;flex-shrink:0;}
+
+.wr-sub{display:flex;border-bottom:1px solid var(--divider);background:var(--void);position:sticky;top:118px;z-index:180;}
+.wr-sub-btn{background:none;border:none;border-bottom:2px solid transparent;padding:12px 24px;font-size:10px;font-weight:700;letter-spacing:.1em;color:var(--smoke);cursor:pointer;transition:color 140ms,border-color 140ms;font-family:var(--font);text-transform:uppercase;white-space:nowrap;}
+.wr-sub-btn.active{color:var(--bone);border-bottom-color:var(--neon);}
+.wr-sub-btn:hover:not(.active){color:var(--bone);}
+
+.wr-filter{height:40px;background:var(--void);border-bottom:1px solid var(--divider);display:flex;align-items:center;padding:0 40px;gap:12px;overflow-x:auto;scrollbar-width:none;position:sticky;top:163px;z-index:170;}
+.wr-filter::-webkit-scrollbar{display:none;}
+.wr-chip{height:24px;padding:0 10px;font-size:10px;font-weight:700;letter-spacing:.08em;border:1px solid rgba(255,255,255,.08);background:transparent;color:var(--smoke);cursor:pointer;font-family:var(--font);text-transform:uppercase;transition:background 120ms,color 120ms;white-space:nowrap;}
+.wr-chip.active{background:var(--neon);color:var(--void);border-color:var(--neon);}
+.wr-chip:hover:not(.active){color:var(--bone);}
+
+.wr-team-row{display:flex;align-items:center;height:44px;cursor:pointer;border-bottom:1px solid var(--divider);border-left:2px solid transparent;transition:background 80ms,border-left-color 80ms;}
+.wr-team-row:hover{background:var(--row-hover);border-left-color:var(--neon);}
+.wr-team-row.expanded{border-left-color:var(--neon);background:rgba(0,255,102,.03);}
+
+.wr-apron-pill{display:inline-flex;align-items:center;height:18px;padding:0 7px;font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;}
+
+.wr-drill{background:var(--drill-bg);border-top:1px solid var(--divider);border-bottom:1px solid var(--divider);padding:24px 40px;}
+.wr-drill-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px;}
+.wr-drill-module{background:var(--carbon);border:1px solid var(--divider);padding:16px;}
+.wr-drill-label{font-size:9px;font-weight:700;letter-spacing:.12em;color:var(--smoke);margin-bottom:12px;text-transform:uppercase;}
+
+.wr-cap-col{display:flex;flex-direction:column;gap:4px;}
+.wr-cap-val{font-variant-numeric:tabular-nums;font-weight:900;font-size:13px;}
+.wr-cap-sub{font-size:9px;color:var(--smoke);letter-spacing:.06em;}
+
+.wr-depth-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.wr-depth-pos{font-size:9px;font-weight:700;color:var(--smoke);width:24px;flex-shrink:0;}
+.wr-depth-slot{flex:1;height:28px;background:var(--graphite);border:1px solid var(--divider);display:flex;align-items:center;padding:0 8px;position:relative;overflow:hidden;}
+.wr-depth-tier{position:absolute;left:0;top:0;bottom:0;width:2px;}
+
+.wr-needs-bar{height:4px;background:rgba(255,255,255,.08);position:relative;overflow:hidden;}
+.wr-needs-fill{height:100%;position:absolute;left:0;top:0;transition:width 600ms var(--ease);}
+
+.cap-row{display:flex;align-items:center;height:44px;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer;transition:background 80ms;}
+.cap-row:hover{background:var(--row-hover);}
+.cap-td{padding:0 10px;font-variant-numeric:tabular-nums;font-weight:700;font-size:12px;text-align:right;white-space:nowrap;}
+.cap-th{padding:8px 10px;font-size:9px;font-weight:700;letter-spacing:.1em;color:var(--smoke);text-align:right;white-space:nowrap;cursor:pointer;user-select:none;}
+.cap-th.sorted{color:var(--neon);}
+.cap-summary{height:72px;background:var(--carbon);border-top:1px solid var(--wire);display:flex;align-items:center;padding:0 40px;gap:0;overflow-x:auto;position:sticky;bottom:32px;}
+.cap-sum-cell{padding:0 20px;border-right:1px solid var(--divider);display:flex;flex-direction:column;justify-content:center;flex-shrink:0;}
+.cap-sum-label{font-size:8px;font-weight:700;letter-spacing:.1em;color:var(--smoke);}
+.cap-sum-val{font-size:13px;font-weight:900;font-variant-numeric:tabular-nums;white-space:nowrap;}
+
+.fo-pill-row{display:flex;gap:4px;padding:16px 40px 0;border-bottom:1px solid var(--divider);}
+.fo-pill-btn{height:32px;padding:0 16px;font-size:10px;font-weight:700;letter-spacing:.08em;border:1px solid rgba(255,255,255,.08);background:transparent;color:var(--smoke);cursor:pointer;font-family:var(--font);text-transform:uppercase;transition:all 120ms;border-radius:999px;}
+.fo-pill-btn.active{background:var(--neon);color:var(--void);border-color:var(--neon);}
+.fo-pill-btn:hover:not(.active){color:var(--bone);}
+
+.tm-team-col{background:var(--carbon);border:1px solid var(--divider);padding:16px;}
+.tm-center{background:var(--carbon);border:1px solid var(--divider);padding:20px;}
+.tm-valid{font-size:12px;font-weight:900;letter-spacing:.06em;padding:10px 14px;margin-bottom:12px;}
+.tm-valid.ok{background:rgba(31,191,122,.12);color:var(--cap-under);border:1px solid rgba(31,191,122,.3);}
+.tm-valid.fail{background:rgba(229,72,77,.1);color:var(--cap-apron2);border:1px solid rgba(229,72,77,.3);}
+
+.bb-card{background:var(--carbon);border:1px solid var(--divider);padding:14px;margin-bottom:8px;cursor:pointer;transition:border-color 120ms;}
+.bb-card:hover{border-color:rgba(0,255,102,.3);}
+
+.fa-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--divider);}
+.fa-col{background:var(--void);}
+.fa-col-hd{padding:10px 12px;font-size:9px;font-weight:700;letter-spacing:.1em;color:var(--smoke);background:var(--carbon);border-bottom:1px solid var(--divider);}
+.fa-card{padding:12px;border-bottom:1px solid var(--divider);cursor:pointer;transition:background 80ms;}
+.fa-card:hover{background:var(--row-hover);}
+
+.scout-cols{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--divider);}
+.scout-col{background:var(--void);}
+.scout-col-hd{padding:10px 14px;font-size:9px;font-weight:700;letter-spacing:.1em;background:var(--carbon);border-bottom:1px solid var(--divider);}
+.scout-row{display:flex;align-items:center;height:40px;border-bottom:1px solid rgba(255,255,255,.04);padding:0 14px;cursor:pointer;transition:background 80ms;}
+.scout-row:hover{background:var(--row-hover);}
 </style>
 </head>
 <body>
@@ -394,6 +488,120 @@ const CAP_DATA=[
   {abbr:'HOU',name:'Rockets',used:131},{abbr:'OKC',name:'Thunder',used:128},{abbr:'UTA',name:'Jazz',used:125},
   {abbr:'SAS',name:'Spurs',used:122},{abbr:'CHA',name:'Hornets',used:118},{abbr:'WAS',name:'Wizards',used:115},
 ];
+// ─── CBA CONSTANTS 2024-25 ────────────────────────────────────────────────────
+const CBA={
+  season:'2024-25',
+  salaryCap:140.588,
+  luxuryTax:170.814,
+  apron1:178.132,
+  apron2:188.931,
+  minTeamSal:126.529,
+  max06y:37.017,  // max for 0-6 yrs service
+  max79y:44.420,  // max for 7-9 yrs
+  max10y:55.525,  // max for 10+ yrs (DVPE)
+  ntMLE:12.822,
+  tMLE:5.175,
+  roomMLE:5.175,
+  bae:4.516,
+  minVet:3.386,
+  draftDeadline:new Date('2025-06-26'),
+  faWindow:new Date('2025-06-30'),
+  draft:new Date('2025-06-25'),
+};
+
+// ─── TEAM EXTENDED DATA (seeded) ─────────────────────────────────────────────
+const TEAM_EXT={
+  GSW:{payroll:203,record:'43-39',seed:5,conf:'West',apronStatus:'2ND APRON',picksOwned:9,picksOwed:2,tradeable:8,expiring:48,expPlayers:3,topFA:'Wiggins SF $24M',mode:'CONTENDER'},
+  BOS:{payroll:197,record:'62-20',seed:1,conf:'East',apronStatus:'2ND APRON',picksOwned:11,picksOwed:0,tradeable:7,expiring:62,expPlayers:4,topFA:'Tatum SF $53M',mode:'CONTENDER'},
+  PHX:{payroll:194,record:'36-46',seed:10,conf:'West',apronStatus:'2ND APRON',picksOwned:7,picksOwed:3,tradeable:6,expiring:31,expPlayers:2,topFA:'Durant PF $51M',mode:'RELOAD'},
+  MIL:{payroll:185,record:'49-33',seed:3,conf:'East',apronStatus:'OVER 1ST APRON',picksOwned:10,picksOwed:1,tradeable:9,expiring:39,expPlayers:3,topFA:'Lillard PG $46M',mode:'CONTENDER'},
+  LAL:{payroll:182,record:'50-32',seed:4,conf:'West',apronStatus:'OVER 1ST APRON',picksOwned:8,picksOwed:2,tradeable:7,expiring:44,expPlayers:3,topFA:'LeBron SF $47M',mode:'CONTENDER'},
+  NYK:{payroll:177,record:'51-31',seed:2,conf:'East',apronStatus:'OVER TAX',picksOwned:9,picksOwed:1,tradeable:8,expiring:37,expPlayers:4,topFA:'Brunson PG $52M',mode:'CONTENDER'},
+  DET:{payroll:174,record:'25-57',seed:13,conf:'East',apronStatus:'OVER TAX',picksOwned:14,picksOwed:0,tradeable:10,expiring:52,expPlayers:5,topFA:'Cunningham PG $31M',mode:'REBUILD'},
+  MIN:{payroll:172,record:'56-26',seed:1,conf:'West',apronStatus:'OVER TAX',picksOwned:9,picksOwed:1,tradeable:7,expiring:41,expPlayers:3,topFA:'Edwards SG $25M',mode:'CONTENDER'},
+  PHI:{payroll:167,record:'47-35',seed:5,conf:'East',apronStatus:'OVER TAX',picksOwned:8,picksOwed:4,tradeable:6,expiring:27,expPlayers:2,topFA:'Embiid C $51M',mode:'CONTENDER'},
+  MIA:{payroll:164,record:'46-36',seed:6,conf:'East',apronStatus:'OVER TAX',picksOwned:10,picksOwed:0,tradeable:9,expiring:33,expPlayers:3,topFA:'Butler SF $49M',mode:'CONTENDER'},
+  DEN:{payroll:162,record:'57-25',seed:1,conf:'West',apronStatus:'OVER CAP',picksOwned:11,picksOwed:0,tradeable:8,expiring:29,expPlayers:2,topFA:'Jokic C $54M',mode:'CONTENDER'},
+  DAL:{payroll:159,record:'52-30',seed:3,conf:'West',apronStatus:'OVER CAP',picksOwned:9,picksOwed:2,tradeable:8,expiring:35,expPlayers:3,topFA:'Flagg SF $12M',mode:'CONTENDER'},
+  BKN:{payroll:157,record:'21-61',seed:14,conf:'East',apronStatus:'OVER CAP',picksOwned:6,picksOwed:5,tradeable:11,expiring:78,expPlayers:7,topFA:'Bridges SF $22M',mode:'REBUILD'},
+  MEM:{payroll:155,record:'49-33',seed:4,conf:'West',apronStatus:'OVER CAP',picksOwned:12,picksOwed:0,tradeable:9,expiring:28,expPlayers:2,topFA:'Morant PG $37M',mode:'CONTENDER'},
+  CLE:{payroll:153,record:'64-18',seed:1,conf:'East',apronStatus:'OVER CAP',picksOwned:10,picksOwed:0,tradeable:8,expiring:24,expPlayers:2,topFA:'Mitchell SG $35M',mode:'CONTENDER'},
+  ATL:{payroll:151,record:'36-46',seed:9,conf:'East',apronStatus:'OVER CAP',picksOwned:11,picksOwed:1,tradeable:9,expiring:44,expPlayers:4,topFA:'Young PG $43M',mode:'RELOAD'},
+  LAC:{payroll:149,record:'42-40',seed:7,conf:'West',apronStatus:'OVER CAP',picksOwned:9,picksOwed:1,tradeable:8,expiring:31,expPlayers:3,topFA:'Harden SG $35M',mode:'RELOAD'},
+  POR:{payroll:147,record:'19-63',seed:14,conf:'West',apronStatus:'OVER CAP',picksOwned:13,picksOwed:0,tradeable:10,expiring:58,expPlayers:5,topFA:'Grant SF $18M',mode:'REBUILD'},
+  CHI:{payroll:145,record:'31-51',seed:11,conf:'East',apronStatus:'OVER CAP',picksOwned:10,picksOwed:2,tradeable:8,expiring:47,expPlayers:4,topFA:'DeRozan SF $29M',mode:'RELOAD'},
+  TOR:{payroll:143,record:'25-57',seed:12,conf:'East',apronStatus:'OVER CAP',picksOwned:12,picksOwed:0,tradeable:9,expiring:55,expPlayers:5,topFA:'Barrett SG $34M',mode:'REBUILD'},
+  IND:{payroll:141,record:'51-31',seed:4,conf:'East',apronStatus:'OVER CAP',picksOwned:11,picksOwed:0,tradeable:8,expiring:22,expPlayers:2,topFA:'Haliburton PG $29M',mode:'CONTENDER'},
+  NOP:{payroll:138,record:'41-41',seed:8,conf:'West',apronStatus:'OVER CAP',picksOwned:10,picksOwed:2,tradeable:9,expiring:38,expPlayers:3,topFA:'Williamson PF $35M',mode:'RELOAD'},
+  SAC:{payroll:136,record:'46-36',seed:6,conf:'West',apronStatus:'UNDER CAP',picksOwned:10,picksOwed:0,tradeable:9,expiring:29,expPlayers:3,topFA:'Fox PG $33M',mode:'CONTENDER'},
+  ORL:{payroll:134,record:'47-35',seed:5,conf:'East',apronStatus:'UNDER CAP',picksOwned:12,picksOwed:0,tradeable:9,expiring:18,expPlayers:2,topFA:'Banchero PF $14M',mode:'CONTENDER'},
+  HOU:{payroll:131,record:'41-41',seed:8,conf:'West',apronStatus:'UNDER CAP',picksOwned:11,picksOwed:0,tradeable:10,expiring:21,expPlayers:2,topFA:'Amen Thompson SF $7M',mode:'RELOAD'},
+  OKC:{payroll:128,record:'68-14',seed:1,conf:'West',apronStatus:'UNDER CAP',picksOwned:14,picksOwed:0,tradeable:11,expiring:14,expPlayers:1,topFA:'SGA PG $33M',mode:'CONTENDER'},
+  UTA:{payroll:125,record:'17-65',seed:15,conf:'West',apronStatus:'UNDER CAP',picksOwned:16,picksOwed:0,tradeable:12,expiring:62,expPlayers:6,topFA:'Collins PF $26M',mode:'REBUILD'},
+  SAS:{payroll:122,record:'22-60',seed:14,conf:'West',apronStatus:'UNDER CAP',picksOwned:13,picksOwed:0,tradeable:11,expiring:39,expPlayers:4,topFA:'Wembanyama C $10M',mode:'REBUILD'},
+  CHA:{payroll:118,record:'21-61',seed:13,conf:'East',apronStatus:'UNDER CAP',picksOwned:12,picksOwed:0,tradeable:10,expiring:44,expPlayers:4,topFA:'Ball PG $27M',mode:'REBUILD'},
+  WAS:{payroll:115,record:'18-64',seed:15,conf:'East',apronStatus:'UNDER CAP',picksOwned:14,picksOwed:0,tradeable:12,expiring:55,expPlayers:5,topFA:'Poole PG $28M',mode:'REBUILD'},
+};
+
+// ─── SEEDED DRAFT CAPITAL ─────────────────────────────────────────────────────
+const DRAFT_CAP={
+  OKC:{own7:14,owed:0,picks:{2025:['R1 OWN','R2 OWN','R2 HOU','R2 UTA'],2026:['R1 OWN','R1 HOU (top-6 prot)','R2 OWN'],2027:['R1 OWN','R2 OWN','R2 CHI'],2028:['R1 OWN','R2 OWN'],2029:['R1 OWN','R2 OWN'],2030:['R1 OWN'],2031:['R1 OWN']},stepien:false},
+  BOS:{own7:11,owed:0,picks:{2025:['R1 OWN','R2 OWN'],2026:['R1 OWN','R2 OWN'],2027:['R1 OWN','R2 BKN'],2028:['R1 OWN','R2 OWN'],2029:['R1 OWN'],2030:['R1 OWN'],2031:['R1 OWN']},stepien:false},
+  BKN:{own7:6,owed:5,picks:{2025:['R2 OWN'],2026:['R2 OWN'],2027:['R2 OWN'],2028:[],2029:[],2030:['R2 OWN'],2031:[]},stepien:true},
+  PHX:{own7:7,owed:3,picks:{2025:['R1 OWN','R2 OWN'],2026:['R2 OWN'],2027:['R1 OWN'],2028:['R2 OWN'],2029:['R1 OWN'],2030:[],2031:['R2 OWN']},stepien:false},
+  LAL:{own7:8,owed:2,picks:{2025:['R2 OWN'],2026:['R1 OWN'],2027:['R2 OWN'],2028:['R1 OWN'],2029:['R2 OWN'],2030:['R1 OWN'],2031:['R1 OWN']},stepien:false},
+  DAL:{own7:9,owed:2,picks:{2025:['R1 OWN','R2 OWN'],2026:['R1 OWN','R2 OWN'],2027:['R2 OWN'],2028:['R1 OWN'],2029:['R1 OWN','R2 OWN'],2030:['R2 OWN'],2031:['R1 OWN']},stepien:false},
+  UTA:{own7:16,owed:0,picks:{2025:['R1 OWN','R2 OWN','R1 MIN'],2026:['R1 OWN','R2 OWN','R1 LAC'],2027:['R1 OWN','R2 OWN'],2028:['R1 OWN','R2 OWN'],2029:['R1 OWN','R2 OWN'],2030:['R1 OWN','R2 OWN'],2031:['R1 OWN']},stepien:false},
+};
+
+// ─── SEEDED CONTRACTS (top players) ──────────────────────────────────────────
+const CONTRACTS=[
+  {player:'Stephen Curry',team:'GSW',pos:'PG',age:37,sal:55.76,guar:55.76,nonGuar:0,yrsLeft:1,option:'PO',optYear:2025,noTrade:true,kicker:'15%',bird:'FULL BIRD',capHold:null,qo:null,tier:1},
+  {player:'Nikola Jokic',team:'DEN',pos:'C',age:30,sal:51.41,guar:51.41,nonGuar:0,yrsLeft:3,option:null,optYear:null,noTrade:false,kicker:null,bird:'FULL BIRD',capHold:null,qo:null,tier:1},
+  {player:'Kevin Durant',team:'PHX',pos:'PF',age:37,sal:51.18,guar:51.18,nonGuar:0,yrsLeft:2,option:null,optYear:null,noTrade:true,kicker:null,bird:'FULL BIRD',capHold:null,qo:null,tier:1},
+  {player:'Giannis Antetokounmpo',team:'MIL',pos:'PF',age:30,sal:48.79,guar:48.79,nonGuar:0,yrsLeft:4,option:null,optYear:null,noTrade:false,kicker:null,bird:'FULL BIRD',capHold:null,qo:null,tier:1},
+  {player:'LeBron James',team:'LAL',pos:'SF',age:40,sal:47.61,guar:47.61,nonGuar:0,yrsLeft:1,option:'PO',optYear:2025,noTrade:false,kicker:null,bird:'FULL BIRD',capHold:null,qo:null,tier:1},
+  {player:'Damian Lillard',team:'MIL',pos:'PG',age:35,sal:46.02,guar:46.02,nonGuar:0,yrsLeft:3,option:null,optYear:null,noTrade:true,kicker:null,bird:'FULL BIRD',capHold:null,qo:null,tier:1},
+  {player:'Luka Doncic',team:'DAL',pos:'PG',age:26,sal:46.18,guar:46.18,nonGuar:0,yrsLeft:4,option:null,optYear:null,noTrade:false,kicker:null,bird:'FULL BIRD',capHold:null,qo:null,tier:1},
+  {player:'Jayson Tatum',team:'BOS',pos:'SF',age:27,sal:44.72,guar:44.72,nonGuar:0,yrsLeft:4,option:null,optYear:null,noTrade:false,kicker:null,bird:'FULL BIRD',capHold:null,qo:null,tier:1},
+  {player:'Trae Young',team:'ATL',pos:'PG',age:26,sal:43.01,guar:43.01,nonGuar:0,yrsLeft:3,option:null,optYear:null,noTrade:false,kicker:null,bird:'FULL BIRD',capHold:null,qo:null,tier:1},
+  {player:'Zion Williamson',team:'NOP',pos:'PF',age:25,sal:35.00,guar:35.00,nonGuar:0,yrsLeft:3,option:null,optYear:null,noTrade:false,kicker:null,bird:'FULL BIRD',capHold:null,qo:null,tier:1},
+  {player:'Jimmy Butler',team:'MIA',pos:'SF',age:35,sal:49.00,guar:49.00,nonGuar:0,yrsLeft:2,option:'PO',optYear:2025,noTrade:true,kicker:null,bird:'FULL BIRD',capHold:null,qo:null,tier:1},
+  {player:'Jalen Brunson',team:'NYK',pos:'PG',age:28,sal:52.49,guar:52.49,nonGuar:0,yrsLeft:3,option:null,optYear:null,noTrade:false,kicker:null,bird:'FULL BIRD',capHold:null,qo:null,tier:1},
+  {player:'Shai Gilgeous-Alexander',team:'OKC',pos:'PG',age:27,sal:33.39,guar:33.39,nonGuar:0,yrsLeft:4,option:null,optYear:null,noTrade:false,kicker:null,bird:'FULL BIRD',capHold:null,qo:null,tier:1},
+  {player:'Joel Embiid',team:'PHI',pos:'C',age:31,sal:51.41,guar:51.41,nonGuar:0,yrsLeft:2,option:null,optYear:null,noTrade:false,kicker:null,bird:'FULL BIRD',capHold:null,qo:null,tier:1},
+  {player:'Anthony Edwards',team:'MIN',pos:'SG',age:23,sal:25.37,guar:25.37,nonGuar:0,yrsLeft:4,option:null,optYear:null,noTrade:false,kicker:null,bird:'FULL BIRD',capHold:null,qo:null,tier:1},
+  {player:'Donovan Mitchell',team:'CLE',pos:'SG',age:28,sal:35.30,guar:35.30,nonGuar:0,yrsLeft:3,option:null,optYear:null,noTrade:false,kicker:null,bird:'FULL BIRD',capHold:null,qo:null,tier:1},
+  {player:'Tyrese Haliburton',team:'IND',pos:'PG',age:25,sal:29.15,guar:29.15,nonGuar:0,yrsLeft:4,option:null,optYear:null,noTrade:false,kicker:null,bird:'FULL BIRD',capHold:null,qo:null,tier:1},
+  {player:'Devin Booker',team:'PHX',pos:'SG',age:28,sal:36.02,guar:36.02,nonGuar:0,yrsLeft:3,option:null,optYear:null,noTrade:false,kicker:null,bird:'FULL BIRD',capHold:null,qo:null,tier:1},
+  {player:'De Aaron Fox',team:'SAC',pos:'PG',age:27,sal:33.41,guar:33.41,nonGuar:0,yrsLeft:2,option:null,optYear:null,noTrade:false,kicker:null,bird:'FULL BIRD',capHold:null,qo:null,tier:1},
+  {player:'Ja Morant',team:'MEM',pos:'PG',age:25,sal:37.01,guar:37.01,nonGuar:0,yrsLeft:3,option:null,optYear:null,noTrade:false,kicker:null,bird:'FULL BIRD',capHold:null,qo:null,tier:1},
+  {player:'Anthony Davis',team:'LAL',pos:'C',age:32,sal:43.22,guar:43.22,nonGuar:0,yrsLeft:2,option:null,optYear:null,noTrade:false,kicker:null,bird:'FULL BIRD',capHold:null,qo:null,tier:1},
+  {player:'Jaylen Brown',team:'BOS',pos:'SG',age:28,sal:48.82,guar:48.82,nonGuar:0,yrsLeft:4,option:null,optYear:null,noTrade:true,kicker:null,bird:'FULL BIRD',capHold:null,qo:null,tier:1},
+  {player:'Karl-Anthony Towns',team:'NYK',pos:'C',age:29,sal:49.58,guar:49.58,nonGuar:0,yrsLeft:3,option:null,optYear:null,noTrade:false,kicker:null,bird:'FULL BIRD',capHold:null,qo:null,tier:1},
+  {player:'Victor Wembanyama',team:'SAS',pos:'C',age:21,sal:10.05,guar:10.05,nonGuar:0,yrsLeft:3,option:'ETO',optYear:2025,noTrade:false,kicker:null,bird:'NON BIRD',capHold:null,qo:null,tier:1},
+  {player:'Cade Cunningham',team:'DET',pos:'PG',age:23,sal:31.50,guar:31.50,nonGuar:0,yrsLeft:3,option:null,optYear:null,noTrade:false,kicker:null,bird:'FULL BIRD',capHold:null,qo:null,tier:1},
+  {player:'Paolo Banchero',team:'ORL',pos:'PF',age:22,sal:14.10,guar:14.10,nonGuar:0,yrsLeft:3,option:'TO',optYear:2025,noTrade:false,kicker:null,bird:'EARLY BIRD',capHold:null,qo:null,tier:2},
+  {player:'Brandon Ingram',team:'NOP',pos:'SF',age:27,sal:36.00,guar:36.00,nonGuar:0,yrsLeft:1,option:null,optYear:null,noTrade:false,kicker:null,bird:'FULL BIRD',capHold:36.00,qo:null,tier:2},
+  {player:'Andrew Wiggins',team:'GSW',pos:'SF',age:30,sal:24.33,guar:24.33,nonGuar:0,yrsLeft:1,option:null,optYear:null,noTrade:false,kicker:null,bird:'FULL BIRD',capHold:24.33,qo:null,tier:2},
+  {player:'OG Anunoby',team:'NYK',pos:'SF',age:27,sal:37.35,guar:37.35,nonGuar:0,yrsLeft:4,option:null,optYear:null,noTrade:false,kicker:null,bird:'FULL BIRD',capHold:null,qo:null,tier:2},
+  {player:'Fred VanVleet',team:'HOU',pos:'PG',age:31,sal:43.01,guar:43.01,nonGuar:0,yrsLeft:2,option:null,optYear:null,noTrade:false,kicker:null,bird:'FULL BIRD',capHold:null,qo:null,tier:2},
+];
+
+// ─── SEEDED LINEUPS ───────────────────────────────────────────────────────────
+const LINEUPS={
+  BOS:[
+  {players:['Brown','Tatum','Holiday','White','Porzingis'],min:187,netRtg:12.4,offRtg:122.1,defRtg:109.7,pace:98.2,astRatio:19.4,eFGPct:60.1,toPct:11.2},
+  {players:['Brown','Tatum','Holiday','Hauser','Al-Horford'],min:144,netRtg:8.9,offRtg:118.4,defRtg:109.5,pace:97.8,astRatio:18.1,eFGPct:58.7,toPct:12.1},
+  ],
+  DEN:[
+  {players:['Jokic','Murray','Porter Jr.','Gordon','KCP'],min:201,netRtg:15.2,offRtg:125.3,defRtg:110.1,pace:100.4,astRatio:22.1,eFGPct:62.3,toPct:10.8},
+  ],
+  OKC:[
+  {players:['SGA','Dort','Williams','Holmgren','Wallace'],min:214,netRtg:18.1,offRtg:124.8,defRtg:106.7,pace:101.2,astRatio:20.4,eFGPct:61.7,toPct:11.4},
+  ],
+};
+
 const COACHING_ARCHETYPES=[
   {value:'',label:'Default'},{value:'architect',label:'The Architect (Analytics-First)'},
   {value:'motivator',label:'The Motivator (Culture & Energy)'},{value:'tactician',label:'The Tactician (Scheme)'},
@@ -1669,155 +1877,841 @@ function Intel(){
   );
 }
 
+// ─── WAR ROOM HELPERS ────────────────────────────────────────────────────────
+
+function fmtM(m){if(m==null)return'--';const v=parseFloat(m);return(v<0?'-$':'$')+Math.abs(v).toFixed(1)+'M';}
+function fmtMRaw(m){if(m==null)return'--';return'$'+parseFloat(m).toFixed(1)+'M';}
+function daysUntil(d){return Math.max(0,Math.round((d-new Date())/(1000*60*60*24)));}
+
+function ApronPill({status}){
+  const map={
+    'UNDER CAP':['var(--cap-under)','rgba(31,191,122,.12)'],
+    'OVER CAP':['var(--cap-over)','rgba(107,114,128,.12)'],
+    'OVER TAX':['var(--cap-tax)','rgba(224,179,65,.12)'],
+    'OVER 1ST APRON':['var(--cap-apron1)','rgba(232,149,61,.12)'],
+    'OVER 2ND APRON':['var(--cap-apron2)','rgba(229,72,77,.12)'],
+    'HARD CAPPED':['var(--cap-hard)','transparent'],
+  };
+  const[color,bg]=map[status]||['var(--smoke)','transparent'];
+  const border=status==='HARD CAPPED'?`1px solid ${color}`:'none';
+  return(
+    <span className="wr-apron-pill" style={{background:bg,color,border}}>
+      {status}
+    </span>
+  );
+}
+
+function FAPill({status}){
+  const map={UFA:'var(--status-ufa)',RFA:'var(--status-rfa)',PO:'var(--status-po)',TO:'var(--status-to)',ETO:'var(--status-eto)'};
+  const c=map[status]||'var(--smoke)';
+  return<span style={{fontSize:9,fontWeight:700,letterSpacing:'.08em',color:c,background:`${c}18`,padding:'2px 6px'}}>{status}</span>;
+}
+
+function HeaderRibbon(){
+  const now=new Date();
+  const dd=daysUntil(CBA.draftDeadline);
+  const dfa=daysUntil(CBA.faWindow);
+  const ddr=daysUntil(CBA.draft);
+  const ts=now.toLocaleDateString([],{month:'short',day:'numeric',year:'numeric'}).toUpperCase();
+  const pills=[
+    {l:'SEASON CAP',v:fmtMRaw(CBA.salaryCap)},
+    {l:'LUX TAX',v:fmtMRaw(CBA.luxuryTax)},
+    {l:'1ST APRON',v:fmtMRaw(CBA.apron1)},
+    {l:'2ND APRON',v:fmtMRaw(CBA.apron2)},
+    {l:'MIN TEAM SAL',v:fmtMRaw(CBA.minTeamSal)},
+    {l:'MAX 0-6Y',v:fmtMRaw(CBA.max06y)},
+    {l:'MAX 7-9Y',v:fmtMRaw(CBA.max79y)},
+    {l:'MAX 10+Y',v:fmtMRaw(CBA.max10y)},
+    {l:'NT MLE',v:fmtMRaw(CBA.ntMLE)},
+    {l:'T MLE',v:fmtMRaw(CBA.tMLE)},
+    {l:'ROOM MLE',v:fmtMRaw(CBA.roomMLE)},
+    {l:'BAE',v:fmtMRaw(CBA.bae)},
+    {l:'MIN',v:fmtMRaw(CBA.minVet)},
+    null,
+    {l:'DAYS TO DEADLINE',v:String(dd)},
+    {l:'DAYS TO FA WINDOW',v:String(dfa)},
+    {l:'DAYS TO DRAFT',v:String(ddr)},
+  ];
+  return(
+    <div className="wr-ribbon">
+      {pills.map((p,i)=>p===null?(
+        <div key={i} className="wr-pill-divider"/>
+      ):(
+        <div key={i} className="wr-pill">
+          <div className="wr-pill-label">{p.l}</div>
+          <div className="wr-pill-value">{p.v}</div>
+        </div>
+      ))}
+      <div className="wr-ribbon-ts">AS OF {ts}</div>
+    </div>
+  );
+}
+
+function TeamDrill({team,ext}){
+  const dc=DRAFT_CAP[team.abbr]||{own7:9,owed:0,picks:{},stepien:false};
+  const draftYears=[2025,2026,2027,2028,2029,2030,2031];
+  const ext2=ext||TEAM_EXT[team.abbr]||{};
+  const needs=[
+    {label:'SHOOTING',score:ext2.payroll>180?6:ext2.payroll>160?7:5},
+    {label:'RIM PROTECTION',score:ext2.payroll>180?5:8},
+    {label:'PLAYMAKING',score:ext2.payroll>190?8:6},
+    {label:'PERIMETER D',score:ext2.payroll>185?7:5},
+    {label:'WING DEPTH',score:ext2.payroll>175?6:7},
+  ];
+  const lineup=(LINEUPS[team.abbr]||[]);
+  return(
+    <div className="wr-drill">
+      <div className="wr-drill-grid">
+
+        {/* ROSTER col span 7 */}
+        <div style={{gridColumn:'span 7'}}>
+          <div className="wr-drill-module" style={{height:'100%'}}>
+            <div className="wr-drill-label">ROSTER</div>
+            <div style={{overflowX:'auto'}}>
+              <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
+                <thead>
+                  <tr style={{borderBottom:'1px solid var(--divider)'}}>
+                    {['POS','PLAYER','AGE','SALARY','GUAR','YRS','OPTION','BIRD'].map(c=>(
+                      <th key={c} style={{padding:'4px 8px',textAlign:c==='PLAYER'?'left':'right',fontSize:9,fontWeight:700,letterSpacing:'.08em',color:'var(--smoke)',whiteSpace:'nowrap'}}>{c}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {CONTRACTS.filter(c=>c.team===team.abbr).map((c,i)=>(
+                    <tr key={i} style={{borderBottom:'1px solid rgba(255,255,255,.03)',background:i%2?'rgba(255,255,255,.01)':'transparent'}}>
+                      <td style={{padding:'5px 8px',textAlign:'right',fontSize:10,color:'var(--smoke)'}}>{c.pos}</td>
+                      <td style={{padding:'5px 8px',textAlign:'left',fontWeight:900,color:'var(--bone)'}}>{c.player}</td>
+                      <td style={{padding:'5px 8px',textAlign:'right',color:'var(--smoke)'}}>{c.age}</td>
+                      <td style={{padding:'5px 8px',textAlign:'right',fontVariantNumeric:'tabular-nums',color:'var(--bone)'}}>{fmtMRaw(c.sal)}</td>
+                      <td style={{padding:'5px 8px',textAlign:'right',fontVariantNumeric:'tabular-nums',color:c.nonGuar>0?'var(--cap-apron1)':'var(--bone)'}}>{fmtMRaw(c.guar)}</td>
+                      <td style={{padding:'5px 8px',textAlign:'right',fontVariantNumeric:'tabular-nums'}}>{c.yrsLeft}</td>
+                      <td style={{padding:'5px 8px',textAlign:'right',fontSize:9,color:'var(--smoke)'}}>{c.option||'--'}</td>
+                      <td style={{padding:'5px 8px',textAlign:'right',fontSize:9,color:'var(--smoke)',whiteSpace:'nowrap'}}>{c.bird||'--'}</td>
+                    </tr>
+                  ))}
+                  {CONTRACTS.filter(c=>c.team===team.abbr).length===0&&(
+                    <tr><td colSpan={8} style={{padding:'16px 8px',color:'var(--smoke)',fontSize:11,letterSpacing:'.06em',textAlign:'center'}}>CONTRACT DATA NOT LOADED FOR THIS TEAM.</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        {/* CAP SHEET col span 5 */}
+        <div style={{gridColumn:'span 5'}}>
+          <div className="wr-drill-module" style={{height:'100%'}}>
+            <div className="wr-drill-label">CAP SHEET</div>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8}}>
+              {['THIS YEAR','Y+1','Y+2','Y+3'].map((yr,yi)=>{
+                const base=ext2.payroll||140;
+                const proj=base-(yi*4)+(Math.random()*6-3);
+                const taxDist=proj-CBA.luxuryTax;
+                const ap1Dist=proj-CBA.apron1;
+                const ap2Dist=proj-CBA.apron2;
+                return(
+                  <div key={yr}>
+                    <div style={{fontSize:9,fontWeight:700,letterSpacing:'.1em',color:'var(--smoke)',marginBottom:8}}>{yr}</div>
+                    {[
+                      {l:'COMMITTED',v:fmtMRaw(proj),c:'var(--bone)'},
+                      {l:'vs LUX TAX',v:fmtM(proj-CBA.luxuryTax),c:taxDist>0?'var(--cap-apron2)':'var(--cap-under)'},
+                      {l:'vs 1ST APRON',v:fmtM(proj-CBA.apron1),c:ap1Dist>0?'var(--cap-apron1)':'var(--cap-under)'},
+                      {l:'vs 2ND APRON',v:fmtM(proj-CBA.apron2),c:ap2Dist>0?'var(--cap-apron2)':'var(--cap-under)'},
+                    ].map(({l,v,c})=>(
+                      <div key={l} style={{marginBottom:6}}>
+                        <div style={{fontSize:8,color:'var(--smoke)',letterSpacing:'.06em'}}>{l}</div>
+                        <div className="wr-cap-val" style={{color:c,fontSize:12}}>{v}</div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* DRAFT CAPITAL col span 5 */}
+        <div style={{gridColumn:'span 5'}}>
+          <div className="wr-drill-module">
+            <div className="wr-drill-label">DRAFT CAPITAL</div>
+            <div style={{overflowX:'auto'}}>
+              <table style={{width:'100%',borderCollapse:'collapse',fontSize:10}}>
+                <thead>
+                  <tr style={{borderBottom:'1px solid var(--divider)'}}>
+                    <th style={{padding:'4px 6px',textAlign:'left',fontSize:9,color:'var(--smoke)'}}>YEAR</th>
+                    <th style={{padding:'4px 6px',textAlign:'left',fontSize:9,color:'var(--smoke)'}}>ROUND 1</th>
+                    <th style={{padding:'4px 6px',textAlign:'left',fontSize:9,color:'var(--smoke)'}}>ROUND 2</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {draftYears.map(yr=>{
+                    const picks=dc.picks[yr]||[];
+                    const r1=picks.filter(p=>p.startsWith('R1'));
+                    const r2=picks.filter(p=>p.startsWith('R2'));
+                    return(
+                      <tr key={yr} style={{borderBottom:'1px solid rgba(255,255,255,.03)'}}>
+                        <td style={{padding:'4px 6px',color:'var(--smoke)',fontVariantNumeric:'tabular-nums'}}>{yr}</td>
+                        <td style={{padding:'4px 6px',color:r1.length?'var(--neon)':'var(--smoke)',fontSize:9}}>
+                          {r1.length?r1.map(p=>p.replace('R1 ','')).join(', '):'NONE'}
+                        </td>
+                        <td style={{padding:'4px 6px',color:r2.length?'var(--bone)':'var(--smoke)',fontSize:9}}>
+                          {r2.length?r2.map(p=>p.replace('R2 ','')).join(', '):'NONE'}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <div style={{marginTop:10,fontSize:9,fontWeight:700,letterSpacing:'.08em',padding:'4px 8px',
+              background:dc.stepien?'rgba(229,72,77,.12)':'rgba(31,191,122,.08)',
+              color:dc.stepien?'var(--cap-apron2)':'var(--cap-under)'}}>
+              {dc.stepien?'STEPIEN RISK':'STEPIEN OK'}
+            </div>
+          </div>
+        </div>
+
+        {/* DEPTH CHART col span 4 */}
+        <div style={{gridColumn:'span 4'}}>
+          <div className="wr-drill-module">
+            <div className="wr-drill-label">DEPTH CHART</div>
+            {['PG','SG','SF','PF','C'].map(pos=>{
+              const playersAtPos=CONTRACTS.filter(c=>c.team===team.abbr&&c.pos===pos);
+              return(
+                <div key={pos} className="wr-depth-row">
+                  <div className="wr-depth-pos">{pos}</div>
+                  {playersAtPos.slice(0,3).map((p,i)=>{
+                    const tierColor=i===0?'var(--neon)':i===1?'var(--bone)':'var(--smoke)';
+                    return(
+                      <div key={p.player} className="wr-depth-slot" style={{flex:1}}>
+                        <div className="wr-depth-tier" style={{background:tierColor}}/>
+                        <div style={{paddingLeft:8,fontSize:10,fontWeight:700,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{p.player.split(' ').pop()}</div>
+                        <div style={{fontSize:8,color:'var(--smoke)',marginLeft:4,whiteSpace:'nowrap'}}>{p.yrsLeft}Y</div>
+                      </div>
+                    );
+                  })}
+                  {playersAtPos.length===0&&(
+                    <div className="wr-depth-slot" style={{flex:3,opacity:.4}}>
+                      <div style={{paddingLeft:8,fontSize:10,color:'var(--smoke)'}}>NEED</div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* NEEDS col span 3 */}
+        <div style={{gridColumn:'span 3'}}>
+          <div className="wr-drill-module">
+            <div className="wr-drill-label">NEEDS</div>
+            {needs.map(({label,score})=>{
+              const c=score>=7?'var(--cap-under)':score>=4?'var(--cap-tax)':'var(--cap-apron2)';
+              return(
+                <div key={label} style={{marginBottom:12}}>
+                  <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
+                    <span style={{fontSize:10,letterSpacing:'.06em',color:'var(--smoke)'}}>{label}</span>
+                    <span className="stat-num" style={{fontSize:11,color:c}}>{score}</span>
+                  </div>
+                  <div className="wr-needs-bar">
+                    <div className="wr-needs-fill" style={{width:`${score*10}%`,background:c}}/>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* LINEUP col span 12 */}
+        <div style={{gridColumn:'span 12'}}>
+          <div className="wr-drill-module">
+            <div className="wr-drill-label">TOP LINEUPS</div>
+            {lineup.length===0&&<div style={{color:'var(--smoke)',fontSize:11,letterSpacing:'.06em'}}>LINEUP DATA NOT AVAILABLE.</div>}
+            {lineup.length>0&&(
+              <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
+                <thead>
+                  <tr style={{borderBottom:'1px solid var(--divider)'}}>
+                    {['UNIT','MIN','NET RTG','OFF RTG','DEF RTG','PACE','AST RATIO','EFG%','TO%'].map(c=>(
+                      <th key={c} style={{padding:'4px 8px',textAlign:c==='UNIT'?'left':'right',fontSize:9,fontWeight:700,letterSpacing:'.08em',color:'var(--smoke)'}}>{c}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {lineup.map((l,i)=>(
+                    <tr key={i} style={{borderBottom:'1px solid rgba(255,255,255,.03)',height:28}}>
+                      <td style={{padding:'4px 8px',textAlign:'left',fontSize:10}}>{l.players.join(' / ')}</td>
+                      <td className="stat-num" style={{padding:'4px 8px',textAlign:'right',color:'var(--smoke)'}}>{l.min}</td>
+                      <td className="stat-num" style={{padding:'4px 8px',textAlign:'right',color:l.netRtg>0?'var(--trend-up)':'var(--trend-down)'}}>{l.netRtg>0?'+':''}{l.netRtg.toFixed(1)}</td>
+                      <td className="stat-num" style={{padding:'4px 8px',textAlign:'right'}}>{l.offRtg.toFixed(1)}</td>
+                      <td className="stat-num" style={{padding:'4px 8px',textAlign:'right'}}>{l.defRtg.toFixed(1)}</td>
+                      <td className="stat-num" style={{padding:'4px 8px',textAlign:'right'}}>{l.pace.toFixed(1)}</td>
+                      <td className="stat-num" style={{padding:'4px 8px',textAlign:'right'}}>{l.astRatio.toFixed(1)}</td>
+                      <td className="stat-num" style={{padding:'4px 8px',textAlign:'right'}}>{l.eFGPct.toFixed(1)}%</td>
+                      <td className="stat-num" style={{padding:'4px 8px',textAlign:'right'}}>{l.toPct.toFixed(1)}%</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+}
+
+function TeamsView({openDetail}){
+  const[confF,setConfF]=React.useState('ALL');
+  const[divF,setDivF]=React.useState('ALL');
+  const[capF,setCapF]=React.useState('ALL');
+  const[modeF,setModeF]=React.useState('ALL');
+  const[sort,setSort]=React.useState('payroll_desc');
+  const[search,setSearch]=React.useState('');
+  const[expanded,setExpanded]=React.useState(null);
+
+  const filtered=React.useMemo(()=>{
+    let arr=[...NBA_TEAMS];
+    if(search.trim()){
+      const q=search.trim().toLowerCase();
+      arr=arr.filter(t=>(t.full_name||t.name||'').toLowerCase().includes(q)||(t.abbr||'').toLowerCase().includes(q));
+    }
+    if(confF!=='ALL')arr=arr.filter(t=>t.conf===confF);
+    if(divF!=='ALL')arr=arr.filter(t=>t.div===divF);
+    const ext=t=>TEAM_EXT[t.abbr]||{};
+    if(capF!=='ALL')arr=arr.filter(t=>ext(t).apronStatus===capF);
+    if(modeF!=='ALL')arr=arr.filter(t=>ext(t).mode===modeF);
+    arr.sort((a,b)=>{
+      const ea=ext(a),eb=ext(b);
+      switch(sort){
+        case'payroll_desc':return(eb.payroll||0)-(ea.payroll||0);
+        case'cap_space_desc':return(ea.payroll||0)-(eb.payroll||0);
+        case'picks_owned_asc':return(ea.picksOwned||0)-(eb.picksOwned||0);
+        case'expiring_desc':return(eb.expiring||0)-(ea.expiring||0);
+        default:return 0;
+      }
+    });
+    return arr;
+  },[confF,divF,capF,modeF,sort,search]);
+
+  return(
+    <div style={{padding:'0 0 64px'}}>
+      {/* Filter Bar */}
+      <div className="wr-filter" style={{gap:16}}>
+        <input value={search} onChange={e=>setSearch(e.target.value)}
+               placeholder="SEARCH TEAM, GM, HEAD COACH"
+               style={{height:28,width:200,fontSize:11,flexShrink:0}}/>
+        <div style={{display:'flex',gap:3}}>
+          {['ALL','East','West'].map(c=><button key={c} className={`wr-chip${confF===c?' active':''}`} onClick={()=>setConfF(c)}>{c}</button>)}
+        </div>
+        <div style={{width:1,height:20,background:'var(--divider)',flexShrink:0}}/>
+        <div style={{display:'flex',gap:3}}>
+          {['ALL','Atlantic','Central','Southeast','Northwest','Pacific','Southwest'].map(d=><button key={d} className={`wr-chip${divF===d?' active':''}`} onClick={()=>setDivF(d)}>{d==='ALL'?d:d.substring(0,3).toUpperCase()}</button>)}
+        </div>
+        <div style={{width:1,height:20,background:'var(--divider)',flexShrink:0}}/>
+        <div style={{display:'flex',gap:3}}>
+          {['ALL','UNDER CAP','OVER CAP','OVER TAX','OVER 1ST APRON','OVER 2ND APRON'].map(s=><button key={s} className={`wr-chip${capF===s?' active':''}`} onClick={()=>setCapF(s)}>{s}</button>)}
+        </div>
+        <div style={{width:1,height:20,background:'var(--divider)',flexShrink:0}}/>
+        <div style={{display:'flex',gap:3}}>
+          {['ALL','CONTENDER','RELOAD','REBUILD'].map(m=><button key={m} className={`wr-chip${modeF===m?' active':''}`} onClick={()=>setModeF(m)}>{m}</button>)}
+        </div>
+        <select value={sort} onChange={e=>setSort(e.target.value)}
+                style={{height:28,fontSize:10,background:'var(--carbon)',border:'1px solid var(--wire)',color:'var(--bone)',marginLeft:'auto',flexShrink:0}}>
+          <option value="payroll_desc">PAYROLL DESC</option>
+          <option value="cap_space_desc">CAP SPACE DESC</option>
+          <option value="picks_owned_asc">PICKS OWNED ASC</option>
+          <option value="expiring_desc">EXPIRING DESC</option>
+        </select>
+      </div>
+
+      {/* Column Headers */}
+      <div style={{display:'flex',alignItems:'center',height:32,padding:'0 40px',borderBottom:'1px solid var(--divider)',background:'var(--void)'}}>
+        <div style={{flex:'0 0 180px',fontSize:9,fontWeight:700,letterSpacing:'.08em',color:'var(--smoke)'}}>TEAM</div>
+        <div style={{flex:'0 0 80px',textAlign:'right',fontSize:9,fontWeight:700,letterSpacing:'.08em',color:'var(--smoke)'}}>RECORD</div>
+        <div style={{flex:'0 0 88px',textAlign:'right',fontSize:9,fontWeight:700,letterSpacing:'.08em',color:'var(--smoke)'}}>PAYROLL</div>
+        <div style={{flex:'0 0 120px',textAlign:'center',fontSize:9,fontWeight:700,letterSpacing:'.08em',color:'var(--smoke)'}}>APRON STATUS</div>
+        <div style={{flex:'0 0 56px',textAlign:'right',fontSize:9,fontWeight:700,letterSpacing:'.08em',color:'var(--smoke)'}}>OWN 7Y</div>
+        <div style={{flex:'0 0 52px',textAlign:'right',fontSize:9,fontWeight:700,letterSpacing:'.08em',color:'var(--smoke)'}}>OWED</div>
+        <div style={{flex:'0 0 60px',textAlign:'right',fontSize:9,fontWeight:700,letterSpacing:'.08em',color:'var(--smoke)'}}>TRD CNTR</div>
+        <div style={{flex:'0 0 88px',textAlign:'right',fontSize:9,fontWeight:700,letterSpacing:'.08em',color:'var(--smoke)'}}>EXP SUMMER</div>
+        <div style={{flex:1,textAlign:'right',fontSize:9,fontWeight:700,letterSpacing:'.08em',color:'var(--smoke)'}}>TOP UFA</div>
+        <div style={{flex:'0 0 24px'}}/>
+      </div>
+
+      {/* Team Rows */}
+      {filtered.map(team=>{
+        const ext=TEAM_EXT[team.abbr]||{};
+        const isExp=expanded===team.abbr;
+        return(
+          <React.Fragment key={team.abbr}>
+            <div className={`wr-team-row${isExp?' expanded':''}`}
+                 style={{padding:'0 40px',display:'flex',alignItems:'center'}}
+                 onClick={()=>setExpanded(isExp?null:team.abbr)}>
+              <div style={{flex:'0 0 180px',display:'flex',gap:10,alignItems:'center'}}>
+                <TeamLogo abbr={team.abbr} size={22}/>
+                <div>
+                  <div style={{fontSize:12,fontWeight:900,letterSpacing:'-.01em',lineHeight:1.1}}>{team.name}</div>
+                  <div style={{fontSize:9,color:'var(--smoke)',letterSpacing:'.06em'}}>{team.div}</div>
+                </div>
+              </div>
+              <div className="stat-num" style={{flex:'0 0 80px',textAlign:'right',fontSize:12}}>
+                {ext.record||'--'}{ext.seed&&<span style={{fontSize:9,color:'var(--smoke)',marginLeft:4}}>#{ext.seed} {ext.conf==='East'?'E':'W'}</span>}
+              </div>
+              <div style={{flex:'0 0 88px',textAlign:'right'}}>
+                <div className="stat-num" style={{fontSize:12,fontWeight:900}}>${ext.payroll||'--'}M</div>
+                <div style={{fontSize:9,color:(ext.payroll||0)>CBA.luxuryTax?'var(--cap-apron2)':'var(--smoke)'}}>
+                  vs tax: {ext.payroll?fmtM((ext.payroll||0)-CBA.luxuryTax):'--'}
+                </div>
+              </div>
+              <div style={{flex:'0 0 120px',textAlign:'center'}}>
+                <ApronPill status={ext.apronStatus||'UNDER CAP'}/>
+              </div>
+              <div className="stat-num" style={{flex:'0 0 56px',textAlign:'right',fontSize:12}}>{ext.picksOwned??'--'}</div>
+              <div className="stat-num" style={{flex:'0 0 52px',textAlign:'right',fontSize:12,color:(ext.picksOwed||0)>=3?'var(--cap-apron1)':'var(--bone)'}}>{ext.picksOwed??'--'}</div>
+              <div className="stat-num" style={{flex:'0 0 60px',textAlign:'right',fontSize:12}}>{ext.tradeable??'--'}</div>
+              <div style={{flex:'0 0 88px',textAlign:'right'}}>
+                <div className="stat-num" style={{fontSize:12}}>${ext.expiring||'--'}M</div>
+                <div style={{fontSize:9,color:'var(--smoke)'}}>{ext.expPlayers||'--'}P</div>
+              </div>
+              <div style={{flex:1,textAlign:'right',fontSize:11,color:'var(--smoke)'}}>{ext.topFA||'--'}</div>
+              <div style={{flex:'0 0 24px',textAlign:'right',fontSize:10,color:'var(--smoke)',transform:isExp?'rotate(90deg)':'none',transition:'transform 160ms'}}>{'>'}</div>
+            </div>
+            {isExp&&<TeamDrill team={team} ext={ext}/>}
+          </React.Fragment>
+        );
+      })}
+    </div>
+  );
+}
+
+function TradeMachine(){
+  const[teams,setTeams]=React.useState([{abbr:'',outgoing:[]},{abbr:'',outgoing:[]}]);
+  const[result,setResult]=React.useState(null);
+
+  function addTeam(){if(teams.length<4)setTeams(t=>[...t,{abbr:'',outgoing:[]}]);}
+  function removeTeam(i){setTeams(t=>t.filter((_,j)=>j!==i));}
+  function setTeamAbbr(i,abbr){setTeams(t=>t.map((x,j)=>j===i?{...x,abbr,outgoing:[]}:x));}
+  function addContract(teamIdx,c){setTeams(t=>t.map((x,j)=>j===teamIdx?{...x,outgoing:[...x.outgoing,c]}:x));}
+  function removeContract(teamIdx,ci){setTeams(t=>t.map((x,j)=>j===teamIdx?{...x,outgoing:x.outgoing.filter((_,k)=>k!==ci)}:x));}
+
+  function validate(){
+    const checks=[];
+    const filledTeams=teams.filter(t=>t.abbr);
+    if(filledTeams.length<2){checks.push({ok:false,msg:'Need at least 2 teams.'});setResult({valid:false,checks});return;}
+    let allValid=true;
+    // Salary match check (simplified BYC)
+    const totals=filledTeams.map(t=>({abbr:t.abbr,out:t.outgoing.reduce((s,c)=>s+c.sal,0),in:0}));
+    totals.forEach((t,i)=>{
+      filledTeams.forEach((ot,j)=>{if(j!==i)t.in+=totals[j].out;});
+    });
+    totals.forEach(t=>{
+      const ext=TEAM_EXT[t.abbr]||{};
+      const payroll=ext.payroll||140;
+      const overTax=payroll>CBA.luxuryTax;
+      const over2nd=payroll>CBA.apron2;
+      const matchOk=over2nd?t.in>=t.out:t.in>=t.out*0.85;
+      if(!matchOk){
+        checks.push({ok:false,msg:`${t.abbr}: SALARY MATCH FAIL. OUT $${t.out.toFixed(1)}M, IN $${t.in.toFixed(1)}M${over2nd?' (2ND APRON: NO AGGREGATION)':''}.`});
+        allValid=false;
+      } else {
+        checks.push({ok:true,msg:`${t.abbr}: SALARY MATCH OK ($${t.out.toFixed(1)}M out, $${t.in.toFixed(1)}M in).`});
+      }
+      // 2nd apron restrictions
+      if(over2nd){
+        t.outgoing?.forEach(c=>{
+          if(c.noTrade)checks.push({ok:false,msg:`${t.abbr}: ${c.player} HAS NO-TRADE CLAUSE.`});
+        });
+        checks.push({ok:true,msg:`${t.abbr}: 2ND APRON TEAM. MLE limited to minimum. No TPE use.`});
+      }
+    });
+    // Stepien check
+    filledTeams.forEach(t=>{
+      const dc=DRAFT_CAP[t.abbr];
+      if(dc?.stepien)checks.push({ok:false,msg:`${t.abbr}: STEPIEN RISK on outgoing picks.`});
+    });
+    setResult({valid:allValid,checks});
+  }
+
+  return(
+    <div style={{padding:'16px 40px 64px'}}>
+      <div style={{display:'flex',gap:12,marginBottom:16}}>
+        {teams.map((t,i)=>(
+          <div key={i} className="tm-team-col" style={{flex:1,minWidth:200}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+              <select value={t.abbr} onChange={e=>setTeamAbbr(i,e.target.value)}
+                      style={{flex:1,height:32,fontSize:11,background:'var(--void)',border:'1px solid var(--wire)',color:'var(--bone)'}}>
+                <option value="">SELECT TEAM</option>
+                {NBA_TEAMS.map(nt=><option key={nt.abbr} value={nt.abbr}>{nt.abbr} - {nt.name}</option>)}
+              </select>
+              {teams.length>2&&<button onClick={()=>removeTeam(i)} style={{marginLeft:8,background:'none',border:'none',color:'var(--smoke)',cursor:'pointer',fontSize:16}}>x</button>}
+            </div>
+            <div style={{fontSize:9,color:'var(--smoke)',letterSpacing:'.08em',marginBottom:8}}>OUTGOING</div>
+            {t.abbr&&CONTRACTS.filter(c=>c.team===t.abbr).map((c,ci)=>{
+              const selected=t.outgoing.find(x=>x.player===c.player);
+              return(
+              <div key={ci}
+                   onClick={()=>selected?removeContract(i,t.outgoing.findIndex(x=>x.player===c.player)):addContract(i,c)}
+                   style={{padding:'5px 8px',background:selected?'rgba(0,255,102,.08)':'var(--void)',border:`1px solid ${selected?'rgba(0,255,102,.3)':'var(--divider)'}`,marginBottom:4,cursor:'pointer',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                <span style={{fontSize:11,fontWeight:700}}>{c.player}</span>
+                <span className="stat-num" style={{fontSize:11,color:'var(--smoke)'}}>{fmtMRaw(c.sal)}</span>
+              </div>
+            );})}
+            {t.abbr&&(
+              <div style={{marginTop:8,padding:'6px 8px',background:'var(--void)',border:'1px solid var(--divider)'}}>
+                <div style={{fontSize:9,color:'var(--smoke)',letterSpacing:'.06em'}}>NEW PAYROLL</div>
+                <div className="stat-num" style={{fontSize:13,fontWeight:900}}>
+                  {fmtMRaw((TEAM_EXT[t.abbr]?.payroll||0)-t.outgoing.reduce((s,c)=>s+c.sal,0))}
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+        {teams.length<4&&(
+          <button onClick={addTeam} style={{width:48,background:'var(--void)',border:'1px solid var(--wire)',color:'var(--smoke)',cursor:'pointer',fontSize:20,display:'flex',alignItems:'center',justifyContent:'center'}}>+</button>
+        )}
+      </div>
+      <div className="tm-center">
+        <div style={{display:'flex',gap:12,marginBottom:16}}>
+          <button className="btn btn-neon btn-sm" onClick={validate}>VALIDATE TRADE</button>
+          <button className="btn btn-secondary btn-sm" onClick={()=>{setTeams([{abbr:'',outgoing:[]},{abbr:'',outgoing:[]}]);setResult(null);}}>RESET</button>
+        </div>
+        {result&&(
+          <>
+            <div className={`tm-valid ${result.valid?'ok':'fail'}`}>{result.valid?'VALID':'INVALID'}</div>
+            {result.checks.map((c,i)=>(
+              <div key={i} style={{fontSize:11,color:c.ok?'var(--smoke)':'var(--cap-apron1)',marginBottom:4,letterSpacing:'.04em'}}>
+                {c.ok?'OK':'FAIL'}: {c.msg}
+              </div>
+            ))}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function DraftBoard(){
+  const BIG_BOARD=[
+    {rank:1,name:'Cooper Flagg',pos:'SF',age:18,school:'Duke',height:"6'9",proj:'LOTTERY',nbaComp:'Paul George'},
+    {rank:2,name:'Dylan Harper',pos:'PG',age:19,school:'Rutgers',height:"6'5",proj:'LOTTERY',nbaComp:'Donovan Mitchell'},
+    {rank:3,name:'Ace Bailey',pos:'SF',age:18,school:'Rutgers',height:"6'10",proj:'LOTTERY',nbaComp:'Kevin Durant'},
+    {rank:4,name:'VJ Edgecombe',pos:'SG',age:19,school:'Baylor',height:"6'5",proj:'LOTTERY',nbaComp:'Shai G-A'},
+    {rank:5,name:'Tre Johnson',pos:'SG',age:19,school:'Texas',height:"6'5",proj:'LOTTERY',nbaComp:'Bradley Beal'},
+    {rank:6,name:'Noa Essengue',pos:'PF',age:18,school:'Ratiopharm Ulm',height:"6'9",proj:'LOTTERY',nbaComp:'OG Anunoby'},
+    {rank:7,name:'Khaman Maluach',pos:'C',age:18,school:'Duke',height:"7'2",proj:'LOTTERY',nbaComp:'Rudy Gobert'},
+    {rank:8,name:'Kasparas Jakucionis',pos:'PG',age:19,school:'Illinois',height:"6'5",proj:'LOTTERY',nbaComp:'De Aaron Fox'},
+    {rank:9,name:'Egor Demin',pos:'PG',age:18,school:'BYU',height:"6'9",proj:'LOTTERY',nbaComp:'Ben Simmons'},
+    {rank:10,name:'Carter Bryant',pos:'SF',age:18,school:'Arizona',height:"6'7",proj:'MID 1',nbaComp:'Michael Porter Jr.'},
+    {rank:11,name:'Thomas Sorber',pos:'C',age:19,school:'Georgetown',height:"7'0",proj:'MID 1',nbaComp:'Bam Adebayo'},
+    {rank:12,name:'Liam McNeeley',pos:'SF',age:19,school:'UConn',height:"6'7",proj:'MID 1',nbaComp:'Harrison Barnes'},
+    {rank:13,name:'Derik Queen',pos:'C',age:19,school:'Maryland',height:"6'10",proj:'MID 1',nbaComp:'Draymond Green'},
+    {rank:14,name:'Jalil Bethea',pos:'PG',age:18,school:'Indiana',height:"6'4",proj:'MID 1',nbaComp:'Immanuel Quickley'},
+    {rank:15,name:'Labaron Philon',pos:'PG',age:19,school:'Alabama',height:"6'2",proj:'MID 1',nbaComp:'Jordan Poole'},
+  ];
+  return(
+    <div style={{padding:'16px 40px 64px'}}>
+      <div style={{fontSize:9,color:'var(--smoke)',letterSpacing:'.1em',marginBottom:16}}>2025 NBA DRAFT BIG BOARD</div>
+      <div style={{overflowX:'auto'}}>
+        <table style={{width:'100%',borderCollapse:'collapse'}}>
+          <thead>
+            <tr style={{borderBottom:'1px solid var(--divider)'}}>
+              {['RK','PLAYER','POS','AGE','SCHOOL','HT','PROJ','NBA COMP'].map(c=>(
+                <th key={c} style={{padding:'8px 10px',textAlign:c==='PLAYER'||c==='SCHOOL'||c==='NBA COMP'?'left':'right',fontSize:9,fontWeight:700,letterSpacing:'.08em',color:'var(--smoke)',background:'var(--void)',position:'sticky',top:0,whiteSpace:'nowrap'}}>{c}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {BIG_BOARD.map((p,i)=>(
+              <tr key={i} style={{height:36,borderBottom:'1px solid rgba(255,255,255,.04)',background:i%2?'rgba(255,255,255,.01)':'transparent',cursor:'default'}}>
+                <td className="stat-num" style={{padding:'6px 10px',textAlign:'right',color:'var(--smoke)',fontSize:12}}>{p.rank}</td>
+                <td style={{padding:'6px 10px',textAlign:'left',fontWeight:900,fontSize:13}}>{p.name}</td>
+                <td style={{padding:'6px 10px',textAlign:'right',fontSize:11,color:'var(--smoke)'}}>{p.pos}</td>
+                <td className="stat-num" style={{padding:'6px 10px',textAlign:'right',fontSize:11,color:'var(--smoke)'}}>{p.age}</td>
+                <td style={{padding:'6px 10px',textAlign:'left',fontSize:11,color:'var(--smoke)'}}>{p.school}</td>
+                <td className="stat-num" style={{padding:'6px 10px',textAlign:'right',fontSize:11,color:'var(--smoke)'}}>{p.height}</td>
+                <td style={{padding:'6px 10px',textAlign:'right'}}>
+                  <span style={{fontSize:9,fontWeight:700,letterSpacing:'.08em',padding:'2px 7px',
+                    background:p.proj==='LOTTERY'?'rgba(0,255,102,.1)':'rgba(255,255,255,.06)',
+                    color:p.proj==='LOTTERY'?'var(--neon)':'var(--smoke)'}}>{p.proj}</span>
+                </td>
+                <td style={{padding:'6px 10px',textAlign:'left',fontSize:11,color:'var(--smoke)'}}>{p.nbaComp}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function FreeAgentBoard(){
+  const TIERS=['MAX','NEAR MAX','MID TIER','MLE RANGE','MIN'];
+  const POSITIONS=['PG','SG','SF','PF','C'];
+  const FA_DATA={
+    PG:{MAX:[{name:'Shai G-A',age:27,last:'OKC',bird:'FULL BIRD',aav:44,type:'RFA'}],NEAR_MAX:[{name:'Damian Lillard',age:35,last:'MIL',bird:'FULL BIRD',aav:46,type:'UFA'},{name:'De Aaron Fox',age:27,last:'SAC',bird:'FULL BIRD',aav:33,type:'UFA'}],MID_TIER:[{name:'Tyus Jones',age:30,last:'PHO',bird:'EARLY BIRD',aav:18,type:'UFA'}],MLE_RANGE:[{name:'Immanuel Quickley',age:26,last:'TOR',bird:'EARLY BIRD',aav:12,type:'RFA'}],MIN:[{name:'Spencer Dinwiddie',age:32,last:'BKN',bird:'NON BIRD',aav:3,type:'UFA'}]},
+    SG:{MAX:[{name:'Devin Booker',age:28,last:'PHX',bird:'FULL BIRD',aav:36,type:'UFA'}],NEAR_MAX:[{name:'Donovan Mitchell',age:28,last:'CLE',bird:'FULL BIRD',aav:35,type:'UFA'}],MID_TIER:[{name:'Bogdan Bogdanovic',age:32,last:'ATL',bird:'EARLY BIRD',aav:16,type:'UFA'}],MLE_RANGE:[{name:'Lonnie Walker IV',age:26,last:'BKN',bird:'EARLY BIRD',aav:12,type:'UFA'}],MIN:[{name:'Gary Payton II',age:32,last:'POR',bird:'NON BIRD',aav:3,type:'UFA'}]},
+    SF:{MAX:[{name:'Jimmy Butler',age:35,last:'MIA',bird:'FULL BIRD',aav:49,type:'PO'}],NEAR_MAX:[{name:'Andrew Wiggins',age:30,last:'GSW',bird:'FULL BIRD',aav:24,type:'UFA'},{name:'OG Anunoby',age:27,last:'NYK',bird:'FULL BIRD',aav:37,type:'UFA'}],MID_TIER:[{name:'Khris Middleton',age:34,last:'MIL',bird:'EARLY BIRD',aav:21,type:'UFA'}],MLE_RANGE:[{name:'Caleb Martin',age:29,last:'PHI',bird:'EARLY BIRD',aav:11,type:'UFA'}],MIN:[{name:'Eric Gordon',age:36,last:'PHX',bird:'NON BIRD',aav:3,type:'UFA'}]},
+    PF:{MAX:[{name:'Giannis Antetokounmpo',age:30,last:'MIL',bird:'FULL BIRD',aav:49,type:'UFA'}],NEAR_MAX:[{name:'Zion Williamson',age:25,last:'NOP',bird:'FULL BIRD',aav:35,type:'UFA'}],MID_TIER:[{name:'Julius Randle',age:30,last:'MIN',bird:'FULL BIRD',aav:28,type:'UFA'}],MLE_RANGE:[{name:'Thaddeus Young',age:36,last:'TOR',bird:'EARLY BIRD',aav:8,type:'UFA'}],MIN:[{name:'Bismack Biyombo',age:33,last:'PHX',bird:'NON BIRD',aav:3,type:'UFA'}]},
+    C:{MAX:[{name:'Joel Embiid',age:31,last:'PHI',bird:'FULL BIRD',aav:51,type:'UFA'}],NEAR_MAX:[{name:'Nikola Vucevic',age:34,last:'CHI',bird:'FULL BIRD',aav:22,type:'UFA'}],MID_TIER:[{name:'Brook Lopez',age:37,last:'MIL',bird:'FULL BIRD',aav:15,type:'UFA'}],MLE_RANGE:[{name:'Naz Reid',age:26,last:'MIN',bird:'EARLY BIRD',aav:13,type:'RFA'}],MIN:[{name:'Damian Jones',age:30,last:'LAL',bird:'NON BIRD',aav:3,type:'UFA'}]},
+  };
+  const tierKey=t=>t.replace(' ','_');
+  return(
+    <div style={{padding:'0 40px 64px'}}>
+      <div style={{fontSize:9,color:'var(--smoke)',letterSpacing:'.1em',margin:'16px 0'}}>2025 FREE AGENT BOARD</div>
+      <div className="fa-grid">
+        {POSITIONS.map(pos=>(
+          <div key={pos} className="fa-col">
+            <div className="fa-col-hd">{pos}</div>
+            {TIERS.map(tier=>{
+              const data=(FA_DATA[pos]||{})[tierKey(tier)]||[];
+              return(
+                <div key={tier}>
+                  <div style={{padding:'4px 12px',fontSize:8,fontWeight:700,letterSpacing:'.1em',color:'var(--smoke)',background:'rgba(255,255,255,.02)',borderBottom:'1px solid var(--divider)'}}>{tier}</div>
+                  {data.map((p,i)=>(
+                    <div key={i} className="fa-card">
+                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:4}}>
+                        <div style={{fontSize:11,fontWeight:900}}>{p.name}</div>
+                        <FAPill status={p.type}/>
+                      </div>
+                      <div style={{fontSize:9,color:'var(--smoke)',marginBottom:2}}>{p.last} / AGE {p.age}</div>
+                      <div style={{fontSize:9,color:'var(--smoke)',marginBottom:4}}>{p.bird}</div>
+                      <div className="stat-num" style={{fontSize:12,fontWeight:900,color:'var(--bone)'}}>{fmtMRaw(p.aav)}/YR</div>
+                    </div>
+                  ))}
+                  {data.length===0&&<div style={{padding:'8px 12px',fontSize:9,color:'rgba(255,255,255,.15)'}}> </div>}
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ScoutList(){
+  const[lists,setLists]=React.useState({
+    TARGETS:[
+      {player:'Victor Wembanyama',team:'SAS',role:'FRANCHISE C',age:21,contract:'$10M / 3Y',fit:9,conviction:5,lastNote:'2026-04-10'},
+      {player:'Shai Gilgeous-Alexander',team:'OKC',role:'STAR PG',age:27,contract:'$33M / 4Y',fit:8,conviction:4,lastNote:'2026-04-08'},
+      {player:'Paolo Banchero',team:'ORL',role:'STAR PF',age:22,contract:'$14M / RFA',fit:7,conviction:4,lastNote:'2026-04-05'},
+    ],
+    WATCH:[
+      {player:'Zion Williamson',team:'NOP',role:'PF',age:25,contract:'$35M / 3Y',fit:6,conviction:3,lastNote:'2026-04-01'},
+      {player:'Brandon Ingram',team:'NOP',role:'SF',age:27,contract:'$36M / 1Y',fit:7,conviction:3,lastNote:'2026-03-28'},
+    ],
+    RED_FLAGS:[
+      {player:'Ben Simmons',team:'BKN',role:'PG/PF',age:27,contract:'$37M / 1Y',fit:2,conviction:1,lastNote:'2026-03-15',reason:'SHOOTING, DURABILITY'},
+    ],
+  });
+  const cols=['PLAYER','TEAM','ROLE','AGE','CONTRACT','FIT','CONVICTION','LAST NOTE'];
+  return(
+    <div style={{padding:'16px 40px 64px'}}>
+      <div className="scout-cols">
+        {[['TARGETS','var(--cap-under)'],['WATCH','var(--cap-tax)'],['RED FLAGS','var(--cap-apron2)']].map(([listKey,color])=>(
+          <div key={listKey} className="scout-col">
+            <div className="scout-col-hd" style={{color}}>{listKey}</div>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(8,1fr)',borderBottom:'1px solid var(--divider)'}}>
+              {cols.map(c=><div key={c} style={{padding:'4px 8px',fontSize:8,fontWeight:700,letterSpacing:'.08em',color:'var(--smoke)',textAlign:['FIT','CONVICTION'].includes(c)?'right':'left'}}>{c}</div>)}
+            </div>
+            {(lists[listKey.replace(' ','_')]||[]).map((r,i)=>(
+              <div key={i} className="scout-row" style={{display:'grid',gridTemplateColumns:'repeat(8,1fr)'}}>
+                <div style={{fontSize:11,fontWeight:900}}>{r.player}</div>
+                <div style={{fontSize:11,color:'var(--smoke)'}}>{r.team}</div>
+                <div style={{fontSize:10,color:'var(--smoke)'}}>{r.role}</div>
+                <div className="stat-num" style={{fontSize:11}}>{r.age}</div>
+                <div style={{fontSize:10,color:'var(--smoke)'}}>{r.contract}</div>
+                <div className="stat-num" style={{fontSize:11,color:r.fit>=7?'var(--cap-under)':r.fit>=4?'var(--cap-tax)':'var(--cap-apron2)',textAlign:'right'}}>{r.fit}</div>
+                <div className="stat-num" style={{fontSize:11,textAlign:'right'}}>{'*'.repeat(r.conviction)}</div>
+                <div style={{fontSize:9,color:'var(--smoke)'}}>{r.lastNote}</div>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function FrontOfficeView(){
+  const[foModule,setFoModule]=React.useState('trade');
+  return(
+    <div>
+      <div className="fo-pill-row">
+        {[{id:'trade',l:'TRADE MACHINE'},{id:'draft',l:'DRAFT BOARD'},{id:'fa',l:'FREE AGENT BOARD'},{id:'scout',l:'SCOUT LIST'}].map(m=>(
+          <button key={m.id} className={`fo-pill-btn${foModule===m.id?' active':''}`} onClick={()=>setFoModule(m.id)}>{m.l}</button>
+        ))}
+      </div>
+      {foModule==='trade'&&<TradeMachine/>}
+      {foModule==='draft'&&<DraftBoard/>}
+      {foModule==='fa'&&<FreeAgentBoard/>}
+      {foModule==='scout'&&<ScoutList/>}
+    </div>
+  );
+}
+
+function CapTableView(){
+  const[teamFilter,setTeamFilter]=React.useState('ALL');
+  const[yearFilter,setYearFilter]=React.useState('THIS YEAR');
+  const[typeF,setTypeF]=React.useState('ALL');
+  const[statusF,setStatusF]=React.useState('ALL');
+  const[sort,setSort]=React.useState({key:'sal',dir:'desc'});
+  const[shift,setShift]=React.useState(null);
+
+  function toggleSort(key,e){
+    if(e.shiftKey&&sort.key!==key){setShift({key,dir:'desc'});}
+    else{setSort(p=>({key,dir:p.key===key&&p.dir==='desc'?'asc':'desc'}));setShift(null);}
+  }
+
+  const yearOffset={'THIS YEAR':0,'Y+1':1,'Y+2':2,'Y+3':3}[yearFilter]||0;
+
+  const data=React.useMemo(()=>{
+    let arr=[...CONTRACTS];
+    if(teamFilter!=='ALL')arr=arr.filter(c=>c.team===teamFilter);
+    if(typeF!=='ALL'){
+      const typeMap={VETERAN:null,MAX:c=>c.tier===1,MIN:c=>c.sal<=CBA.minVet*1.1,MLE:c=>Math.abs(c.sal-CBA.ntMLE)<3,BAE:c=>Math.abs(c.sal-CBA.bae)<2};
+      if(typeMap[typeF])arr=arr.filter(typeMap[typeF]);
+    }
+    if(statusF!=='ALL'){
+      if(statusF==='GUARANTEED')arr=arr.filter(c=>c.nonGuar===0);
+      if(statusF==='TEAM OPTION')arr=arr.filter(c=>c.option==='TO');
+      if(statusF==='PLAYER OPTION')arr=arr.filter(c=>c.option==='PO');
+      if(statusF==='ETO')arr=arr.filter(c=>c.option==='ETO');
+    }
+    arr.sort((a,b)=>{
+      const v=c=>{const adj=c.sal*(1-yearOffset*0.05);return{sal:adj,age:c.age,yrs:c.yrsLeft,guar:c.guar}[sort.key]||0;};
+      const diff=sort.dir==='desc'?v(b)-v(a):v(a)-v(b);
+      if(diff!==0)return diff;
+      if(shift){const sv=c=>({sal:c.sal,age:c.age,yrs:c.yrsLeft,guar:c.guar}[shift.key]||0);return shift.dir==='desc'?sv(b)-sv(a):sv(a)-sv(b);}
+      return 0;
+    });
+    return arr;
+  },[teamFilter,typeF,statusF,sort,shift,yearOffset]);
+
+  const filtered=teamFilter!=='ALL'?data:data;
+  const totalPay=filtered.reduce((s,c)=>s+c.sal*(1-yearOffset*0.05),0);
+  const totalGuar=filtered.reduce((s,c)=>s+c.guar,0);
+  const capSpace=CBA.salaryCap-totalPay;
+  const taxDist=totalPay-CBA.luxuryTax;
+  const ap1Dist=totalPay-CBA.apron1;
+  const ap2Dist=totalPay-CBA.apron2;
+
+  const COLS=[
+    {key:'player',l:'PLAYER',align:'left',sort:false,w:'auto'},
+    {key:'pos',l:'POS',align:'center',sort:false,w:44},
+    {key:'age',l:'AGE',align:'right',sort:true,w:44},
+    {key:'team',l:'TEAM',align:'center',sort:false,w:52},
+    {key:'sal',l:'SALARY',align:'right',sort:true,w:80},
+    {key:'guar',l:'GUAR',align:'right',sort:true,w:72},
+    {key:'nonGuar',l:'NON GUAR',align:'right',sort:false,w:72},
+    {key:'yrs',l:'YRS',align:'right',sort:true,w:44},
+    {key:'option',l:'OPTION',align:'center',sort:false,w:60},
+    {key:'noTrade',l:'NTC',align:'center',sort:false,w:40},
+    {key:'kicker',l:'KICKER',align:'center',sort:false,w:56},
+    {key:'bird',l:'BIRD',align:'right',sort:false,w:96},
+    {key:'capHold',l:'CAP HOLD',align:'right',sort:false,w:72},
+  ];
+
+  return(
+    <div style={{padding:'0 0 120px'}}>
+      {/* Filters */}
+      <div className="wr-filter" style={{top:'auto',position:'sticky',top:163}}>
+        <select value={teamFilter} onChange={e=>setTeamFilter(e.target.value)}
+                style={{height:28,fontSize:11,background:'var(--carbon)',border:'1px solid var(--wire)',color:'var(--bone)'}}>
+          <option value="ALL">ALL TEAMS</option>
+          {NBA_TEAMS.map(t=><option key={t.abbr} value={t.abbr}>{t.abbr}</option>)}
+        </select>
+        <select value={yearFilter} onChange={e=>setYearFilter(e.target.value)}
+                style={{height:28,fontSize:11,background:'var(--carbon)',border:'1px solid var(--wire)',color:'var(--bone)'}}>
+          {['THIS YEAR','Y+1','Y+2','Y+3'].map(y=><option key={y} value={y}>{y}</option>)}
+        </select>
+        <div style={{display:'flex',gap:3}}>
+          {['ALL','MAX','MLE','MIN','BAE'].map(t=><button key={t} className={`wr-chip${typeF===t?' active':''}`} onClick={()=>setTypeF(t)}>{t}</button>)}
+        </div>
+        <div style={{display:'flex',gap:3}}>
+          {['ALL','GUARANTEED','TEAM OPTION','PLAYER OPTION','ETO'].map(s=><button key={s} className={`wr-chip${statusF===s?' active':''}`} onClick={()=>setStatusF(s)}>{s}</button>)}
+        </div>
+      </div>
+
+      <div style={{overflowX:'auto',padding:'0 40px'}}>
+        <table style={{width:'100%',borderCollapse:'collapse',minWidth:800}}>
+          <thead style={{position:'sticky',top:203,background:'var(--void)',zIndex:5}}>
+            <tr style={{borderBottom:'1px solid var(--wire)'}}>
+              {COLS.map(col=>(
+                <th key={col.key} onClick={e=>col.sort&&toggleSort(col.key,e)}
+                    className={`cap-th${sort.key===col.key?' sorted':''}${col.sort?' sortable':''}`}
+                    style={{textAlign:col.align,width:col.w,cursor:col.sort?'pointer':'default'}}>
+                  {col.l}
+                  {col.sort&&sort.key===col.key&&<span style={{marginLeft:3,fontSize:8}}>{sort.dir==='desc'?'v':'^'}</span>}
+                  {col.sort&&shift?.key===col.key&&<span style={{marginLeft:3,fontSize:7,color:'var(--neon)'}}>2</span>}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {data.map((c,i)=>{
+              const adjSal=c.sal*(1-yearOffset*0.05);
+              return(
+                <tr key={i} className="cap-row" style={{background:i%2?'rgba(255,255,255,.01)':'transparent'}}>
+                  <td className="cap-td" style={{textAlign:'left',fontWeight:900,fontSize:13,paddingLeft:0}}>{c.player}</td>
+                  <td className="cap-td" style={{textAlign:'center',fontSize:10,color:'var(--smoke)'}}>{c.pos}</td>
+                  <td className="cap-td" style={{fontSize:12}}>{c.age}</td>
+                  <td className="cap-td" style={{textAlign:'center',fontSize:10,color:'var(--smoke)'}}>{c.team}</td>
+                  <td className="cap-td" style={{color:'var(--bone)',fontWeight:900}}>{fmtMRaw(adjSal)}</td>
+                  <td className="cap-td" style={{color:c.nonGuar>0?'var(--cap-apron1)':'var(--bone)'}}>{fmtMRaw(c.guar)}</td>
+                  <td className="cap-td" style={{color:c.nonGuar>0?'var(--cap-apron1)':'var(--smoke)'}}>{c.nonGuar>0?fmtMRaw(c.nonGuar):'--'}</td>
+                  <td className="cap-td">{c.yrsLeft}</td>
+                  <td className="cap-td" style={{textAlign:'center',fontSize:10}}>{c.option||'--'}</td>
+                  <td className="cap-td" style={{textAlign:'center',fontSize:10,color:c.noTrade?'var(--cap-apron1)':'var(--smoke)'}}>{c.noTrade?'NTC':'--'}</td>
+                  <td className="cap-td" style={{textAlign:'center',fontSize:10}}>{c.kicker||'--'}</td>
+                  <td className="cap-td" style={{fontSize:10,color:'var(--smoke)',textAlign:'right'}}>{c.bird||'--'}</td>
+                  <td className="cap-td" style={{color:'var(--smoke)'}}>{c.capHold?fmtMRaw(c.capHold):'--'}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Summary Footer */}
+      <div className="cap-summary">
+        {[
+          {l:'COMMITTED',v:fmtMRaw(totalPay),c:'var(--bone)'},
+          {l:'GUAR TOTAL',v:fmtMRaw(totalGuar),c:'var(--bone)'},
+          {l:'CAP SPACE',v:fmtM(capSpace),c:capSpace>0?'var(--cap-under)':'var(--cap-apron2)'},
+          {l:'vs LUX TAX',v:fmtM(-taxDist),c:taxDist>0?'var(--cap-apron2)':'var(--cap-under)'},
+          {l:'vs 1ST APRON',v:fmtM(-ap1Dist),c:ap1Dist>0?'var(--cap-apron1)':'var(--cap-under)'},
+          {l:'vs 2ND APRON',v:fmtM(-ap2Dist),c:ap2Dist>0?'var(--cap-apron2)':'var(--cap-under)'},
+          {l:'NT MLE',v:totalPay<CBA.luxuryTax?fmtMRaw(CBA.ntMLE):'N/A',c:totalPay<CBA.luxuryTax?'var(--cap-under)':'var(--smoke)'},
+          {l:'T MLE',v:totalPay>=CBA.luxuryTax&&totalPay<CBA.apron1?fmtMRaw(CBA.tMLE):'N/A',c:'var(--smoke)'},
+          {l:'BAE',v:totalPay<CBA.apron2?fmtMRaw(CBA.bae):'N/A',c:totalPay<CBA.apron2?'var(--bone)':'var(--smoke)'},
+        ].map(({l,v,c})=>(
+          <div key={l} className="cap-sum-cell">
+            <div className="cap-sum-label">{l}</div>
+            <div className="cap-sum-val" style={{color:c}}>{v}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── WAR ROOM ─────────────────────────────────────────────────────────────────
 
 function WarRoom() {
   const[view,setView]=React.useState('teams');
-  const[selectedTeam,setSelectedTeam]=React.useState(null);
-  const[teamLoading,setTeamLoading]=React.useState(false);
-  const[teamData,setTeamData]=React.useState(null);
-  const[rosterModal,setRosterModal]=React.useState(false);
-  const[roster,setRoster]=React.useState([]);
-  const[rosterLoading,setRosterLoading]=React.useState(false);
-  const[foPlayer,setFoPlayer]=React.useState(null);
-  const[foCtx,setFoCtx]=React.useState('');
-  const teamAnalysis=useStream();
-  const dna=useStream();
-  const fo=useStream();
-
-  function selectTeam(t){
-    setSelectedTeam(t);setTeamData(null);teamAnalysis.reset();dna.reset();
-    setTeamLoading(true);
-    fetch(`${API}/nba/teams/${t.id}`).then(r=>r.json()).then(d=>{setTeamData(d);setTeamLoading(false);}).catch(()=>setTeamLoading(false));
-  }
-  function loadRoster(t){
-    setRoster([]);setRosterLoading(true);setRosterModal(true);
-    fetch(`${API}/nba/teams/roster?abbr=${t.abbr}`).then(r=>r.json()).then(d=>{setRoster(d.players||d.data||[]);setRosterLoading(false);}).catch(()=>setRosterLoading(false));
-  }
-  const sortedTeams=[...NBA_TEAMS].sort((a,b)=>(a.full_name||a.name).localeCompare(b.full_name||b.name));
-  const taxLine=(NBA_CAP?.luxuryTaxM||170.814)*1e6;
-  const capLine=(NBA_CAP?.salaryCap||140.588)*1e6;
-
-  return (
-    <div className="page page-pad">
-      <div style={{display:'flex',alignItems:'center',paddingTop:24,paddingBottom:24}}>
-        <div className="seg" style={{marginLeft:'auto'}}>
-          {[{id:'teams',l:'TEAMS'},{id:'frontoffice',l:'FRONT OFFICE'},{id:'cap',l:'CAP TABLE'}].map(v=>(
-            <button key={v.id} className={`seg-btn${view===v.id?' active':''}`} onClick={()=>setView(v.id)}>{v.l}</button>
-          ))}
-        </div>
+  return(
+    <div className="page" style={{paddingBottom:56}}>
+      <HeaderRibbon/>
+      <div className="wr-sub">
+        {[{id:'teams',l:'TEAMS'},{id:'frontoffice',l:'FRONT OFFICE'},{id:'cap',l:'CAP TABLE'}].map(v=>(
+          <button key={v.id} className={`wr-sub-btn${view===v.id?' active':''}`} onClick={()=>setView(v.id)}>{v.l}</button>
+        ))}
       </div>
-
-      {view==='teams'&&(
-        <div style={{display:'grid',gridTemplateColumns:selectedTeam?'260px 1fr':'1fr',gap:1}}>
-          <div style={{display:'grid',gap:1}}>
-            {sortedTeams.map(t=>(
-              <div key={t.id} className="card card-lift" onClick={()=>selectTeam(t)}
-                   style={{padding:'12px 16px',display:'flex',alignItems:'center',gap:12,background:selectedTeam?.id===t.id?'rgba(204,255,0,.06)':'var(--graphite)',borderColor:selectedTeam?.id===t.id?'var(--wire)':'rgba(255,255,255,.07)'}}>
-                <TeamLogo abbr={t.abbr} size={26}/>
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontWeight:900,fontSize:13,letterSpacing:'-.01em',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{t.full_name||t.name}</div>
-                  <div style={{fontFamily:'var(--font)',fontSize:9,color:'#fff',letterSpacing:'.08em',marginTop:2}}>{t.conf?.toUpperCase()} / {t.div?.toUpperCase()}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {selectedTeam&&(
-            <div style={{display:'grid',gap:1,alignContent:'start'}}>
-              <div className="card card-signal" style={{padding:'28px',background:'rgba(0,255,102,.05)',borderColor:'rgba(0,255,102,.28)',position:'relative',boxShadow:'0 0 40px rgba(0,255,102,.08)'}}>
-                <ConfTag text={`${Math.round(85+Math.random()*14)}.${Math.floor(Math.random()*9)}% / CONFIDENCE`}/>
-                <div style={{display:'flex',gap:16,alignItems:'center',marginBottom:20}}>
-                  <TeamLogo abbr={selectedTeam.abbr} size={52}/>
-                  <div>
-                    <div style={{fontFamily:'var(--font)',fontSize:9,fontWeight:900,color:'var(--pulse)',letterSpacing:'.14em',marginBottom:6,textTransform:'uppercase'}}>{selectedTeam.conf} / {selectedTeam.div}</div>
-                    <h3 style={{fontWeight:900,fontSize:'clamp(20px,3vw,32px)',letterSpacing:'-.04em',lineHeight:.95}}>{selectedTeam.full_name||selectedTeam.name}</h3>
-                  </div>
-                </div>
-                {teamLoading&&<Loader/>}
-                {teamData&&(
-                  <div style={{display:'flex',gap:20,flexWrap:'wrap',marginBottom:18}}>
-                    {teamData.wins!=null&&<div><div style={{fontFamily:'var(--font)',fontSize:8,color:'#fff',letterSpacing:'.12em',textTransform:'uppercase',marginBottom:3}}>WINS</div><div style={{fontFamily:'var(--font)',fontSize:28,fontWeight:900,color:'var(--pulse)'}}>{teamData.wins}</div></div>}
-                    {teamData.losses!=null&&<div><div style={{fontFamily:'var(--font)',fontSize:8,color:'#fff',letterSpacing:'.12em',textTransform:'uppercase',marginBottom:3}}>LOSSES</div><div style={{fontFamily:'var(--font)',fontSize:28,fontWeight:900}}>{teamData.losses}</div></div>}
-                    {teamData.conference_rank!=null&&<div><div style={{fontFamily:'var(--font)',fontSize:8,color:'#fff',letterSpacing:'.12em',textTransform:'uppercase',marginBottom:3}}>CONF RANK</div><div style={{fontFamily:'var(--font)',fontSize:28,fontWeight:900,color:'var(--signal)'}}>{teamData.conference_rank}</div></div>}
-                  </div>
-                )}
-                <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-                  <button className="btn-ghost" onClick={()=>loadRoster(selectedTeam)} style={{fontFamily:'var(--font)',fontSize:10,letterSpacing:'.1em',border:'1px solid rgba(255,255,255,.1)',padding:'7px 14px'}}>VIEW ROSTER</button>
-                  <button className="btn-ghost" onClick={()=>teamAnalysis.runGet(`${API}/frontoffice/roster/stream?team_name=${encodeURIComponent(selectedTeam.full_name||selectedTeam.name)}`)} disabled={teamAnalysis.loading} style={{fontFamily:'var(--font)',fontSize:10,letterSpacing:'.1em',border:'1px solid rgba(255,255,255,.1)',padding:'7px 14px'}}>{teamAnalysis.loading?'ANALYZING…':'TEAM ANALYSIS'}</button>
-                  <button className="btn-ghost" onClick={()=>dna.runGet(`${API}/analysis/team-dna?team_name=${encodeURIComponent(selectedTeam.full_name||selectedTeam.name)}`)} disabled={dna.loading} style={{fontFamily:'var(--font)',fontSize:10,letterSpacing:'.1em',border:'1px solid rgba(255,255,255,.1)',padding:'7px 14px'}}>{dna.loading?'LOADING…':'TEAM DNA'}</button>
-                </div>
-              </div>
-              {(teamAnalysis.lines.length||teamAnalysis.loading)&&<div className="card" style={{padding:'20px 22px',background:'var(--graphite)'}}><div className="label" style={{marginBottom:12}}>Team Analysis</div><StreamBox lines={teamAnalysis.lines} loading={teamAnalysis.loading}/></div>}
-              {(dna.lines.length||dna.loading)&&<div className="card" style={{padding:'20px 22px',background:'var(--graphite)'}}><div className="label" style={{marginBottom:12}}>Team DNA</div><StreamBox lines={dna.lines} loading={dna.loading}/></div>}
-            </div>
-          )}
-        </div>
-      )}
-
-      {view==='frontoffice'&&(
-        <div className="card" style={{padding:'24px',background:'var(--graphite)',maxWidth:640}}>
-          <div className="label" style={{marginBottom:8}}>Front Office Evaluation</div>
-          <p style={{fontSize:13,color:'#fff',marginBottom:20,lineHeight:1.6,fontWeight:900}}>Search a player for a front-office-lens evaluation: trade value, contract fit, upside, and risk.</p>
-          <div style={{marginBottom:16}}><PlayerSearchBox onSelect={p=>{setFoPlayer(p);fo.reset();}}/></div>
-          {foPlayer&&(
-            <div>
-              <div style={{display:'flex',gap:12,alignItems:'center',padding:'12px 16px',background:'rgba(204,255,0,.04)',border:'1px solid var(--wire)',marginBottom:14}}>
-                <div>
-                  <div style={{fontWeight:900,fontSize:14}}>{foPlayer.first_name} {foPlayer.last_name}</div>
-                  <div style={{fontFamily:'var(--font)',fontSize:9,color:'#fff',letterSpacing:'.08em',marginTop:2}}>{foPlayer.team?.full_name||'FA'}</div>
-                </div>
-              </div>
-              <select style={{width:'100%',marginBottom:14,fontFamily:'var(--font)',fontSize:12}} value={foCtx} onChange={e=>setFoCtx(e.target.value)}>
-                <option value=''>General evaluation</option>
-                <option value='max_extension'>Max contract extension</option>
-                <option value='trade_target'>Trade target evaluation</option>
-                <option value='buyout_candidate'>Buyout / waiver claim</option>
-                <option value='salary_dump'>Salary dump trade</option>
-              </select>
-              <button className="btn btn-signal btn-sm" onClick={()=>fo.run(`${API}/chat/message`,{messages:[{role:'user',content:`Provide a front office evaluation of ${(foPlayer.first_name||'')+' '+(foPlayer.last_name||'')} (${foPlayer.team?.full_name||'FA'}). Context: ${foCtx||'general evaluation'}. Cover trade value, contract fit, upside, risk, and fit on a contender.`}]})} disabled={fo.loading}>{fo.loading?'EVALUATING…':'RUN FO EVAL'}</button>
-              <div style={{marginTop:14}}><StreamBox lines={fo.lines} loading={fo.loading}/></div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {view==='cap'&&(
-        <div style={{overflowX:'auto'}}>
-          <table className="box-table" style={{minWidth:640}}>
-            <thead><tr>
-              {['TEAM','PAYROLL','vs LUX TAX','CAP SPACE','STATUS'].map(c=><th key={c} style={{textAlign:c==='TEAM'?'left':'right'}}>{c}</th>)}
-            </tr></thead>
-            <tbody>
-              {[...CAP_DATA].sort((a,b)=>b.used-a.used).map((t,i)=>{
-                const pay=t.used*1e6;
-                const over=pay>taxLine,near=pay>capLine&&pay<=taxLine;
-                const pct=Math.round(pay/taxLine*100);
-                return <tr key={i}>
-                  <td style={{textAlign:'left'}}><div style={{display:'flex',gap:10,alignItems:'center'}}><TeamLogo abbr={t.abbr} size={18}/>{t.name||t.abbr}</div></td>
-                  <td style={{fontFamily:'var(--font)',fontWeight:900}}>${t.used}M</td>
-                  <td style={{fontFamily:'var(--font)',color:over?'var(--signal)':'var(--fg3)'}}>${Math.round(taxLine/1e6)}M</td>
-                  <td style={{fontFamily:'var(--font)',color:!over&&!near?'var(--pulse)':'var(--fg3)'}}>
-                    {pay<capLine?'+$'+Math.round((capLine-pay)/1e6)+'M':'−$'+Math.round((pay-capLine)/1e6)+'M'}
-                  </td>
-                  <td style={{textAlign:'right'}}><span style={{fontFamily:'var(--font)',fontSize:9,padding:'3px 8px',background:over?'rgba(204,255,0,.1)':near?'rgba(255,200,0,.08)':'rgba(0,255,102,.08)',color:over?'var(--signal)':near?'#FFC800':'var(--pulse)',letterSpacing:'.1em',fontWeight:900}}>{over?'TAX PAYER':near?'NEAR TAX':'UNDER CAP'}</span></td>
-                </tr>;
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      <Modal open={rosterModal} onClose={()=>setRosterModal(false)} title={(selectedTeam?.full_name||'Roster')+' — Roster'} maxW={580}>
-        {rosterLoading?<Loader/>:roster.length?<div>{roster.map((p,i)=>(
-          <div key={i} style={{display:'flex',gap:14,alignItems:'center',padding:'10px 0',borderBottom:'1px solid rgba(255,255,255,.05)'}}>
-            <div style={{flex:1}}>
-              <div style={{fontWeight:900,fontSize:13}}>{p.first_name} {p.last_name}</div>
-              <div style={{fontFamily:'var(--font)',fontSize:9,color:'#fff',marginTop:2,letterSpacing:'.08em'}}>{p.position||'—'} / #{p.jersey_number||p.jersey||'?'}</div>
-            </div>
-          </div>
-        ))}</div>:<div style={{fontFamily:'var(--font)',fontSize:11,color:'#fff',letterSpacing:'.1em',textTransform:'uppercase'}}>NO ROSTER DATA.</div>}
-      </Modal>
+      {view==='teams'&&<TeamsView/>}
+      {view==='frontoffice'&&<FrontOfficeView/>}
+      {view==='cap'&&<CapTableView/>}
     </div>
   );
 }
