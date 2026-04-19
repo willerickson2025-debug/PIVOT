@@ -4105,17 +4105,32 @@ function CoachMode() {
             </select>
           </div>
           <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:1}}>
-            {modules.map(m=>(
-              <div key={m.id} className="card card-lift" onClick={()=>setView(m.id)}
-                   style={{padding:'24px',display:'flex',gap:14,background:'var(--graphite)',position:'relative'}}>
-                <ConfTag text={`MODULE ${m.code}`}/>
-                <div style={{width:42,height:42,border:'1px solid var(--wire)',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'var(--font)',fontSize:13,fontWeight:900,color:'var(--signal)',flexShrink:0}}>{m.code}</div>
-                <div>
-                  <div style={{fontWeight:900,fontSize:14,letterSpacing:'.02em',textTransform:'uppercase',marginBottom:5}}>{m.label}</div>
-                  <div style={{fontSize:12,color:'#fff',lineHeight:1.5,fontWeight:900}}>{m.sub}</div>
+            {modules.map(m=>{
+              const examples={
+                play:['Final possession down 2, 8s left','ATO vs switching defense','SLOB vs zone','BLOB out of timeout'],
+                defense:['ICE the side PnR','Drop coverage on Jokic','Blitz on trailing threes','Zone vs shooter-heavy lineup'],
+                lineup:['SGA + Dort + Williams + Holmgren + Wallace','Closing 5 projection','2nd unit chemistry','Clutch lineup vs MIL']
+              };
+              return(
+                <div key={m.id} className="card card-lift" onClick={()=>setView(m.id)}
+                     style={{padding:'24px',display:'flex',flexDirection:'column',gap:14,background:'var(--graphite)',position:'relative',cursor:'pointer'}}>
+                  <ConfTag text={`MODULE ${m.code}`}/>
+                  <div style={{display:'flex',gap:14,alignItems:'flex-start'}}>
+                    <div style={{width:42,height:42,border:'1px solid var(--wire)',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'var(--font)',fontSize:13,fontWeight:900,color:'var(--signal)',flexShrink:0}}>{m.code}</div>
+                    <div>
+                      <div style={{fontWeight:900,fontSize:14,letterSpacing:'.02em',textTransform:'uppercase',marginBottom:5}}>{m.label}</div>
+                      <div style={{fontSize:12,color:'#fff',lineHeight:1.5,fontWeight:900}}>{m.sub}</div>
+                    </div>
+                  </div>
+                  <div style={{borderTop:'1px solid var(--wire)',paddingTop:12,marginTop:4}}>
+                    <div style={{fontSize:9,fontWeight:700,letterSpacing:'.14em',color:'var(--smoke)',marginBottom:8}}>EXAMPLE QUERIES</div>
+                    {examples[m.id].map(ex=>(
+                      <div key={ex} style={{fontSize:11,color:'var(--ash)',lineHeight:1.6,letterSpacing:'.02em',textTransform:'none'}}>• {ex}</div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
