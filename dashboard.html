@@ -341,12 +341,12 @@ select{
 .lp-v2-aurora{position:fixed;inset:0;z-index:0;overflow:hidden;background:#000;pointer-events:none;}
 .lp-v2-aurora-blob{position:absolute;border-radius:50%;mix-blend-mode:screen;will-change:transform;}
 .lp-v2-content{position:relative;z-index:1;}
-@keyframes lp-v2-blob-a{0%,100%{transform:translate(0,0) scale(1);}33%{transform:translate(12%,-8%) scale(1.08);}66%{transform:translate(-6%,14%) scale(0.94);}}
-@keyframes lp-v2-blob-b{0%,100%{transform:translate(0,0) scale(1);}40%{transform:translate(-14%,10%) scale(1.12);}70%{transform:translate(8%,-6%) scale(0.9);}}
-@keyframes lp-v2-blob-c{0%,100%{transform:translate(0,0) scale(1);}50%{transform:translate(10%,-12%) scale(1.06);}}
-@keyframes lp-v2-blob-d{0%,100%{transform:translate(0,0) scale(1);}30%{transform:translate(-10%,6%) scale(0.92);}70%{transform:translate(6%,12%) scale(1.1);}}
-@keyframes lp-v2-blob-e{0%,100%{transform:translate(0,0) scale(1);}45%{transform:translate(14%,8%) scale(1.07);}80%{transform:translate(-4%,-10%) scale(0.96);}}
-@keyframes lp-v2-blob-f{0%,100%{transform:translate(0,0) scale(1);}35%{transform:translate(-8%,16%) scale(1.04);}65%{transform:translate(12%,-4%) scale(0.88);}}
+@keyframes lp-v2-blob-a{0%{transform:translate(0,0) scale(1);}33%{transform:translate(320px,-220px) scale(1.15);}66%{transform:translate(-160px,380px) scale(0.88);}100%{transform:translate(0,0) scale(1);}}
+@keyframes lp-v2-blob-b{0%{transform:translate(0,0) scale(1);}40%{transform:translate(-380px,200px) scale(1.2);}70%{transform:translate(220px,-180px) scale(0.82);}100%{transform:translate(0,0) scale(1);}}
+@keyframes lp-v2-blob-c{0%{transform:translate(0,0) scale(1);}50%{transform:translate(280px,-340px) scale(1.12);}100%{transform:translate(0,0) scale(1);}}
+@keyframes lp-v2-blob-d{0%{transform:translate(0,0) scale(1);}30%{transform:translate(-240px,180px) scale(0.85);}70%{transform:translate(180px,300px) scale(1.18);}100%{transform:translate(0,0) scale(1);}}
+@keyframes lp-v2-blob-e{0%{transform:translate(0,0) scale(1);}45%{transform:translate(400px,240px) scale(1.14);}80%{transform:translate(-120px,-280px) scale(0.92);}100%{transform:translate(0,0) scale(1);}}
+@keyframes lp-v2-blob-f{0%{transform:translate(0,0) scale(1);}35%{transform:translate(-220px,440px) scale(1.1);}65%{transform:translate(340px,-120px) scale(0.87);}100%{transform:translate(0,0) scale(1);}}
 .lp-v2-hero{position:relative;height:100vh;min-height:640px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 48px;}
 .lp-v2-statement{font-family:"Helvetica Neue","Helvetica","Arial Black",Arial,sans-serif;font-weight:900;font-size:clamp(72px,11vw,180px);letter-spacing:-0.02em;line-height:0.86;color:#fff;text-transform:uppercase;margin:0 0 96px;max-width:95vw;}
 .lp-v2-btn-primary{font-family:"Helvetica Neue","Helvetica","Arial Black",Arial,sans-serif;font-weight:900;font-size:13px;letter-spacing:0.22em;text-transform:uppercase;background:transparent;color:#fff;border:1px solid rgba(255,255,255,0.3);padding:16px 48px;cursor:pointer;transition:border-color 160ms,color 160ms;}
@@ -1214,12 +1214,12 @@ function Home({setTab}) {
 
       {/* ── AURORA — fixed full-page backdrop ── */}
       <div className="lp-v2-aurora" aria-hidden="true">
-        <div className="lp-v2-aurora-blob" style={{width:800,height:600,top:'-15%',left:'-20%',background:'radial-gradient(circle, rgba(57,255,20,0.85) 0%, rgba(57,255,20,0.4) 35%, transparent 70%)',filter:'blur(110px)',opacity:0.6,animation:'lp-v2-blob-a 34s ease-in-out infinite'}}/>
-        <div className="lp-v2-aurora-blob" style={{width:600,height:700,top:'5%',right:'-15%',background:'radial-gradient(circle, rgba(180,255,30,0.75) 0%, rgba(100,220,20,0.35) 40%, transparent 70%)',filter:'blur(130px)',opacity:0.55,animation:'lp-v2-blob-b 46s ease-in-out infinite'}}/>
-        <div className="lp-v2-aurora-blob" style={{width:900,height:500,bottom:'-10%',left:'15%',background:'radial-gradient(circle, rgba(57,255,20,0.65) 0%, rgba(40,180,10,0.3) 45%, transparent 70%)',filter:'blur(150px)',opacity:0.5,animation:'lp-v2-blob-c 52s ease-in-out infinite'}}/>
-        <div className="lp-v2-aurora-blob" style={{width:400,height:400,top:'8%',right:'22%',background:'radial-gradient(circle, rgba(204,255,0,0.7) 0%, rgba(100,220,0,0.3) 40%, transparent 70%)',filter:'blur(90px)',opacity:0.45,animation:'lp-v2-blob-d 28s ease-in-out infinite'}}/>
-        <div className="lp-v2-aurora-blob" style={{width:650,height:500,top:'35%',left:'-5%',background:'radial-gradient(circle, rgba(57,255,20,0.5) 0%, rgba(30,160,5,0.25) 45%, transparent 70%)',filter:'blur(120px)',opacity:0.5,animation:'lp-v2-blob-e 40s ease-in-out infinite'}}/>
-        <div className="lp-v2-aurora-blob" style={{width:1000,height:700,top:'18%',left:'12%',background:'radial-gradient(ellipse 60% 50% at 50% 50%, rgba(57,255,20,0.28) 0%, rgba(20,80,5,0.12) 50%, transparent 70%)',filter:'blur(160px)',opacity:0.65,animation:'lp-v2-blob-f 58s ease-in-out infinite'}}/>
+        <div className="lp-v2-aurora-blob" style={{width:800,height:600,top:'-15%',left:'-20%',background:'radial-gradient(circle, rgba(57,255,20,0.85) 0%, rgba(57,255,20,0.4) 35%, transparent 70%)',filter:'blur(110px)',opacity:0.6,animation:'lp-v2-blob-a 20s ease-in-out infinite'}}/>
+        <div className="lp-v2-aurora-blob" style={{width:600,height:700,top:'5%',right:'-15%',background:'radial-gradient(circle, rgba(180,255,30,0.75) 0%, rgba(100,220,20,0.35) 40%, transparent 70%)',filter:'blur(130px)',opacity:0.55,animation:'lp-v2-blob-b 26s ease-in-out infinite'}}/>
+        <div className="lp-v2-aurora-blob" style={{width:900,height:500,bottom:'-10%',left:'15%',background:'radial-gradient(circle, rgba(57,255,20,0.65) 0%, rgba(40,180,10,0.3) 45%, transparent 70%)',filter:'blur(150px)',opacity:0.5,animation:'lp-v2-blob-c 32s ease-in-out infinite'}}/>
+        <div className="lp-v2-aurora-blob" style={{width:400,height:400,top:'8%',right:'22%',background:'radial-gradient(circle, rgba(204,255,0,0.7) 0%, rgba(100,220,0,0.3) 40%, transparent 70%)',filter:'blur(90px)',opacity:0.45,animation:'lp-v2-blob-d 17s ease-in-out infinite'}}/>
+        <div className="lp-v2-aurora-blob" style={{width:650,height:500,top:'35%',left:'-5%',background:'radial-gradient(circle, rgba(57,255,20,0.5) 0%, rgba(30,160,5,0.25) 45%, transparent 70%)',filter:'blur(120px)',opacity:0.5,animation:'lp-v2-blob-e 24s ease-in-out infinite'}}/>
+        <div className="lp-v2-aurora-blob" style={{width:1000,height:700,top:'18%',left:'12%',background:'radial-gradient(ellipse 60% 50% at 50% 50%, rgba(57,255,20,0.28) 0%, rgba(20,80,5,0.12) 50%, transparent 70%)',filter:'blur(160px)',opacity:0.65,animation:'lp-v2-blob-f 36s ease-in-out infinite'}}/>
         {/* Radial vignette — protects hero text legibility */}
         <div style={{position:'absolute',inset:0,background:'radial-gradient(ellipse 60% 50% at 50% 50%, rgba(0,0,0,0.52) 0%, transparent 68%)'}}/>
       </div>
@@ -1283,7 +1283,6 @@ function Home({setTab}) {
           <p className="lp-v2-final-statement">
             DECISION TIME.<br/><span className="lp-v2-hi">IT'S TIME TO PIVOT.</span>
           </p>
-          <button className="lp-v2-btn-primary" onClick={()=>setTab('games')}>ENTER</button>
         </section>
 
       </div>
