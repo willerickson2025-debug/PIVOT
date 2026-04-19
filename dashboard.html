@@ -8,7 +8,7 @@
 <meta property="og:description" content="Advanced NBA intelligence platform."/>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900&family=JetBrains+Mono:wght@400;700&family=Pinyon+Script&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -390,7 +390,7 @@ select{
 /* ── INTRO OVERLAY ── */
 .lp-intro-overlay{position:fixed;inset:0;z-index:200;background:#000;display:flex;align-items:center;justify-content:center;overflow:hidden;pointer-events:all;transition:opacity 1800ms ease;}
 .lp-intro-overlay.lp-intro-out{opacity:0;pointer-events:none;}
-@keyframes lp-draw{to{stroke-dashoffset:0;}}
+@keyframes lp-spot-sweep{0%{transform:translateX(0);}100%{transform:translateX(100vw);}}
 /* ── SCROLL REVEALS ── */
 .lp-reveal{opacity:0;transform:translateY(28px);transition:opacity 400ms ease,transform 400ms ease;}
 .lp-reveal.lp-in{opacity:1;transform:translateY(0);}
@@ -1216,6 +1216,44 @@ const HOME_MODULES=[
   {id:'chat',label:'CHAT',code:'06',desc:'Ask anything. PIVOT has live NBA data and uses it. No stale cutoffs. No guessing. Just answers.'},
 ];
 
+function IntroOverlay({out}) {
+  const [phase,setPhase] = React.useState('grid');
+
+  React.useEffect(()=>{
+    const t = setTimeout(()=>setPhase('scale'),2400);
+    return()=>clearTimeout(t);
+  },[]);
+
+  const gridSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="96" height="28"><text x="6" y="20" font-family="Helvetica Neue,Arial,sans-serif" font-weight="700" font-size="12" fill="white" fill-opacity="0.28" letter-spacing="3">PIVOT</text></svg>';
+  const gridUrl = 'url("data:image/svg+xml,' + encodeURIComponent(gridSvg) + '")';
+
+  return (
+    <div className={`lp-intro-overlay${out?' lp-intro-out':''}`}>
+
+      {/* Grid layer */}
+      <div style={{position:'absolute',inset:0,backgroundImage:gridUrl,backgroundSize:'96px 28px',backgroundRepeat:'repeat',
+        opacity:phase==='grid'?1:0,transition:'opacity 700ms ease'}}>
+        {/* Dark veil with spotlight hole sweeping left to right */}
+        <div style={{position:'absolute',top:0,bottom:0,left:'-60vw',width:'160vw',pointerEvents:'none',
+          background:'radial-gradient(ellipse 26vw 120% at 50% 50%, transparent 0%, transparent 20vw, rgba(0,0,0,0.96) 28vw)',
+          animation:'lp-spot-sweep 2.2s cubic-bezier(0.4,0,0.3,1) 0.2s forwards'}}/>
+      </div>
+
+      {/* Center PIVOT — fades in then scales up */}
+      <div style={{position:'absolute',top:'50%',left:'50%',
+        fontFamily:'"Helvetica Neue","Helvetica","Arial Black",Arial,sans-serif',
+        fontWeight:900,fontSize:'clamp(80px,14vw,210px)',letterSpacing:'-0.04em',
+        color:'#fff',textTransform:'uppercase',whiteSpace:'nowrap',pointerEvents:'none',
+        opacity:phase==='scale'?1:0,
+        transform:phase==='scale'?'translate(-50%,-50%) scale(1)':'translate(-50%,-50%) scale(0.06)',
+        transition:phase==='scale'?'opacity 300ms ease, transform 1200ms cubic-bezier(0.16,1,0.3,1)':'none'}}>
+        PIVOT
+      </div>
+
+    </div>
+  );
+}
+
 function Home({setTab}) {
   const seen = React.useMemo(()=>{
     try{return !!sessionStorage.getItem('piv_seen');}catch(e){return true;}
@@ -1225,11 +1263,11 @@ function Home({setTab}) {
   // Intro timing: 200ms delay + 1200ms draw + 500ms hold = 1900ms, then 700ms fade out
   React.useEffect(()=>{
     if(intro!=='show')return;
-    const t1=setTimeout(()=>setIntro('out'),3700);
+    const t1=setTimeout(()=>setIntro('out'),4000);
     const t2=setTimeout(()=>{
       setIntro('done');
       try{sessionStorage.setItem('piv_seen','1');}catch(e){}
-    },5500);
+    },5800);
     return()=>{clearTimeout(t1);clearTimeout(t2);};
   },[intro]);
 
@@ -1271,40 +1309,8 @@ function Home({setTab}) {
   return (
     <div className="lp-v2-root">
 
-      {/* ── INTRO OVERLAY — session-gated, thick marker draw-on ── */}
-      {intro!=='done'&&(
-        <div className={`lp-intro-overlay${intro==='out'?' lp-intro-out':''}`}>
-          <svg viewBox="0 0 780 180" style={{width:'min(96vw,780px)',overflow:'visible',display:'block'}} aria-hidden="true">
-            {[
-              /* P — straight vertical */
-              {d:"M 28,165 L 28,15"},
-              /* P — bowl: flat top, hard curve, back flat */
-              {d:"M 28,15 L 80,15 C 112,15 118,40 118,70 C 118,100 108,118 78,118 L 28,118"},
-              /* I — straight down */
-              {d:"M 158,15 L 158,165"},
-              /* V — left leg, dead straight diagonal */
-              {d:"M 198,15 L 244,165"},
-              /* V — right leg, dead straight diagonal */
-              {d:"M 244,165 L 294,15"},
-              /* O — rectangular rounded loop */
-              {d:"M 370,15 C 370,15 440,15 450,15 C 476,15 488,32 488,88 C 488,144 476,162 450,165 C 440,165 370,165 370,165 C 344,165 330,148 330,88 C 330,32 344,15 370,15"},
-              /* T — crossbar */
-              {d:"M 520,15 L 640,15"},
-              /* T — vertical */
-              {d:"M 580,15 L 580,165"},
-            ].map(({d},i)=>{
-              const delays=[0.05, 0.30, 0.72, 1.00, 1.28, 1.56, 2.10, 2.34];
-              const durs=  [0.24, 0.38, 0.22, 0.26, 0.26, 0.50, 0.22, 0.24];
-              return(
-                <path key={i} d={d} stroke="#39FF14" strokeWidth="20" fill="none"
-                  strokeLinecap="square" strokeLinejoin="miter"
-                  style={{strokeDasharray:5000,strokeDashoffset:5000,
-                    animation:`lp-draw ${durs[i]}s cubic-bezier(0.2,0,0.1,1) ${delays[i]}s forwards`}}/>
-              );
-            })}
-          </svg>
-        </div>
-      )}
+      {/* ── INTRO OVERLAY — session-gated ── */}
+      {intro!=='done'&&<IntroOverlay out={intro==='out'}/>}
 
       {/* ── COURT — scrolls with page, behind everything ── */}
       <svg ref={courtRef} style={{position:'fixed',top:0,left:0,width:'100vw',height:'188vw',display:'block',pointerEvents:'none',zIndex:0,willChange:'transform',opacity:visible?1:0,transition:'opacity 600ms ease 200ms'}} viewBox="0 0 500 940" preserveAspectRatio="xMidYMin meet" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
