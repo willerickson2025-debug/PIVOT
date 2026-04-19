@@ -1498,3 +1498,5 @@ async def compat_chat(request: Request):
         body = {}
     return await chat_message(request, body)
 
+
+# cache bust
