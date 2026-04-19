@@ -371,10 +371,10 @@ select{
 .gr-pulse-dot{width:6px;height:6px;border-radius:50%;background:var(--live);box-shadow:0 0 6px var(--live);animation:blink 2s ease-in-out infinite;flex-shrink:0;}
 
 /* Body grid: 2-column on wide, single on narrow */
-.gr-body-grid{display:grid;grid-template-columns:1fr 280px;gap:24px;padding:0 24px;align-items:start;margin-top:4px;}
+.gr-body-grid{display:grid;grid-template-columns:1fr 280px;gap:16px;padding:0 24px;align-items:start;margin-top:4px;}
 @media(max-width:1279px){.gr-body-grid{grid-template-columns:1fr;}}
-.gr-main-col{min-width:0;}
-.gr-sidebar{position:sticky;top:158px;display:flex;flex-direction:column;gap:20px;align-self:start;}
+.gr-main-col{min-width:0;background:rgba(255,255,255,0.04);border:1px solid var(--wire);border-radius:16px;padding:20px;}
+.gr-sidebar{position:sticky;top:158px;display:flex;flex-direction:column;gap:20px;align-self:start;background:rgba(255,255,255,0.04);border:1px solid var(--wire);border-radius:16px;padding:20px;}
 @media(max-width:1279px){.gr-sidebar{position:static;}}
 
 /* Hero card: 5-zone dense layout */
@@ -1735,7 +1735,6 @@ function Games(){
   return (
     <div className="page" style={{padding:'0 0 80px'}}>
       <DateRibbon date={date} setDate={setDate}/>
-      {!loading&&games.length>0&&<LeaguePulse games={games}/>}
       {loading&&<div className="load-line-wrap" style={{margin:'20px 24px 0'}}><div className="load-line"/></div>}
       {!loading&&!games.length&&(
         <div className="empty-state" style={{marginTop:40}}>
@@ -1746,6 +1745,7 @@ function Games(){
       {!loading&&games.length>0&&(
         <div className="gr-body-grid">
           <div className="gr-main-col">
+            <LeaguePulse games={games}/>
             {heroPool.length>0&&<GameOfTheNight games={heroPool} heroLabel={heroLabel} onSelect={openGame}/>}
             {otherLive.length>0&&(
               <div style={{marginBottom:14}}>
