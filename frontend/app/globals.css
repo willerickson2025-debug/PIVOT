@@ -1,0 +1,86 @@
+@import "tailwindcss";
+
+:root {
+  /* Surface */
+  --void: #000000;
+  --carbon: #0a0a0a;
+  --graphite: #141414;
+  --panel: rgba(255, 255, 255, 0.04);
+
+  /* Text */
+  --bone: #ffffff;
+  --ash: rgba(255, 255, 255, 0.6);
+  --smoke: rgba(255, 255, 255, 0.32);
+
+  /* Borders */
+  --wire: rgba(255, 255, 255, 0.08);
+  --wire-hi: rgba(255, 255, 255, 0.14);
+
+  /* Brand */
+  --neon: #00ff66;
+  --neon-dim: rgba(0, 255, 102, 0.12);
+
+  /* Status */
+  --live: #1fbf7a;
+  --warn: #e0b341;
+  --danger: #e5484d;
+
+  /* Typography */
+  --font: "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
+}
+
+@theme inline {
+  --color-background: var(--carbon);
+  --color-foreground: var(--bone);
+  --font-sans: var(--font);
+  --font-mono: var(--font-mono);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+  background: var(--carbon);
+  color: var(--bone);
+  font-family: var(--font);
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--wire-hi);
+  border-radius: 2px;
+}
+
+/* Glass panel utility */
+.glass {
+  background: var(--panel);
+  border: 1px solid var(--wire);
+  border-radius: 12px;
+}
+
+/* Label utility */
+.label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--smoke);
+}
