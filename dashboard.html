@@ -388,19 +388,9 @@ select{
   .lp-v2-section{padding:80px 24px;}
 }
 /* ── INTRO OVERLAY ── */
-.lp-intro-overlay{position:fixed;inset:0;z-index:200;background:#000;display:flex;flex-direction:column;justify-content:center;overflow:hidden;pointer-events:all;transition:opacity 1400ms ease;}
+.lp-intro-overlay{position:fixed;inset:0;z-index:200;background:#000;display:flex;align-items:center;justify-content:center;overflow:hidden;pointer-events:all;transition:opacity 1800ms ease;}
 .lp-intro-overlay.lp-intro-out{opacity:0;pointer-events:none;}
-.lp-intro-row{display:flex;white-space:nowrap;line-height:1;position:relative;}
-.lp-intro-row+.lp-intro-row{margin-top:-0.55em;}
-.lp-intro-row span{font-weight:900;font-size:clamp(48px,8vw,120px);padding:0 0.18em;will-change:transform;display:block;}
-.lp-intro-row:nth-child(odd){z-index:1;}
-.lp-intro-row:nth-child(odd) span{font-family:"Helvetica Neue","Helvetica","Arial Black",Arial,sans-serif;letter-spacing:-0.03em;text-transform:uppercase;color:#fff;}
-.lp-intro-row:nth-child(even){z-index:2;}
-.lp-intro-row:nth-child(even) span{font-family:'Pinyon Script',cursive;font-weight:400;font-size:clamp(56px,9.5vw,145px);letter-spacing:0.02em;text-transform:none;color:#39FF14;}
-@keyframes lp-slide-l1{from{transform:translateX(0)}to{transform:translateX(-50%)}}
-@keyframes lp-slide-l2{from{transform:translateX(-50%)}to{transform:translateX(0)}}
-@keyframes lp-slide-r1{from{transform:translateX(-50%)}to{transform:translateX(0)}}
-@keyframes lp-slide-r2{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@keyframes lp-draw{to{stroke-dashoffset:0;}}
 /* ── SCROLL REVEALS ── */
 .lp-reveal{opacity:0;transform:translateY(28px);transition:opacity 400ms ease,transform 400ms ease;}
 .lp-reveal.lp-in{opacity:1;transform:translateY(0);}
@@ -1235,11 +1225,11 @@ function Home({setTab}) {
   // Intro timing: 200ms delay + 1200ms draw + 500ms hold = 1900ms, then 700ms fade out
   React.useEffect(()=>{
     if(intro!=='show')return;
-    const t1=setTimeout(()=>setIntro('out'),2800);
+    const t1=setTimeout(()=>setIntro('out'),3700);
     const t2=setTimeout(()=>{
       setIntro('done');
       try{sessionStorage.setItem('piv_seen','1');}catch(e){}
-    },4200);
+    },5500);
     return()=>{clearTimeout(t1);clearTimeout(t2);};
   },[intro]);
 
@@ -1281,30 +1271,36 @@ function Home({setTab}) {
   return (
     <div className="lp-v2-root">
 
-      {/* ── INTRO OVERLAY — session-gated, removed from DOM after fade ── */}
-      {intro!=='done'&&(()=>{
-        const word='PIVOT\u00A0';
-        const tile=word.repeat(12);
-        const rows=[
-          {dur:'18s',dir:'l'},
-          {dur:'28s',dir:'r'},
-          {dur:'14s',dir:'l'},
-          {dur:'22s',dir:'r'},
-          {dur:'20s',dir:'l'},
-          {dur:'16s',dir:'r'},
-          {dur:'25s',dir:'l'},
-        ];
-        return(
-          <div className={`lp-intro-overlay${intro==='out'?' lp-intro-out':''}`}>
-            {rows.map(({dur,dir},i)=>(
-              <div key={i} className="lp-intro-row">
-                <span style={{animation:`${dir==='l'?'lp-slide-l1':'lp-slide-r1'} ${dur} linear infinite`}}>{tile}</span>
-                <span style={{animation:`${dir==='l'?'lp-slide-l2':'lp-slide-r2'} ${dur} linear infinite`}}>{tile}</span>
-              </div>
-            ))}
-          </div>
-        );
-      })()}
+      {/* ── INTRO OVERLAY — session-gated, handwritten SVG draw-on ── */}
+      {intro!=='done'&&(
+        <div className={`lp-intro-overlay${intro==='out'?' lp-intro-out':''}`}>
+          <svg viewBox="0 0 540 160" style={{width:'min(85vw,540px)',overflow:'visible',display:'block'}} aria-hidden="true">
+            {[
+              /* P — upstroke then bowl */
+              {d:"M 42,128 C 40,100 37,60 40,22 C 42,10 51,5 63,10 C 78,17 84,38 80,64 C 76,88 59,95 40,87"},
+              /* I — top loop then downstroke */
+              {d:"M 116,30 C 114,22 108,8 115,4 C 122,1 128,10 126,26 C 124,44 118,78 116,128"},
+              /* V — down then up */
+              {d:"M 152,20 C 158,54 169,96 178,128 C 190,92 206,50 222,18"},
+              /* O — full oval, closes on itself */
+              {d:"M 298,20 C 326,6 366,14 377,50 C 388,86 366,130 332,133 C 298,136 267,110 270,78 C 273,48 280,26 298,20"},
+              /* T — crossbar */
+              {d:"M 412,44 C 434,36 458,33 486,37 C 494,39 500,46 497,53"},
+              /* T — vertical */
+              {d:"M 455,16 C 454,46 451,90 448,128"},
+            ].map(({d},i,arr)=>{
+              const delays=[0.1,0.72,1.1,1.56,2.14,2.18];
+              const durs=  [0.58,0.38,0.42,0.54,0.3,0.42];
+              return(
+                <path key={i} d={d} stroke="#39FF14" strokeWidth="3.5" fill="none"
+                  strokeLinecap="round" strokeLinejoin="round"
+                  style={{strokeDasharray:2000,strokeDashoffset:2000,
+                    animation:`lp-draw ${durs[i]}s cubic-bezier(0.4,0,0.2,1) ${delays[i]}s forwards`}}/>
+              );
+            })}
+          </svg>
+        </div>
+      )}
 
       {/* ── COURT — scrolls with page, behind everything ── */}
       <svg ref={courtRef} style={{position:'fixed',top:0,left:0,width:'100vw',height:'188vw',display:'block',pointerEvents:'none',zIndex:0,willChange:'transform',opacity:visible?1:0,transition:'opacity 600ms ease 200ms'}} viewBox="0 0 500 940" preserveAspectRatio="xMidYMin meet" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
