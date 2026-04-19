@@ -387,6 +387,14 @@ select{
   .lp-v2-proof-stats{border-right:none;border-bottom:1px solid #222;}
   .lp-v2-section{padding:80px 24px;}
 }
+/* ── STAT CALLOUTS ── */
+.lp-stat-band{padding:200px 80px;display:flex;position:relative;}
+.lp-stat-band.lp-sl{justify-content:flex-start;}
+.lp-stat-band.lp-sr{justify-content:flex-end;}
+.lp-stat-num{font-family:"Helvetica Neue","Helvetica",Arial,sans-serif;font-weight:900;font-size:clamp(80px,12vw,160px);line-height:0.9;letter-spacing:-0.04em;color:var(--bone);}
+.lp-stat-num.lp-sa{color:var(--neon);}
+.lp-stat-lbl{margin-top:8px;font-size:11px;font-weight:500;letter-spacing:0.12em;color:var(--smoke);text-transform:uppercase;max-width:180px;line-height:1.5;font-family:"Helvetica Neue","Helvetica",Arial,sans-serif;}
+@media(max-width:600px){.lp-stat-band{padding:100px 24px;justify-content:center!important;}.lp-stat-num{font-size:72px!important;}}
 /* ── INTRO OVERLAY ── */
 .lp-intro-overlay{position:fixed;inset:0;z-index:200;background:#000;display:flex;align-items:center;justify-content:center;overflow:hidden;pointer-events:all;transition:opacity 1800ms ease;}
 .lp-intro-overlay.lp-intro-out{opacity:0;pointer-events:none;}
@@ -1388,7 +1396,13 @@ function Home({setTab}) {
             <span style={{fontFamily:'"Helvetica Neue","Helvetica","Arial Black",Arial,sans-serif',fontWeight:900,fontSize:'clamp(32px,4vw,72px)',letterSpacing:'-0.02em',color:'#fff',textTransform:'uppercase',lineHeight:0.86,marginBottom:16}}>INTRODUCING</span>
             <h1 className="lp-v2-statement" style={{textAlign:'center',margin:'0 0 96px'}}>THE NEWEST<br/>WAY TO WIN</h1>
           </div>
-          <button className="lp-v2-btn-primary" onClick={()=>setTab('games')}>ENTER</button>
+          <div style={{display:'flex',alignItems:'center',gap:64}}>
+            <button className="lp-v2-btn-primary" onClick={()=>setTab('games')}>ENTER</button>
+            <div>
+              <div className="lp-stat-num" style={{fontSize:'clamp(48px,6vw,96px)'}}>{'< 3s'}</div>
+              <div className="lp-stat-lbl">AVG. QUERY TO DECISION</div>
+            </div>
+          </div>
         </section>
 
         {/* ── THESIS ── */}
@@ -1397,6 +1411,14 @@ function Home({setTab}) {
             PIVOT IS <span className="lp-v2-hi">THE DECISION ENGINE</span> FOR BASKETBALL. BUILT ON PROPRIETARY INTELLIGENCE. ENGINEERED FOR THE SECONDS THAT MATTER.
           </p>
         </section>
+
+        {/* ── STAT: 500K+ ── */}
+        <div className="lp-stat-band lp-sl">
+          <div>
+            <div className="lp-stat-num">500K+</div>
+            <div className="lp-stat-lbl">ADVANCED STATS PROCESSED PER PLAYER. PER SEASON.</div>
+          </div>
+        </div>
 
         {/* ── PILLARS — each pillar staggers in ── */}
         <section className="lp-v2-section">
@@ -1415,6 +1437,14 @@ function Home({setTab}) {
           </div>
         </section>
 
+        {/* ── STAT: 30 ── */}
+        <div className="lp-stat-band lp-sr">
+          <div>
+            <div className="lp-stat-num">30</div>
+            <div className="lp-stat-lbl">NBA TEAMS COVERED IN REAL TIME</div>
+          </div>
+        </div>
+
         {/* ── STACK ── */}
         <section className="lp-v2-section" style={{padding:'80px 48px'}}>
           <div className="lp-v2-stack-row">
@@ -1431,6 +1461,22 @@ function Home({setTab}) {
             ))}
           </div>
         </section>
+
+        {/* ── STAT: V2 ── */}
+        <div className="lp-stat-band lp-sl">
+          <div>
+            <div className="lp-stat-num lp-sa">V2</div>
+            <div className="lp-stat-lbl">ANALYTICS ENGINE POWERING EVERY COMPARISON</div>
+          </div>
+        </div>
+
+        {/* ── STAT: 180+ ── */}
+        <div className="lp-stat-band lp-sr">
+          <div>
+            <div className="lp-stat-num">180+</div>
+            <div className="lp-stat-lbl">METRICS TRACKED PER POSSESSION</div>
+          </div>
+        </div>
 
         {/* ── FINAL CTA ── */}
         <section className="lp-v2-final">
