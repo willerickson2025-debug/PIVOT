@@ -1217,36 +1217,49 @@ const HOME_MODULES=[
 ];
 
 function IntroOverlay({out}) {
+  const [big, setBig] = React.useState(false);
+  React.useEffect(()=>{
+    const t = setTimeout(()=>setBig(true), 400);
+    return()=>clearTimeout(t);
+  },[]);
+
   const cols = Math.ceil(window.innerWidth / 108) + 2;
   const rows = Math.ceil(window.innerHeight / 32) + 2;
   const cell = {
     fontFamily:'"Helvetica Neue","Helvetica","Arial Black",Arial,sans-serif',
     fontWeight:700,fontSize:12,letterSpacing:'0.28em',
-    color:'#39FF14',opacity:0.45,textTransform:'uppercase',userSelect:'none',
+    color:'#39FF14',textTransform:'uppercase',userSelect:'none',
     whiteSpace:'nowrap',display:'inline-block',width:108,lineHeight:'32px'
   };
-  // Build one panel's worth of rows
   const panel = Array.from({length:rows},(_,r)=>(
     <div key={r} style={{display:'flex',height:32}}>
-      {Array.from({length:cols},(_,c)=>(
-        <span key={c} style={cell}>PIVOT</span>
-      ))}
+      {Array.from({length:cols},(_,c)=>(<span key={c} style={cell}>PIVOT</span>))}
     </div>
   ));
   return (
     <div className={`lp-intro-overlay${out?' lp-intro-out':''}`}>
+      {/* Grid */}
       <div style={{position:'absolute',inset:0,overflow:'hidden'}}>
-        {/* 200%-wide sliding strip — two identical panels, pans back and forth */}
         <div style={{position:'absolute',top:0,left:0,width:'200%',height:'100%',
           display:'flex',animation:'lp-spot-loop 7s ease-in-out infinite'}}>
           <div style={{width:'50%',overflow:'hidden'}}>{panel}</div>
           <div style={{width:'50%',overflow:'hidden'}}>{panel}</div>
         </div>
       </div>
-      {/* Radial vignette */}
-      <div style={{position:'absolute',inset:0,
-        background:'radial-gradient(ellipse 65% 65% at 50% 50%, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.92) 100%)',
-        pointerEvents:'none'}}/>
+      {/* Big centered PIVOT */}
+      <div style={{
+        position:'absolute',top:'50%',left:'50%',
+        fontFamily:'"Helvetica Neue","Helvetica","Arial Black",Arial,sans-serif',
+        fontWeight:900,letterSpacing:'-0.04em',textTransform:'uppercase',
+        color:'#fff',whiteSpace:'nowrap',pointerEvents:'none',
+        fontSize: big ? 'clamp(100px,20vw,280px)' : 'clamp(8px,1.5vw,22px)',
+        opacity: big ? 1 : 0,
+        transform:'translate(-50%,-50%)',
+        transition: big
+          ? 'font-size 1600ms cubic-bezier(0.16,1,0.3,1), opacity 300ms ease'
+          : 'none',
+        textShadow:'0 0 120px rgba(255,255,255,0.15)'
+      }}>PIVOT</div>
     </div>
   );
 }
