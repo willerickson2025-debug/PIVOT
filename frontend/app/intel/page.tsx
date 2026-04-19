@@ -363,7 +363,7 @@ export default function IntelPage() {
         {/* ── 2. HERO ─────────────────────────────────────────────────────── */}
         <div
           style={{
-            paddingTop: 96,
+            paddingTop: 128,
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
@@ -376,27 +376,13 @@ export default function IntelPage() {
             style={{
               ...MONO,
               fontSize: 11,
-              color: SIG,
+              color: "rgba(255,255,255,0.4)",
               letterSpacing: "1.4px",
-              marginBottom: 12,
+              marginBottom: 20,
             }}
           >
             PLAYER INTEL
           </div>
-
-          {/* H1 */}
-          <h1
-            style={{
-              ...HB,
-              fontSize: "clamp(28px, 5vw, 36px)",
-              color: "#ffffff",
-              letterSpacing: "-0.4px",
-              margin: "0 0 32px",
-              textAlign: "center",
-            }}
-          >
-            Search any player
-          </h1>
 
           {/* Search wrapper */}
           <div
@@ -404,7 +390,7 @@ export default function IntelPage() {
             style={{
               position: "relative",
               width: "100%",
-              maxWidth: 540,
+              maxWidth: 680,
             }}
           >
             {/* Search bar */}
@@ -413,20 +399,20 @@ export default function IntelPage() {
                 ...GLASS_PILL,
                 position: "relative",
                 boxShadow: focused
-                  ? `0 0 0 1px ${SIG}, 0 0 32px rgba(57, 255, 20, 0.35)`
+                  ? `0 0 0 1px ${SIG}, 0 0 48px rgba(57, 255, 20, 0.3)`
                   : "none",
                 transition: "box-shadow 160ms ease",
               }}
             >
               {/* Search icon */}
               <svg
-                width="18"
-                height="18"
-                viewBox="0 0 18 18"
+                width="22"
+                height="22"
+                viewBox="0 0 22 22"
                 fill="none"
                 style={{
                   position: "absolute",
-                  left: 22,
+                  left: 28,
                   top: "50%",
                   transform: "translateY(-50%)",
                   pointerEvents: "none",
@@ -434,16 +420,16 @@ export default function IntelPage() {
                 }}
               >
                 <circle
-                  cx="7.5"
-                  cy="7.5"
-                  r="5"
+                  cx="9.5"
+                  cy="9.5"
+                  r="6.5"
                   stroke="rgba(255,255,255,0.35)"
-                  strokeWidth="1.4"
+                  strokeWidth="1.5"
                 />
                 <path
-                  d="M11.5 11.5L15.5 15.5"
+                  d="M14.5 14.5L19.5 19.5"
                   stroke="rgba(255,255,255,0.35)"
-                  strokeWidth="1.4"
+                  strokeWidth="1.5"
                   strokeLinecap="round"
                 />
               </svg>
@@ -455,19 +441,19 @@ export default function IntelPage() {
                 onChange={(e) => setQuery(e.target.value)}
                 onFocus={() => setFocused(true)}
                 onKeyDown={handleKeyDown}
-                placeholder="LeBron, SGA, Wemby..."
+                placeholder="Search any player..."
                 autoComplete="off"
                 spellCheck={false}
                 style={{
                   ...MONO,
                   display: "block",
                   width: "100%",
-                  fontSize: 18,
+                  fontSize: 22,
                   color: "#ffffff",
                   background: "transparent",
                   border: "none",
                   outline: "none",
-                  padding: "22px 28px 22px 60px",
+                  padding: "28px 36px 28px 72px",
                   caretColor: SIG,
                 }}
               />
