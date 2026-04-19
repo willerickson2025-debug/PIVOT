@@ -390,7 +390,7 @@ select{
 /* ── INTRO OVERLAY ── */
 .lp-intro-overlay{position:fixed;inset:0;z-index:200;background:#000;display:flex;align-items:center;justify-content:center;overflow:hidden;pointer-events:all;transition:opacity 1800ms ease;}
 .lp-intro-overlay.lp-intro-out{opacity:0;pointer-events:none;}
-@keyframes lp-spot-loop{0%{transform:translateX(-50%);}50%{transform:translateX(0%);}100%{transform:translateX(-50%);}}
+@keyframes lp-cursor{0%,49%{opacity:1;}50%,100%{opacity:0;}}
 /* ── SCROLL REVEALS ── */
 .lp-reveal{opacity:0;transform:translateY(28px);transition:opacity 400ms ease,transform 400ms ease;}
 .lp-reveal.lp-in{opacity:1;transform:translateY(0);}
@@ -1217,49 +1217,41 @@ const HOME_MODULES=[
 ];
 
 function IntroOverlay({out}) {
-  const [big, setBig] = React.useState(false);
+  const letters = ['P','I','V','O','T'];
+  // Irregular delays between each keystroke — feels human
+  const gaps = [0, 180, 310, 130, 420];
+  const [count, setCount] = React.useState(0);
+  const [cursorFast, setCursorFast] = React.useState(false);
+
   React.useEffect(()=>{
-    const t = setTimeout(()=>setBig(true), 400);
-    return()=>clearTimeout(t);
+    let total = 320; // initial pause before first letter
+    const timers = letters.map((_,i)=>{
+      total += gaps[i];
+      return setTimeout(()=>setCount(i+1), total);
+    });
+    // After last letter, speed cursor up for 2 fast blinks then hold
+    const t2 = setTimeout(()=>setCursorFast(true), total + 120);
+    return()=>{timers.forEach(clearTimeout); clearTimeout(t2);};
   },[]);
 
-  const cols = Math.ceil(window.innerWidth / 108) + 2;
-  const rows = Math.ceil(window.innerHeight / 32) + 2;
-  const cell = {
-    fontFamily:'"Helvetica Neue","Helvetica","Arial Black",Arial,sans-serif',
-    fontWeight:700,fontSize:12,letterSpacing:'0.28em',
-    color:'#39FF14',textTransform:'uppercase',userSelect:'none',
-    whiteSpace:'nowrap',display:'inline-block',width:108,lineHeight:'32px'
-  };
-  const panel = Array.from({length:rows},(_,r)=>(
-    <div key={r} style={{display:'flex',height:32}}>
-      {Array.from({length:cols},(_,c)=>(<span key={c} style={cell}>PIVOT</span>))}
-    </div>
-  ));
+  const typed = letters.slice(0, count).join('');
+
   return (
     <div className={`lp-intro-overlay${out?' lp-intro-out':''}`}>
-      {/* Grid */}
-      <div style={{position:'absolute',inset:0,overflow:'hidden'}}>
-        <div style={{position:'absolute',top:0,left:0,width:'200%',height:'100%',
-          display:'flex',animation:'lp-spot-loop 7s ease-in-out infinite'}}>
-          <div style={{width:'50%',overflow:'hidden'}}>{panel}</div>
-          <div style={{width:'50%',overflow:'hidden'}}>{panel}</div>
-        </div>
+      <div style={{display:'flex',alignItems:'center',gap:2}}>
+        <span style={{
+          fontFamily:'"JetBrains Mono","Courier New",monospace',
+          fontWeight:700,fontSize:'clamp(32px,6vw,80px)',
+          color:'#fff',letterSpacing:'0.08em',
+        }}>{typed}</span>
+        <span style={{
+          display:'inline-block',
+          width:'0.55em',height:'1.1em',
+          background:'#39FF14',
+          verticalAlign:'middle',
+          animation:`lp-cursor ${cursorFast?'200ms':'620ms'} step-end infinite`,
+        }}/>
       </div>
-      {/* Big centered PIVOT */}
-      <div style={{
-        position:'absolute',top:'50%',left:'50%',
-        fontFamily:'"Helvetica Neue","Helvetica","Arial Black",Arial,sans-serif',
-        fontWeight:900,letterSpacing:'-0.04em',textTransform:'uppercase',
-        color:'#fff',whiteSpace:'nowrap',pointerEvents:'none',
-        fontSize: big ? 'clamp(100px,20vw,280px)' : 'clamp(8px,1.5vw,22px)',
-        opacity: big ? 1 : 0,
-        transform:'translate(-50%,-50%)',
-        transition: big
-          ? 'font-size 1600ms cubic-bezier(0.16,1,0.3,1), opacity 300ms ease'
-          : 'none',
-        textShadow:'0 0 120px rgba(255,255,255,0.15)'
-      }}>PIVOT</div>
     </div>
   );
 }
@@ -1273,11 +1265,11 @@ function Home({setTab}) {
   // Intro timing: 200ms delay + 1200ms draw + 500ms hold = 1900ms, then 700ms fade out
   React.useEffect(()=>{
     if(intro!=='show')return;
-    const t1=setTimeout(()=>setIntro('out'),3000);
+    const t1=setTimeout(()=>setIntro('out'),2600);
     const t2=setTimeout(()=>{
       setIntro('done');
       try{sessionStorage.setItem('piv_seen','1');}catch(e){}
-    },4800);
+    },4400);
     return()=>{clearTimeout(t1);clearTimeout(t2);};
   },[intro]);
 
