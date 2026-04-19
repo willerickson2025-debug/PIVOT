@@ -535,12 +535,10 @@ select{
 .wr-pill-divider{width:1px;background:rgba(255,255,255,.12);height:28px;flex-shrink:0;margin:0 4px;}
 .wr-ribbon-ts{margin-left:auto;padding-left:20px;font-size:9px;font-weight:700;letter-spacing:.08em;color:var(--smoke);white-space:nowrap;flex-shrink:0;}
 
-.wr-sub{display:flex;border-bottom:1px solid var(--divider);background:var(--void);position:sticky;top:62px;z-index:180;flex-wrap:wrap;}.wr-sub-btn{background:none;border:none;border-bottom:2px solid transparent;padding:12px 24px;font-size:10px;font-weight:700;letter-spacing:.1em;color:var(--smoke);cursor:pointer;transition:color 140ms,border-color 140ms;font-family:var(--font);text-transform:uppercase;white-space:nowrap;}
-.wr-sub-btn.active{color:var(--bone);border-bottom-color:var(--neon);}
+.wr-sub{display:flex;border-bottom:1px solid var(--divider);background:var(--void);flex-wrap:wrap;}.wr-sub-btn.active{color:var(--bone);border-bottom-color:var(--neon);}
 .wr-sub-btn:hover:not(.active){color:var(--bone);}
 
-.wr-filter{height:40px;background:var(--void);border-bottom:1px solid var(--divider);display:flex;align-items:center;padding:0 40px;gap:12px;overflow-x:auto;scrollbar-width:none;position:sticky;top:102px;z-index:170;}.wr-filter::-webkit-scrollbar{display:none;}
-.wr-chip{height:24px;padding:0 10px;font-size:10px;font-weight:700;letter-spacing:.08em;border:1px solid rgba(255,255,255,.08);background:transparent;color:var(--smoke);cursor:pointer;font-family:var(--font);text-transform:uppercase;transition:background 120ms,color 120ms;white-space:nowrap;}
+.wr-filter{height:40px;background:var(--void);border-bottom:1px solid var(--divider);display:flex;align-items:center;padding:0 40px;gap:12px;overflow-x:auto;scrollbar-width:none;}.wr-chip{height:24px;padding:0 10px;font-size:10px;font-weight:700;letter-spacing:.08em;border:1px solid rgba(255,255,255,.08);background:transparent;color:var(--smoke);cursor:pointer;font-family:var(--font);text-transform:uppercase;transition:background 120ms,color 120ms;white-space:nowrap;}
 .wr-chip.active{background:var(--neon);color:var(--void);border-color:var(--neon);}
 .wr-chip:hover:not(.active){color:var(--bone);}
 
@@ -3908,7 +3906,7 @@ function CapTableView(){
 
       <div style={{overflowX:'auto',padding:'0 40px'}}>
         <table style={{width:'100%',borderCollapse:'collapse',minWidth:800}}>
-          <thead style={{position:'sticky',top:142,background:'var(--void)',zIndex:5}}>
+          <thead>
             <tr style={{borderBottom:'1px solid var(--wire)'}}>
               {COLS.map(col=>(
                 <th key={col.key} onClick={e=>col.sort&&toggleSort(col.key,e)}
