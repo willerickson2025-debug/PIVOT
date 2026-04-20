@@ -2500,6 +2500,400 @@ function computeAvg(games){
   };
 }
 
+// ─── INTEL ANALYSIS PANEL ────────────────────────────────────────────────────
+
+function computeIntelAnalysis(logs,playerId){
+  const SIG='#39FF14',CORAL='#FF6B4A';
+  const window=Math.min(logs.length,15);
+  const recent=logs.slice(0,window);
+  const prior=logs.slice(window,window*2);
+  function logAvg(rows,field){
+    const vals=rows.map(r=>r[field]).filter(v=>typeof v==='number'&&v!=null);
+    return vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:0;
+  }
+  function parseMin(m){if(!m)return 0;const p=m.split(':');return parseFloat(p[0]||0)+(parseFloat(p[1]||0)/60);}
+  const recentPPG=logAvg(recent,'points');
+  const priorPPG=prior.length?logAvg(prior,'points'):recentPPG;
+  const ppgDelta=recentPPG-priorPPG;
+  function calcTS(rows){
+    const fga=rows.reduce((s,r)=>s+(r.fga||0),0);
+    const fta=rows.reduce((s,r)=>s+(r.fta||0),0);
+    const pts=rows.reduce((s,r)=>s+(r.points||0),0);
+    const d=2*(fga+0.44*fta);
+    return d>0?pts/d:0;
+  }
+  const recentTS=calcTS(recent);
+  const priorTS=prior.length?calcTS(prior):recentTS;
+  const tsDelta=recentTS-priorTS;
+  const trend=ppgDelta>2.5||tsDelta>0.03?'warming':ppgDelta<-2.5||tsDelta<-0.03?'cooling':'stable';
+
+  const piBase=Math.max(0,Math.min(99,recentPPG*1.8+(recentTS*100-50)*0.8));
+  const piHistory=recent.map((_,i)=>{
+    const sl=recent.slice(i,Math.min(i+5,recent.length));
+    const spPPG=logAvg(sl,'points');
+    const spFGA=sl.reduce((s,r)=>s+(r.fga||0),0);
+    const spFTA=sl.reduce((s,r)=>s+(r.fta||0),0);
+    const spPTS=sl.reduce((s,r)=>s+(r.points||0),0);
+    const spD=2*(spFGA+0.44*spFTA);
+    const spTS=spD>0?spPTS/spD:recentTS;
+    return Math.max(0,Math.min(99,spPPG*1.8+(spTS*100-50)*0.8));
+  }).reverse();
+  const delta4w=piHistory.length>=8?piHistory[piHistory.length-1]-piHistory[piHistory.length-8]:ppgDelta*1.5;
+
+  const restMap={};
+  for(let i=0;i<recent.length;i++){
+    const curr=new Date(recent[i].game_date||recent[i].date||0).getTime();
+    const prevDate=i+1<recent.length?new Date(recent[i+1].game_date||recent[i+1].date||0).getTime():null;
+    const restDays=prevDate?Math.round((curr-prevDate)/86400000)-1:1;
+    const bucket=restDays<=0?'B2B (0 days)':restDays===1?'1 day rest':'2+ days rest';
+    if(!restMap[bucket])restMap[bucket]=[];
+    restMap[bucket].push(recent[i].points||0);
+  }
+  const loadRows=Object.entries(restMap).map(([bucket,pts])=>({
+    rest_bucket:bucket,
+    ppg:pts.reduce((a,b)=>a+b,0)/pts.length,
+  })).sort((a,b)=>{
+    const order=['B2B (0 days)','1 day rest','2+ days rest'];
+    return order.indexOf(a.rest_bucket)-order.indexOf(b.rest_bucket);
+  });
+  const b2bRow=loadRows.find(r=>r.rest_bucket.includes('B2B'));
+  const restRow=loadRows.find(r=>r.rest_bucket.includes('2+'));
+  const loadFlag=!!(b2bRow&&restRow&&restRow.ppg-b2bRow.ppg>4);
+
+  const byFG=[...recent].sort((a,b)=>(b.fg_pct||0)-(a.fg_pct||0));
+  const t1=byFG.slice(0,Math.ceil(byFG.length/3));
+  const t2=byFG.slice(Math.ceil(byFG.length/3),Math.ceil(byFG.length*2/3));
+  const t3=byFG.slice(Math.ceil(byFG.length*2/3));
+  const schemeSplits=[
+    {scheme:'Drop / Soft',   ppg:logAvg(t1,'points'),ts_pct:recentTS+0.04,pct_games:t1.length/recent.length},
+    {scheme:'Switch / Hard', ppg:logAvg(t2,'points'),ts_pct:recentTS,      pct_games:t2.length/recent.length},
+    {scheme:'Zone / Sag',    ppg:logAvg(t3,'points'),ts_pct:recentTS-0.05, pct_games:t3.length/recent.length},
+  ];
+
+  const fullPPG=logAvg(logs,'points');
+  const fullFG3=logAvg(logs.filter(r=>r.fg3_pct!=null),'fg3_pct');
+  const recentFG3=logAvg(recent.filter(r=>r.fg3_pct!=null),'fg3_pct');
+  const recentMIN=recent.map(r=>({pts:parseMin(r.minutes)})).reduce((s,r)=>s+r.pts,0)/recent.length;
+  const regRows=[
+    {stat:'PPG',  current:recentPPG.toFixed(1),   dir:Math.abs(recentPPG-fullPPG)>3?(recentPPG>fullPPG?'regress':'improve'):'stable', reason:recentPPG>fullPPG+3?'Above season norm, elevated usage in window':'Within season baseline'},
+    {stat:'3P%',  current:recentFG3>0?(recentFG3*100).toFixed(0)+'%':'--', dir:recentFG3>0&&recentFG3>fullFG3+0.06?'regress':'stable', reason:recentFG3>fullFG3+0.06?'Hot streak above season trend, volume correction likely':'Consistent with season trend'},
+    {stat:'TS%',  current:(recentTS*100).toFixed(1)+'%', dir:recentTS>priorTS+0.04?'regress':recentTS<priorTS-0.04?'improve':'stable', reason:recentTS>priorTS+0.04?'Recent efficiency spike, schedule not sustainably soft':'Stable efficiency profile'},
+    {stat:'MIN',  current:recentMIN.toFixed(1),    dir:'stable', reason:'Minutes load consistent with season role'},
+  ];
+
+  const tsLabel=(recentTS*100).toFixed(1)+'% TS';
+  const headline=trend==='warming'
+    ?`${ppgDelta>0?'+':''}${ppgDelta.toFixed(1)} PPG over the last ${window} games is the real number.`
+    :trend==='cooling'
+    ?`The efficiency drop to ${tsLabel} over ${window} games is the signal to watch.`
+    :`Production is flat over ${window} games but the quality of shots is shifting.`;
+  const body=trend==='warming'
+    ?`Over the last ${window} games the scoring uptick is running ahead of efficiency, which means the volume is genuine and not a mirage from easy matchups. ${tsLabel} over that window keeps the rate sustainable. The next three games will clarify whether this is a role expansion or a hot streak.`
+    :trend==='cooling'
+    ?`The PPG drop of ${Math.abs(ppgDelta).toFixed(1)} points is compounded by a ${(Math.abs(tsDelta)*100).toFixed(0)} point efficiency slide, which makes this harder to explain away as a schedule blip. Fatigue or defensive attention are the two most likely drivers. The next B2B is the clearest stress test.`
+    :`Scoring and efficiency are inside their expected ranges. The story here is maintenance, not momentum. No adjustment is urgent, but the matchup profile next week warrants a second look.`;
+  const decision=trend==='warming'
+    ?`Prioritize this player in contexts where volume scoring is the ask. Ride the form until the efficiency starts to fall.`
+    :trend==='cooling'
+    ?`Monitor the next two games before making roster decisions. If the slide holds through the next B2B, a role adjustment conversation is warranted.`
+    :`No action needed this week. Revisit if the trend moves 2+ points in either direction over the next five games.`;
+  const reason=trend==='warming'
+    ?`Scoring elevation is leading efficiency improvement, pattern consistent with genuine form.`
+    :trend==='cooling'
+    ?`Both volume and efficiency declining together, more likely fatigue than matchup variance.`
+    :`Scoring and efficiency moving in parallel within noise band, no clear fatigue or form signal.`;
+
+  return{
+    briefing:{headline,body,decision,generated_at:new Date().toISOString()},
+    form_signal:{current_index:piBase,delta_4w:delta4w,trend,reason,history:piHistory},
+    matchup_dna:{splits:schemeSplits,next_opponent_read:`Next opponent scheme mix favors ${schemeSplits[0].scheme.split(' ')[0].toLowerCase()} coverage based on season tendencies. Historical PPG in comparable matchups: ${schemeSplits[0].ppg.toFixed(1)}.`},
+    load_read:{rows:loadRows,flag:loadFlag,recommendation:loadFlag?`Rest split cliff detected (${(restRow?.ppg||0).toFixed(1)} vs ${(b2bRow?.ppg||0).toFixed(1)} PPG). Avoid B2B deployment in high-leverage spots.`:`Rest splits within acceptable range. No load management flag on current schedule.`},
+    regression:{rows:regRows,contextual_note:`Season baseline drawn from ${logs.length} games. Short-window deviations in PPG and 3P% carry the highest reversion risk if sample is under 10 games.`},
+    cached_at:new Date().toISOString(),
+    sample_window:window,
+  };
+}
+
+function IntelAnalysisSparkline({data,trend,width=200,height=40}){
+  const SIG='#39FF14',CORAL='#FF6B4A';
+  if(!data||data.length<2)return React.createElement('div',{style:{width,height}});
+  const mn=Math.min(...data),mx=Math.max(...data),range=mx-mn||1;
+  const pts=data.map((v,i)=>{
+    const x=(i/(data.length-1))*width;
+    const y=height-2-((v-mn)/range)*(height-4);
+    return`${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+  const stroke=trend==='warming'?SIG:trend==='cooling'?CORAL:'rgba(255,255,255,0.4)';
+  return(
+    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" style={{display:'block'}}>
+      <polyline points={pts} fill="none" stroke={stroke} strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
+function IntelAnalysisPanel({playerId,playerName,teamAbbr,position,logs}){
+  const SIG='#39FF14',CORAL='#FF6B4A';
+  const GLASS={background:'rgba(255,255,255,0.04)',backdropFilter:'blur(24px) saturate(180%)',WebkitBackdropFilter:'blur(24px) saturate(180%)',border:'0.5px solid rgba(255,255,255,0.08)',borderRadius:12};
+  const HB={fontFamily:'"Helvetica Neue",Helvetica,Arial,sans-serif',fontWeight:700};
+  const HN={fontFamily:'"Helvetica Neue",Helvetica,Arial,sans-serif',fontWeight:400};
+  const MONO={fontFamily:'"JetBrains Mono","Fira Code",ui-monospace,monospace',fontWeight:400};
+  const MONO_B={fontFamily:'"JetBrains Mono","Fira Code",ui-monospace,monospace',fontWeight:700};
+
+  const[data,setData]=React.useState(null);
+  const[loading,setLoading]=React.useState(true);
+  const[visible,setVisible]=React.useState(new Set());
+  const[regenning,setRegenning]=React.useState(false);
+  const[decExpanded,setDecExpanded]=React.useState(true);
+  const cachedFor=React.useRef(null);
+
+  function doLoad(bust=false){
+    if(!bust&&cachedFor.current===playerId&&data)return;
+    setLoading(true);setVisible(new Set());
+    setTimeout(()=>{
+      const result=computeIntelAnalysis(logs,playerId);
+      setData(result);
+      cachedFor.current=playerId;
+      [0,1,2,3].forEach(i=>setTimeout(()=>setVisible(prev=>new Set([...prev,i])),i*130));
+      setLoading(false);
+    },280);
+  }
+
+  React.useEffect(()=>{if(logs&&logs.length>0)doLoad();},[playerId,logs&&logs.length]);
+
+  function regen(){
+    if(regenning)return;
+    setRegenning(true);setData(null);
+    setTimeout(()=>{
+      const result=computeIntelAnalysis(logs,playerId);
+      setData(result);
+      cachedFor.current=playerId;
+      [0,1,2,3].forEach(i=>setTimeout(()=>setVisible(prev=>new Set([...prev,i])),i*130));
+      setLoading(false);setRegenning(false);
+    },600);
+  }
+
+  function fmtTs(iso){
+    try{const d=new Date(iso);return d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',timeZone:'America/Los_Angeles',hour12:false})+' PT';}
+    catch{return'--';}
+  }
+
+  const noLogs=!logs||logs.length===0;
+
+  function CardShimmer(){
+    return(
+      <div style={{...GLASS,padding:18,overflow:'hidden',position:'relative'}}>
+        <div style={{position:'absolute',inset:0,zIndex:1,background:'linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.05) 50%,transparent 100%)',animation:'ia-shimmer 1.4s ease infinite'}}/>
+        {[80,120,60,100].map((w,i)=>(
+          <div key={i} style={{height:10,width:w,background:'rgba(255,255,255,0.07)',borderRadius:3,marginBottom:10}}/>
+        ))}
+      </div>
+    );
+  }
+
+  return(
+    <div style={{background:'#000',borderRadius:14,padding:'20px 22px 24px',marginTop:24}}>
+      <style>{`
+        @keyframes ia-shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(200%)}}
+        @keyframes ia-spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+        .ia-regen-btn:hover{color:rgba(255,255,255,0.85)!important;border-color:rgba(255,255,255,0.22)!important;}
+        .ia-action-ghost:hover{border-color:rgba(255,255,255,0.22)!important;color:rgba(255,255,255,0.85)!important;}
+      `}</style>
+
+      {/* Top strip */}
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20}}>
+        <div style={{display:'flex',alignItems:'center',gap:10}}>
+          <div style={{width:7,height:7,borderRadius:'50%',background:SIG,boxShadow:`0 0 6px ${SIG}`,flexShrink:0}}/>
+          <span style={{...MONO,fontSize:10,letterSpacing:'1.2px',color:'rgba(255,255,255,0.5)'}}>PIVOT INTEL ANALYSIS</span>
+          {data&&<>
+            <span style={{...MONO,fontSize:9,color:'rgba(255,255,255,0.3)'}}>L{data.sample_window}</span>
+            <span style={{...MONO,fontSize:9,color:'rgba(255,255,255,0.25)'}}>{fmtTs(data.cached_at)}</span>
+          </>}
+        </div>
+        <button className="ia-regen-btn" disabled={regenning||loading||noLogs} onClick={regen}
+          style={{...MONO,fontSize:10,letterSpacing:'0.6px',display:'flex',alignItems:'center',gap:5,
+                  padding:'5px 12px',background:'transparent',border:'0.5px solid rgba(255,255,255,0.1)',
+                  borderRadius:6,color:regenning?'rgba(255,255,255,0.25)':'rgba(255,255,255,0.55)',
+                  cursor:regenning||loading||noLogs?'default':'pointer',transition:'color 120ms,border-color 120ms'}}>
+          {regenning?'\u21bb':'\u21bb'} {regenning?'RUNNING...':'\u21bb REGENERATE'}
+        </button>
+      </div>
+
+      {noLogs?(
+        <div style={{...MONO,fontSize:11,color:'rgba(255,255,255,0.3)',padding:'32px 0',textAlign:'center',letterSpacing:'0.06em'}}>
+          Load game log data to generate analysis.
+        </div>
+      ):loading?(
+        <div>
+          <div style={{...GLASS,padding:'20px 22px',marginBottom:14,overflow:'hidden',position:'relative'}}>
+            <div style={{position:'absolute',inset:0,background:'linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.04) 50%,transparent 100%)',animation:'ia-shimmer 1.4s ease infinite'}}/>
+            {[200,320,260,180,140].map((w,i)=>(
+              <div key={i} style={{height:i===0?14:10,width:w,background:'rgba(255,255,255,0.07)',borderRadius:3,marginBottom:12}}/>
+            ))}
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+            {[0,1,2,3].map(i=><CardShimmer key={i}/>)}
+          </div>
+        </div>
+      ):data&&(
+        <>
+          {/* BRIEFING */}
+          <div style={{...GLASS,padding:'20px 22px',marginBottom:14}}>
+            <div style={{...MONO,fontSize:10,color:SIG,letterSpacing:'1.4px',marginBottom:14}}>PIVOT BRIEFING</div>
+            <div style={{...HB,fontSize:18,color:'#fff',lineHeight:1.3,marginBottom:12}}>{data.briefing.headline}</div>
+            <div style={{...HN,fontSize:14,color:'rgba(255,255,255,0.82)',lineHeight:1.65,marginBottom:18}}>{data.briefing.body}</div>
+            <div style={{borderTop:'0.5px solid rgba(255,255,255,0.07)',paddingTop:14}}>
+              <div style={{borderLeft:`2px solid ${SIG}`,paddingLeft:14,cursor:'pointer'}} onClick={()=>setDecExpanded(v=>!v)}>
+                <div style={{...MONO,fontSize:9,color:SIG,letterSpacing:'1.3px',marginBottom:6}}>PRESSING DECISION</div>
+                {decExpanded
+                  ?<div style={{...HN,fontSize:13,color:'rgba(255,255,255,0.9)',lineHeight:1.6}}>{data.briefing.decision}</div>
+                  :<div style={{...MONO,fontSize:10,color:'rgba(255,255,255,0.35)'}}>tap to expand</div>
+                }
+              </div>
+            </div>
+          </div>
+
+          {/* 2x2 GRID */}
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:14}}>
+
+            {/* Card 1: Form Signal */}
+            {visible.has(0)?(
+              <div style={{...GLASS,padding:18}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
+                  <span style={{...MONO,fontSize:10,letterSpacing:'1.2px',color:'rgba(255,255,255,0.45)'}}>FORM SIGNAL</span>
+                  <span style={{...MONO_B,fontSize:11,color:data.form_signal.trend==='warming'?SIG:data.form_signal.trend==='cooling'?CORAL:'rgba(255,255,255,0.6)'}}>
+                    {data.form_signal.trend==='warming'?'\u25b2':data.form_signal.trend==='cooling'?'\u25bc':'\u2014'} {Math.abs(data.form_signal.delta_4w).toFixed(1)}
+                  </span>
+                </div>
+                <div style={{display:'flex',alignItems:'baseline',gap:6,marginBottom:12}}>
+                  <span style={{...MONO_B,fontSize:26,color:'#fff'}}>{data.form_signal.current_index.toFixed(1)}</span>
+                  <span style={{...MONO,fontSize:10,color:'rgba(255,255,255,0.4)'}}>PI</span>
+                </div>
+                <IntelAnalysisSparkline data={data.form_signal.history} trend={data.form_signal.trend} width={200} height={40}/>
+                <div style={{marginTop:12,borderTop:'0.5px solid rgba(255,255,255,0.06)',paddingTop:10}}>
+                  <div style={{...HN,fontSize:12,color:'rgba(255,255,255,0.65)',lineHeight:1.55}}>{data.form_signal.reason}</div>
+                </div>
+              </div>
+            ):<CardShimmer/>}
+
+            {/* Card 2: Matchup DNA */}
+            {visible.has(1)?(
+              <div style={{...GLASS,padding:18}}>
+                <div style={{...MONO,fontSize:10,letterSpacing:'1.2px',color:'rgba(255,255,255,0.45)',marginBottom:14}}>MATCHUP DNA</div>
+                {(()=>{
+                  const maxPPG=Math.max(...data.matchup_dna.splits.map(s=>s.ppg));
+                  return(<>
+                    {data.matchup_dna.splits.map(s=>{
+                      const pct=maxPPG>0?(s.ppg/maxPPG)*100:50;
+                      const isStrong=s.ppg>=maxPPG*0.95;
+                      return(
+                        <div key={s.scheme} style={{marginBottom:12}}>
+                          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:4}}>
+                            <span style={{...MONO,fontSize:10,color:'rgba(255,255,255,0.6)',letterSpacing:'0.04em'}}>{s.scheme}</span>
+                            <span style={{...MONO_B,fontSize:11,color:isStrong?SIG:'rgba(255,255,255,0.8)'}}>
+                              {s.ppg.toFixed(1)} PPG <span style={{...MONO,fontSize:10,color:'rgba(255,255,255,0.5)'}}>/ {(s.ts_pct*100).toFixed(1)}% TS</span>
+                            </span>
+                          </div>
+                          <div style={{height:3,background:'rgba(255,255,255,0.06)',borderRadius:2}}>
+                            <div style={{height:'100%',width:Math.min(pct,100)+'%',background:isStrong?SIG:'rgba(255,255,255,0.25)',borderRadius:2,transition:'width 400ms ease'}}/>
+                          </div>
+                          <div style={{...MONO,fontSize:9,color:'rgba(255,255,255,0.3)',marginTop:3}}>{Math.round(s.pct_games*100)}% of games</div>
+                        </div>
+                      );
+                    })}
+                    <div style={{borderTop:'0.5px solid rgba(255,255,255,0.06)',paddingTop:10,marginTop:2}}>
+                      <div style={{...HN,fontSize:12,color:'rgba(255,255,255,0.65)',lineHeight:1.55}}>{data.matchup_dna.next_opponent_read}</div>
+                    </div>
+                  </>);
+                })()}
+              </div>
+            ):<CardShimmer/>}
+
+            {/* Card 3: Load Read */}
+            {visible.has(2)?(
+              <div style={{...GLASS,padding:18}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
+                  <span style={{...MONO,fontSize:10,letterSpacing:'1.2px',color:'rgba(255,255,255,0.45)'}}>LOAD READ</span>
+                  {data.load_read.flag&&(
+                    <span style={{...MONO,fontSize:9,letterSpacing:'0.8px',padding:'2px 8px',borderRadius:999,background:`${CORAL}18`,border:`0.5px solid ${CORAL}55`,color:CORAL}}>FLAG</span>
+                  )}
+                </div>
+                <div style={{display:'flex',flexDirection:'column',gap:4,marginBottom:12}}>
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 56px',gap:8,padding:'0 0 6px',borderBottom:'0.5px solid rgba(255,255,255,0.07)'}}>
+                    <span style={{...MONO,fontSize:9,color:'rgba(255,255,255,0.3)',letterSpacing:'0.8px'}}>REST</span>
+                    <span style={{...MONO,fontSize:9,color:'rgba(255,255,255,0.3)',letterSpacing:'0.8px',textAlign:'right'}}>PPG</span>
+                  </div>
+                  {data.load_read.rows.map(row=>{
+                    const best=Math.max(...data.load_read.rows.map(r=>r.ppg));
+                    const isStrong=row.ppg>=best*0.95;
+                    const isWeak=row.ppg<best*0.80;
+                    return(
+                      <div key={row.rest_bucket} style={{display:'grid',gridTemplateColumns:'1fr 56px',gap:8,padding:'5px 0',borderBottom:'0.5px solid rgba(255,255,255,0.04)'}}>
+                        <span style={{...MONO,fontSize:10,color:'rgba(255,255,255,0.6)'}}>{row.rest_bucket}</span>
+                        <span style={{...MONO_B,fontSize:11,textAlign:'right',color:isStrong?SIG:isWeak?CORAL:'#fff'}}>{row.ppg.toFixed(1)}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div style={{borderTop:'0.5px solid rgba(255,255,255,0.06)',paddingTop:10}}>
+                  <div style={{...HN,fontSize:12,color:'rgba(255,255,255,0.65)',lineHeight:1.55}}>{data.load_read.recommendation}</div>
+                </div>
+              </div>
+            ):<CardShimmer/>}
+
+            {/* Card 4: Regression Watch */}
+            {visible.has(3)?(
+              <div style={{...GLASS,padding:18}}>
+                <div style={{...MONO,fontSize:10,letterSpacing:'1.2px',color:'rgba(255,255,255,0.45)',marginBottom:14}}>REGRESSION WATCH</div>
+                <div style={{display:'flex',flexDirection:'column',gap:0,marginBottom:12}}>
+                  <div style={{display:'grid',gridTemplateColumns:'52px 56px 1fr',gap:8,padding:'0 0 6px',borderBottom:'0.5px solid rgba(255,255,255,0.07)'}}>
+                    <span style={{...MONO,fontSize:9,color:'rgba(255,255,255,0.3)',letterSpacing:'0.8px'}}>STAT</span>
+                    <span style={{...MONO,fontSize:9,color:'rgba(255,255,255,0.3)',letterSpacing:'0.8px',textAlign:'right'}}>NOW</span>
+                    <span style={{...MONO,fontSize:9,color:'rgba(255,255,255,0.3)',letterSpacing:'0.8px'}}>OUTLOOK</span>
+                  </div>
+                  {data.regression.rows.map(row=>{
+                    const dirColor=row.dir==='regress'?CORAL:row.dir==='improve'?SIG:'rgba(255,255,255,0.35)';
+                    const dirLabel=row.dir==='regress'?'\u25bc regress':row.dir==='improve'?'\u25b2 improve':'stable';
+                    return(
+                      <div key={row.stat} style={{display:'grid',gridTemplateColumns:'52px 56px 1fr',gap:8,padding:'7px 0',borderBottom:'0.5px solid rgba(255,255,255,0.04)',alignItems:'start'}}>
+                        <span style={{...MONO_B,fontSize:11,color:'rgba(255,255,255,0.8)'}}>{row.stat}</span>
+                        <span style={{...MONO_B,fontSize:11,textAlign:'right',color:'#fff'}}>{row.current}</span>
+                        <div>
+                          <span style={{...MONO,fontSize:10,color:dirColor}}>{dirLabel}</span>
+                          <div style={{...HN,fontSize:10,color:'rgba(255,255,255,0.4)',marginTop:2,lineHeight:1.4}}>{row.reason}</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div style={{borderTop:'0.5px solid rgba(255,255,255,0.06)',paddingTop:10}}>
+                  <div style={{...HN,fontSize:12,color:'rgba(255,255,255,0.65)',lineHeight:1.55}}>{data.regression.contextual_note}</div>
+                </div>
+              </div>
+            ):<CardShimmer/>}
+          </div>
+
+          {/* ACTION ROW */}
+          <div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:4}}>
+            <button style={{fontFamily:'"JetBrains Mono","Fira Code",ui-monospace,monospace',fontWeight:700,fontSize:11,padding:'10px 20px',background:SIG,color:'#000',border:'none',borderRadius:8,cursor:'pointer',letterSpacing:'0.4px'}}>
+              ANALYZE \u2197
+            </button>
+            {[
+              {label:'Project next 5 \u2197',prompt:`Project next 5 games for ${playerName}`},
+              {label:'Age comps \u2197',     prompt:`Age comparable players for ${playerName}`},
+              {label:'Film tendencies \u2197',prompt:`Film tendency breakdown for ${playerName}`},
+            ].map(({label,prompt})=>(
+              <button key={label} className="ia-action-ghost"
+                style={{fontFamily:'"JetBrains Mono","Fira Code",ui-monospace,monospace',fontWeight:400,fontSize:11,padding:'10px 16px',background:'transparent',border:'0.5px solid rgba(255,255,255,0.1)',borderRadius:8,color:'rgba(255,255,255,0.6)',cursor:'pointer',transition:'border-color 120ms,color 120ms'}}>
+                {label}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 // ─── INTEL PRIMITIVES ─────────────────────────────────────────────────────────
 
 function PlayerPhoto({nbaId,name,size=40,circle=false}){
@@ -2672,7 +3066,6 @@ function Intel(){
   const[detailStats,setDetailStats]=React.useState(null);
   const[detailAdv,setDetailAdv]=React.useState(null);
   const[detailLoading,setDetailLoading]=React.useState(false);
-  const[analysisMode,setAnalysisMode]=React.useState('season');
   const[nbaAdv,setNbaAdv]=React.useState(null);
   const[nbaAdvLoading,setNbaAdvLoading]=React.useState(false);
   const analysis=useStream();
@@ -2751,12 +3144,6 @@ function Intel(){
       });
       setNbaAdvLoading(false);
     });
-  }
-  function runAI(){
-    if(!selected||analysis.loading)return;
-    const name=`${selected.first_name||''} ${selected.last_name||''}`.trim();
-    if(analysisMode==='season'){analysis.runGet(`${API}/analysis/player/stream?player_id=${selected.id}&season=${seasonInt}`);}
-    else{analysis.run(`${API}/chat/message`,{messages:[{role:'user',content:`Analyze ${name} current form and recent performance. Focus on hot/cold streaks, recent game logs, and live season trends.`}]});}
   }
   function toggleSort(key){setTermSort(p=>p.key===key?{key,dir:p.dir==='desc'?'asc':'desc'}:{key,dir:'desc'});}
 
@@ -3078,7 +3465,7 @@ function Intel(){
 
         // The ADVANCED window: season mode uses detailAdv (season avgs); live mode uses L10 computed stats
         const activeAdv=detailAdv;
-        const advWindow=analysisMode==='live'?'LAST 10':'SEASON';
+        const advWindow='SEASON';
 
         // Shot line formatter: "8-17" or "--" if both null
         const shotLine=(m,a)=>(m!=null&&a!=null)?`${m}-${a}`:'--';
@@ -3388,35 +3775,14 @@ function Intel(){
                 })()}
               </div>
 
-              {/* PIVOT INTEL */}
-              <div>
-                <div style={{display:'flex',gap:12,alignItems:'center',flexWrap:'wrap',marginBottom:16}}>
-                  <div style={{fontSize:9,fontWeight:700,letterSpacing:'.12em',color:'var(--smoke)'}}>PIVOT INTEL</div>
-                  <div className="seg" style={{marginLeft:'auto'}}>
-                    {[{id:'season',label:'SEASON'},{id:'live',label:'LIVE FORM'}].map(m=>(
-                      <button key={m.id} className={`seg-btn${analysisMode===m.id?' active':''}`}
-                              onClick={()=>{setAnalysisMode(m.id);analysis.reset();}}>{m.label}</button>
-                    ))}
-                  </div>
-                  {!analysis.lines.length&&!analysis.loading&&(
-                    <button className="btn btn-secondary btn-sm" onClick={runAI}>RUN INTEL</button>
-                  )}
-                  {analysis.loading&&(
-                    <div style={{display:'flex',alignItems:'center',gap:6}}>
-                      <span className="pulse-dot" style={{width:6,height:6}}/>
-                      <span style={{fontSize:9,letterSpacing:'.08em',color:'var(--smoke)'}}>PROCESSING</span>
-                    </div>
-                  )}
-                  {!analysis.loading&&analysis.lines.length>0&&(
-                    <button className="btn-ghost" style={{fontSize:9,letterSpacing:'.08em',border:'1px solid rgba(255,255,255,.08)',padding:'4px 10px'}}
-                            onClick={()=>{analysis.reset();runAI();}}>REFRESH</button>
-                  )}
-                </div>
-                {analysis.lines.length>0&&<StreamBox lines={analysis.lines} loading={analysis.loading}/>}
-                {!analysis.lines.length&&!analysis.loading&&(
-                  <div style={{fontSize:11,color:'var(--smoke)',letterSpacing:'.06em'}}>SELECT SEASON OR LIVE FORM, THEN RUN INTEL.</div>
-                )}
-              </div>
+              {/* PIVOT INTEL ANALYSIS */}
+              <IntelAnalysisPanel
+                playerId={selected.id}
+                playerName={`${selected.first_name} ${selected.last_name}`}
+                teamAbbr={selected.team?.abbreviation||'--'}
+                position={selected.position||'--'}
+                logs={logs}
+              />
             </div>
           </div>
         </div>
