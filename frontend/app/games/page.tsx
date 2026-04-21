@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 // ─── constants ────────────────────────────────────────────────────────────────
 const BASE =
   process.env.NEXT_PUBLIC_API_URL ||
-  "https://web-production-cb082.up.railway.app/api/v1";
+  "https://pivot-app-production-1eb4.up.railway.app/api/v1";
 const HEL = '"Helvetica Neue", Helvetica, Arial, sans-serif';
 
 const TEAM_TINTS: Record<string, string> = {
@@ -23,9 +23,6 @@ const TEAM_TINTS: Record<string, string> = {
 const SECTIONS = [
   { id: "overview" as const, label: "OVERVIEW" },
   { id: "box"      as const, label: "BOX SCORE" },
-  { id: "pbp"      as const, label: "PLAY BY PLAY" },
-  { id: "shot"     as const, label: "SHOT CHART" },
-  { id: "lineup"   as const, label: "LINEUPS" },
 ];
 
 // ─── types ────────────────────────────────────────────────────────────────────
@@ -83,7 +80,7 @@ interface BoxscoreData {
   home_players: StatLine[];
   away_players: StatLine[];
 }
-type SectionId = "overview" | "box" | "pbp" | "shot" | "lineup";
+type SectionId = "overview" | "box";
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 function parseStatus(status: string): {
@@ -100,7 +97,21 @@ function parseStatus(status: string): {
       isFinal: true,
       label: lower.includes("ot") ? "F/OT" : "FINAL",
     };
-  if (lower === "final") return { isLive: false, isFinal: true, label: "FINAL" };
+  // ISO 8601 scheduled datetime (e.g. "2026-04-22T00:00:00Z")
+  if (/^\d{4}-\d{2}-\d{2}T/.test(s)) {
+    try {
+      const d = new Date(s);
+      const label = d.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+        timeZone: "America/New_York",
+      }).replace(":00", "").replace(" AM", " AM ET").replace(" PM", " PM ET");
+      return { isLive: false, isFinal: false, label };
+    } catch {
+      return { isLive: false, isFinal: false, label: "UPCOMING" };
+    }
+  }
   if (
     lower.includes(" pm") ||
     lower.includes(" am") ||
@@ -121,26 +132,6 @@ function calcTS(pts: number, fg: string, ft: string): number {
   const fta = parseInt((ft ?? "0-0").split("-")[1] ?? "0") || 0;
   const denom = 2 * (fga + 0.44 * fta);
   return denom > 0 ? Math.round((pts / denom) * 1000) / 10 : 0;
-}
-
-function genWpPoints(
-  gameId: number,
-  homeScore: number,
-  awayScore: number,
-): number[] {
-  const n = 19;
-  let s = (gameId * 1664525 + 1013904223) >>> 0;
-  const rand = () => {
-    s = (s * 1664525 + 1013904223) >>> 0;
-    return s / 0x100000000;
-  };
-  const diff = homeScore - awayScore;
-  return Array.from({ length: n }, (_, i) => {
-    const t = i / (n - 1);
-    const drift = t * diff * 1.5;
-    const noise = (rand() - 0.5) * 14 * (1 - t * 0.5);
-    return Math.max(10, Math.min(90, 50 + drift + noise));
-  });
 }
 
 // ─── sub-components ───────────────────────────────────────────────────────────
@@ -382,93 +373,6 @@ function GameTab({
   );
 }
 
-function WinProbChart({
-  pts,
-  awayCode,
-  homeCode,
-  awayPct,
-  homePct,
-  period,
-  isLive,
-}: {
-  pts: number[];
-  awayCode: string;
-  homeCode: string;
-  awayPct: number;
-  homePct: number;
-  period: string;
-  isLive: boolean;
-}) {
-  const W = 720,
-    H = 160,
-    pad = 8;
-  const step = (W - pad * 2) / (pts.length - 1);
-  const toY = (p: number) => pad + ((100 - p) / 100) * (H - pad * 2);
-  const path = pts
-    .map((p, i) => `${i === 0 ? "M" : "L"} ${pad + i * step} ${toY(p)}`)
-    .join(" ");
-  const area = `${path} L ${W - pad} ${H - pad} L ${pad} ${H - pad} Z`;
-
-  return (
-    <Glass padding={0}>
-      <SectionTitle
-        left={`WIN PROBABILITY · ${awayCode} ${awayPct}% · ${homePct}% ${homeCode}`}
-        right={isLive ? `${period} · LIVE` : undefined}
-      />
-      <svg
-        width="100%"
-        viewBox={`0 0 ${W} ${H}`}
-        preserveAspectRatio="none"
-        style={{ display: "block", height: 160 }}
-        aria-hidden="true"
-      >
-        <defs>
-          <linearGradient id="wp-grad" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stopColor="#00FF66" stopOpacity="0.35" />
-            <stop offset="100%" stopColor="#00FF66" stopOpacity="0" />
-          </linearGradient>
-        </defs>
-        <line
-          x1={pad}
-          x2={W - pad}
-          y1={H / 2}
-          y2={H / 2}
-          stroke="rgba(255,255,255,0.12)"
-          strokeDasharray="2 4"
-        />
-        {[1, 2, 3].map((q) => (
-          <line
-            key={q}
-            x1={pad + (q * (W - pad * 2)) / 4}
-            x2={pad + (q * (W - pad * 2)) / 4}
-            y1={pad}
-            y2={H - pad}
-            stroke="rgba(255,255,255,0.10)"
-            strokeDasharray="2 4"
-          />
-        ))}
-        <path d={area} fill="url(#wp-grad)" />
-        <path d={path} fill="none" stroke="#00FF66" strokeWidth="1.75" />
-        {["Q1", "Q2", "Q3", "Q4"].map((q, i) => (
-          <text
-            key={q}
-            x={pad + ((i + 0.5) * (W - pad * 2)) / 4}
-            y={H - 2}
-            fontSize="10"
-            fill="rgba(255,255,255,0.4)"
-            textAnchor="middle"
-            fontFamily={HEL}
-            fontWeight="700"
-            letterSpacing="1"
-          >
-            {q}
-          </text>
-        ))}
-      </svg>
-    </Glass>
-  );
-}
-
 function BoxTable({
   teamAbbr,
   teamCity,
@@ -644,7 +548,7 @@ function StartersPanel({
   teamCode: string;
   players: StatLine[];
 }) {
-  const top5 = players.slice(0, 5);
+  const top5 = [...players].sort((a, b) => b.pts - a.pts).slice(0, 5);
   return (
     <Glass padding={0}>
       <div
@@ -735,65 +639,6 @@ function StartersPanel({
   );
 }
 
-function ShotChart({
-  teamCode,
-  color,
-}: {
-  teamCode: string;
-  color: string;
-}) {
-  const W = 280,
-    H = 240;
-  const shots = [
-    { x: 140, y: 210, m: 1 }, { x: 100, y: 200, m: 0 }, { x: 180, y: 200, m: 1 },
-    { x: 60,  y: 150, m: 1 }, { x: 220, y: 150, m: 0 }, { x: 140, y: 120, m: 1 },
-    { x: 90,  y: 100, m: 1 }, { x: 190, y: 100, m: 0 }, { x: 40,  y: 80,  m: 0 },
-    { x: 240, y: 85,  m: 1 }, { x: 140, y: 60,  m: 1 }, { x: 110, y: 50,  m: 0 },
-    { x: 170, y: 50,  m: 1 }, { x: 140, y: 170, m: 1 }, { x: 75,  y: 175, m: 0 },
-  ];
-  return (
-    <svg
-      viewBox={`0 0 ${W} ${H}`}
-      style={{ display: "block", width: "100%" }}
-      aria-hidden="true"
-    >
-      <rect
-        x="4" y="4" width={W - 8} height={H - 8}
-        fill="none" stroke="rgba(255,255,255,0.1)"
-      />
-      <rect
-        x={W / 2 - 30} y={H - 68} width="60" height="64"
-        fill="none" stroke="rgba(255,255,255,0.15)"
-      />
-      <path
-        d={`M ${W / 2 - 30} ${H - 68} A 30 30 0 0 1 ${W / 2 + 30} ${H - 68}`}
-        fill="none" stroke="rgba(255,255,255,0.15)"
-      />
-      <path
-        d={`M 22 ${H - 4} L 22 ${H - 70} A ${W / 2 - 22} ${W / 2 - 22} 0 0 1 ${W - 22} ${H - 70} L ${W - 22} ${H - 4}`}
-        fill="none" stroke="rgba(255,255,255,0.15)"
-      />
-      <circle cx={W / 2} cy={H - 16} r="5" fill="none" stroke="rgba(255,255,255,0.35)" />
-      {shots.map((s, i) =>
-        s.m ? (
-          <circle key={i} cx={s.x} cy={s.y} r="4" fill={color} opacity="0.95" />
-        ) : (
-          <g key={i} opacity="0.55">
-            <line x1={s.x - 3} y1={s.y - 3} x2={s.x + 3} y2={s.y + 3} stroke="rgba(255,255,255,0.6)" strokeWidth="1.2" />
-            <line x1={s.x - 3} y1={s.y + 3} x2={s.x + 3} y2={s.y - 3} stroke="rgba(255,255,255,0.6)" strokeWidth="1.2" />
-          </g>
-        ),
-      )}
-      <text
-        x="10" y="18" fill="rgba(255,255,255,0.55)" fontSize="11"
-        fontFamily={HEL} fontWeight="700" letterSpacing="1.4"
-      >
-        {teamCode}
-      </text>
-    </svg>
-  );
-}
-
 function Ticker({ games }: { games: ApiGame[] }) {
   if (games.length === 0) return null;
   const items = games.map((g) => {
@@ -807,6 +652,7 @@ function Ticker({ games }: { games: ApiGame[] }) {
       isLive,
     };
   });
+  const anyLive = items.some((item) => item.isLive);
   // Duplicate for seamless loop
   const all = [...items, ...items];
 
@@ -841,17 +687,17 @@ function Ticker({ games }: { games: ApiGame[] }) {
           flexShrink: 0,
         }}
       >
-        <span className="pv-pulse-dot" style={{ width: 6, height: 6 }} />
+        {anyLive && <span className="pv-pulse-dot" style={{ width: 6, height: 6 }} />}
         <span
           style={{
             fontFamily: HEL,
             fontWeight: 700,
             fontSize: 11,
             letterSpacing: "0.1em",
-            color: "#00FF66",
+            color: anyLive ? "#00FF66" : "rgba(255,255,255,0.45)",
           }}
         >
-          LIVE
+          {anyLive ? "LIVE" : "SCORES"}
         </span>
       </div>
       <div
@@ -918,11 +764,14 @@ function GamesContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  const today = new Date().toISOString().slice(0, 10);
+  const dateParam = searchParams.get("date");
+  const selectedDate = dateParam ?? today;
+
   const [games, setGames] = useState<ApiGame[]>([]);
   const [loading, setLoading] = useState(true);
   const [boxscore, setBoxscore] = useState<BoxscoreData | null>(null);
   const [bsLoading, setBsLoading] = useState(false);
-  const [wpPoints, setWpPoints] = useState<number[]>([]);
   const [section, setSection] = useState<SectionId>("overview");
   const prevGameId = useRef<number | null>(null);
 
@@ -932,15 +781,18 @@ function GamesContent() {
     ? (games.find((g) => g.id === Number(gameIdParam)) ?? games[0] ?? null)
     : (games[0] ?? null);
 
-  // Fetch today's games on mount
+  // Fetch games when date changes
   useEffect(() => {
-    const today = new Date().toISOString().slice(0, 10);
-    fetch(`${BASE}/nba/games?date=${today}`)
+    setLoading(true);
+    setGames([]);
+    setBoxscore(null);
+    prevGameId.current = null;
+    fetch(`${BASE}/nba/games?date=${selectedDate}`)
       .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
       .then((data) => setGames(data.games ?? []))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  }, [selectedDate]);
 
   // Fetch boxscore when selected game changes
   useEffect(() => {
@@ -953,17 +805,21 @@ function GamesContent() {
       .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
       .then((data: BoxscoreData) => {
         setBoxscore(data);
-        const hs = data.game_info?.home_team_score ?? 0;
-        const as_ = data.game_info?.away_team_score ?? 0;
-        setWpPoints(genWpPoints(selectedGame.id, hs, as_));
       })
       .catch(() => {})
       .finally(() => setBsLoading(false));
   }, [selectedGame?.id]);
 
   function handleTabClick(id: number) {
-    router.replace(`/games?game=${id}`, { scroll: false });
+    router.replace(`/games?date=${selectedDate}&game=${id}`, { scroll: false });
     setSection("overview");
+  }
+
+  function navDate(delta: number) {
+    const d = new Date(selectedDate + "T12:00:00");
+    d.setDate(d.getDate() + delta);
+    const next = d.toISOString().slice(0, 10);
+    router.replace(`/games?date=${next}`, { scroll: false });
   }
 
   // Counts
@@ -971,7 +827,7 @@ function GamesContent() {
   const finalCount = games.filter((g) => parseStatus(g.status).isFinal).length;
 
   // Date label
-  const dateLabel = new Date()
+  const dateLabel = new Date(selectedDate + "T12:00:00")
     .toLocaleDateString("en-US", {
       weekday: "short",
       month: "short",
@@ -997,10 +853,6 @@ function GamesContent() {
   const awayAbbr = selectedGame?.visitor_team.abbreviation ?? "";
   const homeTint = TEAM_TINTS[homeAbbr] ?? "rgba(255,255,255,0.08)";
   const awayTint = TEAM_TINTS[awayAbbr] ?? "rgba(255,255,255,0.08)";
-
-  const lastWp = wpPoints[wpPoints.length - 1] ?? 50;
-  const homePct = Math.round(lastWp);
-  const awayPct = 100 - homePct;
 
   return (
     <div
@@ -1039,18 +891,27 @@ function GamesContent() {
               >
                 GAMES
               </h1>
-              <div
-                style={{
-                  fontFamily: HEL,
-                  fontWeight: 700,
-                  fontSize: 12,
-                  letterSpacing: "0.12em",
-                  color: "rgba(255,255,255,0.55)",
-                  marginTop: 4,
-                }}
-              >
-                {dateLabel}
-                {selectedGame?.postseason ? " · PLAYOFFS" : ""}
+              {/* Date navigation */}
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8 }}>
+                <button
+                  onClick={() => navDate(-1)}
+                  style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 6, color: "#fff", cursor: "pointer", fontFamily: HEL, fontWeight: 700, fontSize: 14, width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", outline: "none" }}
+                  aria-label="Previous day"
+                >‹</button>
+                <input
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => router.replace(`/games?date=${e.target.value}`, { scroll: false })}
+                  style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 6, color: "#fff", fontFamily: HEL, fontWeight: 700, fontSize: 11, letterSpacing: "0.08em", padding: "4px 8px", outline: "none", colorScheme: "dark" }}
+                />
+                <button
+                  onClick={() => navDate(1)}
+                  style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 6, color: "#fff", cursor: "pointer", fontFamily: HEL, fontWeight: 700, fontSize: 14, width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", outline: "none" }}
+                  aria-label="Next day"
+                >›</button>
+                <span style={{ fontFamily: HEL, fontWeight: 700, fontSize: 11, letterSpacing: "0.12em", color: "rgba(255,255,255,0.45)" }}>
+                  {dateLabel}{selectedGame?.postseason ? " · PLAYOFFS" : ""}
+                </span>
               </div>
             </div>
             <div
@@ -1394,7 +1255,7 @@ function GamesContent() {
                     flexShrink: 0,
                   }}
                 >
-                  {new Date(selectedGame.date)
+                  {new Date(selectedGame.date + "T12:00:00")
                     .toLocaleDateString("en-US", {
                       weekday: "short",
                       month: "short",
@@ -1456,36 +1317,6 @@ function GamesContent() {
               >
                 {/* Left column */}
                 <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-                  {wpPoints.length > 0 && (
-                    <WinProbChart
-                      pts={wpPoints}
-                      awayCode={awayAbbr}
-                      homeCode={homeAbbr}
-                      awayPct={awayPct}
-                      homePct={homePct}
-                      period={periodLabel}
-                      isLive={isLive}
-                    />
-                  )}
-                  <Glass padding={0}>
-                    <SectionTitle
-                      left="PLAY BY PLAY"
-                      right={isLive ? `${periodLabel} · LATEST` : undefined}
-                    />
-                    <div
-                      style={{
-                        padding: "20px 18px",
-                        fontFamily: HEL,
-                        fontWeight: 700,
-                        fontSize: 12,
-                        letterSpacing: "0.1em",
-                        color: "rgba(255,255,255,0.3)",
-                        textAlign: "center",
-                      }}
-                    >
-                      PLAY BY PLAY UNAVAILABLE
-                    </div>
-                  </Glass>
                   {bs ? (
                     <Glass padding={0}>
                       <SectionTitle left="BOX SCORE" />
@@ -1561,20 +1392,6 @@ function GamesContent() {
                       </Glass>
                     </>
                   )}
-                  <Glass padding={0}>
-                    <SectionTitle left="SHOT CHART" right="● MAKE  × MISS" />
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "1fr 1fr",
-                        gap: 12,
-                        padding: 16,
-                      }}
-                    >
-                      <ShotChart teamCode={awayAbbr} color={awayTint} />
-                      <ShotChart teamCode={homeAbbr} color={homeTint} />
-                    </div>
-                  </Glass>
                 </div>
               </div>
             )}
@@ -1618,28 +1435,6 @@ function GamesContent() {
               </div>
             )}
 
-            {/* ── Placeholder sections ── */}
-            {(section === "pbp" ||
-              section === "shot" ||
-              section === "lineup") && (
-              <Glass>
-                <div
-                  style={{
-                    fontFamily: HEL,
-                    fontWeight: 700,
-                    fontSize: 12,
-                    letterSpacing: "0.12em",
-                    color: "rgba(255,255,255,0.3)",
-                    textAlign: "center",
-                    padding: 60,
-                  }}
-                >
-                  {section === "pbp" && "PLAY BY PLAY NOT AVAILABLE"}
-                  {section === "shot" && "SHOT CHART · DECORATIVE DATA ONLY"}
-                  {section === "lineup" && "LINEUP DATA COMING SOON"}
-                </div>
-              </Glass>
-            )}
           </div>
         )}
       </div>

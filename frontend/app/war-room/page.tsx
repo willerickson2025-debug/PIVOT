@@ -87,6 +87,9 @@ export default function WarRoomHub() {
         boxSizing: "border-box",
       }}
     >
+      <div style={{ padding: "6px 24px", marginBottom: 0, textAlign: "center", borderBottom: "0.5px solid rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.015)" }}>
+        <span style={{ fontFamily: '"JetBrains Mono","Fira Code",monospace', fontSize: 9, color: "rgba(255,255,255,0.25)", letterSpacing: "0.12em" }}>DATA AS OF 2025-26 REGULAR SEASON · UPDATED MANUALLY</span>
+      </div>
       {/* Header */}
       <div style={{ maxWidth: 1200, margin: "0 auto 40px" }}>
         <p

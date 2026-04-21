@@ -31,6 +31,8 @@ function PlayerColumn({
     return (v * 100).toFixed(1) + "%";
   }
 
+  const isUnavailable = basic.pts === null || basic.pts === undefined;
+
   return (
     <div className="glass" style={{ padding: "20px 24px", flex: 1, minWidth: 0 }}>
       <div className="label" style={{ color: "var(--neon)", marginBottom: 8 }}>
@@ -41,6 +43,17 @@ function PlayerColumn({
         {team} · {position}
       </div>
 
+      {isUnavailable && (
+        <div style={{ marginTop: 20, padding: "16px", background: "var(--graphite)", borderRadius: 8, border: "1px solid var(--wire)", textAlign: "center" }}>
+          <div style={{ color: "var(--smoke)", fontSize: 12, fontWeight: 600, letterSpacing: "0.08em" }}>STATS UNAVAILABLE</div>
+          <div style={{ color: "var(--ash)", fontSize: 11, marginTop: 6, lineHeight: 1.5 }}>
+            This player has not recorded any games this season.
+          </div>
+        </div>
+      )}
+
+      {!isUnavailable && (
+      <>
       {/* Basic */}
       <div
         style={{
@@ -104,6 +117,8 @@ function PlayerColumn({
           </div>
         ))}
       </div>
+      </>
+      )}
     </div>
   );
 }
@@ -125,7 +140,7 @@ export default function CompareForm() {
     startTransition(async () => {
       try {
         const params = new URLSearchParams({ player_a: a, player_b: b, season: "2025" });
-        const BASE = process.env.NEXT_PUBLIC_API_URL || "https://web-production-cb082.up.railway.app/api/v1";
+        const BASE = process.env.NEXT_PUBLIC_API_URL || "https://pivot-app-production-1eb4.up.railway.app/api/v1";
         const res = await fetch(`${BASE}/analysis/compare?${params}`);
         if (!res.ok) {
           const body = await res.text();

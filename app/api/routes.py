@@ -80,7 +80,18 @@ async def get_teams():
 
 
 @router.get("/nba/teams/roster")
-async def get_team_roster(abbr: str = Query(..., description="Team abbreviation, e.g. LAL")):
+async def get_team_roster(
+    abbr: Optional[str] = Query(None, description="Team abbreviation, e.g. LAL"),
+    team_id: Optional[int] = Query(None, description="Team ID (alternate to abbr)"),
+):
+    if abbr is None and team_id is not None:
+        try:
+            team = await nba_service.get_team_by_id(team_id)
+            abbr = team.abbreviation
+        except Exception:
+            raise HTTPException(status_code=404, detail=f"Team {team_id} not found")
+    if abbr is None:
+        raise HTTPException(status_code=400, detail="Provide abbr or team_id")
     try:
         players = await nba_service.get_roster_by_abbr(abbr)
         return {"players": players, "count": len(players)}
@@ -457,7 +468,16 @@ async def player_analysis(
                 raise HTTPException(status_code=400, detail={"error": "player_resolution", "message": str(e), "candidates": getattr(e, "candidates", None)})
         if player_id is None:
             raise HTTPException(status_code=422, detail="Provide player_id or player_name")
-        return await analysis_service.analyze_player(player_id, season)
+        result = await analysis_service.analyze_player(player_id, season)
+        # Add season_status flag for injured/inactive players (H2)
+        if isinstance(result, dict):
+            payload_player = result.get("payload", {}).get("player", {})
+            if isinstance(payload_player, dict):
+                basic = payload_player.get("basic", {})
+                advanced = payload_player.get("advanced", {})
+                if basic.get("pts") is None and (advanced.get("games_played") or 0) > 0:
+                    result["season_status"] = "injured_or_inactive"
+        return result
     except HTTPException:
         raise
     except Exception as e:

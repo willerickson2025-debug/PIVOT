@@ -7,6 +7,9 @@ import { useRouter } from "next/navigation";
 
 const SIG = "#39FF14";
 const CORAL = "#FF6B4A";
+const BASE =
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://pivot-app-production-1eb4.up.railway.app/api/v1";
 
 const HB: React.CSSProperties = {
   fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
@@ -39,56 +42,42 @@ const GLASS_PILL: React.CSSProperties = {
   borderRadius: "999px",
 };
 
+// ── Constants ─────────────────────────────────────────────────────────────────
+
+const TOP_30_PLAYERS = [
+  "Nikola Jokic", "Shai Gilgeous-Alexander", "Giannis Antetokounmpo",
+  "Luka Doncic", "Jayson Tatum", "Anthony Edwards", "Stephen Curry",
+  "Victor Wembanyama", "LeBron James", "Kevin Durant",
+  "Devin Booker", "Donovan Mitchell", "Trae Young", "Ja Morant",
+  "Joel Embiid", "Anthony Davis", "Bam Adebayo", "Darius Garland",
+  "Damian Lillard", "Pascal Siakam", "Zion Williamson", "Cade Cunningham",
+  "Tyrese Haliburton", "Jalen Brunson", "De'Aaron Fox", "Paolo Banchero",
+  "Franz Wagner", "Evan Mobley", "Karl-Anthony Towns", "Jimmy Butler",
+];
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-interface PlayerResult {
-  id: string;
+interface IntelPlayer {
+  name: string;
   slug: string;
-  full_name: string;
-  team_abbr: string;
+  team: string;
   position: string;
-  jersey: string;
-  pivot_index: number;
-  pi_l10_change: number;
-  pi_l10_history: number[];
+  pts: number | null;
+  reb: number | null;
+  ast: number | null;
+  pie: number | null;
 }
 
-// ── Sparkline ─────────────────────────────────────────────────────────────────
+interface SearchResult {
+  id: number;
+  first_name: string;
+  last_name: string;
+  position: string;
+  team?: { abbreviation?: string };
+}
 
-function Sparkline({ data, change }: { data: number[]; change: number }) {
-  if (!data || data.length < 2) return <div style={{ width: 80, height: 24 }} />;
-  const W = 80,
-    H = 24;
-  const min = Math.min(...data);
-  const max = Math.max(...data);
-  const range = max - min || 1;
-  const pts = data
-    .map((v, i) => {
-      const x = (i / (data.length - 1)) * W;
-      const y = H - 2 - ((v - min) / range) * (H - 4);
-      return `${x.toFixed(1)},${y.toFixed(1)}`;
-    })
-    .join(" ");
-  const stroke =
-    change > 0.1 ? SIG : change < -0.1 ? CORAL : "rgba(255,255,255,0.35)";
-  return (
-    <svg
-      width={W}
-      height={H}
-      viewBox={`0 0 ${W} ${H}`}
-      preserveAspectRatio="none"
-      style={{ display: "block", overflow: "visible" }}
-    >
-      <polyline
-        points={pts}
-        fill="none"
-        stroke={stroke}
-        strokeWidth="1.4"
-        strokeLinejoin="round"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
+function nameToSlug(name: string) {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 }
 
 // ── Skeleton row ──────────────────────────────────────────────────────────────
@@ -98,73 +87,22 @@ function SkeletonRow({ idx }: { idx: number }) {
     <div
       className="pivot-top10-row"
       style={{
-        ...GLASS,
-        borderRadius: 0,
-        border: "none",
-        borderBottom: "0.5px solid rgba(255,255,255,0.05)",
         display: "grid",
-        gridTemplateColumns: "32px 1fr 90px 80px 80px",
-        alignItems: "center",
+        borderBottom: "0.5px solid rgba(255,255,255,0.05)",
         padding: "14px 0",
         opacity: Math.max(0.15, 1 - idx * 0.085),
+        alignItems: "center",
       }}
     >
-      <div
-        style={{
-          width: 14,
-          height: 10,
-          background: "rgba(255,255,255,0.08)",
-          borderRadius: 2,
-          marginLeft: 8,
-        }}
-      />
+      <div style={{ width: 14, height: 10, background: "rgba(255,255,255,0.08)", borderRadius: 2, marginLeft: 8 }} />
       <div style={{ paddingRight: 16 }}>
-        <div
-          style={{
-            width: "52%",
-            height: 13,
-            background: "rgba(255,255,255,0.09)",
-            borderRadius: 2,
-            marginBottom: 5,
-          }}
-        />
-        <div
-          style={{
-            width: "36%",
-            height: 10,
-            background: "rgba(255,255,255,0.05)",
-            borderRadius: 2,
-          }}
-        />
+        <div style={{ width: "52%", height: 13, background: "rgba(255,255,255,0.09)", borderRadius: 2, marginBottom: 5 }} />
+        <div style={{ width: "36%", height: 10, background: "rgba(255,255,255,0.05)", borderRadius: 2 }} />
       </div>
-      <div
-        className="pivot-sparkline-cell"
-        style={{
-          width: 80,
-          height: 22,
-          background: "rgba(255,255,255,0.05)",
-          borderRadius: 4,
-          margin: "0 auto",
-        }}
-      />
-      <div
-        style={{
-          width: 34,
-          height: 13,
-          background: "rgba(255,255,255,0.09)",
-          borderRadius: 2,
-          marginLeft: "auto",
-          marginRight: 8,
-        }}
-      />
-      <div
-        style={{
-          width: 38,
-          height: 10,
-          background: "rgba(255,255,255,0.05)",
-          borderRadius: 2,
-        }}
-      />
+      <div style={{ width: 28, height: 13, background: "rgba(255,255,255,0.09)", borderRadius: 2, marginLeft: "auto", marginRight: 8 }} />
+      <div style={{ width: 28, height: 13, background: "rgba(255,255,255,0.09)", borderRadius: 2, marginLeft: "auto", marginRight: 8 }} />
+      <div style={{ width: 28, height: 13, background: "rgba(255,255,255,0.09)", borderRadius: 2, marginLeft: "auto", marginRight: 8 }} />
+      <div style={{ width: 34, height: 13, background: "rgba(255,255,255,0.07)", borderRadius: 2, marginLeft: "auto", marginRight: 8 }} />
     </div>
   );
 }
@@ -178,11 +116,10 @@ export default function IntelPage() {
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<PlayerResult[]>([]);
-  const [totalResults, setTotalResults] = useState(0);
+  const [results, setResults] = useState<SearchResult[]>([]);
   const [focused, setFocused] = useState(false);
   const [selectedIdx, setSelectedIdx] = useState(-1);
-  const [top10, setTop10] = useState<PlayerResult[]>([]);
+  const [top10, setTop10] = useState<IntelPlayer[]>([]);
   const [top10Loading, setTop10Loading] = useState(true);
   const [hoveredRow, setHoveredRow] = useState<number | null>(null);
   const [updateLabel, setUpdateLabel] = useState("");
@@ -201,45 +138,70 @@ export default function IntelPage() {
     setUpdateLabel(`${month}.${day} ${time}`);
   }, []);
 
-  // Fetch top 10 on mount
+  // Fetch top 10: parallel PIE fetch across 30 known players, sort by PIE desc, take 10
   useEffect(() => {
-    fetch("/api/players/top?limit=10&sort=pivot_index")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => {
-        if (d) setTop10(Array.isArray(d) ? d : d.data || []);
-        setTop10Loading(false);
-      })
-      .catch(() => setTop10Loading(false));
+    let cancelled = false;
+    async function load() {
+      try {
+        const fetches = TOP_30_PLAYERS.map((name) =>
+          fetch(`${BASE}/analysis/player?player_name=${encodeURIComponent(name)}&season=2025`)
+            .then((r) => (r.ok ? r.json() : null))
+            .catch(() => null)
+        );
+        const all = await Promise.all(fetches);
+        if (cancelled) return;
+
+        const parsed: IntelPlayer[] = [];
+        all.forEach((d, i) => {
+          if (!d?.payload?.player) return;
+          const pl = d.payload.player;
+          const basic = pl.basic ?? {};
+          const advanced = pl.advanced ?? {};
+          if (basic.pts === null && basic.pts === undefined) return; // no data
+          parsed.push({
+            name: pl.name ?? TOP_30_PLAYERS[i],
+            slug: nameToSlug(pl.name ?? TOP_30_PLAYERS[i]),
+            team: pl.team ?? "",
+            position: pl.position ?? "",
+            pts: basic.pts ?? null,
+            reb: basic.reb ?? null,
+            ast: basic.ast ?? null,
+            pie: advanced.pie ?? null,
+          });
+        });
+
+        parsed.sort((a, b) => (b.pie ?? -1) - (a.pie ?? -1));
+        setTop10(parsed.slice(0, 10));
+      } finally {
+        if (!cancelled) setTop10Loading(false);
+      }
+    }
+    load();
+    return () => { cancelled = true; };
   }, []);
 
-  // Autocomplete
+  // Search: real backend player search
   const doSearch = useCallback((q: string) => {
     if (!q.trim()) {
       setResults([]);
-      setTotalResults(0);
       return;
     }
-    fetch(`/api/players/search?q=${encodeURIComponent(q)}`)
+    fetch(`${BASE}/nba/players?name=${encodeURIComponent(q)}`)
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
         if (!d) return;
-        const items: PlayerResult[] = Array.isArray(d) ? d : d.data || [];
+        const items: SearchResult[] = d.data ?? (Array.isArray(d) ? d : []);
         setResults(items.slice(0, 6));
-        setTotalResults(d.total ?? items.length);
       })
-      .catch(() => {
-        setResults([]);
-        setTotalResults(0);
-      });
+      .catch(() => setResults([]));
   }, []);
 
   useEffect(() => {
     clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => doSearch(query), 120);
+    debounceRef.current = setTimeout(() => doSearch(query), 200);
     return () => clearTimeout(debounceRef.current);
   }, [query, doSearch]);
 
-  // Reset keyboard selection when results change
   useEffect(() => {
     setSelectedIdx(-1);
   }, [results]);
@@ -259,10 +221,7 @@ export default function IntelPage() {
   // Click outside to close dropdown
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(e.target as Node)
-      ) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setFocused(false);
       }
     };
@@ -280,7 +239,8 @@ export default function IntelPage() {
     } else if (e.key === "Enter") {
       e.preventDefault();
       if (selectedIdx >= 0 && results[selectedIdx]) {
-        router.push(`/intel/player/${results[selectedIdx].slug}`);
+        const r = results[selectedIdx];
+        router.push(`/intel/player/${nameToSlug(`${r.first_name} ${r.last_name}`)}`);
       }
     } else if (e.key === "Escape") {
       setFocused(false);
@@ -292,7 +252,6 @@ export default function IntelPage() {
 
   return (
     <>
-      {/* Responsive styles + global overrides for this page */}
       <style>{`
         .pivot-intel-root {
           background: #000;
@@ -304,136 +263,50 @@ export default function IntelPage() {
           color: rgba(255, 255, 255, 0.3);
         }
         .pivot-top10-row {
-          grid-template-columns: 32px 1fr 90px 80px 80px;
+          grid-template-columns: 32px 1fr 52px 52px 52px 72px;
         }
         @media (max-width: 480px) {
           .pivot-top10-row {
-            grid-template-columns: 32px 1fr 80px 80px !important;
+            grid-template-columns: 32px 1fr 52px 52px !important;
           }
-          .pivot-sparkline-cell {
-            display: none !important;
-          }
+          .pivot-hide-sm { display: none !important; }
         }
       `}</style>
 
       <div className="pivot-intel-root" style={{ ...HB, paddingBottom: 64 }}>
 
         {/* ── 1. TOP BAR ──────────────────────────────────────────────────── */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "12px 24px",
-          }}
-        >
-          <span
-            style={{
-              ...MONO,
-              fontSize: 12,
-              color: "rgba(255,255,255,0.6)",
-              letterSpacing: "1px",
-            }}
-          >
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 24px" }}>
+          <span style={{ ...MONO, fontSize: 12, color: "rgba(255,255,255,0.6)", letterSpacing: "1px" }}>
             PIVOT/TERM&nbsp;&nbsp;INTEL
           </span>
           <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-            <div
-              style={{
-                width: 6,
-                height: 6,
-                borderRadius: "50%",
-                background: SIG,
-                boxShadow: `0 0 6px ${SIG}`,
-              }}
-            />
-            <span
-              style={{
-                ...MONO,
-                fontSize: 11,
-                color: SIG,
-                letterSpacing: "1.2px",
-              }}
-            >
-              LIVE
-            </span>
+            <div style={{ width: 6, height: 6, borderRadius: "50%", background: SIG, boxShadow: `0 0 6px ${SIG}` }} />
+            <span style={{ ...MONO, fontSize: 11, color: SIG, letterSpacing: "1.2px" }}>LIVE</span>
           </div>
         </div>
 
         {/* ── 2. HERO ─────────────────────────────────────────────────────── */}
-        <div
-          style={{
-            paddingTop: 128,
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            paddingLeft: 24,
-            paddingRight: 24,
-          }}
-        >
-          {/* Eyebrow */}
-          <div
-            style={{
-              ...MONO,
-              fontSize: 11,
-              color: "rgba(255,255,255,0.4)",
-              letterSpacing: "1.4px",
-              marginBottom: 20,
-            }}
-          >
+        <div style={{ paddingTop: 128, display: "flex", flexDirection: "column", alignItems: "center", paddingLeft: 24, paddingRight: 24 }}>
+          <div style={{ ...MONO, fontSize: 11, color: "rgba(255,255,255,0.4)", letterSpacing: "1.4px", marginBottom: 20 }}>
             PLAYER INTEL
           </div>
 
-          {/* Search wrapper */}
-          <div
-            ref={containerRef}
-            style={{
-              position: "relative",
-              width: "100%",
-              maxWidth: 680,
-            }}
-          >
+          <div ref={containerRef} style={{ position: "relative", width: "100%", maxWidth: 680 }}>
             {/* Search bar */}
             <div
               style={{
                 ...GLASS_PILL,
                 position: "relative",
-                boxShadow: focused
-                  ? `0 0 0 1px ${SIG}, 0 0 48px rgba(57, 255, 20, 0.3)`
-                  : "none",
+                boxShadow: focused ? `0 0 0 1px ${SIG}, 0 0 48px rgba(57, 255, 20, 0.3)` : "none",
                 transition: "box-shadow 160ms ease",
               }}
             >
-              {/* Search icon */}
-              <svg
-                width="22"
-                height="22"
-                viewBox="0 0 22 22"
-                fill="none"
-                style={{
-                  position: "absolute",
-                  left: 28,
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  pointerEvents: "none",
-                  flexShrink: 0,
-                }}
-              >
-                <circle
-                  cx="9.5"
-                  cy="9.5"
-                  r="6.5"
-                  stroke="rgba(255,255,255,0.35)"
-                  strokeWidth="1.5"
-                />
-                <path
-                  d="M14.5 14.5L19.5 19.5"
-                  stroke="rgba(255,255,255,0.35)"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                />
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none"
+                style={{ position: "absolute", left: 28, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}>
+                <circle cx="9.5" cy="9.5" r="6.5" stroke="rgba(255,255,255,0.35)" strokeWidth="1.5" />
+                <path d="M14.5 14.5L19.5 19.5" stroke="rgba(255,255,255,0.35)" strokeWidth="1.5" strokeLinecap="round" />
               </svg>
-
               <input
                 ref={inputRef}
                 type="text"
@@ -461,113 +334,40 @@ export default function IntelPage() {
 
             {/* Autocomplete dropdown */}
             {showDropdown && (
-              <div
-                style={{
-                  ...GLASS,
-                  position: "absolute",
-                  top: "calc(100% + 8px)",
-                  left: 0,
-                  right: 0,
-                  zIndex: 100,
-                  overflow: "hidden",
-                }}
-              >
+              <div style={{ ...GLASS, position: "absolute", top: "calc(100% + 8px)", left: 0, right: 0, zIndex: 100, overflow: "hidden" }}>
                 {results.length === 0 ? (
-                  <div
-                    style={{
-                      ...MONO,
-                      padding: "14px 20px",
-                      fontSize: 12,
-                      color: "rgba(255,255,255,0.4)",
-                      letterSpacing: "0.04em",
-                    }}
-                  >
+                  <div style={{ ...MONO, padding: "14px 20px", fontSize: 12, color: "rgba(255,255,255,0.4)", letterSpacing: "0.04em" }}>
                     No results for &ldquo;{query}&rdquo;
                   </div>
                 ) : (
-                  <>
-                    {results.map((r, i) => {
-                      const active = i === selectedIdx;
-                      return (
-                        <div
-                          key={r.id}
-                          onMouseEnter={() => setSelectedIdx(i)}
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            router.push(`/intel/player/${r.slug}`);
-                          }}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            padding: "12px 20px",
-                            cursor: "pointer",
-                            background: active
-                              ? "rgba(255,255,255,0.06)"
-                              : "transparent",
-                            borderLeft: active
-                              ? `2px solid ${SIG}`
-                              : "2px solid transparent",
-                            transition:
-                              "background 80ms ease, border-color 80ms ease",
-                          }}
-                        >
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div
-                              style={{
-                                ...HB,
-                                fontSize: 14,
-                                color: "#ffffff",
-                                marginBottom: 2,
-                              }}
-                            >
-                              {r.full_name}
-                            </div>
-                            <div
-                              style={{
-                                ...MONO,
-                                fontSize: 11,
-                                color: "rgba(255,255,255,0.6)",
-                                letterSpacing: "0.04em",
-                              }}
-                            >
-                              {r.team_abbr} · {r.position} · #{r.jersey}
-                            </div>
-                          </div>
-                          <div
-                            style={{
-                              ...MONO_B,
-                              fontSize: 13,
-                              color:
-                                r.pivot_index > 85
-                                  ? SIG
-                                  : "rgba(255,255,255,0.6)",
-                              marginLeft: 16,
-                              flexShrink: 0,
-                            }}
-                          >
-                            {r.pivot_index != null
-                              ? r.pivot_index.toFixed(1)
-                              : "--"}
-                          </div>
-                        </div>
-                      );
-                    })}
-
-                    {totalResults > 6 && (
+                  results.map((r, i) => {
+                    const active = i === selectedIdx;
+                    const fullName = `${r.first_name} ${r.last_name}`;
+                    const slug = nameToSlug(fullName);
+                    return (
                       <div
+                        key={r.id}
+                        onMouseEnter={() => setSelectedIdx(i)}
+                        onMouseDown={(e) => { e.preventDefault(); router.push(`/intel/player/${slug}`); }}
                         style={{
-                          ...MONO,
-                          padding: "10px 20px",
-                          borderTop: "0.5px solid rgba(255,255,255,0.06)",
-                          fontSize: 11,
-                          color: "rgba(255,255,255,0.4)",
-                          letterSpacing: "0.04em",
+                          display: "flex",
+                          alignItems: "center",
+                          padding: "12px 20px",
+                          cursor: "pointer",
+                          background: active ? "rgba(255,255,255,0.06)" : "transparent",
+                          borderLeft: active ? `2px solid ${SIG}` : "2px solid transparent",
+                          transition: "background 80ms ease, border-color 80ms ease",
                         }}
                       >
-                        view all {totalResults} matches
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ ...HB, fontSize: 14, color: "#ffffff", marginBottom: 2 }}>{fullName}</div>
+                          <div style={{ ...MONO, fontSize: 11, color: "rgba(255,255,255,0.6)", letterSpacing: "0.04em" }}>
+                            {r.team?.abbreviation ?? "—"} · {r.position || "—"}
+                          </div>
+                        </div>
                       </div>
-                    )}
-                  </>
+                    );
+                  })
                 )}
               </div>
             )}
@@ -575,71 +375,37 @@ export default function IntelPage() {
         </div>
 
         {/* ── 3. TOP 10 ───────────────────────────────────────────────────── */}
-        <div
-          style={{
-            maxWidth: 860,
-            margin: "0 auto",
-            padding: "80px 24px 0",
-          }}
-        >
-          {/* Section header */}
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 16,
-            }}
-          >
-            <span
-              style={{
-                ...MONO,
-                fontSize: 11,
-                color: "rgba(255,255,255,0.6)",
-                letterSpacing: "1.2px",
-              }}
-            >
+        <div style={{ maxWidth: 860, margin: "0 auto", padding: "80px 24px 0" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <span style={{ ...MONO, fontSize: 11, color: "rgba(255,255,255,0.6)", letterSpacing: "1.2px" }}>
               TOP 10 CURRENT
             </span>
-            <span
-              style={{
-                ...MONO,
-                fontSize: 11,
-                color: "rgba(255,255,255,0.4)",
-                letterSpacing: "0.04em",
-              }}
-            >
-              by PIVOT INDEX, L10 form
+            <span style={{ ...MONO, fontSize: 11, color: "rgba(255,255,255,0.4)", letterSpacing: "0.04em" }}>
+              sorted by PIE
             </span>
           </div>
 
           {/* Column headers */}
-          <div
-            className="pivot-top10-row"
-            style={{
-              display: "grid",
-              padding: "0 0 8px",
-              borderBottom: "0.5px solid rgba(255,255,255,0.1)",
-              marginBottom: 0,
-            }}
-          >
+          <div className="pivot-top10-row" style={{ display: "grid", padding: "0 0 8px", borderBottom: "0.5px solid rgba(255,255,255,0.1)" }}>
             {[
-              { label: "#", align: "left" as const },
-              { label: "PLAYER", align: "left" as const },
-              { label: "FORM", align: "center" as const, className: "pivot-sparkline-cell" },
-              { label: "PI", align: "right" as const },
-              { label: "TREND", align: "right" as const },
-            ].map(({ label, align, className }) => (
+              { label: "#", sm: false },
+              { label: "PLAYER", sm: false },
+              { label: "PTS", sm: false },
+              { label: "REB", sm: false },
+              { label: "AST", sm: true },
+              { label: "PIE", sm: true },
+            ].map(({ label, sm }) => (
               <div
                 key={label}
-                className={className}
+                className={sm ? "pivot-hide-sm" : undefined}
                 style={{
                   ...MONO,
                   fontSize: 10,
                   color: "rgba(255,255,255,0.4)",
                   letterSpacing: "1px",
-                  textAlign: align,
+                  textAlign: label === "#" || label === "PLAYER" ? "left" : "right",
                   paddingLeft: label === "#" ? 8 : 0,
+                  paddingRight: label !== "#" && label !== "PLAYER" ? 8 : 0,
                 }}
               >
                 {label}
@@ -649,16 +415,12 @@ export default function IntelPage() {
 
           {/* Data rows or skeletons */}
           {top10Loading
-            ? Array.from({ length: 10 }, (_, i) => (
-                <SkeletonRow key={i} idx={i} />
-              ))
+            ? Array.from({ length: 10 }, (_, i) => <SkeletonRow key={i} idx={i} />)
             : top10.map((p, i) => {
                 const hovered = hoveredRow === i;
-                const trendUp = p.pi_l10_change > 0.1;
-                const trendDown = p.pi_l10_change < -0.1;
                 return (
                   <div
-                    key={p.id}
+                    key={p.slug}
                     className="pivot-top10-row"
                     onClick={() => router.push(`/intel/player/${p.slug}`)}
                     onMouseEnter={() => setHoveredRow(i)}
@@ -669,105 +431,42 @@ export default function IntelPage() {
                       padding: "14px 0",
                       borderBottom: "0.5px solid rgba(255,255,255,0.05)",
                       cursor: "pointer",
-                      background: hovered
-                        ? "rgba(255,255,255,0.04)"
-                        : "transparent",
-                      backdropFilter: hovered
-                        ? "blur(24px) saturate(180%)"
-                        : "none",
-                      WebkitBackdropFilter: hovered
-                        ? "blur(24px) saturate(180%)"
-                        : "none",
-                      borderLeft: hovered
-                        ? `2px solid ${SIG}`
-                        : "2px solid transparent",
-                      transition:
-                        "background 160ms ease, border-color 160ms ease, backdrop-filter 160ms ease",
+                      background: hovered ? "rgba(255,255,255,0.04)" : "transparent",
+                      borderLeft: hovered ? `2px solid ${SIG}` : "2px solid transparent",
+                      transition: "background 160ms ease, border-color 160ms ease",
                     }}
                   >
                     {/* Rank */}
-                    <div
-                      style={{
-                        ...MONO,
-                        fontSize: 12,
-                        color: "rgba(255,255,255,0.4)",
-                        paddingLeft: 8,
-                      }}
-                    >
-                      {i + 1}
-                    </div>
+                    <div style={{ ...MONO, fontSize: 12, color: "rgba(255,255,255,0.4)", paddingLeft: 8 }}>{i + 1}</div>
 
                     {/* Name + meta */}
                     <div style={{ paddingRight: 16, minWidth: 0 }}>
-                      <div
-                        style={{
-                          ...HB,
-                          fontSize: 14,
-                          color: "#ffffff",
-                          marginBottom: 2,
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {p.full_name}
+                      <div style={{ ...HB, fontSize: 14, color: "#ffffff", marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {p.name}
                       </div>
-                      <div
-                        style={{
-                          ...MONO,
-                          fontSize: 11,
-                          color: "rgba(255,255,255,0.6)",
-                          letterSpacing: "0.04em",
-                        }}
-                      >
-                        {p.team_abbr} · {p.position}
+                      <div style={{ ...MONO, fontSize: 11, color: "rgba(255,255,255,0.6)", letterSpacing: "0.04em" }}>
+                        {p.team} · {p.position}
                       </div>
                     </div>
 
-                    {/* Sparkline */}
-                    <div
-                      className="pivot-sparkline-cell"
-                      style={{ display: "flex", justifyContent: "center" }}
-                    >
-                      <Sparkline
-                        data={p.pi_l10_history}
-                        change={p.pi_l10_change}
-                      />
+                    {/* PTS */}
+                    <div style={{ ...MONO_B, fontSize: 14, color: "#fff", textAlign: "right", paddingRight: 8 }}>
+                      {p.pts != null ? p.pts.toFixed(1) : "—"}
                     </div>
 
-                    {/* PI value */}
-                    <div
-                      style={{
-                        ...MONO_B,
-                        fontSize: 16,
-                        color: "#ffffff",
-                        textAlign: "right",
-                        paddingRight: 8,
-                      }}
-                    >
-                      {p.pivot_index != null
-                        ? p.pivot_index.toFixed(1)
-                        : "--"}
+                    {/* REB */}
+                    <div style={{ ...MONO_B, fontSize: 14, color: "#fff", textAlign: "right", paddingRight: 8 }}>
+                      {p.reb != null ? p.reb.toFixed(1) : "—"}
                     </div>
 
-                    {/* Trend */}
-                    <div
-                      style={{
-                        ...MONO,
-                        fontSize: 11,
-                        color: trendUp
-                          ? SIG
-                          : trendDown
-                          ? CORAL
-                          : "rgba(255,255,255,0.4)",
-                        textAlign: "right",
-                      }}
-                    >
-                      {trendUp
-                        ? `\u25b2 ${Math.abs(p.pi_l10_change).toFixed(1)}`
-                        : trendDown
-                        ? `\u25bc ${Math.abs(p.pi_l10_change).toFixed(1)}`
-                        : `\u2014 ${Math.abs(p.pi_l10_change).toFixed(1)}`}
+                    {/* AST */}
+                    <div className="pivot-hide-sm" style={{ ...MONO_B, fontSize: 14, color: "#fff", textAlign: "right", paddingRight: 8 }}>
+                      {p.ast != null ? p.ast.toFixed(1) : "—"}
+                    </div>
+
+                    {/* PIE */}
+                    <div className="pivot-hide-sm" style={{ ...MONO_B, fontSize: 14, color: p.pie != null && p.pie > 0.1 ? SIG : "#fff", textAlign: "right", paddingRight: 8 }}>
+                      {p.pie != null ? (p.pie * 100).toFixed(1) + "%" : "—"}
                     </div>
                   </div>
                 );
@@ -791,24 +490,10 @@ export default function IntelPage() {
             borderTop: "0.5px solid rgba(255, 255, 255, 0.08)",
           }}
         >
-          <span
-            style={{
-              ...MONO,
-              fontSize: 10,
-              color: "rgba(255,255,255,0.4)",
-              letterSpacing: "0.04em",
-            }}
-          >
+          <span style={{ ...MONO, fontSize: 10, color: "rgba(255,255,255,0.4)", letterSpacing: "0.04em" }}>
             &#x2191;&#x2193; NAVIGATE&nbsp;&nbsp;&nbsp;&#x23CE; OPEN&nbsp;&nbsp;&nbsp;&#x2318;K SEARCH
           </span>
-          <span
-            style={{
-              ...MONO,
-              fontSize: 10,
-              color: "rgba(255,255,255,0.4)",
-              letterSpacing: "0.04em",
-            }}
-          >
+          <span style={{ ...MONO, fontSize: 10, color: "rgba(255,255,255,0.4)", letterSpacing: "0.04em" }}>
             {updateLabel ? `UPD ${updateLabel} PT` : ""}
           </span>
         </div>
