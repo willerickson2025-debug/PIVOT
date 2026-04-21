@@ -38,7 +38,20 @@ settings = get_settings()
 app = FastAPI(title="PIVOT", version="1.0.0", lifespan=lifespan)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+_CORS_ORIGINS = [
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "https://pivotintelligence.ai",
+    "https://www.pivotintelligence.ai",
+]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_CORS_ORIGINS,
+    allow_origin_regex=r"https://.*\.up\.railway\.app",
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 app.include_router(router, prefix="/api/v1")
 app.include_router(advanced_router, prefix="/api/v1/advanced")
 

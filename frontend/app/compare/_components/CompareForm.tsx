@@ -125,7 +125,8 @@ export default function CompareForm() {
     startTransition(async () => {
       try {
         const params = new URLSearchParams({ player_a: a, player_b: b, season: "2025" });
-        const res = await fetch(`/api/v1/analysis/compare?${params}`);
+        const BASE = process.env.NEXT_PUBLIC_API_URL || "https://web-production-cb082.up.railway.app/api/v1";
+        const res = await fetch(`${BASE}/analysis/compare?${params}`);
         if (!res.ok) {
           const body = await res.text();
           setState({ status: "error", message: `${res.status}: ${body}` });
