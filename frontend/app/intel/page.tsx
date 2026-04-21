@@ -44,16 +44,6 @@ const GLASS_PILL: React.CSSProperties = {
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const TOP_30_PLAYERS = [
-  "Nikola Jokic", "Shai Gilgeous-Alexander", "Giannis Antetokounmpo",
-  "Luka Doncic", "Jayson Tatum", "Anthony Edwards", "Stephen Curry",
-  "Victor Wembanyama", "LeBron James", "Kevin Durant",
-  "Devin Booker", "Donovan Mitchell", "Trae Young", "Ja Morant",
-  "Joel Embiid", "Anthony Davis", "Bam Adebayo", "Darius Garland",
-  "Damian Lillard", "Pascal Siakam", "Zion Williamson", "Cade Cunningham",
-  "Tyrese Haliburton", "Jalen Brunson", "De'Aaron Fox", "Paolo Banchero",
-  "Franz Wagner", "Evan Mobley", "Karl-Anthony Towns", "Jimmy Butler",
-];
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -138,45 +128,30 @@ export default function IntelPage() {
     setUpdateLabel(`${month}.${day} ${time}`);
   }, []);
 
-  // Fetch top 10: parallel PIE fetch across 30 known players, sort by PIE desc, take 10
+  // Fetch top 10 from leaderboard endpoint (single backend request, cached 1h)
   useEffect(() => {
     let cancelled = false;
-    async function load() {
-      try {
-        const fetches = TOP_30_PLAYERS.map((name) =>
-          fetch(`${BASE}/analysis/player?player_name=${encodeURIComponent(name)}&season=2025`)
-            .then((r) => (r.ok ? r.json() : null))
-            .catch(() => null)
-        );
-        const all = await Promise.all(fetches);
-        if (cancelled) return;
-
-        const parsed: IntelPlayer[] = [];
-        all.forEach((d, i) => {
-          if (!d?.payload?.player) return;
-          const pl = d.payload.player;
-          const basic = pl.basic ?? {};
-          const advanced = pl.advanced ?? {};
-          if (basic.pts === null && basic.pts === undefined) return; // no data
-          parsed.push({
-            name: pl.name ?? TOP_30_PLAYERS[i],
-            slug: nameToSlug(pl.name ?? TOP_30_PLAYERS[i]),
-            team: pl.team ?? "",
-            position: pl.position ?? "",
-            pts: basic.pts ?? null,
-            reb: basic.reb ?? null,
-            ast: basic.ast ?? null,
-            pie: advanced.pie ?? null,
-          });
-        });
-
-        parsed.sort((a, b) => (b.pie ?? -1) - (a.pie ?? -1));
-        setTop10(parsed.slice(0, 10));
-      } finally {
-        if (!cancelled) setTop10Loading(false);
-      }
-    }
-    load();
+    fetch(`${BASE}/intel/leaderboard?limit=10&sort=pie`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (cancelled || !d?.players) return;
+        const players: IntelPlayer[] = (d.players as Array<{
+          name: string; team: string; position: string;
+          pts: number | null; reb: number | null; ast: number | null; pie: number | null;
+        }>).map((p) => ({
+          name: p.name,
+          slug: nameToSlug(p.name),
+          team: p.team,
+          position: p.position,
+          pts: p.pts,
+          reb: p.reb,
+          ast: p.ast,
+          pie: p.pie,
+        }));
+        setTop10(players);
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setTop10Loading(false); });
     return () => { cancelled = true; };
   }, []);
 
@@ -190,7 +165,8 @@ export default function IntelPage() {
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
         if (!d) return;
-        const items: SearchResult[] = d.data ?? (Array.isArray(d) ? d : []);
+        // API returns { players: [...], count: n }
+        const items: SearchResult[] = d.players ?? d.data ?? (Array.isArray(d) ? d : []);
         setResults(items.slice(0, 6));
       })
       .catch(() => setResults([]));

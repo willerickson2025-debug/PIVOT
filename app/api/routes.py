@@ -923,6 +923,170 @@ async def defensive_play(request: Request, body: dict = Body(...), _key: str = D
         raise HTTPException(status_code=502, detail=str(e))
 
 
+# ── Intel Leaderboard ────────────────────────────────────────────────────────
+# No Claude calls. Pure BDL data aggregation. Cached in-memory 1 hour.
+
+import time as _time
+
+_LEADERBOARD_CACHE: dict = {}
+_LEADERBOARD_CACHE_EXPIRY: dict = {}
+_LEADERBOARD_TTL = 3600  # 1 hour
+
+
+async def _scan_active_player_ids(season: int, max_records: int = 500) -> dict:
+    """
+    Fetch up to max_records V2 per-game advanced stat rows (all players, no
+    player filter) and return a dict mapping player_id -> {name, team, position}.
+    BDL returns rows newest-first, so this captures recently active players.
+    """
+    params: dict = {
+        "per_page": 100,
+        "period": 0,
+        "seasons[]": season,
+        "postseason": "false",
+    }
+    player_meta: dict = {}
+    cursor = None
+    total = 0
+
+    while total < max_records:
+        page_params = dict(params)
+        if cursor:
+            page_params["cursor"] = cursor
+
+        payload = await nba_service._fetch_data(nba_service._BDL_V2_ADV_URL, params=page_params)
+        data: list = payload.get("data") or []
+
+        for row in data:
+            total += 1
+            player = row.get("player") or {}
+            pid = player.get("id")
+            if pid and pid not in player_meta:
+                first = player.get("first_name") or ""
+                last = player.get("last_name") or ""
+                team_obj = player.get("team") or {}
+                player_meta[pid] = {
+                    "name": f"{first} {last}".strip(),
+                    "team": team_obj.get("abbreviation") or "",
+                    "position": player.get("position") or "",
+                }
+            if total >= max_records:
+                break
+
+        cursor = (payload.get("meta") or {}).get("next_cursor")
+        if not cursor or not data:
+            break
+
+    return player_meta
+
+
+@router.get("/intel/leaderboard")
+async def intel_leaderboard(
+    limit: int = Query(10, ge=1, le=50),
+    sort: str = Query("pie"),
+):
+    """
+    Top-N players by the requested stat. Pure BDL aggregation, no Claude calls.
+    Cached in-memory for 1 hour.
+
+    sort: pie | pts | net_rating | true_shooting
+    """
+    if sort not in ("pie", "pts", "net_rating", "true_shooting"):
+        raise HTTPException(status_code=400, detail="sort must be one of: pie, pts, net_rating, true_shooting")
+
+    current_season = get_current_season()
+    cache_key = (limit, sort, current_season)
+    now = _time.time()
+
+    if cache_key in _LEADERBOARD_CACHE and now < _LEADERBOARD_CACHE_EXPIRY.get(cache_key, 0):
+        return _LEADERBOARD_CACHE[cache_key]
+
+    season_label = f"{current_season}-{str(current_season + 1)[2:]}"
+
+    # Step 1: Scan recent rows to collect active player IDs and metadata
+    player_meta = await _scan_active_player_ids(current_season, max_records=500)
+    player_ids = list(player_meta.keys())
+
+    if not player_ids:
+        result = {"season": current_season, "season_label": season_label, "sort": sort, "players": []}
+        _LEADERBOARD_CACHE[cache_key] = result
+        _LEADERBOARD_CACHE_EXPIRY[cache_key] = now + _LEADERBOARD_TTL
+        return result
+
+    # Step 2: Aggregate full-season advanced stats in parallel (uses nba_service cache)
+    adv_results = await asyncio.gather(
+        *[nba_service.aggregate_season_advanced(pid, current_season) for pid in player_ids],
+        return_exceptions=True,
+    )
+
+    # Step 3: Filter to players with >= 30 games played
+    qualifying = [
+        (pid, adv)
+        for pid, adv in zip(player_ids, adv_results)
+        if not isinstance(adv, Exception) and adv and adv.get("games_played", 0) >= 30
+    ]
+
+    if not qualifying:
+        result = {"season": current_season, "season_label": season_label, "sort": sort, "players": []}
+        _LEADERBOARD_CACHE[cache_key] = result
+        _LEADERBOARD_CACHE_EXPIRY[cache_key] = now + _LEADERBOARD_TTL
+        return result
+
+    # Step 4: Fetch pts/reb/ast from BDL season_averages in parallel
+    avg_results = await asyncio.gather(
+        *[nba_service.get_season_averages(pid, current_season) for pid, _ in qualifying],
+        return_exceptions=True,
+    )
+
+    # Step 5: Build and sort entries
+    entries = []
+    for (pid, adv), avg in zip(qualifying, avg_results):
+        if isinstance(avg, Exception):
+            avg = {}
+
+        meta = player_meta.get(pid, {})
+        pie = adv.get("pie")
+        ts = adv.get("ts_pct")
+        net = adv.get("net_rtg")
+        pts = avg.get("pts") if isinstance(avg, dict) else None
+        reb = avg.get("reb") if isinstance(avg, dict) else None
+        ast_val = avg.get("ast") if isinstance(avg, dict) else None
+
+        sort_val = {"pie": pie, "net_rating": net, "true_shooting": ts, "pts": pts}.get(sort)
+        if sort_val is None:
+            continue
+
+        entries.append({
+            "id": pid,
+            "name": meta.get("name", ""),
+            "team": meta.get("team", ""),
+            "position": meta.get("position", ""),
+            "games_played": adv.get("games_played", 0),
+            "pts": round(pts, 1) if pts is not None else None,
+            "reb": round(reb, 1) if reb is not None else None,
+            "ast": round(ast_val, 1) if ast_val is not None else None,
+            "pie": round(pie, 3) if pie is not None else None,
+            "true_shooting_percentage": round(ts, 3) if ts is not None else None,
+            "net_rating": round(net, 1) if net is not None else None,
+            "_sv": sort_val,
+        })
+
+    entries.sort(key=lambda x: x["_sv"], reverse=True)
+    entries = entries[:limit]
+    for e in entries:
+        del e["_sv"]
+
+    result = {
+        "season": current_season,
+        "season_label": season_label,
+        "sort": sort,
+        "players": entries,
+    }
+    _LEADERBOARD_CACHE[cache_key] = result
+    _LEADERBOARD_CACHE_EXPIRY[cache_key] = now + _LEADERBOARD_TTL
+    return result
+
+
 # ── Standings ────────────────────────────────────────────────────────────────
 
 @router.get("/standings")
