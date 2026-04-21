@@ -4,9 +4,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const TABS = [
-  { href: "/games", label: "Games" },
-  { href: "/players", label: "Players" },
-  { href: "/compare", label: "Compare" },
+  { href: "/games",    label: "Games"    },
+  { href: "/intel",    label: "Intel"    },
+  { href: "/war-room", label: "War Room" },
+  { href: "/compare",  label: "Compare"  },
+  { href: "/coach",    label: "Coach"    },
+  { href: "/chat",     label: "Chat"     },
 ];
 
 export default function Nav() {

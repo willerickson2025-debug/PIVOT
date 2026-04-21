@@ -84,3 +84,100 @@ body {
   text-transform: uppercase;
   color: var(--smoke);
 }
+
+/* Screen-reader only */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Orb keyframes */
+@keyframes orbA {
+  0%,  100% { transform: translate(0, 0) scale(1); }
+  50%        { transform: translate(320px, 180px) scale(1.25); }
+}
+@keyframes orbB {
+  0%,  100% { transform: translate(0, 0) scale(1); }
+  50%        { transform: translate(-260px, -220px) scale(0.85); }
+}
+@keyframes orbC {
+  0%   { transform: translate(0, 0) scale(0.9); }
+  33%  { transform: translate(-180px, 140px) scale(1.15); }
+  66%  { transform: translate(220px, -100px) scale(1); }
+  100% { transform: translate(0, 0) scale(0.9); }
+}
+
+/* Live pulse */
+@keyframes pv-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.3; }
+}
+
+/* Orb base */
+.pv-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(20px);
+  will-change: transform;
+  pointer-events: none;
+}
+.pv-orb-a {
+  top: -20%;
+  left: -10%;
+  width: 720px;
+  height: 720px;
+  background: radial-gradient(circle, rgba(0, 255, 102, 0.30) 0%, rgba(0, 255, 102, 0) 60%);
+  animation: orbA 22s ease-in-out infinite;
+}
+.pv-orb-b {
+  bottom: -30%;
+  right: -10%;
+  width: 820px;
+  height: 820px;
+  background: radial-gradient(circle, rgba(0, 255, 102, 0.22) 0%, rgba(0, 255, 102, 0) 60%);
+  animation: orbB 28s ease-in-out infinite;
+}
+.pv-orb-c {
+  top: 30%;
+  right: 20%;
+  width: 520px;
+  height: 520px;
+  background: radial-gradient(circle, rgba(0, 255, 180, 0.16) 0%, rgba(0, 255, 180, 0) 60%);
+  animation: orbC 18s ease-in-out infinite;
+}
+
+/* Pulse dot */
+.pv-pulse-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--neon);
+  animation: pv-pulse 1.5s ease infinite;
+  flex-shrink: 0;
+}
+
+/* Ticker scroll animation */
+@keyframes pv-tick {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+/* Hide scrollbars (tabs strip) */
+.pv-scroll-hide::-webkit-scrollbar { display: none; }
+.pv-scroll-hide { scrollbar-width: none; -ms-overflow-style: none; }
+
+/* Reduce motion */
+@media (prefers-reduced-motion: reduce) {
+  .pv-orb, .pv-orb-a, .pv-orb-b, .pv-orb-c, .pv-pulse-dot {
+    animation-play-state: paused;
+  }
+  .pv-tick-track { animation-play-state: paused; }
+}

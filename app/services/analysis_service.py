@@ -122,6 +122,79 @@ async def _validated_injury_tags(
     return tags
 
 
+async def _fetch_team_season_stats(team_id: int | None, team_abbr: str, team_name: str) -> str:
+    """
+    Fetch current-season roster and per-game averages for a team.
+    Returns a formatted block (empty string on failure).
+
+    Uses BDL /players?team_ids[]=ID to get the current roster, then fetches
+    season averages for each player in parallel. Top 8 by PPG are returned so
+    Claude has actual stats instead of relying on training-knowledge estimates.
+    """
+    season = get_current_season()
+    players: list[dict] = []
+
+    # Step 1: resolve roster (prefer team_id direct lookup, fall back to abbr)
+    if team_id:
+        try:
+            from app.services.nba_service import _fetch_data
+            payload = await _fetch_data("/players/active", params={"team_ids[]": team_id, "per_page": 100})
+            for p in payload.get("data") or []:
+                pid = p.get("id")
+                if pid:
+                    players.append({
+                        "id": pid,
+                        "name": f"{p.get('first_name', '')} {p.get('last_name', '')}".strip(),
+                        "pos": p.get("position") or "",
+                    })
+        except Exception:
+            pass
+
+    if not players:
+        try:
+            roster = await nba_service.get_roster_by_abbr(team_abbr)
+            players = [
+                {"id": p["id"], "name": f"{p['first_name']} {p['last_name']}".strip(), "pos": p.get("position", "")}
+                for p in roster
+            ]
+        except Exception:
+            return ""
+
+    if not players:
+        return ""
+
+    # Step 2: fetch season averages for all rostered players in parallel
+    avgs = await asyncio.gather(
+        *[nba_service.get_season_averages(p["id"], season) for p in players],
+        return_exceptions=True,
+    )
+
+    stat_rows: list[tuple[float, str]] = []
+    for p, avg in zip(players, avgs):
+        if not isinstance(avg, dict) or not avg:
+            continue
+        pts = float(avg.get("pts") or 0)
+        reb = float(avg.get("reb") or 0)
+        ast = float(avg.get("ast") or 0)
+        fg = avg.get("fg_pct") or 0
+        ts = avg.get("ts_pct")
+        ts_str = f", {ts:.1%} TS" if ts else ""
+        gp = int(avg.get("games_played") or 0)
+        line = (
+            f"  {p['name']} ({p['pos']}): {pts:.1f}pts, {reb:.1f}reb, "
+            f"{ast:.1f}ast, {fg:.1%} FG{ts_str} ({gp} GP)"
+        )
+        stat_rows.append((pts, line))
+
+    if not stat_rows:
+        return ""
+
+    stat_rows.sort(key=lambda x: x[0], reverse=True)
+    season_label = f"{season}-{str(season + 1)[-2:]}"
+    header = f"{team_name} ROSTER — {season_label} season averages:"
+    return header + "\n" + "\n".join(row for _, row in stat_rows[:9])
+
+
 def _get_player_injury_status(player_name: str, espn_raw: dict) -> str:
     """
     Look up a single player's current injury status in the raw ESPN injury JSON.
@@ -1747,7 +1820,7 @@ async def analyze_game(body: dict[str, Any]) -> dict[str, Any]:
         )
         prompt += _JSON_SUFFIX
     else:
-        # ── Upcoming: enrich with live standings (parallel with injury already fetched) ──
+        # ── Upcoming: fetch standings + roster stats in parallel ──────────────
         from app.services import standings_service as _standings_svc
 
         async def _fetch_standings_ctx() -> str:
@@ -1773,11 +1846,25 @@ async def analyze_game(body: dict[str, Any]) -> dict[str, Any]:
             except Exception:
                 return ""
 
-        standings_ctx = await _fetch_standings_ctx()
+        standings_ctx, home_stats_block, away_stats_block = await asyncio.gather(
+            _fetch_standings_ctx(),
+            _fetch_team_season_stats(None, home_abbr, home_name),
+            _fetch_team_season_stats(None, away_abbr, away_name),
+            return_exceptions=True,
+        )
+        if isinstance(standings_ctx, Exception): standings_ctx = ""
+        if isinstance(home_stats_block, Exception): home_stats_block = ""
+        if isinstance(away_stats_block, Exception): away_stats_block = ""
 
         context_block = ""
         if standings_ctx:
             context_block += f"\nCURRENT STANDINGS:\n{standings_ctx}"
+        if home_stats_block or away_stats_block:
+            context_block += "\n\nROSTER SEASON STATS:\n"
+            if home_stats_block:
+                context_block += home_stats_block + "\n"
+            if away_stats_block:
+                context_block += away_stats_block
         if game_injury_ctx:
             context_block += f"\n\nINJURY REPORT:\n{game_injury_ctx}"
 
@@ -2639,17 +2726,27 @@ async def predict_game(body: dict[str, Any], session_id: Optional[str] = None) -
         logger.info("predict_game cache hit | game_id=%d", game_id)
         return cached
 
-    # ── Fetch standings + validated injury lists in parallel ─────────────────
+    # ── Fetch standings + injuries + roster stats in parallel ────────────────
     # _validated_injury_tags checks each ESPN-listed player against the team's
     # current BDL roster, filtering out traded/released players (e.g. Lillard
     # still listed under Portland after his trade to Milwaukee).
     espn_raw = await _fetch_espn_injuries_raw()  # shared; cached after first call
-    standings_data, home_inj_tags, away_inj_tags = await asyncio.gather(
+    (
+        standings_data,
+        home_inj_tags,
+        away_inj_tags,
+        home_stats_block,
+        away_stats_block,
+    ) = await asyncio.gather(
         _standings_svc.get_standings(),
         _validated_injury_tags(home_name, home_id, espn_raw),
         _validated_injury_tags(away_name, away_id, espn_raw),
+        _fetch_team_season_stats(home_id, home_abbr, home_name),
+        _fetch_team_season_stats(away_id, away_abbr, away_name),
         return_exceptions=True,
     )
+    if isinstance(home_stats_block, Exception): home_stats_block = ""
+    if isinstance(away_stats_block, Exception): away_stats_block = ""
 
     # Build standings lookup: abbr -> full record dict (includes wins, losses, pct, seed, conference, rec)
     standings_lookup: dict[str, dict] = {}
@@ -2696,13 +2793,22 @@ async def predict_game(body: dict[str, Any], session_id: Optional[str] = None) -
             f"This is the single most important factor — adjust confidence downward and reflect this in key_factor.\n"
         )
 
+    roster_stats_section = ""
+    if home_stats_block or away_stats_block:
+        roster_stats_section = "\nROSTER SEASON STATS (use these numbers — do not invent stats):\n"
+        if home_stats_block:
+            roster_stats_section += home_stats_block + "\n"
+        if away_stats_block:
+            roster_stats_section += away_stats_block + "\n"
+
     session_ctx = build_context_block(session_id)
     prompt = (
         f"UPCOMING GAME: {away_name} at {home_name} (home)\n"
         f"{rest_warning}\n"
         f"CURRENT STANDINGS:\n"
         f"  {home_name} ({home_abbr}): {home_record}\n"
-        f"  {away_name} ({away_abbr}): {away_record}\n\n"
+        f"  {away_name} ({away_abbr}): {away_record}\n"
+        f"{roster_stats_section}\n"
         f"ROSTER AVAILABILITY (injuries + load management + rest):\n"
         f"  {home_name}: {home_injuries}\n"
         f"  {away_name}: {away_injuries}\n\n"

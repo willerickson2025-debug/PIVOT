@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     port: int = 8000
     anthropic_api_key: str
     claude_model: str = "claude-sonnet-4-6"
-    claude_max_tokens: int = 1024
+    claude_max_tokens: int = 2048
     balldontlie_api_key: str
     balldontlie_base_url: str = "https://api.balldontlie.io/v1"
     # Set PIVOT_API_KEY in Railway env to enforce key-based auth on analysis routes.

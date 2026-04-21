@@ -8,9 +8,9 @@ season 2025, the 2024-25 season is season 2024, and so on.
 
 Season calendar mapping:
   October – December  →  new season just tipped off   →  return current year
-  January – June      →  second half / playoffs        →  return current year - 1
-  July – September    →  off-season                    →  return current year - 1
-                                                           (most recently completed season)
+  January – September →  in-season (Jan–Jun) or        →  return current year - 1
+                          off-season (Jul–Sep)
+                          either way: last season started in October of prior year
 """
 
 from __future__ import annotations

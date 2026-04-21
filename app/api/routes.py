@@ -18,6 +18,7 @@ from app.models.schemas import (
 from app.utils.helpers import validate_date_string
 from app.core.limiter import limiter
 from app.core.security import verify_api_key
+from app.core.season import get_current_season
 
 router = APIRouter()
 
@@ -155,7 +156,8 @@ async def nba_advanced_stats(
     per_page: int = Query(25, description="Results per page"),
 ):
     try:
-        stats = await nba_service.get_advanced_stats(seasons=seasons, player_ids=player_ids, per_page=per_page)
+        effective_seasons = seasons if seasons else [get_current_season()]
+        stats = await nba_service.get_advanced_stats(seasons=effective_seasons, player_ids=player_ids, per_page=per_page)
         return {"stats": [s.model_dump() for s in stats], "count": len(stats)}
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"BallDontLie API error: {str(e)}")
@@ -385,15 +387,11 @@ async def scout_note(request: Request, _key: str = Depends(verify_api_key)):
 
 @router.get("/nba/mvp-odds")
 async def mvp_odds():
-    """
-    Fetch current MVP odds from ESPN's award predictor.
-    Returns a dict of player name → odds string (e.g. '-350').
-    Falls back to empty dict if ESPN is unavailable.
-    """
-    # ESPN award tracker pages embed JSON odds in the page — scraping is brittle.
-    # Return empty odds so the UI shows '—' and falls back gracefully.
-    # A future integration with an odds API (e.g. The Odds API) can populate this.
-    return {"odds": {}, "source": "placeholder"}
+    """MVP odds — not yet integrated. Returns 503 so callers can degrade gracefully."""
+    raise HTTPException(
+        status_code=503,
+        detail="MVP odds not available. Integrate an odds API (e.g. The Odds API) to populate this endpoint.",
+    )
 
 
 @router.get("/analysis/compare")
@@ -575,13 +573,17 @@ async def _fetch_live_context() -> str:
     except Exception as exc:
         _log.warning("chat live_ctx: standings failed: %s", exc)
 
-    # 2. ESPN scoreboard — recent results + today's games
+    # 2+3. ESPN scoreboard + news — share one client
     try:
         async with httpx.AsyncClient(timeout=5.0) as client:
-            resp = await client.get(_ESPN_SCOREBOARD)
-            if resp.status_code == 200:
-                data = resp.json()
-                events = data.get("events", [])
+            scoreboard_resp, news_resp = await asyncio.gather(
+                client.get(_ESPN_SCOREBOARD),
+                client.get(_ESPN_NEWS),
+                return_exceptions=True,
+            )
+
+            if not isinstance(scoreboard_resp, Exception) and scoreboard_resp.status_code == 200:
+                events = scoreboard_resp.json().get("events", [])
                 results: list[str] = []
                 for ev in events[:12]:
                     comps = ev.get("competitions", [{}])[0]
@@ -602,25 +604,18 @@ async def _fetch_live_context() -> str:
                     lines.append("Recent/live NBA scores: " + " | ".join(results))
                     _log.info("chat live_ctx: ESPN scores OK (%d games)", len(results))
                 else:
-                    _log.info("chat live_ctx: ESPN scores empty (no final/live games found)")
+                    _log.info("chat live_ctx: ESPN scores empty")
             else:
-                _log.warning("chat live_ctx: ESPN scoreboard HTTP %d", resp.status_code)
-    except Exception as exc:
-        _log.warning("chat live_ctx: ESPN scoreboard failed: %s", exc)
+                _log.warning("chat live_ctx: ESPN scoreboard failed")
 
-    # 3. ESPN news headlines for current context
-    try:
-        async with httpx.AsyncClient(timeout=5.0) as client:
-            resp = await client.get(_ESPN_NEWS)
-            if resp.status_code == 200:
-                data = resp.json()
-                articles = data.get("articles", [])[:5]
+            if not isinstance(news_resp, Exception) and news_resp.status_code == 200:
+                articles = news_resp.json().get("articles", [])[:5]
                 headlines = [a.get("headline", "") for a in articles if a.get("headline")]
                 if headlines:
                     lines.append("Recent NBA headlines: " + " | ".join(headlines))
                     _log.info("chat live_ctx: ESPN news OK (%d headlines)", len(headlines))
     except Exception as exc:
-        _log.warning("chat live_ctx: ESPN news failed: %s", exc)
+        _log.warning("chat live_ctx: ESPN fetch failed: %s", exc)
 
     lines.append("")
     ctx = "\n".join(lines)
@@ -868,6 +863,8 @@ async def coach_adjustment(request: Request, body: dict = Body(...), _key: str =
     Real-time coaching adjustment. Reads live box score automatically.
     Expects: { "game_id": 12345, "my_team": "Lakers" }
     """
+    if not body.get("game_id"):
+        raise HTTPException(status_code=400, detail="game_id required — select a live game first.")
     try:
         session_id = request.headers.get("X-Pivot-Session")
         return await analysis_service.coach_adjustment(body, session_id=session_id)
@@ -882,6 +879,8 @@ async def timeout_play(request: Request, body: dict = Body(...), _key: str = Dep
     Generate a timeout play. Derives all game context from live box score.
     Expects: { "game_id": 12345, "my_team": "Lakers" }
     """
+    if not body.get("game_id"):
+        raise HTTPException(status_code=400, detail="game_id required — select a live game first.")
     try:
         return await analysis_service.timeout_play(body)
     except Exception as e:
@@ -896,6 +895,8 @@ async def defensive_play(request: Request, body: dict = Body(...), _key: str = D
     and prescribes a named scheme with exact player-by-player assignments.
     Expects: { "game_id": 12345, "my_team": "Lakers", "situation": "optional context" }
     """
+    if not body.get("game_id"):
+        raise HTTPException(status_code=400, detail="game_id required — select a live game first.")
     try:
         return await analysis_service.defensive_play(body)
     except Exception as e:
@@ -992,17 +993,20 @@ async def agent_quality_pass(date: Optional[str] = Query(None)):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def _season_to_int(season) -> int:
-    """Convert '2024-25' → 2025, or pass-through integers."""
+    """Convert '2024-25' → 2024, '2025-26' → 2025, or pass-through integers.
+
+    BDL identifies seasons by their start year: season=2025 means 2025-26.
+    """
     s = str(season).strip()
     if '-' in s:
         try:
-            return int(s.split('-')[0]) + 1
+            return int(s.split('-')[0])
         except ValueError:
             pass
     try:
         return int(float(s))
     except (ValueError, TypeError):
-        return 2025
+        return get_current_season()
 
 
 def _tok(text: str) -> str:
@@ -1067,7 +1071,7 @@ async def compat_players(
 async def compat_player_stats(
     request: Request,
     player_id: int,
-    season: str = Query("2024-25"),
+    season: str = Query("2025-26"),
     per_page: int = Query(25),
 ):
     """Legacy /players/{id}/stats — converts season string, returns {data: [...]}."""
@@ -1084,7 +1088,7 @@ async def compat_player_stats(
 async def compat_player_advanced_stats(
     request: Request,
     player_id: int,
-    season: str = Query("2024-25"),
+    season: str = Query("2025-26"),
 ):
     """Legacy /players/{id}/advanced-stats — fails silently (optional data)."""
     try:
@@ -1260,8 +1264,34 @@ async def compat_front_office_eval(request: Request):
     }
     ctx_label = ctx_labels.get(context, "general front-office evaluation")
 
+    # Enrich prompt with real season averages so Claude doesn't hallucinate stats
+    stats_block = ""
+    try:
+        parts = player_name.strip().split()
+        players = await nba_service.search_players(
+            name=player_name,
+            first_name=parts[0] if len(parts) >= 2 else None,
+            last_name=parts[-1] if len(parts) >= 2 else None,
+        )
+        if players:
+            p = players[0]
+            season = get_current_season()
+            avg = await nba_service.get_season_averages(p.id, season)
+            if avg:
+                ts = avg.get("ts_pct")
+                ts_str = f", {ts:.1%} TS" if ts else ""
+                stats_block = (
+                    f"\nCURRENT SEASON AVERAGES ({season}-{str(season+1)[-2:]} season):\n"
+                    f"  {avg.get('pts',0):.1f} PPG | {avg.get('reb',0):.1f} RPG | "
+                    f"{avg.get('ast',0):.1f} APG | {avg.get('fg_pct',0):.1%} FG{ts_str} | "
+                    f"{avg.get('games_played',0)} GP\n"
+                )
+    except Exception:
+        pass
+
     prompt = (
-        f"FRONT OFFICE EVALUATION — {player_name.upper()}\nContext: {ctx_label}\n\n"
+        f"FRONT OFFICE EVALUATION — {player_name.upper()}\nContext: {ctx_label}\n"
+        f"{stats_block}\n"
         "Write a concise GM-level evaluation covering:\n"
         "1. TRADE VALUE — current market, what they command in a deal\n"
         "2. CONTRACT FIT — value relative to their likely salary tier\n"
@@ -1305,7 +1335,7 @@ async def compat_compare_players(request: Request):
     async def generate():
         try:
             result = await analysis_service.compare_players(
-                player_a_id, player_b_id, 2025,
+                player_a_id, player_b_id, get_current_season(),
                 compare_context=context,
             )
             text = result.get("analysis") or ""
@@ -1323,15 +1353,10 @@ async def compat_compare_players(request: Request):
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 
-_COACH_SYS = (
-    "You are an elite NBA head coach. Be specific about player movements, spacing, screens, reads. "
-    "Name the play, describe it concisely, give 1-2 quick alternatives. Every sentence is actionable."
-)
-
 @router.post("/coach")
 @limiter.limit(_CLAUDE_LIMIT)
 async def compat_coach(request: Request):
-    """Legacy SSE: stream play design for a scenario."""
+    """Legacy SSE: stream play design or play development for a scenario."""
     try:
         body = await request.json()
     except Exception:
@@ -1339,13 +1364,20 @@ async def compat_coach(request: Request):
 
     scenario = body.get("scenario") or ""
     archetype = body.get("archetype") or ""
+    coaching_mode = body.get("coaching_mode") or "live"
     arch_str = f"\nCoaching archetype: {archetype}" if archetype else ""
-    prompt = f"PLAY DESIGN\nScenario: {scenario}{arch_str}\n\nDraw up the play."
+
+    if coaching_mode == "developmental":
+        sys = claude_service.DEV_COACH_SYS
+        prompt = f"PLAY DEVELOPMENT\nConcept: {scenario}{arch_str}\n\nTeach and develop this play."
+    else:
+        sys = claude_service.LIVE_COACH_SYS
+        prompt = f"TIMEOUT PLAY\nScenario: {scenario}{arch_str}\n\nCall the play now."
 
     async def generate():
         try:
             async for chunk in claude_service.analyze_stream(
-                prompt=prompt, system_prompt=_COACH_SYS, override_max_tokens=700):
+                prompt=prompt, system_prompt=sys, override_max_tokens=700):
                 if chunk:
                     yield _tok(chunk)
             yield _done()
@@ -1357,15 +1389,10 @@ async def compat_coach(request: Request):
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 
-_DEF_SYS = (
-    "You are an elite NBA defensive coordinator. "
-    "Give specific player-by-player assignments, rotations, and adjustments. Precise. Actionable."
-)
-
 @router.post("/defensive-scheme")
 @limiter.limit(_CLAUDE_LIMIT)
 async def compat_defensive_scheme(request: Request):
-    """Legacy SSE: stream defensive scheme analysis."""
+    """Legacy SSE: stream defensive scheme analysis or teaching."""
     try:
         body = await request.json()
     except Exception:
@@ -1374,6 +1401,7 @@ async def compat_defensive_scheme(request: Request):
     scheme = body.get("scheme") or "man_to_man"
     offensive_action = body.get("offensive_action") or "general half-court offense"
     archetype = body.get("archetype") or ""
+    coaching_mode = body.get("coaching_mode") or "live"
     arch_str = f"\nCoaching archetype: {archetype}" if archetype else ""
     names = {
         "man_to_man": "Man-to-Man", "zone_2_3": "2-3 Zone", "zone_3_2": "3-2 Zone",
@@ -1382,17 +1410,27 @@ async def compat_defensive_scheme(request: Request):
         "hedge_hard": "Hard Hedge / ICE",
     }
     scheme_label = names.get(scheme, scheme.replace("_", " ").title())
-    prompt = (
-        f"DEFENSIVE SCHEME — {scheme_label}{arch_str}\n"
-        f"Offensive action to defend: {offensive_action}\n\n"
-        "Analyze this scheme: how it works, player responsibilities, rotations, strengths, vulnerabilities. "
-        "Then explain exactly how to deploy it against the given offensive action."
-    )
+
+    if coaching_mode == "developmental":
+        sys = claude_service.DEV_DEF_SYS
+        prompt = (
+            f"DEFENSIVE TEACHING -- {scheme_label}{arch_str}\n"
+            f"Concept to teach: {offensive_action}\n\n"
+            "Install this scheme from scratch. Cover principles, progressions, rotations, "
+            "communication calls, common breakdowns, and how to drill each piece."
+        )
+    else:
+        sys = claude_service.LIVE_DEF_SYS
+        prompt = (
+            f"DEFENSIVE COUNTER -- {scheme_label}{arch_str}\n"
+            f"Offensive action to stop: {offensive_action}\n\n"
+            "Call the adjustment now. Player-by-player assignments, key rotation, primary counter."
+        )
 
     async def generate():
         try:
             async for chunk in claude_service.analyze_stream(
-                prompt=prompt, system_prompt=_DEF_SYS, override_max_tokens=800):
+                prompt=prompt, system_prompt=sys, override_max_tokens=800):
                 if chunk:
                     yield _tok(chunk)
             yield _done()
@@ -1403,11 +1441,6 @@ async def compat_defensive_scheme(request: Request):
     return StreamingResponse(generate(), media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
-
-_LINEUP_SYS = (
-    "You are an NBA analytics expert in lineup construction. "
-    "Analyze spacing, defensive versatility, play-type fit, and chemistry. Specific. Data-driven."
-)
 
 @router.post("/lineup-analysis")
 @limiter.limit(_CLAUDE_LIMIT)
@@ -1421,20 +1454,15 @@ async def compat_lineup_analysis(request: Request):
     players = body.get("players") or []
     roster_str = ", ".join(p.get("name", "Unknown") for p in players) or "No players"
     prompt = (
-        f"LINEUP ANALYSIS — {roster_str}\n\n"
-        "Analyze across:\n"
-        "1. SPACING — shooters, paint crowders, 3PT distribution\n"
-        "2. BALL HANDLING — initiators, secondary playmakers\n"
-        "3. DEFENSIVE VERSATILITY — switches, weak links, best matchups\n"
-        "4. CHEMISTRY FIT — play-type compatibility, role overlap\n"
-        "5. OPTIMAL USE CASE — when and against what to deploy this lineup\n"
-        "6. WEAKNESSES — what attacks this lineup"
+        f"LINEUP ADJUSTMENT -- {roster_str}\n\n"
+        "Analyze spacing, ball handling, defensive versatility, chemistry fit, "
+        "optimal deployment situation, and the primary weakness to attack."
     )
 
     async def generate():
         try:
             async for chunk in claude_service.analyze_stream(
-                prompt=prompt, system_prompt=_LINEUP_SYS, override_max_tokens=800):
+                prompt=prompt, system_prompt=claude_service.LIVE_LINEUP_SYS, override_max_tokens=800):
                 if chunk:
                     yield _tok(chunk)
             yield _done()
@@ -1455,28 +1483,38 @@ _PROJ_SYS = (
 @router.post("/stat-projection")
 @limiter.limit(_CLAUDE_LIMIT)
 async def compat_stat_projection(request: Request):
-    """Legacy SSE: stream stat projection for a player."""
+    """Legacy SSE: stream stat projection or development projection for a player."""
     try:
         body = await request.json()
     except Exception:
         body = {}
 
     player_name = body.get("player_name") or "Unknown Player"
-    prompt = (
-        f"STAT PROJECTION — {player_name.upper()}\n\n"
-        "Project stats for the rest of this season and next season:\n"
-        "1. CURRENT SEASON — PPG, RPG, APG, TS%, usage (projected final line)\n"
-        "2. NEXT SEASON — same metrics, factoring age curve and team context\n"
-        "3. UPSIDE SCENARIO — best realistic outcome\n"
-        "4. DOWNSIDE SCENARIO — worst realistic outcome\n"
-        "5. KEY VARIABLES — what drives projection variance\n\n"
-        "Specific numbers. Show a projected stat line for each scenario."
-    )
+    coaching_mode = body.get("coaching_mode") or "live"
+
+    if coaching_mode == "developmental":
+        sys = claude_service.DEV_PROJ_SYS
+        prompt = (
+            f"PLAYER PROJECTION -- {player_name.upper()}\n\n"
+            "Map this player's development trajectory: current strengths, identified weaknesses, "
+            "2-year development arc, peak profile. Include upside and floor scenarios with the "
+            "key variables that drive variance."
+        )
+        max_tokens = 900
+    else:
+        sys = _PROJ_SYS
+        prompt = (
+            f"STAT PROJECTION -- {player_name.upper()}\n\n"
+            "Project stats for the rest of this season and next season. "
+            "Cover PPG, RPG, APG, TS%, usage. Include upside and downside scenarios "
+            "with specific projected stat lines and the key variables driving variance."
+        )
+        max_tokens = 700
 
     async def generate():
         try:
             async for chunk in claude_service.analyze_stream(
-                prompt=prompt, system_prompt=_PROJ_SYS, override_max_tokens=700):
+                prompt=prompt, system_prompt=sys, override_max_tokens=max_tokens):
                 if chunk:
                     yield _tok(chunk)
             yield _done()

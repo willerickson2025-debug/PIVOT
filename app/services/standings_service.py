@@ -19,10 +19,10 @@ import time
 from typing import Any
 
 from app.services.nba_service import _fetch_data
+from app.core.season import get_current_season
 
 logger = logging.getLogger(__name__)
 
-_SEASON = 2025
 _CACHE_TTL_SECONDS = 6 * 3600  # 6 hours
 
 _cache: dict[str, Any] = {
@@ -90,7 +90,7 @@ async def _fetch_all_games() -> list[dict[str, Any]]:
     while True:
         page += 1
         params: dict[str, Any] = {
-            "seasons[]": _SEASON,
+            "seasons[]": get_current_season(),
             "per_page": 100,
         }
         if cursor is not None:
