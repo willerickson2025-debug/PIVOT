@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useApi } from "../_lib/api";
 
 // ── Brand tokens ──────────────────────────────────────────────────────────────
 
@@ -57,24 +58,19 @@ type ResponseState =
   | { status: "error"; message: string };
 
 export default function CoachPage() {
-  const [games, setGames] = useState<Game[]>([]);
-  const [gamesLoading, setGamesLoading] = useState(true);
   const [selectedGameId, setSelectedGameId] = useState<number | null>(null);
   const [resp, setResp] = useState<ResponseState>({ status: "idle" });
 
-  // Fetch today's games
+  const today = new Date().toISOString().split("T")[0];
+  const { data: gamesData, isLoading: gamesLoading } = useApi<{ games: Game[] }>(`/nba/games?date=${today}`);
+  const games: Game[] = gamesData?.games ?? [];
+
+  // Auto-select first game once loaded
   useEffect(() => {
-    const today = new Date().toISOString().split("T")[0];
-    fetch(`${BASE}/nba/games?date=${today}`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => {
-        const list: Game[] = d?.data ?? (Array.isArray(d) ? d : []);
-        setGames(list);
-        if (list.length > 0) setSelectedGameId(list[0].id);
-      })
-      .catch(() => {})
-      .finally(() => setGamesLoading(false));
-  }, []);
+    if (games.length > 0 && selectedGameId === null) {
+      setSelectedGameId(games[0].id);
+    }
+  }, [games, selectedGameId]);
 
   async function runAction(action: ActionConfig) {
     if (selectedGameId == null) return;

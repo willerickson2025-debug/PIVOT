@@ -3,7 +3,18 @@
  * All calls go through Next.js rewrites (/api/* → Railway /api/v1/*).
  */
 
+import useSWR from "swr";
+
 const BASE = process.env.NEXT_PUBLIC_API_URL || "https://pivot-app-production-1eb4.up.railway.app/api/v1";
+
+const _fetcher = (url: string) => fetch(url).then((r) => r.json());
+
+export function useApi<T>(path: string | null) {
+  return useSWR<T>(path ? `${BASE}${path}` : null, _fetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval: 30000,
+  });
+}
 
 async function get<T>(path: string, params?: Record<string, string | number>): Promise<T> {
   const url = new URL(path, "http://localhost");

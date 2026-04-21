@@ -34,6 +34,8 @@ do not break while the migration to get_v2_advanced_stats proceeds.
 from __future__ import annotations
 
 import asyncio
+import hashlib as _hashlib
+import json as _json
 import logging
 import time
 from datetime import datetime
@@ -42,6 +44,7 @@ from zoneinfo import ZoneInfo
 
 import httpx
 
+from app.core.cache import cache_get, cache_set
 from app.core.config import get_settings
 from app.core.http_client import GlobalHTTPClient
 from app.core.season import get_current_season
@@ -470,6 +473,12 @@ async def get_games_by_date(target_date: Optional[str] = None) -> list[Game]:
         none scheduled.
     """
     query_date = target_date or datetime.now(ZoneInfo(_CENTRAL_TZ)).strftime("%Y-%m-%d")
+    ck = f"games:{query_date}"
+
+    cached_raw = await cache_get(ck)
+    if cached_raw is not None:
+        logger.debug("Redis hit | games:%s", query_date)
+        return [_parse_game(g) for g in cached_raw]
 
     logger.info("Fetching games for date=%s", query_date)
 
@@ -478,8 +487,10 @@ async def get_games_by_date(target_date: Optional[str] = None) -> list[Game]:
         params={"dates[]": query_date, "per_page": _DEFAULT_PER_PAGE},
     )
 
-    games = [_parse_game(g) for g in payload.get("data") or []]
+    raw = payload.get("data") or []
+    games = [_parse_game(g) for g in raw]
     logger.info("Found %d game(s) for %s", len(games), query_date)
+    await cache_set(ck, raw, 120)
     return games
 
 
@@ -511,10 +522,18 @@ async def get_all_teams() -> list[Team]:
     list[Team]
         All 30 franchises (and any G-League entries if present).
     """
+    ck = "teams:all"
+    cached_raw = await cache_get(ck)
+    if cached_raw is not None:
+        logger.debug("Redis hit | teams:all")
+        return [_parse_team(t) for t in cached_raw]
+
     logger.debug("Fetching all teams")
     payload = await _fetch_data("/teams", params={"per_page": _DEFAULT_PER_PAGE})
-    teams = [_parse_team(t) for t in payload.get("data") or []]
+    raw = payload.get("data") or []
+    teams = [_parse_team(t) for t in raw]
     logger.debug("Received %d teams", len(teams))
+    await cache_set(ck, raw, 86400)
     return teams
 
 
@@ -701,6 +720,12 @@ async def get_roster_by_abbr(abbr: str) -> list[dict]:
       3. Fetch /stats for those specific game_ids (both teams returned)
       4. Client-side filter: keep only rows where stat.team.id == team_id
     """
+    ck = f"roster:{abbr.upper()}"
+    cached_result = await cache_get(ck)
+    if cached_result is not None:
+        logger.debug("Redis hit | %s", ck)
+        return cached_result
+
     # 1. Resolve team ID from abbreviation
     teams_payload = await _fetch_data("/teams", params={"per_page": 100})
     team_id: int | None = None
@@ -758,6 +783,7 @@ async def get_roster_by_abbr(abbr: str) -> list[dict]:
 
     result.sort(key=lambda x: x.get("last_name", ""))
     logger.debug("Roster for abbr=%s: %d players (from %d recent games)", abbr, len(result), len(recent_game_ids))
+    await cache_set(ck, result, 3600)
     return result
 
 
@@ -901,6 +927,11 @@ async def get_v2_advanced_stats(
     if postseason is not None:
         params["postseason"] = str(postseason).lower()
 
+    _ck = "v2adv:" + _hashlib.md5(_json.dumps(params, sort_keys=True).encode()).hexdigest()
+    _cached_rows = await cache_get(_ck)
+    if _cached_rows is not None:
+        return _cached_rows
+
     all_rows: list[dict[str, Any]] = []
     cursor: int | None = None
     page = 0
@@ -929,6 +960,7 @@ async def get_v2_advanced_stats(
         "get_v2_advanced_stats | total_rows=%d player_ids=%s seasons=%s postseason=%s",
         len(all_rows), player_ids, seasons, postseason,
     )
+    await cache_set(_ck, all_rows, 1800)
     return all_rows
 
 
@@ -1083,6 +1115,12 @@ async def aggregate_season_advanced(
     """
     season = season or get_current_season()
     cache_key = f"{player_id}:{season}:{postseason}"
+    _rk = f"agg_adv:{player_id}:{season}:{postseason}"
+    _redis_hit = await cache_get(_rk)
+    if _redis_hit is not None:
+        _ADV_SEASON_CACHE[cache_key] = _redis_hit
+        _ADV_CACHE_EXPIRY[cache_key] = time.time()
+        return _redis_hit
     if cache_key in _ADV_SEASON_CACHE:
         age = time.time() - _ADV_CACHE_EXPIRY.get(cache_key, 0.0)
         if age < _ADV_CACHE_TTL:
@@ -1116,6 +1154,7 @@ async def aggregate_season_advanced(
         }
         _ADV_SEASON_CACHE[cache_key] = result
         _ADV_CACHE_EXPIRY[cache_key] = time.time()
+        await cache_set(_rk, result, 3600)
         return result
 
     games_played = len(rows)
@@ -1191,6 +1230,7 @@ async def aggregate_season_advanced(
 
     _ADV_SEASON_CACHE[cache_key] = result
     _ADV_CACHE_EXPIRY[cache_key] = time.time()
+    await cache_set(_rk, result, 3600)
     logger.info(
         "aggregate_season_advanced complete | player_id=%d season=%d games=%d "
         "ts_pct=%.3f usage_pct=%.3f off_rtg=%.1f",
@@ -1255,6 +1295,11 @@ async def get_game_boxscore(game_id: int) -> dict[str, Any]:
         Keys: ``game_id``, ``game_info``, ``home_team``, ``away_team``,
         ``home_players``, ``away_players``, ``total_players``.
     """
+    ck = f"boxscore:{game_id}"
+    cached_raw = await cache_get(ck)
+    if cached_raw is not None:
+        return cached_raw
+
     logger.info("Fetching box score for game_id=%d", game_id)
 
     # Fire both API calls concurrently to halve wall-clock latency.
@@ -1340,7 +1385,7 @@ async def get_game_boxscore(game_id: int) -> dict[str, Any]:
         len(away_players),
     )
 
-    return {
+    result = {
         "game_id": game_id,
         "game_info": game_info,
         "home_team": home_team,
@@ -1349,6 +1394,9 @@ async def get_game_boxscore(game_id: int) -> dict[str, Any]:
         "away_players": away_players,
         "total_players": total,
     }
+    is_final = "final" in (game_info.get("status") or "").lower()
+    await cache_set(ck, result, 86400 if is_final else 60)
+    return result
 
 
 # ---------------------------------------------------------------------------
@@ -1844,6 +1892,11 @@ async def get_season_averages(player_id: int, season: int = 0) -> dict[str, Any]
         "Fetching season averages | player_id=%d season=%d", player_id, season
     )
 
+    _ck = f"season_avg:{player_id}:{season}"
+    _cached = await cache_get(_ck)
+    if _cached is not None:
+        return _cached
+
     try:
         payload = await _fetch_data(
             "/season_averages",
@@ -1865,6 +1918,7 @@ async def get_season_averages(player_id: int, season: int = 0) -> dict[str, Any]
             averages.get("reb") or 0,
             averages.get("ast") or 0,
         )
+        await cache_set(_ck, averages, 3600)
         return averages
 
     except Exception as exc:

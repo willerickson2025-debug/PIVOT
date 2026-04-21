@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { useApi } from "../_lib/api";
 
 // ── Brand tokens ──────────────────────────────────────────────────────────────
 
@@ -109,10 +110,23 @@ export default function IntelPage() {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [focused, setFocused] = useState(false);
   const [selectedIdx, setSelectedIdx] = useState(-1);
-  const [top10, setTop10] = useState<IntelPlayer[]>([]);
-  const [top10Loading, setTop10Loading] = useState(true);
   const [hoveredRow, setHoveredRow] = useState<number | null>(null);
   const [updateLabel, setUpdateLabel] = useState("");
+
+  const { data: leaderboardData, isLoading: top10Loading } = useApi<{
+    players: Array<{ name: string; team: string; position: string; pts: number | null; reb: number | null; ast: number | null; pie: number | null }>;
+  }>("/intel/leaderboard?limit=10&sort=pie");
+
+  const top10: IntelPlayer[] = (leaderboardData?.players ?? []).map((p) => ({
+    name: p.name,
+    slug: nameToSlug(p.name),
+    team: p.team,
+    position: p.position,
+    pts: p.pts,
+    reb: p.reb,
+    ast: p.ast,
+    pie: p.pie,
+  }));
 
   // Set update timestamp on mount (avoids hydration mismatch)
   useEffect(() => {
@@ -126,33 +140,6 @@ export default function IntelPage() {
       hour12: false,
     });
     setUpdateLabel(`${month}.${day} ${time}`);
-  }, []);
-
-  // Fetch top 10 from leaderboard endpoint (single backend request, cached 1h)
-  useEffect(() => {
-    let cancelled = false;
-    fetch(`${BASE}/intel/leaderboard?limit=10&sort=pie`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => {
-        if (cancelled || !d?.players) return;
-        const players: IntelPlayer[] = (d.players as Array<{
-          name: string; team: string; position: string;
-          pts: number | null; reb: number | null; ast: number | null; pie: number | null;
-        }>).map((p) => ({
-          name: p.name,
-          slug: nameToSlug(p.name),
-          team: p.team,
-          position: p.position,
-          pts: p.pts,
-          reb: p.reb,
-          ast: p.ast,
-          pie: p.pie,
-        }));
-        setTop10(players);
-      })
-      .catch(() => {})
-      .finally(() => { if (!cancelled) setTop10Loading(false); });
-    return () => { cancelled = true; };
   }, []);
 
   // Search: real backend player search

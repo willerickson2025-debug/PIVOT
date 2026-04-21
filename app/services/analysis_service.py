@@ -22,7 +22,7 @@ import logging
 from typing import Any, AsyncGenerator, Optional
 from zoneinfo import ZoneInfo
 
-from app.core.cache import analysis_cache, get_cache_ttl
+from app.core.cache import analysis_cache, get_cache_ttl, cache_get, cache_set
 from app.core.season import get_current_season
 from app.core.http_client import GlobalHTTPClient
 from app.core.session import SessionEvent, build_context_block, record as session_record
@@ -907,6 +907,12 @@ async def analyze_player(
     season_label = f"{season_int}-{str(season_int + 1)[-2:]}"
 
     cache_key = f"player_analysis_v2:{player_id}:{season_int}"
+    _rk = f"analysis:player:{player_id}:{season_int}"
+    _redis_hit = await cache_get(_rk)
+    if _redis_hit is not None:
+        analysis_cache.set(cache_key, _redis_hit, ttl=get_cache_ttl())
+        logger.info("analyze_player Redis hit | player_id=%d season=%d", player_id, season_int)
+        return _redis_hit
     cached = analysis_cache.get(cache_key)
     if cached is not None:
         logger.info("analyze_player cache hit | player_id=%d season=%d", player_id, season_int)
@@ -1012,6 +1018,7 @@ async def analyze_player(
         "sample_warnings": sample_warnings,
     }
     analysis_cache.set(cache_key, response, ttl=get_cache_ttl())
+    await cache_set(_rk, response, 86400)
     return response
 
 
@@ -1983,6 +1990,14 @@ async def coach_adjustment(body: dict[str, Any], session_id: Optional[str] = Non
         situation[:80] if situation else "",
     )
 
+    if game_id and not situation:
+        _rk_ca = f"coach:adjust:{game_id}"
+        _redis_ca = await cache_get(_rk_ca)
+        if _redis_ca is not None:
+            return _redis_ca
+    else:
+        _rk_ca = None
+
     game_context: str = ""
     box_summary: str = "Box score unavailable."
     box_available: bool = False
@@ -2103,7 +2118,7 @@ async def coach_adjustment(body: dict[str, Any], session_id: Optional[str] = Non
         result.tokens_used,
     )
 
-    return {
+    response = {
         "game_id": game_id,
         "my_team": my_team,
         "situation": situation,
@@ -2112,6 +2127,9 @@ async def coach_adjustment(body: dict[str, Any], session_id: Optional[str] = Non
         "model": result.model,
         "tokens_used": result.tokens_used,
     }
+    if _rk_ca:
+        await cache_set(_rk_ca, response, 600)
+    return response
 
 
 async def coach_live_adjustment(body: dict[str, Any], session_id: Optional[str] = None) -> dict[str, Any]:
@@ -2383,6 +2401,14 @@ async def timeout_play(body: dict[str, Any]) -> dict[str, Any]:
     game_id: Optional[int] = body.get("game_id")
     my_team: str = body.get("my_team") or ""
 
+    if game_id:
+        _rk_tp = f"coach:timeout:{game_id}"
+        _redis_tp = await cache_get(_rk_tp)
+        if _redis_tp is not None:
+            return _redis_tp
+    else:
+        _rk_tp = None
+
     # All game context derived from live box score
     score_diff: int = 0
     time_remaining: str = ""
@@ -2505,7 +2531,7 @@ async def timeout_play(body: dict[str, Any]) -> dict[str, Any]:
         "yes" if diagram else "no",
     )
 
-    return {
+    response = {
         "game_id": game_id,
         "my_team": my_team,
         "quarter": quarter,
@@ -2516,6 +2542,9 @@ async def timeout_play(body: dict[str, Any]) -> dict[str, Any]:
         "model": result.model,
         "tokens_used": result.tokens_used,
     }
+    if _rk_tp:
+        await cache_set(_rk_tp, response, 600)
+    return response
 
 
 async def defensive_play(body: dict[str, Any]) -> dict[str, Any]:
@@ -2536,6 +2565,14 @@ async def defensive_play(body: dict[str, Any]) -> dict[str, Any]:
     game_id: Optional[int] = body.get("game_id")
     my_team: str = body.get("my_team") or ""
     situation: str = body.get("situation") or ""
+
+    if game_id and not situation:
+        _rk_dp = f"coach:defense:{game_id}"
+        _redis_dp = await cache_get(_rk_dp)
+        if _redis_dp is not None:
+            return _redis_dp
+    else:
+        _rk_dp = None
 
     score_diff: int = 0
     time_remaining: str = ""
@@ -2683,7 +2720,7 @@ async def defensive_play(body: dict[str, Any]) -> dict[str, Any]:
         game_id, my_team, result.tokens_used, "yes" if diagram else "no",
     )
 
-    return {
+    response = {
         "game_id": game_id,
         "my_team": my_team,
         "quarter": quarter,
@@ -2694,6 +2731,9 @@ async def defensive_play(body: dict[str, Any]) -> dict[str, Any]:
         "model": result.model,
         "tokens_used": result.tokens_used,
     }
+    if _rk_dp:
+        await cache_set(_rk_dp, response, 600)
+    return response
 
 
 async def predict_game(body: dict[str, Any], session_id: Optional[str] = None) -> dict[str, Any]:
@@ -3773,6 +3813,12 @@ async def compare_players(
     import hashlib as _hashlib
     raw_key = f"compare_v2:{player_a_name}:{player_b_name}:{season_int}:{archetype or ''}:{compare_context or ''}"
     cache_key = "compare_v2:" + _hashlib.md5(raw_key.encode()).hexdigest()
+    _rk_compare = f"analysis:compare:{cache_key}"
+    _redis_hit = await cache_get(_rk_compare)
+    if _redis_hit is not None:
+        analysis_cache.set(cache_key, _redis_hit, ttl=get_cache_ttl())
+        logger.info("compare_players Redis hit | %s", cache_key)
+        return _redis_hit
     cached = analysis_cache.get(cache_key)
     if cached:
         logger.info("compare_players cache hit | %s", cache_key)
@@ -3930,6 +3976,7 @@ async def compare_players(
     }
 
     analysis_cache.set(cache_key, response, ttl=get_cache_ttl())
+    await cache_set(_rk_compare, response, 86400)
     logger.info(
         "compare_players complete | %s vs %s season=%d tokens=%d",
         name_a, name_b, season_int, result.tokens_used,

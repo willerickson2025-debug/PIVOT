@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import datetime
+import json
 import logging
+import os
 import time
+from typing import Any, Awaitable, Callable, Optional
 from zoneinfo import ZoneInfo
-from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -30,18 +32,9 @@ def get_cache_ttl(
     active_ttl: int = _ACTIVE_TTL,
     default_ttl: int = _DEFAULT_TTL,
 ) -> int:
-    """Return a short TTL during live NBA game windows, a longer one otherwise.
-
-    ``active_ttl``  — seconds to cache during the game window (default 600 / 10 min).
-    ``default_ttl`` — seconds to cache outside the game window (default 3600 / 60 min).
-
-    Game window heuristic: 7:00 pm – 12:30 am Eastern, October through June.
-    The window is intentionally generous so that tip-off variance and overtime
-    games are covered.  No external API call is made — this is a time-of-day
-    check only.
-    """
+    """Return a short TTL during live NBA game windows, a longer one otherwise."""
     now = datetime.datetime.now(_ET)
-    hour = now.hour + now.minute / 60.0   # fractional hour in ET
+    hour = now.hour + now.minute / 60.0
 
     in_season = now.month in _SEASON_MONTHS
     in_window = (hour >= _WINDOW_START_H) or (hour < _WINDOW_END_H)
@@ -52,17 +45,13 @@ def get_cache_ttl(
 
     return default_ttl
 
+
 # ---------------------------------------------------------------------------
-# TTL Cache
+# In-memory TTL Cache (L1 — process-scoped, survives within a single deploy)
 # ---------------------------------------------------------------------------
 
 class TTLCache:
-    """
-    Simple in-memory key/value store with per-entry TTL expiry.
-
-    Thread-safe for async use within a single process. Not persistent across
-    restarts — entries are rebuilt by the agent on each deploy/boot.
-    """
+    """Simple in-memory key/value store with per-entry TTL expiry."""
 
     def __init__(self) -> None:
         self._store: dict[str, tuple[Any, float]] = {}
@@ -98,3 +87,81 @@ class TTLCache:
 
 # Module-level singleton — imported by analysis_service and agent_service.
 analysis_cache = TTLCache()
+
+
+# ---------------------------------------------------------------------------
+# Redis async cache (L2 — shared across workers, survives redeploys)
+# ---------------------------------------------------------------------------
+
+try:
+    from redis.asyncio import Redis as _AsyncRedis
+    _REDIS_AVAILABLE = True
+except ImportError:
+    _REDIS_AVAILABLE = False
+    _AsyncRedis = None  # type: ignore[assignment, misc]
+
+_redis: Optional[Any] = None
+
+
+async def get_redis() -> Optional[Any]:
+    """Return a live Redis client, or None if REDIS_URL is unset or Redis unavailable."""
+    global _redis
+    if not _REDIS_AVAILABLE:
+        return None
+    if _redis is None:
+        url = os.getenv("REDIS_URL")
+        if not url:
+            return None
+        try:
+            _redis = _AsyncRedis.from_url(
+                url,
+                decode_responses=True,
+                socket_connect_timeout=2,
+                socket_timeout=2,
+            )
+        except Exception as exc:
+            logger.warning("Redis init failed: %s", exc)
+            return None
+    return _redis
+
+
+async def cache_get(key: str) -> Any:
+    """Return the deserialized value for key, or None on miss / Redis unavailable."""
+    r = await get_redis()
+    if r is None:
+        return None
+    try:
+        raw = await r.get(key)
+        return json.loads(raw) if raw else None
+    except Exception as exc:
+        logger.debug("Redis cache_get error key=%s: %s", key, exc)
+        return None
+
+
+async def cache_set(key: str, value: Any, ttl_seconds: int) -> None:
+    """Serialize value and store it in Redis with the given TTL. Silent on failure."""
+    r = await get_redis()
+    if r is None:
+        return
+    try:
+        await r.set(key, json.dumps(value, default=str), ex=ttl_seconds)
+    except Exception as exc:
+        logger.debug("Redis cache_set error key=%s: %s", key, exc)
+
+
+async def cached(key: str, ttl: int, loader: Callable[[], Awaitable[Any]]) -> Any:
+    """
+    Read-through cache helper.
+
+    1. Check Redis for key.
+    2. On hit: return deserialized value.
+    3. On miss: call loader(), store result in Redis with ttl, return result.
+    If Redis is unavailable, calls loader() every time (no-op degradation).
+    """
+    hit = await cache_get(key)
+    if hit is not None:
+        logger.debug("Redis hit | key=%s", key)
+        return hit
+    val = await loader()
+    await cache_set(key, val, ttl)
+    return val

@@ -19,6 +19,7 @@ from app.utils.helpers import validate_date_string
 from app.core.limiter import limiter
 from app.core.security import verify_api_key
 from app.core.season import get_current_season
+from app.core.cache import cached as _cached_redis
 
 router = APIRouter()
 
@@ -71,9 +72,10 @@ async def get_games(request: Request, response: Response, date: Optional[str] = 
 
 
 @router.get("/nba/teams")
-async def get_teams():
+async def get_teams(response: Response):
     try:
         teams = await nba_service.get_all_teams()
+        response.headers["Cache-Control"] = "public, max-age=3600, stale-while-revalidate=7200"
         return {"teams": [t.model_dump() for t in teams], "count": len(teams)}
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"BallDontLie API error: {str(e)}")
@@ -81,6 +83,7 @@ async def get_teams():
 
 @router.get("/nba/teams/roster")
 async def get_team_roster(
+    response: Response,
     abbr: Optional[str] = Query(None, description="Team abbreviation, e.g. LAL"),
     team_id: Optional[int] = Query(None, description="Team ID (alternate to abbr)"),
 ):
@@ -94,6 +97,7 @@ async def get_team_roster(
         raise HTTPException(status_code=400, detail="Provide abbr or team_id")
     try:
         players = await nba_service.get_roster_by_abbr(abbr)
+        response.headers["Cache-Control"] = "public, max-age=1800, stale-while-revalidate=3600"
         return {"players": players, "count": len(players)}
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -184,9 +188,15 @@ async def get_lineups(game_ids: List[int] = Query(..., description="game_ids arr
 
 
 @router.get("/nba/games/{game_id}/boxscore")
-async def get_game_boxscore(game_id: int):
+async def get_game_boxscore(game_id: int, response: Response):
     try:
-        return await nba_service.get_game_boxscore(game_id)
+        data = await nba_service.get_game_boxscore(game_id)
+        status = (data.get("game_info") or {}).get("status") or ""
+        if "final" in status.lower():
+            response.headers["Cache-Control"] = "public, max-age=86400, stale-while-revalidate=604800"
+        else:
+            response.headers["Cache-Control"] = "public, max-age=60, stale-while-revalidate=120"
+        return data
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"BallDontLie API error: {str(e)}")
 
@@ -924,13 +934,7 @@ async def defensive_play(request: Request, body: dict = Body(...), _key: str = D
 
 
 # ── Intel Leaderboard ────────────────────────────────────────────────────────
-# No Claude calls. Pure BDL data aggregation. Cached in-memory 1 hour.
-
-import time as _time
-
-_LEADERBOARD_CACHE: dict = {}
-_LEADERBOARD_CACHE_EXPIRY: dict = {}
-_LEADERBOARD_TTL = 3600  # 1 hour
+# No Claude calls. Pure BDL data aggregation. Cached in Redis 30 min.
 
 
 async def _scan_active_player_ids(season: int, max_records: int = 500) -> dict:
@@ -980,46 +984,21 @@ async def _scan_active_player_ids(season: int, max_records: int = 500) -> dict:
     return player_meta
 
 
-@router.get("/intel/leaderboard")
-async def intel_leaderboard(
-    limit: int = Query(10, ge=1, le=50),
-    sort: str = Query("pie"),
-):
-    """
-    Top-N players by the requested stat. Pure BDL aggregation, no Claude calls.
-    Cached in-memory for 1 hour.
+async def _build_leaderboard(limit: int, sort: str, season: int) -> dict:
+    """Build the leaderboard payload. Caller is responsible for caching."""
+    season_label = f"{season}-{str(season + 1)[2:]}"
 
-    sort: pie | pts | net_rating | true_shooting
-    """
-    if sort not in ("pie", "pts", "net_rating", "true_shooting"):
-        raise HTTPException(status_code=400, detail="sort must be one of: pie, pts, net_rating, true_shooting")
-
-    current_season = get_current_season()
-    cache_key = (limit, sort, current_season)
-    now = _time.time()
-
-    if cache_key in _LEADERBOARD_CACHE and now < _LEADERBOARD_CACHE_EXPIRY.get(cache_key, 0):
-        return _LEADERBOARD_CACHE[cache_key]
-
-    season_label = f"{current_season}-{str(current_season + 1)[2:]}"
-
-    # Step 1: Scan recent rows to collect active player IDs and metadata
-    player_meta = await _scan_active_player_ids(current_season, max_records=500)
+    player_meta = await _scan_active_player_ids(season, max_records=500)
     player_ids = list(player_meta.keys())
 
     if not player_ids:
-        result = {"season": current_season, "season_label": season_label, "sort": sort, "players": []}
-        _LEADERBOARD_CACHE[cache_key] = result
-        _LEADERBOARD_CACHE_EXPIRY[cache_key] = now + _LEADERBOARD_TTL
-        return result
+        return {"season": season, "season_label": season_label, "sort": sort, "players": []}
 
-    # Step 2: Aggregate full-season advanced stats in parallel (uses nba_service cache)
     adv_results = await asyncio.gather(
-        *[nba_service.aggregate_season_advanced(pid, current_season) for pid in player_ids],
+        *[nba_service.aggregate_season_advanced(pid, season) for pid in player_ids],
         return_exceptions=True,
     )
 
-    # Step 3: Filter to players with >= 30 games played
     qualifying = [
         (pid, adv)
         for pid, adv in zip(player_ids, adv_results)
@@ -1027,18 +1006,13 @@ async def intel_leaderboard(
     ]
 
     if not qualifying:
-        result = {"season": current_season, "season_label": season_label, "sort": sort, "players": []}
-        _LEADERBOARD_CACHE[cache_key] = result
-        _LEADERBOARD_CACHE_EXPIRY[cache_key] = now + _LEADERBOARD_TTL
-        return result
+        return {"season": season, "season_label": season_label, "sort": sort, "players": []}
 
-    # Step 4: Fetch pts/reb/ast from BDL season_averages in parallel
     avg_results = await asyncio.gather(
-        *[nba_service.get_season_averages(pid, current_season) for pid, _ in qualifying],
+        *[nba_service.get_season_averages(pid, season) for pid, _ in qualifying],
         return_exceptions=True,
     )
 
-    # Step 5: Build and sort entries
     entries = []
     for (pid, adv), avg in zip(qualifying, avg_results):
         if isinstance(avg, Exception):
@@ -1076,24 +1050,40 @@ async def intel_leaderboard(
     for e in entries:
         del e["_sv"]
 
-    result = {
-        "season": current_season,
-        "season_label": season_label,
-        "sort": sort,
-        "players": entries,
-    }
-    _LEADERBOARD_CACHE[cache_key] = result
-    _LEADERBOARD_CACHE_EXPIRY[cache_key] = now + _LEADERBOARD_TTL
-    return result
+    return {"season": season, "season_label": season_label, "sort": sort, "players": entries}
+
+
+@router.get("/intel/leaderboard")
+async def intel_leaderboard(
+    response: Response,
+    limit: int = Query(10, ge=1, le=50),
+    sort: str = Query("pie"),
+):
+    """
+    Top-N players by the requested stat. Pure BDL aggregation, no Claude calls.
+    Cached in Redis 30 min.
+
+    sort: pie | pts | net_rating | true_shooting
+    """
+    if sort not in ("pie", "pts", "net_rating", "true_shooting"):
+        raise HTTPException(status_code=400, detail="sort must be one of: pie, pts, net_rating, true_shooting")
+
+    current_season = get_current_season()
+    rk = f"leaderboard:{limit}:{sort}:{current_season}"
+    data = await _cached_redis(rk, 1800, lambda: _build_leaderboard(limit, sort, current_season))
+    response.headers["Cache-Control"] = "public, max-age=1800, stale-while-revalidate=3600"
+    return data
 
 
 # ── Standings ────────────────────────────────────────────────────────────────
 
 @router.get("/standings")
-async def get_standings():
+async def get_standings(response: Response):
     """Live W-L standings for all 30 teams, cached 6 hours."""
     try:
-        return await standings_service.get_standings()
+        data = await standings_service.get_standings()
+        response.headers["Cache-Control"] = "public, max-age=1800, stale-while-revalidate=3600"
+        return data
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e))
 

@@ -1,12 +1,10 @@
 "use client";
 
-import { Suspense, useState, useEffect, useRef } from "react";
+import { Suspense, useState, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useApi } from "../_lib/api";
 
 // ─── constants ────────────────────────────────────────────────────────────────
-const BASE =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "https://pivot-app-production-1eb4.up.railway.app/api/v1";
 const HEL = '"Helvetica Neue", Helvetica, Arial, sans-serif';
 
 const TEAM_TINTS: Record<string, string> = {
@@ -768,12 +766,11 @@ function GamesContent() {
   const dateParam = searchParams.get("date");
   const selectedDate = dateParam ?? today;
 
-  const [games, setGames] = useState<ApiGame[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [boxscore, setBoxscore] = useState<BoxscoreData | null>(null);
-  const [bsLoading, setBsLoading] = useState(false);
   const [section, setSection] = useState<SectionId>("overview");
   const prevGameId = useRef<number | null>(null);
+
+  const { data: gamesData, isLoading: loading } = useApi<{ games: ApiGame[] }>(`/nba/games?date=${selectedDate}`);
+  const games: ApiGame[] = gamesData?.games ?? [];
 
   // Derived: selected game (URL param → first in list)
   const gameIdParam = searchParams.get("game");
@@ -781,34 +778,14 @@ function GamesContent() {
     ? (games.find((g) => g.id === Number(gameIdParam)) ?? games[0] ?? null)
     : (games[0] ?? null);
 
-  // Fetch games when date changes
-  useEffect(() => {
-    setLoading(true);
-    setGames([]);
-    setBoxscore(null);
-    prevGameId.current = null;
-    fetch(`${BASE}/nba/games?date=${selectedDate}`)
-      .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
-      .then((data) => setGames(data.games ?? []))
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [selectedDate]);
+  const { data: boxscore, isLoading: bsLoading } = useApi<BoxscoreData>(
+    selectedGame ? `/nba/games/${selectedGame.id}/boxscore` : null
+  );
 
-  // Fetch boxscore when selected game changes
-  useEffect(() => {
-    if (!selectedGame) return;
-    if (selectedGame.id === prevGameId.current) return;
+  // Reset section when game changes
+  if (selectedGame && selectedGame.id !== prevGameId.current) {
     prevGameId.current = selectedGame.id;
-    setBsLoading(true);
-    setBoxscore(null);
-    fetch(`${BASE}/nba/games/${selectedGame.id}/boxscore`)
-      .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
-      .then((data: BoxscoreData) => {
-        setBoxscore(data);
-      })
-      .catch(() => {})
-      .finally(() => setBsLoading(false));
-  }, [selectedGame?.id]);
+  }
 
   function handleTabClick(id: number) {
     router.replace(`/games?date=${selectedDate}&game=${id}`, { scroll: false });

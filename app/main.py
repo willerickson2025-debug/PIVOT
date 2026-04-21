@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 from contextlib import asynccontextmanager
@@ -20,16 +21,57 @@ from app.core.limiter import limiter
 logger = logging.getLogger(__name__)
 
 
+async def _prewarm_cache() -> None:
+    try:
+        from app.api.routes import _build_leaderboard
+        from app.core.cache import cache_set
+        from app.core.season import get_current_season
+        from app.services import nba_service
+        import datetime
+
+        season = get_current_season()
+        for sort in ("pie", "pts"):
+            rk = f"leaderboard:10:{sort}:{season}"
+            data = await _build_leaderboard(10, sort, season)
+            await cache_set(rk, data, 1800)
+
+        today = datetime.date.today().isoformat()
+        await nba_service.get_games_by_date(today)
+        await nba_service.get_all_teams()
+        logger.info("Cache prewarm complete")
+    except Exception as exc:
+        logger.warning("Cache prewarm failed: %s", exc)
+
+
+async def _periodic_refresh() -> None:
+    while True:
+        await asyncio.sleep(1800)
+        try:
+            from app.api.routes import _build_leaderboard
+            from app.core.cache import cache_set
+            from app.core.season import get_current_season
+
+            season = get_current_season()
+            for sort in ("pie", "pts"):
+                rk = f"leaderboard:10:{sort}:{season}"
+                data = await _build_leaderboard(10, sort, season)
+                await cache_set(rk, data, 1800)
+            logger.info("Periodic cache refresh complete")
+        except Exception as exc:
+            logger.warning("Periodic cache refresh failed: %s", exc)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await GlobalHTTPClient.start()
     # Prewarm id_bridge in the background — failure is non-fatal
     try:
         from app.services import id_bridge
-        import asyncio
         asyncio.create_task(id_bridge.prewarm())
     except Exception as exc:
         logger.warning("id_bridge prewarm skipped: %s", exc)
+    asyncio.create_task(_prewarm_cache())
+    asyncio.create_task(_periodic_refresh())
     yield
     await GlobalHTTPClient.stop()
 
