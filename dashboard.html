@@ -466,9 +466,9 @@ select{
 .gr-ribbon::-webkit-scrollbar{display:none;}
 .gr-day-arrow{background:none;border:1px solid rgba(255,255,255,.1);color:var(--smoke);width:28px;height:28px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;transition:color 120ms,border-color 120ms;}
 .gr-day-arrow:hover{color:var(--bone);border-color:rgba(255,255,255,.3);}
-.gr-day-pill{flex-shrink:0;width:52px;height:40px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;border-radius:999px;transition:background 120ms,color 120ms;border:1px solid transparent;}
-.gr-day-pill.active{background:var(--neon);color:var(--void);}
-.gr-day-pill:hover:not(.active){background:rgba(255,255,255,.06);}
+.gr-day-pill{flex-shrink:0;width:56px;height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;border-radius:999px;transition:background 140ms,border-color 140ms,color 140ms;border:1px solid rgba(57,255,20,0.22);background:rgba(57,255,20,0.05);backdrop-filter:blur(12px) saturate(160%);-webkit-backdrop-filter:blur(12px) saturate(160%);color:var(--neon);}
+.gr-day-pill.active,.gr-day-pill.today{background:var(--neon);color:#000;border-color:var(--neon);box-shadow:0 0 16px rgba(57,255,20,0.35);}
+.gr-day-pill:hover:not(.active):not(.today){background:rgba(57,255,20,0.12);border-color:rgba(57,255,20,0.45);}
 .gr-today-btn{flex-shrink:0;margin-left:8px;height:28px;padding:0 14px;font-size:10px;font-weight:700;letter-spacing:.08em;border:1px solid var(--neon);background:transparent;color:var(--neon);cursor:pointer;font-family:var(--font);text-transform:uppercase;transition:background 120ms;}
 .gr-today-btn:hover{background:rgba(0,255,102,.1);}
 
@@ -1009,7 +1009,7 @@ function selectGOTN(games){
   const scored=games.map(g=>{
     let score=0;
     if(g.postseason)score+=50;
-    const{type}=parseStatus(g.status);
+    const{type}=parseStatus(g.status,g.period);
     if(type==='live'||type==='final'){
       const diff=Math.abs((g.home_team_score||0)-(g.visitor_team_score||0));
       if(diff<=5)score+=20;
@@ -1029,7 +1029,7 @@ function selectGOTN(games){
 function gotnReasons(g){
   const parts=[];
   if(g.postseason)parts.push('PLAYOFFS');
-  const{type}=parseStatus(g.status);
+  const{type}=parseStatus(g.status,g.period);
   if(type==='live'||type==='final'){
     const diff=Math.abs((g.home_team_score||0)-(g.visitor_team_score||0));
     if(diff<=5)parts.push('GAME WITHIN 5');
@@ -1047,6 +1047,8 @@ const COACHING_ARCHETYPES=[
   {value:'players_coach',label:"The Player's Coach"},{value:'disciplinarian',label:'The Disciplinarian (Defense)'},
   {value:'innovator',label:'The Innovator (Pace & Space)'},{value:'closer',label:'The Closer (Clutch)'},
 ];
+const LIVE_ARCHETYPES=COACHING_ARCHETYPES.filter(a=>['','tactician','disciplinarian','innovator','closer'].includes(a.value));
+const DEV_ARCHETYPES=COACHING_ARCHETYPES.filter(a=>['','architect','motivator','players_coach','innovator'].includes(a.value));
 const COMPARE_CONTEXTS=[
   {value:'',label:'General comparison'},{value:'contender_starter',label:'Starter on a contender'},
   {value:'next_to_star_pg',label:'Fit next to a star PG'},{value:'next_to_star_big',label:'Fit next to a dominant big'},
@@ -1057,7 +1059,17 @@ const COMPARE_CONTEXTS=[
 function localDate(o=0){const d=new Date();d.setDate(d.getDate()+o);return[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');}
 function shiftDate(s,n){const d=new Date(s+'T12:00:00');d.setDate(d.getDate()+n);return[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');}
 function fmtDateLabel(s){const t=localDate(),y=localDate(-1),tm=localDate(1);if(s===t)return'TODAY';if(s===y)return'YESTERDAY';if(s===tm)return'TOMORROW';return new Date(s+'T12:00:00').toLocaleDateString([],{weekday:'short',month:'short',day:'numeric'}).toUpperCase();}
-function parseStatus(s){if(!s)return{label:'TBD',type:'sched'};const l=s.toLowerCase();if(l.includes('final')||l==='complete')return{label:'FINAL',type:'final'};if(l.includes('qtr')||l.includes('half')||l==='in progress')return{label:'LIVE',type:'live'};try{const d=new Date(s);if(!isNaN(d))return{label:d.toLocaleTimeString([],{hour:'numeric',minute:'2-digit',timeZoneName:'short'}),type:'sched'};}catch(e){}return{label:s.substring(0,16),type:'sched'};}
+function parseStatus(s,period){
+  if(!s)return{label:'TBD',type:'sched'};
+  const l=s.toLowerCase().trim();
+  if(l.includes('final')||l==='complete')return{label:'FINAL',type:'final'};
+  // Live: explicit keywords OR BDL v1 "Q1"/"Q2"/"OT" format OR period > 0
+  const liveKeyword=l.includes('qtr')||l.includes('half')||l==='in progress'||/^q[1-9]/.test(l)||l==='ot'||/^\d+\s*(ot|qtr)/i.test(l);
+  const liveByPeriod=period&&parseInt(period,10)>0;
+  if(liveKeyword||liveByPeriod)return{label:'LIVE',type:'live'};
+  try{const d=new Date(s);if(!isNaN(d))return{label:d.toLocaleTimeString([],{hour:'numeric',minute:'2-digit',timeZoneName:'short'}),type:'sched'};}catch(e){}
+  return{label:s.substring(0,16),type:'sched'};
+}
 function getPostseasonLabel(g){if(!g.postseason)return null;return'PLAYOFFS';}
 
 function _readSSEStream(reader,onToken,onDone){
@@ -1250,11 +1262,11 @@ function Ticker() {
   const sep = <span style={{color:'var(--wire)',padding:'0 20px',fontSize:11}}>◆</span>;
 
   const scoreItems = games.map((g,i)=>{
-    const{label,type}=parseStatus(g.status);
+    const{label,type}=parseStatus(g.status,g.period);
     const live=type==='live';
     const away=g.visitor_team?.abbreviation||'AWY';
     const home=g.home_team?.abbreviation||'HOM';
-    const hasScore=g.visitor_team_score!=null&&g.home_team_score!=null;
+    const hasScore=live||type==='final';
     return (
       <span key={`g${i}`} style={{display:'inline-flex',gap:6,alignItems:'center',padding:'0 20px'}}>
         <span style={{fontSize:9,fontWeight:700,letterSpacing:'.12em',color:'var(--neon)'}}>
@@ -1793,9 +1805,9 @@ function AnalysisTab({game,boxscore,liveState,analysisResult,analysisLoading,ana
 function GameModal({game,open,onClose}){
   const gt=React.useMemo(()=>{
     if(!game)return'sched';
-    const{type}=parseStatus(game.status);
+    const{type}=parseStatus(game.status,game.period);
     if(type==='final')return'final';
-    if(type==='live'||game.period>0)return'live';
+    if(type==='live')return'live';
     return'sched';
   },[game?.status,game?.period]);
   const isLive=gt==='live',isFinal=gt==='final',isSched=gt==='sched';
@@ -1940,11 +1952,12 @@ function DateRibbon({date,setDate}){
           const dow=['SUN','MON','TUE','WED','THU','FRI','SAT'][dt.getDay()];
           const mon=dt.toLocaleString('en-US',{month:'short'}).toUpperCase();
           const dy=dt.getDate();
+          const isActive=isSel||isToday;
           return (
             <button key={d} className={`gr-day-pill${isSel?' active':''}${isToday?' today':''}`} onClick={()=>setDate(d)}>
-              <span style={{fontSize:8,letterSpacing:'.12em',opacity:.7}}>{isToday?'TODAY':dow}</span>
-              <span style={{fontSize:13,fontWeight:900,letterSpacing:'-.02em'}}>{dy}</span>
-              <span style={{fontSize:8,letterSpacing:'.08em',opacity:.6}}>{mon}</span>
+              <span style={{fontSize:8,fontWeight:700,letterSpacing:'.1em',fontFamily:'"Helvetica Neue","Helvetica",sans-serif',opacity:isActive?.8:.7}}>{isToday?'TODAY':dow}</span>
+              <span style={{fontSize:14,fontWeight:900,letterSpacing:'-.02em',fontFamily:'"Helvetica Neue","Helvetica",sans-serif',lineHeight:1.1}}>{dy}</span>
+              <span style={{fontSize:7,fontWeight:700,letterSpacing:'.1em',fontFamily:'"Helvetica Neue","Helvetica",sans-serif',opacity:isActive?.7:.6}}>{mon}</span>
             </button>
           );
         })}
@@ -1957,9 +1970,9 @@ function DateRibbon({date,setDate}){
 
 // Module 2: League Pulse — counts + clutch/close/blowout metrics, no inline scores
 function LeaguePulse({games}){
-  const live=games.filter(g=>parseStatus(g.status).type==='live');
-  const final=games.filter(g=>parseStatus(g.status).type==='final');
-  const sched=games.filter(g=>parseStatus(g.status).type==='sched');
+  const live=games.filter(g=>parseStatus(g.status,g.period).type==='live');
+  const final=games.filter(g=>parseStatus(g.status,g.period).type==='final');
+  const sched=games.filter(g=>parseStatus(g.status,g.period).type==='sched');
   const clutch=live.filter(g=>g.period>=4&&Math.abs((g.home_team_score||0)-(g.visitor_team_score||0))<=5).length;
   const close=live.filter(g=>Math.abs((g.home_team_score||0)-(g.visitor_team_score||0))<=5).length;
   const blowout=live.filter(g=>Math.abs((g.home_team_score||0)-(g.visitor_team_score||0))>=20).length;
@@ -1991,7 +2004,7 @@ function LeaguePulse({games}){
 function GameOfTheNight({games,heroLabel,onSelect}){
   const gotn=selectGOTN(games);
   if(!gotn)return null;
-  const{label,type}=parseStatus(gotn.status);
+  const{label,type}=parseStatus(gotn.status,gotn.period);
   const isLive=type==='live';
   const isFinal=type==='final';
   const away=gotn.visitor_team?.abbreviation||'AWY';
@@ -2180,7 +2193,7 @@ function UpcomingRow({g}){
 
 // Module 7: Live Feed — compact 32px rows
 function LiveFeed({games}){
-  const hasLive=games.some(g=>parseStatus(g.status).type==='live');
+  const hasLive=games.some(g=>parseStatus(g.status,g.period).type==='live');
   return (
     <div className="gr-feed-wrap">
       <div className="gr-panel-hd">
@@ -2292,7 +2305,7 @@ function PlayoffSeriesBoard(){
 
 // ── GAME CARD ─────────────────────────────────────────────────────────────────
 function GmV2Card({g,onClick}){
-  const{type}=parseStatus(g.status);
+  const{type}=parseStatus(g.status,g.period);
   const isLive=type==='live';
   const isFinal=type==='final';
   const isSched=type==='sched';
@@ -2347,10 +2360,15 @@ function Games(){
   const[selected,setSelected]=React.useState(null);
   const[modalOpen,setModalOpen]=React.useState(false);
   const tick=useLiveClock();
+  const prevDateRef=React.useRef(null);
 
   React.useEffect(()=>{
+    const isDateChange=date!==prevDateRef.current;
+    prevDateRef.current=date;
     let c=false;
-    setLoading(true);setGames([]);
+    // Only show spinner + clear cards when the date actually changes
+    // Background tick refreshes update silently so live scores don't flash
+    if(isDateChange){setLoading(true);setGames([]);}
     fetch(`${API}/nba/games?date=${date}`)
       .then(r=>r.json())
       .then(d=>{if(!c){setGames(d.data||d.games||[]);setLoading(false);}})
@@ -4715,120 +4733,198 @@ function Compare() {
 
 // ─── COACH MODE ───────────────────────────────────────────────────────────────
 
+var LIVE_MODULES=[
+  {id:'play',code:'A',label:'TIMEOUT PLAY',sub:'ATO SCENARIOS AND GAME MANAGEMENT',
+   examples:['Down 2, 8s left, need a bucket','ATO vs switching defense','BLOB from half-court','Up 3, defend inbound']},
+  {id:'defense',code:'B',label:'DEFENSIVE COUNTER',sub:'LIVE DEFENSIVE SCHEME ADJUSTMENTS',
+   examples:['ICE the side PnR vs SGA','Blitz Jokic off the PnR','Counter staggered screens','Closeout adjustments at halftime']},
+  {id:'lineup',code:'C',label:'LINEUP ADJUSTMENT',sub:'QUICK LINEUP OPTIMIZATION',
+   examples:['Close 4th qtr, up 5 vs MIL','Spark plug 2nd unit','Best 5 vs small-ball','Anti-lineup for Curry minutes']},
+];
+var DEV_MODULES=[
+  {id:'play',code:'A',label:'PLAY DEVELOPMENT',sub:'TEACHING OFFENSIVE CONCEPTS AND SETS',
+   examples:['Install horns series for summer league','Teach the high-low from post entry','5-out motion for early development','Build a go-to 3PT play for your shooter']},
+  {id:'defense',code:'B',label:'DEFENSIVE TEACHING',sub:'SCHEME INSTALLATION AND FUNDAMENTALS',
+   examples:['Teach ICE coverage to young guards','Install scramble switch principles','Build a help-side rotation system','Develop a zone press from scratch']},
+  {id:'projection',code:'C',label:'PLAYER PROJECTION',sub:'LONG-TERM DEVELOPMENT TRACKING',
+   examples:['Project Chet Holmgren at age 25','Development path for two-way wing','Map rookie guard milestones','Evaluate trade target fit in 3 years']},
+];
+
 function CoachMode() {
-  const[view,setView]=React.useState('home');
-  const[archetype,setArchetype]=React.useState('');
-  const[scenario,setScenario]=React.useState('');
-  const[defScheme,setDefScheme]=React.useState('');
-  const[offAction,setOffAction]=React.useState('');
-  const[lineupPlayers,setLineupPlayers]=React.useState([]);
-  const[projPlayer,setProjPlayer]=React.useState(null);
+  var S=React.useState;
+  const[view,setView]=S('home');
+  const[coachingMode,setCoachingMode]=S('live');
+  const[archetype,setArchetype]=S('');
+  const[scenario,setScenario]=S('');
+  const[defScheme,setDefScheme]=S('');
+  const[offAction,setOffAction]=S('');
+  const[lineupPlayers,setLineupPlayers]=S([]);
+  const[projPlayer,setProjPlayer]=S(null);
   const play=useStream();
   const def=useStream();
   const lineup=useStream();
   const proj=useStream();
 
-  const modules=[
-    {id:'play',code:'A',label:'PLAY DESIGN',sub:'Draw up plays and timeout calls'},
-    {id:'defense',code:'B',label:'DEFENSIVE SCHEMES',sub:'Analyze coverage matchups'},
-    {id:'lineup',code:'C',label:'LINEUP TOOLS',sub:'Chemistry, spacing, and projections'},
-  ];
+  function switchMode(m){setCoachingMode(m);setArchetype('');setView('home');}
+
+  const isLive=coachingMode==='live';
+  const archetypeOptions=isLive?LIVE_ARCHETYPES:DEV_ARCHETYPES;
+  const modules=isLive?LIVE_MODULES:DEV_MODULES;
+
+  const HB={fontFamily:'"Helvetica Neue","Helvetica",sans-serif',fontWeight:700};
+  const LABEL_STYLE={...HB,fontSize:9,letterSpacing:'.14em',textTransform:'uppercase',color:'var(--smoke)',marginBottom:8};
+  const SECTION_TITLE={...HB,fontSize:9,letterSpacing:'.12em',textTransform:'uppercase',color:'var(--bone)',marginBottom:8};
 
   return (
     <div className="page page-pad">
-      <div style={{display:'flex',alignItems:'center',paddingTop:24,paddingBottom:24}}>
-        {view!=='home'&&<button className="btn btn-secondary btn-sm" onClick={()=>setView('home')} style={{marginLeft:'auto'}}>BACK</button>}
-      </div>
 
       {view==='home'&&(
-        <div>
-          <div style={{marginBottom:24}}>
-            <div style={{fontFamily:'var(--font)',fontSize:9,color:'#fff',letterSpacing:'.12em',marginBottom:8,textTransform:'uppercase'}}>ARCHETYPE</div>
-            <select value={archetype} onChange={e=>setArchetype(e.target.value)} style={{width:'100%',maxWidth:380,fontFamily:'var(--font)',fontSize:12}}>
-              {COACHING_ARCHETYPES.map(a=><option key={a.value} value={a.value}>{a.label}</option>)}
+        <div style={{paddingTop:32}}>
+          {/* Mode toggle */}
+          <div style={{display:'flex',gap:8,marginBottom:28}}>
+            <button onClick={()=>switchMode('live')}
+              style={{...HB,height:32,padding:'0 16px',borderRadius:100,border:'1px solid var(--wire)',
+                background:isLive?'var(--neon)':'transparent',color:isLive?'#000':'var(--smoke)',
+                fontSize:9,letterSpacing:'.1em',textTransform:'uppercase',cursor:'pointer'}}>
+              LIVE COACHING
+            </button>
+            <button onClick={()=>switchMode('developmental')}
+              style={{...HB,height:32,padding:'0 16px',borderRadius:100,border:'1px solid var(--wire)',
+                background:!isLive?'var(--neon)':'transparent',color:!isLive?'#000':'var(--smoke)',
+                fontSize:9,letterSpacing:'.1em',textTransform:'uppercase',cursor:'pointer'}}>
+              DEVELOPMENTAL COACHING
+            </button>
+          </div>
+
+          {/* Archetype */}
+          <div style={{marginBottom:28}}>
+            <div style={SECTION_TITLE}>ARCHETYPE</div>
+            <select value={archetype} onChange={e=>setArchetype(e.target.value)}
+              style={{...HB,width:'100%',maxWidth:380,fontSize:12}}>
+              {archetypeOptions.map(a=><option key={a.value} value={a.value}>{a.label}</option>)}
             </select>
           </div>
+
+          {/* Module cards */}
           <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:1}}>
-            {modules.map(m=>{
-              const examples={
-                play:['Final possession down 2, 8s left','ATO vs switching defense','SLOB vs zone','BLOB out of timeout'],
-                defense:['ICE the side PnR','Drop coverage on Jokic','Blitz on trailing threes','Zone vs shooter-heavy lineup'],
-                lineup:['SGA + Dort + Williams + Holmgren + Wallace','Closing 5 projection','2nd unit chemistry','Clutch lineup vs MIL']
-              };
-              return(
-                <div key={m.id} className="card card-lift" onClick={()=>setView(m.id)}
-                     style={{padding:'24px',display:'flex',flexDirection:'column',gap:14,background:'var(--graphite)',position:'relative',cursor:'pointer'}}>
-                  <ConfTag text={`MODULE ${m.code}`}/>
-                  <div style={{display:'flex',gap:14,alignItems:'flex-start'}}>
-                    <div style={{width:42,height:42,border:'1px solid var(--wire)',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'var(--font)',fontSize:13,fontWeight:900,color:'var(--signal)',flexShrink:0}}>{m.code}</div>
-                    <div>
-                      <div style={{fontWeight:900,fontSize:14,letterSpacing:'.02em',textTransform:'uppercase',marginBottom:5}}>{m.label}</div>
-                      <div style={{fontSize:12,color:'#fff',lineHeight:1.5,fontWeight:900}}>{m.sub}</div>
-                    </div>
-                  </div>
-                  <div style={{borderTop:'1px solid var(--wire)',paddingTop:12,marginTop:4}}>
-                    <div style={{fontSize:9,fontWeight:700,letterSpacing:'.14em',color:'var(--smoke)',marginBottom:8}}>EXAMPLE QUERIES</div>
-                    {examples[m.id].map(ex=>(
-                      <div key={ex} style={{fontSize:11,color:'var(--ash)',lineHeight:1.6,letterSpacing:'.02em',textTransform:'none'}}>• {ex}</div>
-                    ))}
+            {modules.map(function(m){return(
+              <div key={m.id} className="card card-lift" onClick={()=>setView(m.id)}
+                style={{padding:'24px',display:'flex',flexDirection:'column',gap:14,background:'var(--graphite)',position:'relative',cursor:'pointer',userSelect:'none'}}>
+                <ConfTag text={'MODULE '+m.code}/>
+                <div style={{display:'flex',gap:14,alignItems:'flex-start'}}>
+                  <div style={{...HB,width:42,height:42,border:'1px solid var(--wire)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,color:'var(--neon)',flexShrink:0}}>{m.code}</div>
+                  <div>
+                    <div style={{...HB,fontSize:13,letterSpacing:'.06em',textTransform:'uppercase',marginBottom:6,color:'var(--bone)'}}>{m.label}</div>
+                    <div style={{...HB,fontSize:10,color:'var(--smoke)',letterSpacing:'.08em',textTransform:'uppercase'}}>{m.sub}</div>
                   </div>
                 </div>
-              );
-            })}
+                <div style={{borderTop:'1px solid var(--wire)',paddingTop:12,marginTop:4}}>
+                  <div style={LABEL_STYLE}>EXAMPLE QUERIES</div>
+                  {m.examples.map(function(ex){return(
+                    <div key={ex} style={{...HB,fontSize:10,color:'var(--ash)',lineHeight:1.7,letterSpacing:'.04em',textTransform:'uppercase'}}>+ {ex}</div>
+                  );})}
+                </div>
+              </div>
+            );})}
           </div>
         </div>
       )}
 
       {view==='play'&&(
-        <div className="card" style={{padding:'24px',background:'var(--graphite)',maxWidth:680}}>
-          <div className="label" style={{marginBottom:16}}>Play Design</div>
-          <textarea value={scenario} onChange={e=>setScenario(e.target.value)} rows={3} placeholder="Describe the scenario (e.g., need a quick bucket, down 2, 30 seconds, full timeout)…" style={{marginBottom:12,resize:'vertical'}}/>
-          <button className="btn btn-signal btn-sm" onClick={()=>play.run(`${API}/chat/message`,{messages:[{role:'user',content:`You are an NBA coach${archetype?` (archetype: ${archetype})`:''}. Draw up a play for this situation: ${scenario}. Be specific: name the play, describe player positions, movement, screens, and the primary + secondary options.`}]})} disabled={play.loading||!scenario}>{play.loading?'DRAWING UP PLAY…':'DRAW UP PLAY'}</button>
-          <div style={{marginTop:14}}><StreamBox lines={play.lines} loading={play.loading}/></div>
+        <div style={{paddingTop:32,maxWidth:680}}>
+          <button className="btn btn-secondary btn-sm" onClick={()=>setView('home')} style={{marginBottom:24}}>BACK</button>
+          <div className="card" style={{padding:'28px',background:'var(--graphite)'}}>
+            <div style={{...SECTION_TITLE,marginBottom:16}}>{isLive?'TIMEOUT PLAY':'PLAY DEVELOPMENT'}</div>
+            <textarea value={scenario} onChange={e=>setScenario(e.target.value)} rows={3}
+              placeholder={isLive
+                ?'Describe the live scenario (e.g., down 2, 8 seconds, full timeout)...'
+                :'Describe the play concept to install (e.g., horns set for a young team)...'}
+              style={{marginBottom:14,resize:'vertical'}}/>
+            <button className="btn btn-signal btn-sm"
+              onClick={()=>play.run(API+'/coach',{scenario:scenario,archetype:archetype,coaching_mode:coachingMode})}
+              disabled={play.loading||!scenario}>
+              {play.loading?(isLive?'DRAWING UP PLAY...':'DEVELOPING PLAY...'):(isLive?'CALL PLAY':'DEVELOP PLAY')}
+            </button>
+            <div style={{marginTop:16}}><StreamBox lines={play.lines} loading={play.loading}/></div>
+          </div>
         </div>
       )}
 
       {view==='defense'&&(
-        <div className="card" style={{padding:'24px',background:'var(--graphite)',maxWidth:680}}>
-          <div className="label" style={{marginBottom:16}}>Defensive Scheme</div>
-          <select value={defScheme} onChange={e=>setDefScheme(e.target.value)} style={{width:'100%',marginBottom:12,fontFamily:'var(--font)',fontSize:12}}>
-            <option value=''>Select scheme…</option>
-            {[['man_to_man','Man-to-Man'],['zone_2_3','2-3 Zone'],['zone_3_2','3-2 Zone'],['matchup_zone','Matchup Zone'],['full_court_press','Full Court Press'],['switching_man','Switching Man'],['drop_coverage','Drop Coverage'],['hedge_hard','Hard Hedge / ICE']].map(([v,l])=><option key={v} value={v}>{l}</option>)}
-          </select>
-          <input value={offAction} onChange={e=>setOffAction(e.target.value)} placeholder="Offensive action to defend…" style={{marginBottom:12}}/>
-          <button className="btn btn-signal btn-sm" onClick={()=>def.run(`${API}/chat/message`,{messages:[{role:'user',content:`Analyze the ${defScheme.replace(/_/g,' ')} defensive scheme${offAction?` against: ${offAction}`:''}${archetype?` (coaching archetype: ${archetype})`:''}. Cover assignments, rotations, vulnerabilities, and how to execute it effectively.`}]})} disabled={def.loading||!defScheme}>{def.loading?'ANALYZING…':'ANALYZE SCHEME'}</button>
-          <div style={{marginTop:14}}><StreamBox lines={def.lines} loading={def.loading}/></div>
+        <div style={{paddingTop:32,maxWidth:680}}>
+          <button className="btn btn-secondary btn-sm" onClick={()=>setView('home')} style={{marginBottom:24}}>BACK</button>
+          <div className="card" style={{padding:'28px',background:'var(--graphite)'}}>
+            <div style={{...SECTION_TITLE,marginBottom:16}}>{isLive?'DEFENSIVE COUNTER':'DEFENSIVE TEACHING'}</div>
+            <select value={defScheme} onChange={e=>setDefScheme(e.target.value)} style={{...HB,width:'100%',marginBottom:12,fontSize:12}}>
+              <option value=''>SELECT SCHEME...</option>
+              <option value='man_to_man'>Man-to-Man</option>
+              <option value='zone_2_3'>2-3 Zone</option>
+              <option value='zone_3_2'>3-2 Zone</option>
+              <option value='matchup_zone'>Matchup Zone</option>
+              <option value='full_court_press'>Full Court Press</option>
+              <option value='switching_man'>Switching Man</option>
+              <option value='drop_coverage'>Drop Coverage</option>
+              <option value='hedge_hard'>Hard Hedge / ICE</option>
+            </select>
+            <input value={offAction} onChange={e=>setOffAction(e.target.value)}
+              placeholder={isLive?'OFFENSIVE ACTION TO COUNTER...':'OFFENSIVE CONCEPT TO TEACH AGAINST...'}
+              style={{marginBottom:14}}/>
+            <button className="btn btn-signal btn-sm"
+              onClick={()=>def.run(API+'/defensive-scheme',{scheme:defScheme,offensive_action:offAction,archetype:archetype,coaching_mode:coachingMode})}
+              disabled={def.loading||!defScheme}>
+              {def.loading?(isLive?'ANALYZING...':'BUILDING LESSON...'):(isLive?'COUNTER SCHEME':'TEACH SCHEME')}
+            </button>
+            <div style={{marginTop:16}}><StreamBox lines={def.lines} loading={def.loading}/></div>
+          </div>
         </div>
       )}
 
       {view==='lineup'&&(
-        <div style={{display:'grid',gap:1}}>
-          <div className="card" style={{padding:'24px',background:'var(--graphite)'}}>
-            <div className="label" style={{marginBottom:14}}>Lineup Analysis</div>
-            <p style={{fontSize:13,color:'#fff',marginBottom:16,lineHeight:1.6,fontWeight:900}}>Add up to 5 players to analyze chemistry, spacing, and matchup fit.</p>
-            <PlayerSearchBox onSelect={p=>{if(lineupPlayers.length>=5||lineupPlayers.find(x=>x.id===p.id))return;setLineupPlayers(l=>[...l,p]);lineup.reset();}}/>
-            {lineupPlayers.length>0&&<div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:12,marginBottom:14}}>
-              {lineupPlayers.map((p,i)=>(
-                <div key={i} style={{display:'flex',gap:8,alignItems:'center',background:'rgba(204,255,0,.06)',border:'1px solid var(--wire)',padding:'5px 10px'}}>
-                  <span style={{fontSize:12,fontWeight:600}}>{p.first_name} {p.last_name}</span>
-                  <button onClick={()=>{setLineupPlayers(l=>l.filter((_,j)=>j!==i));lineup.reset();}} style={{background:'none',border:'none',color:'#fff',cursor:'pointer',fontSize:16,lineHeight:1}}>×</button>
-                </div>
-              ))}
-            </div>}
-            {lineupPlayers.length>=2&&<button className="btn btn-signal btn-sm" onClick={()=>lineup.run(`${API}/chat/message`,{messages:[{role:'user',content:`Analyze this NBA lineup: ${lineupPlayers.map(p=>(p.first_name||'')+' '+(p.last_name||'')).join(', ')}. Cover chemistry, spacing, defensive assignments, weaknesses, and best situations to deploy this lineup.`}]})} disabled={lineup.loading}>{lineup.loading?'ANALYZING…':'ANALYZE LINEUP'}</button>}
-            <div style={{marginTop:14}}><StreamBox lines={lineup.lines} loading={lineup.loading}/></div>
-          </div>
-          <div className="card" style={{padding:'24px',background:'var(--graphite)'}}>
-            <div className="label" style={{marginBottom:14}}>Stat Projection</div>
-            <PlayerSearchBox onSelect={p=>{setProjPlayer(p);proj.reset();}}/>
-            {projPlayer&&<div style={{marginTop:14}}>
-              <div style={{display:'flex',gap:12,alignItems:'center',padding:'10px 14px',background:'rgba(204,255,0,.04)',border:'1px solid var(--wire)',marginBottom:12}}>
-                <div style={{fontWeight:900,fontSize:13}}>{projPlayer.first_name} {projPlayer.last_name}</div>
-                <div style={{fontFamily:'var(--font)',fontSize:9,color:'#fff',letterSpacing:'.08em',marginLeft:'auto'}}>{projPlayer.team?.abbreviation||'FA'}</div>
+        <div style={{paddingTop:32}}>
+          <button className="btn btn-secondary btn-sm" onClick={()=>setView('home')} style={{marginBottom:24}}>BACK</button>
+          <div className="card" style={{padding:'28px',background:'var(--graphite)'}}>
+            <div style={{...SECTION_TITLE,marginBottom:16}}>LINEUP ADJUSTMENT</div>
+            <div style={{...HB,fontSize:12,color:'var(--ash)',marginBottom:16,lineHeight:1.6,textTransform:'uppercase',letterSpacing:'.04em'}}>Add up to 5 players to analyze chemistry, spacing, and matchup fit.</div>
+            <PlayerSearchBox onSelect={function(p){if(lineupPlayers.length>=5||lineupPlayers.find(function(x){return x.id===p.id;}))return;setLineupPlayers(function(l){return[...l,p];});lineup.reset();}}/>
+            {lineupPlayers.length>0&&(
+              <div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:12,marginBottom:16}}>
+                {lineupPlayers.map(function(p,i){return(
+                  <div key={i} style={{display:'flex',gap:8,alignItems:'center',background:'rgba(0,255,102,.06)',border:'1px solid var(--wire)',padding:'5px 12px'}}>
+                    <span style={{...HB,fontSize:11,textTransform:'uppercase',letterSpacing:'.04em'}}>{p.first_name} {p.last_name}</span>
+                    <button onClick={()=>{setLineupPlayers(function(l){return l.filter(function(_,j){return j!==i;});});lineup.reset();}}
+                      style={{background:'none',border:'none',color:'var(--smoke)',cursor:'pointer',fontSize:14,lineHeight:1,padding:'0 2px'}}>x</button>
+                  </div>
+                );})}
               </div>
-              <button className="btn btn-signal btn-sm" onClick={()=>proj.run(`${API}/chat/message`,{messages:[{role:'user',content:`Project the 2025-26 season stats for ${(projPlayer.first_name||'')+' '+(projPlayer.last_name||'')} (${projPlayer.team?.abbreviation||'FA'}). Include PPG, RPG, APG, shooting splits, and usage. Factor in age, recent trends, team context, and injury history.`}]})} disabled={proj.loading}>{proj.loading?'PROJECTING…':'PROJECT STATS'}</button>
-              <div style={{marginTop:12}}><StreamBox lines={proj.lines} loading={proj.loading}/></div>
-            </div>}
+            )}
+            {lineupPlayers.length>=2&&(
+              <button className="btn btn-signal btn-sm"
+                onClick={()=>lineup.run(API+'/lineup-analysis',{players:lineupPlayers.map(function(p){return{name:(p.first_name||'')+' '+(p.last_name||'')};}),coaching_mode:'live'})}
+                disabled={lineup.loading}>{lineup.loading?'ANALYZING...':'ANALYZE LINEUP'}</button>
+            )}
+            <div style={{marginTop:16}}><StreamBox lines={lineup.lines} loading={lineup.loading}/></div>
+          </div>
+        </div>
+      )}
+
+      {view==='projection'&&(
+        <div style={{paddingTop:32,maxWidth:680}}>
+          <button className="btn btn-secondary btn-sm" onClick={()=>setView('home')} style={{marginBottom:24}}>BACK</button>
+          <div className="card" style={{padding:'28px',background:'var(--graphite)'}}>
+            <div style={{...SECTION_TITLE,marginBottom:16}}>PLAYER PROJECTION</div>
+            <PlayerSearchBox onSelect={function(p){setProjPlayer(p);proj.reset();}}/>
+            {projPlayer&&(
+              <div style={{marginTop:16}}>
+                <div style={{display:'flex',gap:12,alignItems:'center',padding:'10px 14px',background:'rgba(0,255,102,.04)',border:'1px solid var(--wire)',marginBottom:14}}>
+                  <div style={{...HB,fontSize:13,textTransform:'uppercase',letterSpacing:'.04em'}}>{projPlayer.first_name} {projPlayer.last_name}</div>
+                  <div style={{...HB,fontSize:9,letterSpacing:'.1em',color:'var(--smoke)',marginLeft:'auto'}}>{projPlayer.team&&projPlayer.team.abbreviation?projPlayer.team.abbreviation:'FA'}</div>
+                </div>
+                <button className="btn btn-signal btn-sm"
+                  onClick={()=>proj.run(API+'/stat-projection',{player_name:(projPlayer.first_name||'')+' '+(projPlayer.last_name||''),coaching_mode:'developmental'})}
+                  disabled={proj.loading}>{proj.loading?'PROJECTING...':'PROJECT DEVELOPMENT'}</button>
+                <div style={{marginTop:14}}><StreamBox lines={proj.lines} loading={proj.loading}/></div>
+              </div>
+            )}
           </div>
         </div>
       )}
